@@ -8,6 +8,8 @@ use std::convert::TryInto;
 pub enum Stmt {
   Expr(Expr),
   IfStmt(IfStmt),
+  ForLoop(ForLoop),
+  WhileLoop(WhileLoop),
   PassStmt,
 }
 
@@ -16,6 +18,19 @@ pub struct IfStmt {
   if_clause: (Expr, Vec<Stmt>),
   elif_clauses: Vec<(Expr, Vec<Stmt>)>,
   else_clause: Option<Vec<Stmt>>,
+}
+
+#[derive(Debug, Clone)]
+pub struct ForLoop {
+  iter_var: String,
+  collection: Expr,
+  body: Vec<Stmt>,
+}
+
+#[derive(Debug, Clone)]
+pub struct WhileLoop {
+  condition: Expr,
+  body: Vec<Stmt>,
 }
 
 fn indent<W : fmt::Write>(w : &mut W, ind: u32) -> Result<(), fmt::Error> {
@@ -46,7 +61,15 @@ impl Stmt {
         }
         Ok(())
       }
-      Stmt::PassStmt => write!(w, "pass\n")
+      Stmt::PassStmt => write!(w, "pass\n"),
+      Stmt::ForLoop(ForLoop { iter_var, collection, body }) => {
+        write!(w, "for {} in {}:\n", iter_var, collection.to_gd())?;
+        Stmt::write_gd_stmts(body, w, ind + 4)
+      }
+      Stmt::WhileLoop(WhileLoop { condition, body }) => {
+        write!(w, "while {}:\n", condition.to_gd())?;
+        Stmt::write_gd_stmts(body, w, ind + 4)
+      }
     }
   }
 
@@ -175,6 +198,46 @@ mod tests {
       else_clause: None,
     });
     assert_eq!(outer.to_gd(0), "if condition1:\n    1\n    if condition2:\n        2\n        3\n    4\n");
+
+  }
+
+  #[test]
+  fn for_loop() {
+    let expr = Expr::Var(String::from("collection"));
+    let stmt = Stmt::Expr(Expr::Literal(Literal::Int(1)));
+
+    let for1 = Stmt::ForLoop(ForLoop {
+      iter_var: String::from("i"),
+      collection: expr.clone(),
+      body: vec!(),
+    });
+    assert_eq!(for1.to_gd(0), "for i in collection:\n    pass\n");
+
+    let for2 = Stmt::ForLoop(ForLoop {
+      iter_var: String::from("i"),
+      collection: expr.clone(),
+      body: vec!(stmt.clone()),
+    });
+    assert_eq!(for2.to_gd(0), "for i in collection:\n    1\n");
+
+  }
+
+  #[test]
+  fn while_loop() {
+    let expr = Expr::Var(String::from("condition"));
+    let stmt = Stmt::Expr(Expr::Literal(Literal::Int(1)));
+
+    let while1 = Stmt::WhileLoop(WhileLoop {
+      condition: expr.clone(),
+      body: vec!(),
+    });
+    assert_eq!(while1.to_gd(0), "while condition:\n    pass\n");
+
+    let while2 = Stmt::WhileLoop(WhileLoop {
+      condition: expr.clone(),
+      body: vec!(stmt.clone()),
+    });
+    assert_eq!(while2.to_gd(0), "while condition:\n    1\n");
 
   }
 
