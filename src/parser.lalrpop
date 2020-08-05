@@ -1,0 +1,43 @@
+// -*- Rust -*-
+
+use std::str::FromStr;
+use crate::sxp::ast::AST;
+use crate::sxp::string;
+
+grammar;
+
+Int: i64 = <s:INT> => i64::from_str(s).unwrap();
+Float: f64 = <s:FLOAT> => f64::from_str(s).unwrap();
+String: String = <s:STRING> => {
+  let t = &s[1..s.chars().count()-1];
+  string::parse_escapes(t).unwrap()
+};
+Symbol: String = <s:SYMBOL> => String::from(s);
+
+// TODO I want to be able to recognize symbols like 1b or a.b. I think
+// I'll have to write my own custom lexer to do so.
+match {
+  r"[+-]?[0-9]+" => INT,
+  r"[+-]?[0-9]+((\.[0-9]+)([eE][+-]?[0-9]+)?|(\.[0-9]+)?([eE][+-]?[0-9]+))" => FLOAT,
+  r#""([^\\"]|\\[\\"])*""# => STRING,
+  "(", ")", ".",
+} else {
+  // Currently reserved but unused: []{}`,'#;:.
+  r"[A-Za-z_~+=\-\\!@$%^&*<>][A-Za-z0-9_~+=\-\\!@$%^&*<>]*" => SYMBOL,
+}
+
+pub AST: AST = {
+  <i: Int> => AST::Int(i),
+  <f: Float> => AST::Float(f),
+  <s: String> => AST::String(s),
+  <s: Symbol> => AST::Symbol(s),
+  "(" ")" => AST::Nil,
+  "(" <car: AST> <cdr: Cdr> ")" => AST::Cons(Box::new(car), Box::new(cdr)),
+}
+
+Cdr: AST = {
+  => AST::Nil,
+  "." <cdr: AST> => cdr,
+  <cadr: AST> <cddr: Cdr> => AST::Cons(Box::new(cadr), Box::new(cddr)),
+}
+
