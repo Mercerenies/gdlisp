@@ -1,5 +1,6 @@
 
 use crate::gdscript::expr::Expr;
+use crate::gdscript::pattern::Pattern;
 
 use std::fmt;
 use std::convert::TryInto;
@@ -11,6 +12,8 @@ pub enum Stmt {
   ForLoop(ForLoop),
   WhileLoop(WhileLoop),
   PassStmt,
+  MatchStmt(Expr, Vec<(Pattern, Vec<Stmt>)>),
+  VarDecl(String, Expr),
 }
 
 #[derive(Debug, Clone)]
@@ -70,6 +73,27 @@ impl Stmt {
         write!(w, "while {}:\n", condition.to_gd())?;
         Stmt::write_gd_stmts(body, w, ind + 4)
       }
+      Stmt::MatchStmt(expr, clauses) => {
+        write!(w, "match {}:\n", expr.to_gd())?;
+        if clauses.is_empty() {
+          // If you try to have an empty match body, you kinda deserve
+          // the program to crash. But hey, I'm in a good mood, so
+          // I'll handle the wonky corner case. :)
+          indent(w, ind + 4)?;
+          write!(w, "{}:\n", Pattern::Wildcard.to_gd())?;
+          Stmt::write_gd_stmts(vec!(), w, ind + 8)
+        } else {
+          for (ptn, body) in clauses {
+            indent(w, ind + 4)?;
+            write!(w, "{}:\n", ptn.to_gd())?;
+            Stmt::write_gd_stmts(body, w, ind + 8)?;
+          }
+          Ok(())
+        }
+      }
+      Stmt::VarDecl(name, expr) => {
+        write!(w, "var {} = {}\n", name, expr.to_gd())
+      }
     }
   }
 
@@ -112,6 +136,12 @@ mod tests {
     assert_eq!(Stmt::Expr(Expr::Var(String::from("foobar"))).to_gd(0), "foobar\n");
     assert_eq!(Stmt::Expr(Expr::Var(String::from("foobar"))).to_gd(4), "    foobar\n");
     assert_eq!(Stmt::Expr(Expr::Var(String::from("foobar"))).to_gd(8), "        foobar\n");
+  }
+
+  #[test]
+  fn simple_stmts() {
+    let expr = Expr::Literal(Literal::Int(1000));
+    assert_eq!(Stmt::VarDecl(String::from("var_name"), expr.clone()).to_gd(0), "var var_name = 1000\n");
   }
 
   #[test]
@@ -238,6 +268,28 @@ mod tests {
       body: vec!(stmt.clone()),
     });
     assert_eq!(while2.to_gd(0), "while condition:\n    1\n");
+
+  }
+
+  #[test]
+  fn match_stmt() {
+    let expr = Expr::Var(String::from("expr"));
+
+    let ptn1 = Pattern::Literal(Literal::Int(100));
+    let ptn2 = Pattern::Literal(Literal::Int(200));
+
+    let body1 = Stmt::Expr(Expr::Var(String::from("body1")));
+    let body2 = Stmt::Expr(Expr::Var(String::from("body2")));
+
+    let match1 = Stmt::MatchStmt(expr.clone(), vec!());
+    assert_eq!(match1.to_gd(0), "match expr:\n    _:\n        pass\n");
+
+    let match2 = Stmt::MatchStmt(expr.clone(), vec!((ptn1.clone(), vec!(body1.clone()))));
+    assert_eq!(match2.to_gd(0), "match expr:\n    100:\n        body1\n");
+
+    let match3 = Stmt::MatchStmt(expr.clone(), vec!((ptn1.clone(), vec!(body1.clone())),
+                                                    (ptn2.clone(), vec!(body2.clone()))));
+    assert_eq!(match3.to_gd(0), "match expr:\n    100:\n        body1\n    200:\n        body2\n");
 
   }
 
