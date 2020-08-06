@@ -1,9 +1,9 @@
 
 use crate::gdscript::expr::Expr;
 use crate::gdscript::pattern::Pattern;
+use crate::gdscript::indent;
 
 use std::fmt;
-use std::convert::TryInto;
 
 #[derive(Debug, Clone)]
 pub enum Stmt {
@@ -36,14 +36,9 @@ pub struct WhileLoop {
   body: Vec<Stmt>,
 }
 
-fn indent<W : fmt::Write>(w : &mut W, ind: u32) -> Result<(), fmt::Error> {
-  let spaces = String::from(" ").repeat(ind.try_into().unwrap());
-  write!(w, "{}", spaces)
-}
-
 impl Stmt {
 
-  pub fn write_gd<W : fmt::Write>(&self, w : &mut W, ind: u32) -> Result<(), fmt::Error> {
+  pub fn write_gd<W : fmt::Write>(&self, w: &mut W, ind: u32) -> Result<(), fmt::Error> {
     indent(w, ind)?;
     match self {
       Stmt::Expr(expr) => {
