@@ -7,9 +7,13 @@ pub enum Pattern {
   Var(String),
   Wildcard,
   BindingVar(String),
-  // Bool specifies whether we have a wildcard specifier.
-  Array(Vec<Pattern>, bool),
-  Dictionary(Vec<(Literal, Pattern)>, bool),
+  Array(Vec<Pattern>, Wildcard),
+  Dictionary(Vec<(Literal, Pattern)>, Wildcard),
+}
+
+#[derive(PartialEq, Eq, PartialOrd, Ord, Hash, Debug, Clone, Copy)]
+pub enum Wildcard {
+  NoWildcard, Wildcard,
 }
 
 impl Pattern {
@@ -31,7 +35,7 @@ impl Pattern {
           first = false;
           result.push_str(&ptn.to_gd());
         }
-        if *wild {
+        if *wild == Wildcard::Wildcard {
           if !first {
             result.push_str(", ");
           }
@@ -51,7 +55,7 @@ impl Pattern {
           first = false;
           result.push_str(&format!("{}: {}", lit.to_gd(), ptn.to_gd()));
         }
-        if *wild {
+        if *wild == Wildcard::Wildcard {
           if !first {
             result.push_str(", ");
           }
@@ -85,19 +89,19 @@ mod tests {
     let ptn1 = Pattern::Literal(Literal::Int(1));
     let ptn2 = Pattern::Literal(Literal::Int(2));
 
-    assert_eq!(Pattern::Array(vec!(), false).to_gd(), "[]");
-    assert_eq!(Pattern::Array(vec!(), true).to_gd(), "[..]");
-    assert_eq!(Pattern::Array(vec!(ptn1.clone()), false).to_gd(), "[1]");
-    assert_eq!(Pattern::Array(vec!(ptn1.clone()), true).to_gd(), "[1, ..]");
-    assert_eq!(Pattern::Array(vec!(ptn1.clone(), ptn2.clone()), false).to_gd(), "[1, 2]");
-    assert_eq!(Pattern::Array(vec!(ptn1.clone(), ptn2.clone()), true).to_gd(), "[1, 2, ..]");
+    assert_eq!(Pattern::Array(vec!(), Wildcard::NoWildcard).to_gd(), "[]");
+    assert_eq!(Pattern::Array(vec!(), Wildcard::Wildcard).to_gd(), "[..]");
+    assert_eq!(Pattern::Array(vec!(ptn1.clone()), Wildcard::NoWildcard).to_gd(), "[1]");
+    assert_eq!(Pattern::Array(vec!(ptn1.clone()), Wildcard::Wildcard).to_gd(), "[1, ..]");
+    assert_eq!(Pattern::Array(vec!(ptn1.clone(), ptn2.clone()), Wildcard::NoWildcard).to_gd(), "[1, 2]");
+    assert_eq!(Pattern::Array(vec!(ptn1.clone(), ptn2.clone()), Wildcard::Wildcard).to_gd(), "[1, 2, ..]");
 
-    assert_eq!(Pattern::Dictionary(vec!(), false).to_gd(), "{}");
-    assert_eq!(Pattern::Dictionary(vec!(), true).to_gd(), "{..}");
-    assert_eq!(Pattern::Dictionary(vec!((lit1.clone(), ptn1.clone())), false).to_gd(), "{100: 1}");
-    assert_eq!(Pattern::Dictionary(vec!((lit1.clone(), ptn1.clone())), true).to_gd(), "{100: 1, ..}");
-    assert_eq!(Pattern::Dictionary(vec!((lit1.clone(), ptn1.clone()), (lit2.clone(), ptn2.clone())), false).to_gd(), "{100: 1, 200: 2}");
-    assert_eq!(Pattern::Dictionary(vec!((lit1.clone(), ptn1.clone()), (lit2.clone(), ptn2.clone())), true).to_gd(), "{100: 1, 200: 2, ..}");
+    assert_eq!(Pattern::Dictionary(vec!(), Wildcard::NoWildcard).to_gd(), "{}");
+    assert_eq!(Pattern::Dictionary(vec!(), Wildcard::Wildcard).to_gd(), "{..}");
+    assert_eq!(Pattern::Dictionary(vec!((lit1.clone(), ptn1.clone())), Wildcard::NoWildcard).to_gd(), "{100: 1}");
+    assert_eq!(Pattern::Dictionary(vec!((lit1.clone(), ptn1.clone())), Wildcard::Wildcard).to_gd(), "{100: 1, ..}");
+    assert_eq!(Pattern::Dictionary(vec!((lit1.clone(), ptn1.clone()), (lit2.clone(), ptn2.clone())), Wildcard::NoWildcard).to_gd(), "{100: 1, 200: 2}");
+    assert_eq!(Pattern::Dictionary(vec!((lit1.clone(), ptn1.clone()), (lit2.clone(), ptn2.clone())), Wildcard::Wildcard).to_gd(), "{100: 1, 200: 2, ..}");
 
   }
 
