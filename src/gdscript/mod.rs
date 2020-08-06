@@ -4,6 +4,8 @@ pub mod stmt;
 pub mod op;
 pub mod literal;
 pub mod pattern;
+pub mod decl;
+
 use std::fmt;
 use std::convert::TryInto;
 
