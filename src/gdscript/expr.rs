@@ -18,6 +18,7 @@ pub enum Expr {
   Subscript(Box<Expr>, Box<Expr>),
   Attribute(Box<Expr>, String),
   Call(Option<Box<Expr>>, String, Vec<Expr>),
+  SuperCall(String, Vec<Expr>),
   Unary(UnaryOp, Box<Expr>),
   Binary(Box<Expr>, BinaryOp, Box<Expr>),
   Assign(Box<Expr>, AssignOp, Box<Expr>),
@@ -57,6 +58,18 @@ impl Expr {
           arglist.push_str(&arg.to_gd_prec(PRECEDENCE_LOWEST));
         }
         format!("{}{}({})", prefix, name, arglist)
+      },
+      Expr::SuperCall(name, args) => {
+        let mut arglist = String::new();
+        let mut first = true;
+        for arg in args {
+          if !first {
+            arglist.push_str(", ");
+          }
+          first = false;
+          arglist.push_str(&arg.to_gd_prec(PRECEDENCE_LOWEST));
+        }
+        format!(".{}({})", name, arglist)
       },
       Expr::Unary(op, arg) => {
         let info = op.op_info();
@@ -156,6 +169,8 @@ mod tests {
     assert_eq!(Expr::Call(Some(Box::new(lhs_p.clone())), name.clone(), vec!(arg1.clone())).to_gd(), "(1 + 2).func(1)");
     assert_eq!(Expr::Call(Some(Box::new(lhs_p.clone())), name.clone(), vec!(arg1.clone(), arg2.clone())).to_gd(), "(1 + 2).func(1, 2)");
     assert_eq!(Expr::Call(Some(Box::new(lhs_p.clone())), name.clone(), vec!(arg1.clone(), arg2.clone(), arg3.clone())).to_gd(), "(1 + 2).func(1, 2, 3)");
+
+    assert_eq!(Expr::SuperCall(name.clone(), vec!()).to_gd(), ".func()");
 
   }
 
