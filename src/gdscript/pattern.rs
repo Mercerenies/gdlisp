@@ -69,6 +69,12 @@ impl Pattern {
 
 }
 
+impl From<Wildcard> for bool {
+  fn from(w: Wildcard) -> bool {
+    w == Wildcard::Wildcard
+  }
+}
+
 #[cfg(test)]
 mod tests {
   use super::*;

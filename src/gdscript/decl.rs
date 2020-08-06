@@ -114,6 +114,12 @@ impl ClassExtends {
 
 }
 
+impl From<Static> for bool {
+  fn from(s: Static) -> bool {
+    s == Static::IsStatic
+  }
+}
+
 #[cfg(test)]
 mod tests {
   use super::*;
