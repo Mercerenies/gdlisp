@@ -14,6 +14,7 @@ pub enum Stmt {
   PassStmt,
   MatchStmt(Expr, Vec<(Pattern, Vec<Stmt>)>),
   VarDecl(String, Expr),
+  ReturnStmt(Expr),
 }
 
 #[derive(Debug, Clone)]
@@ -89,6 +90,9 @@ impl Stmt {
       Stmt::VarDecl(name, expr) => {
         write!(w, "var {} = {}\n", name, expr.to_gd())
       }
+      Stmt::ReturnStmt(expr) => {
+        write!(w, "return {}\n", expr.to_gd())
+      }
     }
   }
 
@@ -137,6 +141,7 @@ mod tests {
   fn simple_stmts() {
     let expr = Expr::Literal(Literal::Int(1000));
     assert_eq!(Stmt::VarDecl(String::from("var_name"), expr.clone()).to_gd(0), "var var_name = 1000\n");
+    assert_eq!(Stmt::ReturnStmt(expr.clone()).to_gd(0), "return 1000\n");
   }
 
   #[test]
