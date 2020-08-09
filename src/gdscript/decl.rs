@@ -5,6 +5,7 @@ use crate::gdscript::indent;
 
 use std::fmt;
 
+// TODO _init has some special syntax that we need to be prepared to handle.
 #[derive(Clone, Debug)]
 pub enum Decl {
   VarDecl(String, Option<Expr>),

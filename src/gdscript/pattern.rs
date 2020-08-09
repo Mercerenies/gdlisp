@@ -25,44 +25,18 @@ impl Pattern {
       Pattern::Wildcard => String::from("_"), // TODO Make sure to handle the case of a variable called _, as that's technically weirdly ambiguous here.
       Pattern::BindingVar(s) => format!("var {}", s),
       Pattern::Array(ptns, wild) => {
-        let mut result = String::new();
-        result.push_str("[");
-        let mut first = true;
-        for ptn in ptns {
-          if !first {
-            result.push_str(", ");
-          }
-          first = false;
-          result.push_str(&ptn.to_gd());
-        }
+        let mut inner = ptns.iter().map(|ptn| ptn.to_gd()).collect::<Vec<_>>();
         if *wild == Wildcard::Wildcard {
-          if !first {
-            result.push_str(", ");
-          }
-          result.push_str("..");
+          inner.push(String::from(".."));
         }
-        result.push_str("]");
-        result
+        format!("[{}]", inner.join(", "))
       },
       Pattern::Dictionary(d, wild) => {
-        let mut result = String::new();
-        result.push_str("{");
-        let mut first = true;
-        for (lit, ptn) in d {
-          if !first {
-            result.push_str(", ");
-          }
-          first = false;
-          result.push_str(&format!("{}: {}", lit.to_gd(), ptn.to_gd()));
-        }
+        let mut inner = d.iter().map(|x| format!("{}: {}", x.0.to_gd(), x.1.to_gd())).collect::<Vec<_>>();
         if *wild == Wildcard::Wildcard {
-          if !first {
-            result.push_str(", ");
-          }
-          result.push_str("..");
+          inner.push(String::from(".."));
         }
-        result.push_str("}");
-        result
+        format!("{{{}}}", inner.join(", "))
       },
     }
   }

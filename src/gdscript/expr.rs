@@ -48,27 +48,11 @@ impl Expr {
         } else {
           String::from("")
         };
-        let mut arglist = String::new();
-        let mut first = true;
-        for arg in args {
-          if !first {
-            arglist.push_str(", ");
-          }
-          first = false;
-          arglist.push_str(&arg.to_gd_prec(PRECEDENCE_LOWEST));
-        }
+        let arglist = args.iter().map(|arg| arg.to_gd_prec(PRECEDENCE_LOWEST)).collect::<Vec<_>>().join(", ");
         format!("{}{}({})", prefix, name, arglist)
       },
       Expr::SuperCall(name, args) => {
-        let mut arglist = String::new();
-        let mut first = true;
-        for arg in args {
-          if !first {
-            arglist.push_str(", ");
-          }
-          first = false;
-          arglist.push_str(&arg.to_gd_prec(PRECEDENCE_LOWEST));
-        }
+        let arglist = args.iter().map(|arg| arg.to_gd_prec(PRECEDENCE_LOWEST)).collect::<Vec<_>>().join(", ");
         format!(".{}({})", name, arglist)
       },
       Expr::Unary(op, arg) => {
