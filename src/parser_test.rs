@@ -10,7 +10,7 @@ mod tests {
   fn parser_simple() {
     let p = ASTParser::new();
     assert_eq!(p.parse("12").unwrap(), AST::Int(12));
-    assert_eq!(p.parse("12.0").unwrap(), AST::Float(12.0));
+    assert_eq!(p.parse("12.0").unwrap(), AST::Float((12.0).into()));
     assert_eq!(p.parse("abc").unwrap(), ast::symbol("abc"));
     assert_eq!(p.parse("\"abc\"").unwrap(), ast::string("abc"));
   }

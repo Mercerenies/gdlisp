@@ -28,7 +28,7 @@ match {
 
 pub AST: AST = {
   <i: Int> => AST::Int(i),
-  <f: Float> => AST::Float(f),
+  <f: Float> => AST::Float(f.into()),
   <s: String> => AST::String(s),
   <s: Symbol> => AST::Symbol(s),
   "(" ")" => AST::Nil,

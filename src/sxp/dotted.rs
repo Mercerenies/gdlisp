@@ -3,7 +3,7 @@ use super::ast::AST;
 
 use std::convert::TryFrom;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Eq, PartialEq, Hash)]
 pub struct DottedExpr<'a> {
   pub elements: Vec<&'a AST>,
   pub terminal: &'a AST,

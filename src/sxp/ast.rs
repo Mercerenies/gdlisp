@@ -1,13 +1,14 @@
 
+use ordered_float::OrderedFloat;
+
 use std::fmt;
 
-// TODO Implement a sensible Eq that bypasses the floating-point (==) shenanigans.
-#[derive(PartialEq)]
+#[derive(PartialEq, Eq, Hash, Clone)]
 pub enum AST {
   Nil,
   Cons(Box<AST>, Box<AST>),
   Int(i64),
-  Float(f64),
+  Float(OrderedFloat<f64>),
   String(String),
   Symbol(String),
 }
@@ -86,8 +87,8 @@ mod tests {
   fn runtime_repr_numerical() {
     assert_eq!(AST::Int(150).to_string(), 150.to_string());
     assert_eq!(AST::Int(-99).to_string(), (-99).to_string());
-    assert_eq!(AST::Float(0.83).to_string(), (0.83).to_string());
-    assert_eq!(AST::Float(-1.2).to_string(), (-1.2).to_string());
+    assert_eq!(AST::Float((0.83).into()).to_string(), (0.83).to_string());
+    assert_eq!(AST::Float((-1.2).into()).to_string(), (-1.2).to_string());
   }
 
   #[test]
