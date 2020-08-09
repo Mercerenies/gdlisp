@@ -24,6 +24,14 @@ pub fn symbol(s: &str) -> AST {
   AST::Symbol(s.to_string())
 }
 
+pub fn dotted_list(vec: Vec<AST>, terminal: AST) -> AST {
+  vec.into_iter().rev().fold(terminal, |cdr, car| cons(car, cdr))
+}
+
+pub fn list(vec: Vec<AST>) -> AST {
+  dotted_list(vec, AST::Nil)
+}
+
 fn fmt_list(a: &AST, b: &AST, f: &mut fmt::Formatter<'_>) -> fmt::Result {
   match b {
     AST::Nil =>
@@ -105,6 +113,12 @@ mod tests {
     assert_eq!(cons(AST::Int(1), AST::Int(2)).to_string(), "(1 . 2)");
     assert_eq!(cons(AST::Int(1), cons(AST::Int(2), AST::Int(3))).to_string(), "(1 2 . 3)");
     assert_eq!(cons(AST::Int(1), cons(AST::Int(2), cons(AST::Int(3), AST::Nil))).to_string(), "(1 2 3)");
+  }
+
+  #[test]
+  fn runtime_repr_list() {
+    assert_eq!(list(vec!(AST::Int(1), AST::Int(2), AST::Int(3))).to_string(), "(1 2 3)");
+    assert_eq!(dotted_list(vec!(AST::Int(1), AST::Int(2), AST::Int(3)), AST::Int(4)).to_string(), "(1 2 3 . 4)");
   }
 
 }
