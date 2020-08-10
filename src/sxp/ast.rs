@@ -2,6 +2,7 @@
 use ordered_float::OrderedFloat;
 
 use std::fmt;
+use std::convert::Infallible;
 
 #[derive(PartialEq, Eq, Hash, Clone)]
 pub enum AST {
@@ -47,6 +48,89 @@ fn fmt_list(a: &AST, b: &AST, f: &mut fmt::Formatter<'_>) -> fmt::Result {
       // Dotted list; print with dot
       write!(f, "{} . {}", a, b)
   }
+}
+
+impl AST {
+
+  fn _walk_preorder<'a, 'b, F, E>(&'a self, func: &mut F) -> Result<(), E>
+  where F: FnMut(&'b AST) -> Result<(), E>,
+        'a: 'b {
+    func(self)?;
+    match self {
+      AST::Cons(car, cdr) => {
+        car._walk_preorder(func)?;
+        cdr._walk_preorder(func)?;
+      }
+      _ => {}
+    }
+    Ok(())
+  }
+
+  fn _walk_inorder<'a, 'b, F, E>(&'a self, func: &mut F) -> Result<(), E>
+  where F: FnMut(&'b AST) -> Result<(), E>,
+        'a: 'b {
+    match self {
+      AST::Cons(car, cdr) => {
+        car._walk_inorder(func)?;
+        func(self)?;
+        cdr._walk_inorder(func)?;
+      }
+      _ => func(self)?
+    }
+    Ok(())
+  }
+
+  fn _walk_postorder<'a, 'b, F, E>(&'a self, func: &mut F) -> Result<(), E>
+  where F: FnMut(&'b AST) -> Result<(), E>,
+        'a: 'b {
+    match self {
+      AST::Cons(car, cdr) => {
+        car._walk_postorder(func)?;
+        cdr._walk_postorder(func)?;
+      }
+      _ => {}
+    }
+    func(self)?;
+    Ok(())
+  }
+
+  pub fn walk_preorder<'a, 'b, F, E>(&'a self, mut func: F) -> Result<(), E>
+  where F: FnMut(&'b AST) -> Result<(), E>,
+        'a: 'b {
+    self._walk_preorder(&mut func)
+  }
+
+  pub fn walk_inorder<'a, 'b, F, E>(&'a self, mut func: F) -> Result<(), E>
+  where F: FnMut(&'b AST) -> Result<(), E>,
+        'a: 'b {
+    self._walk_inorder(&mut func)
+  }
+
+  pub fn walk_postorder<'a, 'b, F, E>(&'a self, mut func: F) -> Result<(), E>
+  where F: FnMut(&'b AST) -> Result<(), E>,
+        'a: 'b {
+    self._walk_postorder(&mut func)
+  }
+
+  fn extract_err<T>(res: Result<T, Infallible>) -> T {
+    match res {
+      Ok(x) => x,
+      Err(contra) => match contra {}
+    }
+  }
+
+  pub fn all_symbols<'a>(&'a self) -> Vec<&'a str> {
+    let mut result: Vec<&'a str> = Vec::new();
+    let err = self.walk_preorder::<_, Infallible>(|x| {
+      if let AST::Symbol(x) = x {
+        result.push(&x);
+      }
+      Ok(())
+    });
+    let () = AST::extract_err(err);
+    result
+  }
+
 }
 
 impl fmt::Display for AST {
@@ -120,6 +204,18 @@ mod tests {
   fn runtime_repr_list() {
     assert_eq!(list(vec!(AST::Int(1), AST::Int(2), AST::Int(3))).to_string(), "(1 2 3)");
     assert_eq!(dotted_list(vec!(AST::Int(1), AST::Int(2), AST::Int(3)), AST::Int(4)).to_string(), "(1 2 3 . 4)");
+  }
+
+  #[test]
+  fn get_all_symbols() {
+    assert_eq!(AST::Nil.all_symbols(), Vec::<&str>::new());
+    assert_eq!(AST::Int(3).all_symbols(), Vec::<&str>::new());
+    assert_eq!(AST::Symbol(String::from("abc")).all_symbols(), vec!("abc"));
+
+    let foo = AST::Symbol(String::from("foo"));
+    let bar = AST::Symbol(String::from("bar"));
+    assert_eq!(cons(foo.clone(), bar.clone()).all_symbols(), vec!("foo", "bar"));
+    assert_eq!(list(vec!(foo.clone(), bar.clone())).all_symbols(), vec!("foo", "bar"));
   }
 
 }
