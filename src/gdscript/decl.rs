@@ -16,16 +16,16 @@ pub enum Decl {
 
 #[derive(Clone, Debug)]
 pub struct ClassDecl {
-  name: String,
-  extends: ClassExtends,
-  body: Vec<Decl>,
+  pub name: String,
+  pub extends: ClassExtends,
+  pub body: Vec<Decl>,
 }
 
 #[derive(Clone, Debug)]
 pub struct TopLevelClass {
-  name: Option<String>, // The top-level class is not required to have a name.
-  extends: ClassExtends,
-  body: Vec<Decl>,
+  pub name: Option<String>, // The top-level class is not required to have a name.
+  pub extends: ClassExtends,
+  pub body: Vec<Decl>,
 }
 
 #[derive(Clone, Debug)]
@@ -36,9 +36,9 @@ pub enum ClassExtends {
 // TODO Support default arguments
 #[derive(Clone, Debug)]
 pub struct FnDecl {
-  name: String,
-  args: Vec<String>,
-  body: Vec<Stmt>,
+  pub name: String,
+  pub args: Vec<String>,
+  pub body: Vec<Stmt>,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
