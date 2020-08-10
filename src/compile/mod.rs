@@ -19,13 +19,13 @@ use std::convert::TryInto;
 // and the like. This is fine; I don't want the compiled form and the
 // original AST to be sharing responsibilities for the same data.
 
-pub struct Compiler<'a, 'b> {
-  gen: &'a mut FreshNameGenerator<'b>
+pub struct Compiler<'a> {
+  gen: FreshNameGenerator<'a>
 }
 
-impl<'a, 'b> Compiler<'a, 'b> {
+impl<'a> Compiler<'a> {
 
-  pub fn new(gen: &'a mut FreshNameGenerator<'b>) -> Compiler<'a, 'b> {
+  pub fn new(gen: FreshNameGenerator<'a>) -> Compiler<'a> {
     Compiler { gen }
   }
 
