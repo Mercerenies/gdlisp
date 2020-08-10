@@ -8,8 +8,8 @@ use std::convert::Infallible;
 pub enum AST {
   Nil,
   Cons(Box<AST>, Box<AST>),
-  Int(i64),
-  Float(OrderedFloat<f64>),
+  Int(i32),
+  Float(OrderedFloat<f32>),
   String(String),
   Symbol(String),
 }
