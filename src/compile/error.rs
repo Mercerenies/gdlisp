@@ -8,6 +8,7 @@ pub enum Error {
   CannotCall(AST),
   TooFewArgs(String, usize),
   TooManyArgs(String, usize),
+  InvalidArg(String, AST, String),
 }
 
 impl From<sxp::dotted::TryFromDottedExprError> for Error {
