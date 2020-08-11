@@ -24,7 +24,23 @@ pub struct Compiler<'a> {
   gen: FreshNameGenerator<'a>
 }
 
-pub struct StExpr(Expr, bool); // An expresion and a declaration of whether or not it's stateful.
+#[derive(Debug, Clone)]
+pub struct StExpr(Expr, bool); // An expression and a declaration of whether or not it's stateful.
+
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
+pub enum NeedsResult { No, Yes }
+
+impl From<NeedsResult> for bool {
+  fn from(s: NeedsResult) -> bool {
+    s == NeedsResult::Yes
+  }
+}
+
+impl From<bool> for NeedsResult {
+  fn from(b: bool) -> NeedsResult {
+    if b { NeedsResult::Yes } else { NeedsResult::No }
+  }
+}
 
 impl<'a> Compiler<'a> {
 
@@ -34,7 +50,8 @@ impl<'a> Compiler<'a> {
 
   pub fn compile_stmts(&mut self,
                        builder: &mut StmtBuilder,
-                       stmts: &[&AST])
+                       stmts: &[&AST],
+                       needs_result: NeedsResult)
                        -> Result<StExpr, Error> {
     if stmts.is_empty() {
       panic!("Not implemented yet!") //// Nil case
@@ -44,7 +61,7 @@ impl<'a> Compiler<'a> {
       for x in prefix {
         self.compile_stmt(builder, stmt_wrapper::Vacuous, x)?;
       }
-      self.compile_expr(builder, end)
+      self.compile_expr(builder, end, needs_result)
     }
   }
 
@@ -53,14 +70,16 @@ impl<'a> Compiler<'a> {
                       mut destination: impl StmtWrapper,
                       stmt: &AST)
                       -> Result<(), Error> {
-    let expr = self.compile_expr(builder, stmt)?;
+    let needs_result = NeedsResult::from(!destination.is_vacuous());
+    let expr = self.compile_expr(builder, stmt, needs_result)?;
     destination.wrap_to_builder(builder, expr);
     Ok(())
   }
 
   pub fn compile_expr(&mut self,
                       builder: &mut StmtBuilder,
-                      expr: &AST)
+                      expr: &AST,
+                      needs_result: NeedsResult)
                       -> Result<StExpr, Error> {
     match expr {
       AST::Nil | AST::Cons(_, _) => {
@@ -70,9 +89,11 @@ impl<'a> Compiler<'a> {
         } else {
           let head = Compiler::resolve_call_name(vec[0])?;
           let tail = &vec[1..];
-          self.resolve_special_form(builder, head, tail)?.map_or_else(|| {
-            let args = tail.into_iter().map(|x| self.compile_expr(builder, x)).collect::<Result<Vec<_>, _>>()?;
-            // Discard the stateful flag; we need the args whether or not they're stateful.
+          self.resolve_special_form(builder, head, tail, needs_result)?.map_or_else(|| {
+            let args = tail.into_iter()
+                           .map(|x| self.compile_expr(builder, x, NeedsResult::Yes))
+                           .collect::<Result<Vec<_>, _>>()?;
+            // Discard the stateful flag; we need the args either way.
             let args = args.into_iter().map(|x| x.0).collect();
             Ok(StExpr(Expr::Call(None, names::lisp_to_gd(head), args), true))
           }, Ok)
@@ -88,7 +109,7 @@ impl<'a> Compiler<'a> {
         panic!("Not implemented yet!") ////
       }
       AST::Symbol(s) => {
-        // May have to revisit statefulness of this one. setget may cause issues here.
+        // May have to revisit needs_resultness of this one. setget may cause issues here.
         Ok(StExpr(Expr::Var(names::lisp_to_gd(s)), false))
       }
     }
@@ -106,14 +127,16 @@ impl<'a> Compiler<'a> {
   fn resolve_special_form(&mut self,
                           builder: &mut StmtBuilder,
                           head: &str,
-                          tail: &[&AST])
+                          tail: &[&AST],
+                          needs_result: NeedsResult)
                           -> Result<Option<StExpr>, Error> {
     match head {
       "progn" => {
-        self.compile_stmts(builder, tail).map(Some)
+        self.compile_stmts(builder, tail, needs_result).map(Some)
       }
 //      "if" => {
-//      } ////
+        
+//      }
       _ => {
         Ok(None)
       }
