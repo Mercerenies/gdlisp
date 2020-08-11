@@ -9,6 +9,7 @@ use names::fresh::FreshNameGenerator;
 use crate::sxp::ast::AST;
 use crate::sxp::dotted::DottedExpr;
 use crate::gdscript::expr::Expr;
+use crate::gdscript::stmt::{self, Stmt};
 use crate::gdscript::literal::Literal;
 use error::Error;
 use stmt_wrapper::StmtWrapper;
@@ -59,17 +60,18 @@ impl<'a> Compiler<'a> {
       let prefix = &stmts[..stmts.len()-1];
       let end = &stmts[stmts.len()-1];
       for x in prefix {
-        self.compile_stmt(builder, stmt_wrapper::Vacuous, x)?;
+        self.compile_stmt(builder, &mut stmt_wrapper::Vacuous, x)?;
       }
       self.compile_expr(builder, end, needs_result)
     }
   }
 
-  pub fn compile_stmt(&mut self,
-                      builder: &mut StmtBuilder,
-                      mut destination: impl StmtWrapper,
-                      stmt: &AST)
-                      -> Result<(), Error> {
+  pub fn compile_stmt<W>(&mut self,
+                         builder: &mut StmtBuilder,
+                         destination: &W,
+                         stmt: &AST)
+                         -> Result<(), Error>
+  where W : StmtWrapper + ?Sized {
     let needs_result = NeedsResult::from(!destination.is_vacuous());
     let expr = self.compile_expr(builder, stmt, needs_result)?;
     destination.wrap_to_builder(builder, expr);
@@ -139,13 +141,46 @@ impl<'a> Compiler<'a> {
       "progn" => {
         self.compile_stmts(builder, tail, needs_result).map(Some)
       }
-      //"if" => {
-        
-      //}
+      "if" => {
+        let (cond, t, f) = match tail {
+          [] | [_] => Err(Error::TooFewArgs(String::from("if"), tail.len())),
+          [cond, t] => Ok((*cond, *t, &AST::Nil)),
+          [cond, t, f] => Ok((*cond, *t, *f)),
+          _ => Err(Error::TooManyArgs(String::from("if"), tail.len())),
+        }?;
+        let (destination, result) = if needs_result.into() {
+          let var_name = self.declare_var(builder, "_if", None);
+          let destination = Box::new(stmt_wrapper::AssignToVar(var_name.clone())) as Box<dyn StmtWrapper>;
+          (destination, StExpr(Expr::Var(var_name), false))
+        } else {
+          let destination = Box::new(stmt_wrapper::Vacuous) as Box<dyn StmtWrapper>;
+          (destination, Compiler::nil_expr())
+        };
+        let cond_expr = self.compile_expr(builder, cond, NeedsResult::Yes)?.0;
+        let mut true_builder = StmtBuilder::new();
+        let mut false_builder = StmtBuilder::new();
+        self.compile_stmt(&mut true_builder, destination.as_ref(), t)?;
+        self.compile_stmt(&mut false_builder, destination.as_ref(), f)?;
+        let true_body = true_builder.build_into(builder);
+        let false_body = false_builder.build_into(builder);
+        builder.append(Stmt::IfStmt(stmt::IfStmt {
+          if_clause: (cond_expr, true_body),
+          elif_clauses: vec!(),
+          else_clause: Some(false_body),
+        }));
+        Ok(Some(result))
+      }
       _ => {
         Ok(None)
       }
     }
+  }
+
+  fn declare_var(&mut self, builder: &mut StmtBuilder, prefix: &str, value: Option<Expr>) -> String {
+    let var_name = self.gen.generate_with(prefix);
+    let value = value.unwrap_or(Compiler::nil_expr().0);
+    builder.append(Stmt::VarDecl(var_name.clone(), value));
+    var_name
   }
 
 }
@@ -154,7 +189,6 @@ impl<'a> Compiler<'a> {
 mod tests {
   use super::*;
   use crate::gdscript::decl::Decl;
-  use crate::gdscript::stmt::Stmt;
   use crate::sxp::ast;
 
   // TODO A lot more of this
@@ -163,7 +197,7 @@ mod tests {
     let used_names = ast.all_symbols();
     let mut compiler = Compiler::new(FreshNameGenerator::new(used_names));
     let mut builder = StmtBuilder::new();
-    let () = compiler.compile_stmt(&mut builder, stmt_wrapper::Return, &ast)?;
+    let () = compiler.compile_stmt(&mut builder, &mut stmt_wrapper::Return, &ast)?;
     Ok(builder.build())
   }
 

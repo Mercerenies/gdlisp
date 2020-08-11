@@ -18,7 +18,7 @@ fn parse_compile_and_output(input: &str) -> String {
   let mut compiler = Compiler::new(FreshNameGenerator::new(used_names));
 
   let mut builder = StmtBuilder::new();
-  let () = compiler.compile_stmt(&mut builder, stmt_wrapper::Return, &value).unwrap();
+  let () = compiler.compile_stmt(&mut builder, &mut stmt_wrapper::Return, &value).unwrap();
   // TODO Print helpers here, too
   let (stmts, _) = builder.build();
   stmts.into_iter().map(|stmt| stmt.to_gd(0)).collect::<String>()
@@ -28,9 +28,28 @@ fn parse_compile_and_output(input: &str) -> String {
 pub fn expr_tests() {
   assert_eq!(parse_compile_and_output("100"), "return 100\n");
   assert_eq!(parse_compile_and_output("(progn 100 200 300)"), "return 300\n");
+  assert_eq!(parse_compile_and_output("()"), "return GDLisp.Nil\n");
+}
+
+#[test]
+pub fn progn_tests() {
   assert_eq!(parse_compile_and_output("(progn (a) (b) (c))"), "a()\nb()\nreturn c()\n");
   assert_eq!(parse_compile_and_output("(progn)"), "return GDLisp.Nil\n");
   assert_eq!(parse_compile_and_output("(progn (progn))"), "return GDLisp.Nil\n");
   assert_eq!(parse_compile_and_output("(progn ())"), "return GDLisp.Nil\n");
-  assert_eq!(parse_compile_and_output("()"), "return GDLisp.Nil\n");
+}
+
+#[test]
+pub fn if_tests_expr() {
+  assert_eq!(parse_compile_and_output("(if 1 2 3)"), "var _if_0 = GDLisp.Nil\nif 1:\n    _if_0 = 2\nelse:\n    _if_0 = 3\nreturn _if_0\n");
+  assert_eq!(parse_compile_and_output("(if 1 2)"), "var _if_0 = GDLisp.Nil\nif 1:\n    _if_0 = 2\nelse:\n    _if_0 = GDLisp.Nil\nreturn _if_0\n");
+  assert_eq!(parse_compile_and_output("(if 1 2 ())"), "var _if_0 = GDLisp.Nil\nif 1:\n    _if_0 = 2\nelse:\n    _if_0 = GDLisp.Nil\nreturn _if_0\n");
+  assert_eq!(parse_compile_and_output("(if _if_0 2 ())"), "var _if_1 = GDLisp.Nil\nif _if_0:\n    _if_1 = 2\nelse:\n    _if_1 = GDLisp.Nil\nreturn _if_1\n");
+  assert_eq!(parse_compile_and_output("(if 1 (a) (b))"), "var _if_0 = GDLisp.Nil\nif 1:\n    _if_0 = a()\nelse:\n    _if_0 = b()\nreturn _if_0\n");
+}
+
+#[test]
+pub fn if_tests_stmt() {
+  assert_eq!(parse_compile_and_output("(progn (if 1 2 3) 1)"), "if 1:\n    pass\nelse:\n    pass\nreturn 1\n");
+  assert_eq!(parse_compile_and_output("(progn (if 1 (a) (b)) 1)"), "if 1:\n    a()\nelse:\n    b()\nreturn 1\n");
 }
