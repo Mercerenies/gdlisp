@@ -54,7 +54,7 @@ impl<'a> Compiler<'a> {
                        needs_result: NeedsResult)
                        -> Result<StExpr, Error> {
     if stmts.is_empty() {
-      panic!("Not implemented yet!") //// Nil case
+      Ok(Compiler::nil_expr())
     } else {
       let prefix = &stmts[..stmts.len()-1];
       let end = &stmts[stmts.len()-1];
@@ -85,7 +85,7 @@ impl<'a> Compiler<'a> {
       AST::Nil | AST::Cons(_, _) => {
         let vec: Vec<&AST> = DottedExpr::new(expr).try_into()?;
         if vec.is_empty() {
-          panic!("Not implemented yet!") //// nil case, I'll deal with it later
+          Ok(Compiler::nil_expr())
         } else {
           let head = Compiler::resolve_call_name(vec[0])?;
           let tail = &vec[1..];
@@ -115,6 +115,11 @@ impl<'a> Compiler<'a> {
     }
   }
 
+  fn nil_expr() -> StExpr {
+    let name = String::from("GDLisp");
+    StExpr(Expr::Attribute(Box::new(Expr::Var(name)), String::from("Nil")), false)
+  }
+
   // TODO For now, we can only call symbols. We'll need to extend this
   // eventually to support attributed calls (foo.bar(), etc).
   fn resolve_call_name<'c>(ast: &'c AST) -> Result<&'c str, Error> {
@@ -134,9 +139,9 @@ impl<'a> Compiler<'a> {
       "progn" => {
         self.compile_stmts(builder, tail, needs_result).map(Some)
       }
-//      "if" => {
+      //"if" => {
         
-//      }
+      //}
       _ => {
         Ok(None)
       }
@@ -208,6 +213,15 @@ mod tests {
     let actual = compile_stmt(&ast).unwrap();
     assert_eq!(actual.0, expected);
     assert_eq!(actual.1, vec!());
+  }
+
+  #[test]
+  fn compile_nil() {
+    let result1 = compile_stmt(&AST::Nil).unwrap();
+    assert_eq!(result1, (vec!(Stmt::ReturnStmt(Compiler::nil_expr().0)), vec!()));
+
+    let result2 = compile_stmt(&ast::list(vec!(AST::Symbol(String::from("progn"))))).unwrap();
+    assert_eq!(result2, (vec!(Stmt::ReturnStmt(Compiler::nil_expr().0)), vec!()));
   }
 
 }
