@@ -1,21 +1,26 @@
 
-#[macro_use] extern crate lalrpop_util;
+extern crate lalrpop_util;
+extern crate gdlisp;
 
+/*
 pub mod sxp;
 pub mod compile;
 pub mod gdscript;
 mod parser_test;
 
-lalrpop_mod!(parser);
+lalrpop_mod!(pub parser);
+*/
 
-use compile::Compiler;
-use compile::names::fresh::FreshNameGenerator;
-use compile::body::builder::StmtBuilder;
+use gdlisp::compile::Compiler;
+use gdlisp::compile::names::fresh::FreshNameGenerator;
+use gdlisp::compile::body::builder::StmtBuilder;
+use gdlisp::parser;
+use gdlisp::gdscript::{stmt, expr};
 
 use std::io::{self, BufRead};
 
-fn as_return(expr: gdscript::expr::Expr) -> gdscript::stmt::Stmt {
-  gdscript::stmt::Stmt::ReturnStmt(expr)
+fn as_return(expr: expr::Expr) -> stmt::Stmt {
+  stmt::Stmt::ReturnStmt(expr)
 }
 
 fn main() {
