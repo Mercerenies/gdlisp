@@ -2,6 +2,7 @@
 use crate::gdscript::stmt::Stmt;
 use crate::gdscript::expr::Expr;
 use crate::compile::body::builder::StmtBuilder;
+use super::StExpr;
 
 pub trait StmtWrapper {
 
@@ -20,9 +21,11 @@ pub trait StmtWrapper {
   }
 
   // Wraps the expression and places it in the statement builder. If
-  // the wrapper is vacuous, this method does nothing.
-  fn wrap_to_builder(&mut self, builder: &mut StmtBuilder, expr: Expr) {
-    if !self.is_vacuous() {
+  // the wrapper is vacuous and the expression is stateless, this
+  // method does nothing.
+  fn wrap_to_builder(&mut self, builder: &mut StmtBuilder, expr: StExpr) {
+    let StExpr(expr, stateful) = expr;
+    if stateful || !self.is_vacuous() {
       builder.append(self.wrap_expr(expr));
     }
   }

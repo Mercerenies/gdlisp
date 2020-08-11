@@ -24,10 +24,28 @@ pub struct Compiler<'a> {
   gen: FreshNameGenerator<'a>
 }
 
+pub struct StExpr(Expr, bool); // An expresion and a declaration of whether or not it's stateful.
+
 impl<'a> Compiler<'a> {
 
   pub fn new(gen: FreshNameGenerator<'a>) -> Compiler<'a> {
     Compiler { gen }
+  }
+
+  pub fn compile_stmts(&mut self,
+                       builder: &mut StmtBuilder,
+                       stmts: &[&AST])
+                       -> Result<StExpr, Error> {
+    if stmts.is_empty() {
+      panic!("Not implemented yet!") //// Nil case
+    } else {
+      let prefix = &stmts[..stmts.len()-1];
+      let end = &stmts[stmts.len()-1];
+      for x in prefix {
+        self.compile_stmt(builder, stmt_wrapper::Vacuous, x)?;
+      }
+      self.compile_expr(builder, end)
+    }
   }
 
   pub fn compile_stmt(&mut self,
@@ -36,14 +54,14 @@ impl<'a> Compiler<'a> {
                       stmt: &AST)
                       -> Result<(), Error> {
     let expr = self.compile_expr(builder, stmt)?;
-    builder.append(destination.wrap_expr(expr));
+    destination.wrap_to_builder(builder, expr);
     Ok(())
   }
 
   pub fn compile_expr(&mut self,
                       builder: &mut StmtBuilder,
                       expr: &AST)
-                      -> Result<Expr, Error> {
+                      -> Result<StExpr, Error> {
     match expr {
       AST::Nil | AST::Cons(_, _) => {
         let vec: Vec<&AST> = DottedExpr::new(expr).try_into()?;
@@ -53,13 +71,15 @@ impl<'a> Compiler<'a> {
           let head = Compiler::resolve_call_name(vec[0])?;
           let tail = &vec[1..];
           self.resolve_special_form(builder, head, tail)?.map_or_else(|| {
-            let args = tail.into_iter().map(|x| self.compile_expr(builder, x)).collect::<Result<_, _>>()?;
-            Ok(Expr::Call(None, names::lisp_to_gd(head), args))
+            let args = tail.into_iter().map(|x| self.compile_expr(builder, x)).collect::<Result<Vec<_>, _>>()?;
+            // Discard the stateful flag; we need the args whether or not they're stateful.
+            let args = args.into_iter().map(|x| x.0).collect();
+            Ok(StExpr(Expr::Call(None, names::lisp_to_gd(head), args), true))
           }, Ok)
         }
       }
       AST::Int(n) => {
-        Ok(Expr::Literal(Literal::Int(*n)))
+        Ok(StExpr(Expr::Literal(Literal::Int(*n)), false))
       }
       AST::Float(_) => {
         panic!("Not implemented yet!") ////
@@ -68,7 +88,8 @@ impl<'a> Compiler<'a> {
         panic!("Not implemented yet!") ////
       }
       AST::Symbol(s) => {
-        Ok(Expr::Var(names::lisp_to_gd(s)))
+        // May have to revisit statefulness of this one. setget may cause issues here.
+        Ok(StExpr(Expr::Var(names::lisp_to_gd(s)), false))
       }
     }
   }
@@ -86,20 +107,13 @@ impl<'a> Compiler<'a> {
                           builder: &mut StmtBuilder,
                           head: &str,
                           tail: &[&AST])
-                          -> Result<Option<Expr>, Error> {
+                          -> Result<Option<StExpr>, Error> {
     match head {
       "progn" => {
-        if tail.is_empty() {
-          panic!("Not implemented yet!") //// Nil case
-        } else {
-          let prefix = &tail[..tail.len()-1];
-          let end = &tail[tail.len()-1];
-          for x in prefix {
-            self.compile_stmt(builder, stmt_wrapper::Vacuous, x)?;
-          }
-          self.compile_expr(builder, end).map(Some)
-        }
+        self.compile_stmts(builder, tail).map(Some)
       }
+//      "if" => {
+//      } ////
       _ => {
         Ok(None)
       }
@@ -149,6 +163,27 @@ mod tests {
     let expected = Stmt::ReturnStmt(Expr::Literal(Literal::Int(99)));
     let actual = compile_stmt(&ast).unwrap();
     assert_eq!(actual.0, vec!(expected));
+    assert_eq!(actual.1, vec!());
+  }
+
+  #[test]
+  fn compile_progn_vacuous() {
+    let ast = ast::list(vec!(AST::Symbol(String::from("progn")), AST::Int(1), AST::Int(2)));
+    let expected = vec!(Stmt::ReturnStmt(Expr::Literal(Literal::Int(2))));
+    let actual = compile_stmt(&ast).unwrap();
+    assert_eq!(actual.0, expected);
+    assert_eq!(actual.1, vec!());
+  }
+
+  #[test]
+  fn compile_progn_stateful() {
+    let ast = ast::list(vec!(AST::Symbol(String::from("progn")),
+                             ast::list(vec!(AST::Symbol(String::from("foo")))),
+                             ast::list(vec!(AST::Symbol(String::from("bar"))))));
+    let expected = vec!(Stmt::Expr(Expr::Call(None, String::from("foo"), vec!())),
+                        Stmt::ReturnStmt(Expr::Call(None, String::from("bar"), vec!())));
+    let actual = compile_stmt(&ast).unwrap();
+    assert_eq!(actual.0, expected);
     assert_eq!(actual.1, vec!());
   }
 

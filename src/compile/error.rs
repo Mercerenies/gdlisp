@@ -5,6 +5,8 @@ use crate::sxp;
 pub enum Error {
   DottedListError,
   CannotCall(String),
+  TooFewArgs(String, i32),
+  TooManyArgs(String, i32),
 }
 
 impl From<sxp::dotted::TryFromDottedExprError> for Error {

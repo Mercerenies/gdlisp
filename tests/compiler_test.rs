@@ -27,5 +27,6 @@ fn parse_compile_and_output(input: &str) -> String {
 #[test]
 pub fn expr_tests() {
   assert_eq!(parse_compile_and_output("100"), "return 100\n");
-  assert_eq!(parse_compile_and_output("(progn 100 200 300)"), "100\n200\nreturn 300\n");
+  assert_eq!(parse_compile_and_output("(progn 100 200 300)"), "return 300\n");
+  assert_eq!(parse_compile_and_output("(progn (a) (b) (c))"), "a()\nb()\nreturn c()\n");
 }
