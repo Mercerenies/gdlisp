@@ -29,4 +29,8 @@ pub fn expr_tests() {
   assert_eq!(parse_compile_and_output("100"), "return 100\n");
   assert_eq!(parse_compile_and_output("(progn 100 200 300)"), "return 300\n");
   assert_eq!(parse_compile_and_output("(progn (a) (b) (c))"), "a()\nb()\nreturn c()\n");
+  assert_eq!(parse_compile_and_output("(progn)"), "return GDLisp.Nil\n");
+  assert_eq!(parse_compile_and_output("(progn (progn))"), "return GDLisp.Nil\n");
+  assert_eq!(parse_compile_and_output("(progn ())"), "return GDLisp.Nil\n");
+  assert_eq!(parse_compile_and_output("()"), "return GDLisp.Nil\n");
 }
