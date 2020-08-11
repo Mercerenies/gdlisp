@@ -31,7 +31,7 @@ fn main() {
       Ok(value) => {
         println!("{}", value);
         let mut tmp = StmtBuilder::new();
-        match compiler.compile_statement(&mut tmp, stmt_wrapper::Return, &value) {
+        match compiler.compile_stmt(&mut tmp, stmt_wrapper::Return, &value) {
           Err(err) => println!("Error: {:?}", err),
           Ok(()) => {
             // TODO Print helpers too

@@ -18,7 +18,7 @@ fn parse_compile_and_output(input: &str) -> String {
   let mut compiler = Compiler::new(FreshNameGenerator::new(used_names));
 
   let mut builder = StmtBuilder::new();
-  let () = compiler.compile_statement(&mut builder, stmt_wrapper::Return, &value).unwrap();
+  let () = compiler.compile_stmt(&mut builder, stmt_wrapper::Return, &value).unwrap();
   // TODO Print helpers here, too
   let (stmts, _) = builder.build();
   stmts.into_iter().map(|stmt| stmt.to_gd(0)).collect::<String>()

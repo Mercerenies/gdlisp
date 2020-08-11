@@ -30,20 +30,20 @@ impl<'a> Compiler<'a> {
     Compiler { gen }
   }
 
-  pub fn compile_statement(&mut self,
-                           builder: &mut StmtBuilder,
-                           mut destination: impl StmtWrapper,
-                           stmt: &AST)
-                           -> Result<(), Error> {
-    let expr = self.compile_expression(builder, stmt)?;
+  pub fn compile_stmt(&mut self,
+                      builder: &mut StmtBuilder,
+                      mut destination: impl StmtWrapper,
+                      stmt: &AST)
+                      -> Result<(), Error> {
+    let expr = self.compile_expr(builder, stmt)?;
     builder.append(destination.wrap_expr(expr));
     Ok(())
   }
 
-  pub fn compile_expression(&mut self,
-                            builder: &mut StmtBuilder,
-                            expr: &AST)
-                            -> Result<Expr, Error> {
+  pub fn compile_expr(&mut self,
+                      builder: &mut StmtBuilder,
+                      expr: &AST)
+                      -> Result<Expr, Error> {
     match expr {
       AST::Nil | AST::Cons(_, _) => {
         let vec: Vec<&AST> = DottedExpr::new(expr).try_into()?;
@@ -53,7 +53,7 @@ impl<'a> Compiler<'a> {
           let head = Compiler::resolve_call_name(vec[0])?;
           let tail = &vec[1..];
           self.resolve_special_form(builder, head, tail)?.map_or_else(|| {
-            let args = tail.into_iter().map(|x| self.compile_expression(builder, x)).collect::<Result<_, _>>()?;
+            let args = tail.into_iter().map(|x| self.compile_expr(builder, x)).collect::<Result<_, _>>()?;
             Ok(Expr::Call(None, names::lisp_to_gd(head), args))
           }, Ok)
         }
@@ -95,9 +95,9 @@ impl<'a> Compiler<'a> {
           let prefix = &tail[..tail.len()-1];
           let end = &tail[tail.len()-1];
           for x in prefix {
-            self.compile_statement(builder, stmt_wrapper::Vacuous, x)?;
+            self.compile_stmt(builder, stmt_wrapper::Vacuous, x)?;
           }
-          self.compile_expression(builder, end).map(Some)
+          self.compile_expr(builder, end).map(Some)
         }
       }
       _ => {
@@ -121,7 +121,7 @@ mod tests {
     let used_names = ast.all_symbols();
     let mut compiler = Compiler::new(FreshNameGenerator::new(used_names));
     let mut builder = StmtBuilder::new();
-    let () = compiler.compile_statement(&mut builder, stmt_wrapper::Return, &ast)?;
+    let () = compiler.compile_stmt(&mut builder, stmt_wrapper::Return, &ast)?;
     Ok(builder.build())
   }
 
