@@ -26,7 +26,7 @@ pub struct Compiler<'a> {
 }
 
 #[derive(Debug, Clone)]
-pub struct StExpr(Expr, bool); // An expression and a declaration of whether or not it's stateful.
+pub struct StExpr(pub Expr, pub bool); // An expression and a declaration of whether or not it's stateful.
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub enum NeedsResult { No, Yes }
@@ -116,7 +116,7 @@ impl<'a> Compiler<'a> {
     }
   }
 
-  fn nil_expr() -> StExpr {
+  pub fn nil_expr() -> StExpr {
     let name = String::from("GDLisp");
     StExpr(Expr::Attribute(Box::new(Expr::Var(name)), String::from("Nil")), false)
   }
@@ -162,11 +162,7 @@ impl<'a> Compiler<'a> {
         self.compile_stmt(&mut false_builder, destination.as_ref(), f)?;
         let true_body = true_builder.build_into(builder);
         let false_body = false_builder.build_into(builder);
-        builder.append(Stmt::IfStmt(stmt::IfStmt {
-          if_clause: (cond_expr, true_body),
-          elif_clauses: vec!(),
-          else_clause: Some(false_body),
-        }));
+        builder.append(stmt::if_else(cond_expr, true_body, false_body));
         Ok(Some(result))
       }
       _ => {
