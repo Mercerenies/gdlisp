@@ -19,22 +19,22 @@ pub enum Stmt {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct IfStmt {
-  if_clause: (Expr, Vec<Stmt>),
-  elif_clauses: Vec<(Expr, Vec<Stmt>)>,
-  else_clause: Option<Vec<Stmt>>,
+  pub if_clause: (Expr, Vec<Stmt>),
+  pub elif_clauses: Vec<(Expr, Vec<Stmt>)>,
+  pub else_clause: Option<Vec<Stmt>>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ForLoop {
-  iter_var: String,
-  collection: Expr,
-  body: Vec<Stmt>,
+  pub iter_var: String,
+  pub collection: Expr,
+  pub body: Vec<Stmt>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct WhileLoop {
-  condition: Expr,
-  body: Vec<Stmt>,
+  pub condition: Expr,
+  pub body: Vec<Stmt>,
 }
 
 impl Stmt {
