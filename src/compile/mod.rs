@@ -23,6 +23,14 @@ pub struct Compiler<'a> {
   gen: FreshNameGenerator<'a>
 }
 
+pub fn as_expr(expr: Expr) -> Stmt {
+  Stmt::Expr(expr)
+}
+
+pub fn as_return(expr: Expr) -> Stmt {
+  Stmt::ReturnStmt(expr)
+}
+
 impl<'a> Compiler<'a> {
 
   pub fn new(gen: FreshNameGenerator<'a>) -> Compiler<'a> {
@@ -51,8 +59,10 @@ impl<'a> Compiler<'a> {
         } else {
           let head = Compiler::resolve_call_name(vec[0])?;
           let tail = &vec[1..];
-          let args = tail.into_iter().map(|x| self.compile_expression(builder, x)).collect::<Result<_, _>>()?;
-          Ok(Expr::Call(None, names::lisp_to_gd(head), args))
+          self.resolve_special_form(builder, head, tail)?.map_or_else(|| {
+            let args = tail.into_iter().map(|x| self.compile_expression(builder, x)).collect::<Result<_, _>>()?;
+            Ok(Expr::Call(None, names::lisp_to_gd(head), args))
+          }, Ok)
         }
       }
       AST::Int(n) => {
@@ -79,6 +89,30 @@ impl<'a> Compiler<'a> {
     }
   }
 
+  fn resolve_special_form(&mut self,
+                          builder: &mut StmtBuilder,
+                          head: &str,
+                          tail: &[&AST])
+                          -> Result<Option<Expr>, Error> {
+    match head {
+      "progn" => {
+        if tail.is_empty() {
+          panic!("Not implemented yet!") //// Nil case
+        } else {
+          let prefix = &tail[..tail.len()-1];
+          let end = &tail[tail.len()-1];
+          for x in prefix {
+            self.compile_statement(builder, as_expr, x)?;
+          }
+          self.compile_expression(builder, end).map(Some)
+        }
+      }
+      _ => {
+        Ok(None)
+      }
+    }
+  }
+
 }
 
 #[cfg(test)]
@@ -88,10 +122,6 @@ mod tests {
   use crate::sxp::ast;
 
   // TODO A lot more of this
-
-  fn as_return(expr: Expr) -> Stmt {
-    Stmt::ReturnStmt(expr)
-  }
 
   fn compile_stmt(ast: &AST) -> Result<(Vec<Stmt>, Vec<Decl>), Error> {
     let used_names = ast.all_symbols();
