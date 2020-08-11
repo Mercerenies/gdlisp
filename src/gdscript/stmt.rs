@@ -1,5 +1,6 @@
 
 use crate::gdscript::expr::Expr;
+use crate::gdscript::op::{self, AssignOp, OperatorHasInfo};
 use crate::gdscript::pattern::Pattern;
 use crate::gdscript::indent;
 use crate::compile::Compiler;
@@ -16,6 +17,7 @@ pub enum Stmt {
   MatchStmt(Expr, Vec<(Pattern, Vec<Stmt>)>),
   VarDecl(String, Expr),
   ReturnStmt(Expr),
+  Assign(Box<Expr>, AssignOp, Box<Expr>),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -116,6 +118,16 @@ impl Stmt {
       Stmt::ReturnStmt(expr) => {
         write!(w, "return {}\n", expr.to_gd())
       }
+      Stmt::Assign(lhs, op, rhs) => {
+        let info = op.op_info();
+        let lhs = lhs.to_gd();
+        let rhs = rhs.to_gd();
+        if info.padding == op::Padding::NotRequired {
+          write!(w, "{}{}{}\n", lhs, info.name, rhs)
+        } else {
+          write!(w, "{} {} {}", lhs, info.name, rhs)
+        }
+      },
     }
   }
 
@@ -146,6 +158,10 @@ mod tests {
   use super::*;
   use crate::gdscript::expr::Expr;
   use crate::gdscript::literal::Literal;
+
+  fn assign(a: &Expr, op: AssignOp, b: &Expr) -> Stmt {
+    Stmt::Assign(Box::new(a.clone()), op, Box::new(b.clone()))
+  }
 
   #[test]
   fn expr_stmt() {
@@ -314,6 +330,20 @@ mod tests {
                                                     (ptn2.clone(), vec!(body2.clone()))));
     assert_eq!(match3.to_gd(0), "match expr:\n    100:\n        body1\n    200:\n        body2\n");
 
+  }
+
+  #[test]
+  fn assign_ops() {
+    let a = Expr::Var(String::from("a"));
+    let b = Expr::Var(String::from("b"));
+    assert_eq!(assign(&a, AssignOp::Eq, &b).to_gd(0), "a = b");
+    assert_eq!(assign(&a, AssignOp::Add, &b).to_gd(0), "a += b");
+    assert_eq!(assign(&a, AssignOp::Sub, &b).to_gd(0), "a -= b");
+    assert_eq!(assign(&a, AssignOp::Times, &b).to_gd(0), "a *= b");
+    assert_eq!(assign(&a, AssignOp::Div, &b).to_gd(0), "a /= b");
+    assert_eq!(assign(&a, AssignOp::Mod, &b).to_gd(0), "a %= b");
+    assert_eq!(assign(&a, AssignOp::BitAnd, &b).to_gd(0), "a &= b");
+    assert_eq!(assign(&a, AssignOp::BitOr, &b).to_gd(0), "a |= b");
   }
 
 }

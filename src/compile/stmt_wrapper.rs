@@ -59,6 +59,6 @@ impl StmtWrapper for AssignToVar {
   fn wrap_expr(&self, expr: Expr) -> Stmt {
     let lhs = Box::new(Expr::Var(self.0.clone()));
     let rhs = Box::new(expr);
-    Stmt::Expr(Expr::Assign(lhs, op::AssignOp::Eq, rhs))
+    Stmt::Assign(lhs, op::AssignOp::Eq, rhs)
   }
 }

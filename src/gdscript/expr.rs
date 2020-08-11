@@ -1,5 +1,5 @@
 
-use crate::gdscript::op::{self, UnaryOp, BinaryOp, AssignOp, OperatorHasInfo};
+use crate::gdscript::op::{self, UnaryOp, BinaryOp, OperatorHasInfo};
 use crate::gdscript::literal;
 
 pub const PRECEDENCE_LOWEST: i32 = -99;
@@ -21,7 +21,6 @@ pub enum Expr {
   SuperCall(String, Vec<Expr>),
   Unary(UnaryOp, Box<Expr>),
   Binary(Box<Expr>, BinaryOp, Box<Expr>),
-  Assign(Box<Expr>, AssignOp, Box<Expr>),
 }
 
 fn maybe_parens(cond: bool, inner: String) -> String {
@@ -66,17 +65,6 @@ impl Expr {
         maybe_parens(prec > info.precedence, inner)
       },
       Expr::Binary(lhs, op, rhs) => {
-        let info = op.op_info();
-        let lhs = lhs.to_gd_prec(info.precedence);
-        let rhs = rhs.to_gd_prec(info.precedence + 1);
-        let inner = if info.padding == op::Padding::NotRequired {
-          format!("{}{}{}", lhs, info.name, rhs)
-        } else {
-          format!("{} {} {}", lhs, info.name, rhs)
-        };
-        maybe_parens(prec > info.precedence, inner)
-      },
-      Expr::Assign(lhs, op, rhs) => {
         let info = op.op_info();
         let lhs = lhs.to_gd_prec(info.precedence);
         let rhs = rhs.to_gd_prec(info.precedence + 1);
@@ -166,10 +154,6 @@ mod tests {
     Expr::Binary(Box::new(a.clone()), op, Box::new(b.clone()))
   }
 
-  fn assign(a: &Expr, op: AssignOp, b: &Expr) -> Expr {
-    Expr::Assign(Box::new(a.clone()), op, Box::new(b.clone()))
-  }
-
   #[test]
   fn unary_ops() {
     let operand = Expr::Literal(Literal::Int(3));
@@ -203,20 +187,6 @@ mod tests {
     assert_eq!(binary(&a, BinaryOp::And, &b).to_gd(), "a && b");
     assert_eq!(binary(&a, BinaryOp::Or, &b).to_gd(), "a || b");
     assert_eq!(binary(&a, BinaryOp::Cast, &b).to_gd(), "a as b");
-  }
-
-  #[test]
-  fn assign_ops() {
-    let a = Expr::Var(String::from("a"));
-    let b = Expr::Var(String::from("b"));
-    assert_eq!(assign(&a, AssignOp::Eq, &b).to_gd(), "a = b");
-    assert_eq!(assign(&a, AssignOp::Add, &b).to_gd(), "a += b");
-    assert_eq!(assign(&a, AssignOp::Sub, &b).to_gd(), "a -= b");
-    assert_eq!(assign(&a, AssignOp::Times, &b).to_gd(), "a *= b");
-    assert_eq!(assign(&a, AssignOp::Div, &b).to_gd(), "a /= b");
-    assert_eq!(assign(&a, AssignOp::Mod, &b).to_gd(), "a %= b");
-    assert_eq!(assign(&a, AssignOp::BitAnd, &b).to_gd(), "a &= b");
-    assert_eq!(assign(&a, AssignOp::BitOr, &b).to_gd(), "a |= b");
   }
 
   #[test]
