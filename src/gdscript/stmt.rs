@@ -5,7 +5,7 @@ use crate::gdscript::indent;
 
 use std::fmt;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Stmt {
   Expr(Expr),
   IfStmt(IfStmt),
@@ -17,21 +17,21 @@ pub enum Stmt {
   ReturnStmt(Expr),
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct IfStmt {
   if_clause: (Expr, Vec<Stmt>),
   elif_clauses: Vec<(Expr, Vec<Stmt>)>,
   else_clause: Option<Vec<Stmt>>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ForLoop {
   iter_var: String,
   collection: Expr,
   body: Vec<Stmt>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct WhileLoop {
   condition: Expr,
   body: Vec<Stmt>,

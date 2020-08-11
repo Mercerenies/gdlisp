@@ -11,7 +11,7 @@ pub const PRECEDENCE_CALL: i32 = 19;
 // been sanitized for GDScript output. That should've happened earlier
 // in the compilation process.
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Expr {
   Var(String),
   Literal(literal::Literal),

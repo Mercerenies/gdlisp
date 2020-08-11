@@ -6,7 +6,7 @@ use crate::gdscript::indent;
 use std::fmt;
 
 // TODO _init has some special syntax that we need to be prepared to handle.
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub enum Decl {
   VarDecl(String, Option<Expr>),
   ConstDecl(String, Expr),
@@ -14,27 +14,27 @@ pub enum Decl {
   FnDecl(Static, FnDecl),
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct ClassDecl {
   pub name: String,
   pub extends: ClassExtends,
   pub body: Vec<Decl>,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct TopLevelClass {
   pub name: Option<String>, // The top-level class is not required to have a name.
   pub extends: ClassExtends,
   pub body: Vec<Decl>,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub enum ClassExtends {
   Named(String), // StringLit(String), // TODO Support string literals (once we have them in general)
 }
 
 // TODO Support default arguments
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct FnDecl {
   pub name: String,
   pub args: Vec<String>,

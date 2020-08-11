@@ -1,7 +1,7 @@
 
 use crate::gdscript::literal::Literal;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Pattern {
   Literal(Literal),
   Var(String),
