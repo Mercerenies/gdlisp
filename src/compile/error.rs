@@ -1,10 +1,11 @@
 
 use crate::sxp;
+use crate::sxp::ast::AST;
 
 #[derive(Debug)]
 pub enum Error {
   DottedListError,
-  CannotCall(String),
+  CannotCall(AST),
   TooFewArgs(String, usize),
   TooManyArgs(String, usize),
 }

@@ -126,7 +126,7 @@ impl<'a> Compiler<'a> {
   fn resolve_call_name<'c>(ast: &'c AST) -> Result<&'c str, Error> {
     match ast {
       AST::Symbol(s) => Ok(&*s),
-      _ => Err(Error::CannotCall(ast.to_string())),
+      _ => Err(Error::CannotCall(ast.clone())),
     }
   }
 
