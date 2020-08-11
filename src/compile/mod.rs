@@ -80,3 +80,52 @@ impl<'a> Compiler<'a> {
   }
 
 }
+
+#[cfg(test)]
+mod tests {
+  use super::*;
+  use crate::gdscript::decl::Decl;
+  use crate::sxp::ast;
+
+  // TODO A lot more of this
+
+  fn as_return(expr: Expr) -> Stmt {
+    Stmt::ReturnStmt(expr)
+  }
+
+  fn compile_stmt(ast: &AST) -> Result<(Vec<Stmt>, Vec<Decl>), Error> {
+    let used_names = ast.all_symbols();
+    let mut compiler = Compiler::new(FreshNameGenerator::new(used_names));
+    let mut builder = StmtBuilder::new();
+    let () = compiler.compile_statement(&mut builder, as_return, &ast)?;
+    Ok(builder.build())
+  }
+
+  #[test]
+  fn compile_var() {
+    let ast = AST::Symbol(String::from("foobar"));
+    let expected = Stmt::ReturnStmt(Expr::Var(String::from("foobar")));
+    let actual = compile_stmt(&ast).unwrap();
+    assert_eq!(actual.0, vec!(expected));
+    assert_eq!(actual.1, vec!());
+  }
+
+  #[test]
+  fn compile_call() {
+    let ast = ast::list(vec!(AST::Symbol(String::from("foobar")), AST::Symbol(String::from("arg"))));
+    let expected = Stmt::ReturnStmt(Expr::Call(None, String::from("foobar"), vec!(Expr::Var(String::from("arg")))));
+    let actual = compile_stmt(&ast).unwrap();
+    assert_eq!(actual.0, vec!(expected));
+    assert_eq!(actual.1, vec!());
+  }
+
+  #[test]
+  fn compile_int() {
+    let ast = AST::Int(99);
+    let expected = Stmt::ReturnStmt(Expr::Literal(Literal::Int(99)));
+    let actual = compile_stmt(&ast).unwrap();
+    assert_eq!(actual.0, vec!(expected));
+    assert_eq!(actual.1, vec!());
+  }
+
+}
