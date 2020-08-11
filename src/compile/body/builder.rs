@@ -56,4 +56,14 @@ impl StmtBuilder {
     (self.body, self.helpers)
   }
 
+  // Builds the StmtBuilder, passing any helper declarations onto the
+  // subsequent builder.
+  pub fn build_into(self, other: &mut StmtBuilder) -> Vec<Stmt> {
+    let (body, helpers) = self.build();
+    for h in helpers {
+      other.add_helper(h);
+    }
+    body
+  }
+
 }
