@@ -66,12 +66,11 @@ impl<'a> Compiler<'a> {
     }
   }
 
-  pub fn compile_stmt<W>(&mut self,
-                         builder: &mut StmtBuilder,
-                         destination: &W,
-                         stmt: &AST)
-                         -> Result<(), Error>
-  where W : StmtWrapper + ?Sized {
+  pub fn compile_stmt(&mut self,
+                      builder: &mut StmtBuilder,
+                      destination: &dyn StmtWrapper,
+                      stmt: &AST)
+                      -> Result<(), Error> {
     let needs_result = NeedsResult::from(!destination.is_vacuous());
     let expr = self.compile_expr(builder, stmt, needs_result)?;
     destination.wrap_to_builder(builder, expr);
