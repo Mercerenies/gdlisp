@@ -1,6 +1,7 @@
 
 use crate::gdscript::stmt::Stmt;
 use crate::gdscript::expr::Expr;
+use crate::gdscript::op;
 use crate::compile::body::builder::StmtBuilder;
 use super::StExpr;
 
@@ -34,6 +35,7 @@ pub trait StmtWrapper {
 
 pub struct Return;
 pub struct Vacuous;
+pub struct AssignToVar(pub String);
 
 impl StmtWrapper for Return {
   fn wrap_expr(&self, expr: Expr) -> Stmt {
@@ -51,4 +53,12 @@ impl StmtWrapper for Vacuous {
     true
   }
 
+}
+
+impl StmtWrapper for AssignToVar {
+  fn wrap_expr(&self, expr: Expr) -> Stmt {
+    let lhs = Box::new(Expr::Var(self.0.clone()));
+    let rhs = Box::new(expr);
+    Stmt::Expr(Expr::Assign(lhs, op::AssignOp::Eq, rhs))
+  }
 }
