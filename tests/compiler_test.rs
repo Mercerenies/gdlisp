@@ -2,14 +2,10 @@
 extern crate gdlisp;
 
 use gdlisp::compile::Compiler;
+use gdlisp::compile::stmt_wrapper;
 use gdlisp::compile::names::fresh::FreshNameGenerator;
 use gdlisp::compile::body::builder::StmtBuilder;
-use gdlisp::gdscript::{expr, stmt};
 use gdlisp::parser;
-
-fn as_return(expr: expr::Expr) -> stmt::Stmt {
-  stmt::Stmt::ReturnStmt(expr)
-}
 
 // TODO Currently, this panics if it fails. This is okay-ish, since
 // it's only being used for tests. But once we unify all of our errors
@@ -22,7 +18,7 @@ fn parse_compile_and_output(input: &str) -> String {
   let mut compiler = Compiler::new(FreshNameGenerator::new(used_names));
 
   let mut builder = StmtBuilder::new();
-  let () = compiler.compile_statement(&mut builder, as_return, &value).unwrap();
+  let () = compiler.compile_statement(&mut builder, stmt_wrapper::Return, &value).unwrap();
   // TODO Print helpers here, too
   let (stmts, _) = builder.build();
   stmts.into_iter().map(|stmt| stmt.to_gd(0)).collect::<String>()

@@ -12,16 +12,12 @@ lalrpop_mod!(pub parser);
 */
 
 use gdlisp::compile::Compiler;
+use gdlisp::compile::stmt_wrapper;
 use gdlisp::compile::names::fresh::FreshNameGenerator;
 use gdlisp::compile::body::builder::StmtBuilder;
 use gdlisp::parser;
-use gdlisp::gdscript::{stmt, expr};
 
 use std::io::{self, BufRead};
-
-fn as_return(expr: expr::Expr) -> stmt::Stmt {
-  stmt::Stmt::ReturnStmt(expr)
-}
 
 fn main() {
   let stdin = io::stdin();
@@ -35,7 +31,7 @@ fn main() {
       Ok(value) => {
         println!("{}", value);
         let mut tmp = StmtBuilder::new();
-        match compiler.compile_statement(&mut tmp, as_return, &value) {
+        match compiler.compile_statement(&mut tmp, stmt_wrapper::Return, &value) {
           Err(err) => println!("Error: {:?}", err),
           Ok(()) => {
             // TODO Print helpers too

@@ -2,15 +2,16 @@
 pub mod names;
 pub mod body;
 pub mod error;
+pub mod stmt_wrapper;
 
 use body::builder::StmtBuilder;
 use names::fresh::FreshNameGenerator;
 use crate::sxp::ast::AST;
 use crate::sxp::dotted::DottedExpr;
-use crate::gdscript::stmt::Stmt;
 use crate::gdscript::expr::Expr;
 use crate::gdscript::literal::Literal;
 use error::Error;
+use stmt_wrapper::StmtWrapper;
 
 use std::convert::TryInto;
 
@@ -23,14 +24,6 @@ pub struct Compiler<'a> {
   gen: FreshNameGenerator<'a>
 }
 
-pub fn as_expr(expr: Expr) -> Stmt {
-  Stmt::Expr(expr)
-}
-
-pub fn as_return(expr: Expr) -> Stmt {
-  Stmt::ReturnStmt(expr)
-}
-
 impl<'a> Compiler<'a> {
 
   pub fn new(gen: FreshNameGenerator<'a>) -> Compiler<'a> {
@@ -39,11 +32,11 @@ impl<'a> Compiler<'a> {
 
   pub fn compile_statement(&mut self,
                            builder: &mut StmtBuilder,
-                           mut destination: impl FnMut(Expr) -> Stmt,
+                           mut destination: impl StmtWrapper,
                            stmt: &AST)
                            -> Result<(), Error> {
     let expr = self.compile_expression(builder, stmt)?;
-    builder.append(destination(expr));
+    builder.append(destination.wrap_expr(expr));
     Ok(())
   }
 
@@ -102,7 +95,7 @@ impl<'a> Compiler<'a> {
           let prefix = &tail[..tail.len()-1];
           let end = &tail[tail.len()-1];
           for x in prefix {
-            self.compile_statement(builder, as_expr, x)?;
+            self.compile_statement(builder, stmt_wrapper::Vacuous, x)?;
           }
           self.compile_expression(builder, end).map(Some)
         }
@@ -119,6 +112,7 @@ impl<'a> Compiler<'a> {
 mod tests {
   use super::*;
   use crate::gdscript::decl::Decl;
+  use crate::gdscript::stmt::Stmt;
   use crate::sxp::ast;
 
   // TODO A lot more of this
@@ -127,7 +121,7 @@ mod tests {
     let used_names = ast.all_symbols();
     let mut compiler = Compiler::new(FreshNameGenerator::new(used_names));
     let mut builder = StmtBuilder::new();
-    let () = compiler.compile_statement(&mut builder, as_return, &ast)?;
+    let () = compiler.compile_statement(&mut builder, stmt_wrapper::Return, &ast)?;
     Ok(builder.build())
   }
 
