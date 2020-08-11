@@ -8,7 +8,7 @@ pub trait StmtWrapper {
 
   // The wrapping behavior for the statement wrapper is performed
   // here.
-  fn wrap_expr(&mut self, expr: Expr) -> Stmt;
+  fn wrap_expr(&self, expr: Expr) -> Stmt;
 
   // Normally, a wrapper, as the name implies, wraps an expression in
   // a statement. Sometimes, however, the expression has no side
@@ -23,7 +23,7 @@ pub trait StmtWrapper {
   // Wraps the expression and places it in the statement builder. If
   // the wrapper is vacuous and the expression is stateless, this
   // method does nothing.
-  fn wrap_to_builder(&mut self, builder: &mut StmtBuilder, expr: StExpr) {
+  fn wrap_to_builder(&self, builder: &mut StmtBuilder, expr: StExpr) {
     let StExpr(expr, stateful) = expr;
     if stateful || !self.is_vacuous() {
       builder.append(self.wrap_expr(expr));
@@ -36,14 +36,14 @@ pub struct Return;
 pub struct Vacuous;
 
 impl StmtWrapper for Return {
-  fn wrap_expr(&mut self, expr: Expr) -> Stmt {
+  fn wrap_expr(&self, expr: Expr) -> Stmt {
     Stmt::ReturnStmt(expr)
   }
 }
 
 impl StmtWrapper for Vacuous {
 
-  fn wrap_expr(&mut self, expr: Expr) -> Stmt {
+  fn wrap_expr(&self, expr: Expr) -> Stmt {
     Stmt::Expr(expr)
   }
 
