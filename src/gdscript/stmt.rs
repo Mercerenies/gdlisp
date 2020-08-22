@@ -48,16 +48,16 @@ pub fn if_else(cond: Expr, true_branch: Vec<Stmt>, false_branch: Vec<Stmt>) -> S
   })
 }
 
-pub fn if_branches(cases: Vec<(Expr, Vec<Stmt>)>) -> Stmt {
+pub fn if_branches(cases: Vec<(Expr, Vec<Stmt>)>, default: Stmt) -> Stmt {
   if cases.is_empty() {
-    Stmt::Expr(Compiler::nil_expr().0)
+    default
   } else {
     let if_clause = cases[0].clone();
     let elif_clauses = cases[1..].into_iter().map(|x| x.clone()).collect();
     Stmt::IfStmt(IfStmt {
       if_clause,
       elif_clauses,
-      else_clause: None,
+      else_clause: Some(vec!(default)),
     })
   }
 }
