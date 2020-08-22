@@ -125,7 +125,7 @@ impl Stmt {
         if info.padding == op::Padding::NotRequired {
           write!(w, "{}{}{}\n", lhs, info.name, rhs)
         } else {
-          write!(w, "{} {} {}", lhs, info.name, rhs)
+          write!(w, "{} {} {}\n", lhs, info.name, rhs)
         }
       },
     }
@@ -336,14 +336,14 @@ mod tests {
   fn assign_ops() {
     let a = Expr::Var(String::from("a"));
     let b = Expr::Var(String::from("b"));
-    assert_eq!(assign(&a, AssignOp::Eq, &b).to_gd(0), "a = b");
-    assert_eq!(assign(&a, AssignOp::Add, &b).to_gd(0), "a += b");
-    assert_eq!(assign(&a, AssignOp::Sub, &b).to_gd(0), "a -= b");
-    assert_eq!(assign(&a, AssignOp::Times, &b).to_gd(0), "a *= b");
-    assert_eq!(assign(&a, AssignOp::Div, &b).to_gd(0), "a /= b");
-    assert_eq!(assign(&a, AssignOp::Mod, &b).to_gd(0), "a %= b");
-    assert_eq!(assign(&a, AssignOp::BitAnd, &b).to_gd(0), "a &= b");
-    assert_eq!(assign(&a, AssignOp::BitOr, &b).to_gd(0), "a |= b");
+    assert_eq!(assign(&a, AssignOp::Eq, &b).to_gd(0), "a = b\n");
+    assert_eq!(assign(&a, AssignOp::Add, &b).to_gd(0), "a += b\n");
+    assert_eq!(assign(&a, AssignOp::Sub, &b).to_gd(0), "a -= b\n");
+    assert_eq!(assign(&a, AssignOp::Times, &b).to_gd(0), "a *= b\n");
+    assert_eq!(assign(&a, AssignOp::Div, &b).to_gd(0), "a /= b\n");
+    assert_eq!(assign(&a, AssignOp::Mod, &b).to_gd(0), "a %= b\n");
+    assert_eq!(assign(&a, AssignOp::BitAnd, &b).to_gd(0), "a &= b\n");
+    assert_eq!(assign(&a, AssignOp::BitOr, &b).to_gd(0), "a |= b\n");
   }
 
 }
