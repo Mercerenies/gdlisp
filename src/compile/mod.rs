@@ -165,6 +165,23 @@ impl<'a> Compiler<'a> {
         builder.append(stmt::if_else(cond_expr, true_body, false_body));
         Ok(Some(result))
       }
+/* /////
+      "cond" => {
+        let (destination, result) = if needs_result.into() {
+          let var_name = self.declare_var(builder, "_cond", None);
+          let destination = Box::new(stmt_wrapper::AssignToVar(var_name.clone())) as Box<dyn StmtWrapper>;
+          (destination, StExpr(Expr::Var(var_name), false))
+        } else {
+          let destination = Box::new(stmt_wrapper::Vacuous) as Box<dyn StmtWrapper>;
+          (destination, Compiler::nil_expr())
+        };
+        let branches = tail.iter().map(|branch| {
+          let 
+        }).collect();
+        builder.append(stmt::if_branches(branches, destination.wrap_expr(Compiler::nil_expr())));
+        Ok(Some(result))
+      }
+*/
       _ => {
         Ok(None)
       }
