@@ -48,6 +48,12 @@ impl StmtBuilder {
     self.body.push(stmt);
   }
 
+  pub fn append_all(&mut self, stmts: &mut dyn Iterator<Item=Stmt>) {
+    for stmt in stmts {
+      self.append(stmt)
+    }
+  }
+
   pub fn add_helper(&mut self, decl: Decl) {
     self.helpers.push(decl);
   }
