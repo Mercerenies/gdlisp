@@ -165,7 +165,6 @@ impl<'a> Compiler<'a> {
         builder.append(stmt::if_else(cond_expr, true_body, false_body));
         Ok(Some(result))
       }
-/* /////
       "cond" => {
         let (destination, result) = if needs_result.into() {
           let var_name = self.declare_var(builder, "_cond", None);
@@ -175,13 +174,38 @@ impl<'a> Compiler<'a> {
           let destination = Box::new(stmt_wrapper::Vacuous) as Box<dyn StmtWrapper>;
           (destination, Compiler::nil_expr())
         };
-        let branches = tail.iter().map(|branch| {
-          let 
-        }).collect();
-        builder.append(stmt::if_branches(branches, destination.wrap_expr(Compiler::nil_expr())));
+        let init: Vec<Stmt> = destination.wrap_to_stmts(Compiler::nil_expr());
+        let body = tail.iter().rev().fold(Ok(init), |acc: Result<_, Error>, curr| {
+          let acc = acc?;
+          let vec: Vec<&AST> = DottedExpr::new(curr).try_into()?;
+          match vec.len() {
+            0 =>
+              Err(Error::InvalidArg(String::from("cond"), (*curr).clone(), String::from("nonempty list"))),
+            1 => {
+              let mut outer_builder = StmtBuilder::new();
+              let mut inner_builder = StmtBuilder::new();
+              let cond = self.compile_expr(&mut outer_builder, vec[0], NeedsResult::Yes)?.0;
+              let var_name = self.declare_var(&mut outer_builder, "_cond", Some(cond));
+              destination.wrap_to_builder(&mut inner_builder, StExpr(Expr::Var(var_name.clone()), false));
+              let if_branch = inner_builder.build_into(builder);
+              outer_builder.append(stmt::if_else(Expr::Var(var_name.clone()), if_branch, acc));
+              Ok(outer_builder.build_into(builder))
+            }
+            _ => {
+              let mut outer_builder = StmtBuilder::new();
+              let mut inner_builder = StmtBuilder::new();
+              let cond = self.compile_expr(&mut outer_builder, vec[0], NeedsResult::Yes)?.0;
+              let result = self.compile_stmts(&mut inner_builder, &vec[1..], needs_result)?;
+              destination.wrap_to_builder(&mut inner_builder, result);
+              let if_branch = inner_builder.build_into(builder);
+              outer_builder.append(stmt::if_else(cond, if_branch, acc));
+              Ok(outer_builder.build_into(builder))
+            }
+          }
+        })?;
+        builder.append_all(&mut body.into_iter());
         Ok(Some(result))
       }
-*/
       _ => {
         Ok(None)
       }

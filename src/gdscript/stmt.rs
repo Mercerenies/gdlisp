@@ -3,7 +3,6 @@ use crate::gdscript::expr::Expr;
 use crate::gdscript::op::{self, AssignOp, OperatorHasInfo};
 use crate::gdscript::pattern::Pattern;
 use crate::gdscript::indent;
-use crate::compile::Compiler;
 
 use std::fmt;
 
@@ -48,17 +47,19 @@ pub fn if_else(cond: Expr, true_branch: Vec<Stmt>, false_branch: Vec<Stmt>) -> S
   })
 }
 
-pub fn if_branches(cases: Vec<(Expr, Vec<Stmt>)>, default: Stmt) -> Stmt {
+pub fn if_branches(cases: Vec<(Expr, Vec<Stmt>)>, default: Vec<Stmt>) -> Vec<Stmt> {
   if cases.is_empty() {
     default
   } else {
     let if_clause = cases[0].clone();
     let elif_clauses = cases[1..].into_iter().map(|x| x.clone()).collect();
-    Stmt::IfStmt(IfStmt {
-      if_clause,
-      elif_clauses,
-      else_clause: Some(vec!(default)),
-    })
+    vec!(
+      Stmt::IfStmt(IfStmt {
+        if_clause,
+        elif_clauses,
+        else_clause: Some(default),
+      })
+    )
   }
 }
 

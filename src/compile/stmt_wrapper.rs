@@ -31,6 +31,15 @@ pub trait StmtWrapper {
     }
   }
 
+  fn wrap_to_stmts(&self, expr: StExpr) -> Vec<Stmt> {
+    let StExpr(expr, stateful) = expr;
+    if stateful || !self.is_vacuous() {
+      vec!(self.wrap_expr(expr))
+    } else {
+      vec!()
+    }
+  }
+
 }
 
 pub struct Return;
