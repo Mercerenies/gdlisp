@@ -37,6 +37,18 @@ pub trait HasSymbolTable {
     result
   }
 
+  fn with_local_vars<B>(&mut self,
+                        vars: &mut dyn Iterator<Item=(String, String)>,
+                        block: impl FnOnce(&mut Self) -> B) -> B {
+    if let Some((name, value)) = vars.next() {
+      self.with_local_var(name, value, |curr| {
+        curr.with_local_vars(vars, block)
+      })
+    } else {
+      block(self)
+    }
+  }
+
   fn get_var(&self, name: &str) -> Option<&str> {
     self.get_symbol_table().data.get(name).map(|x| x.as_str())
   }
