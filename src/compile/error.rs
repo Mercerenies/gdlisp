@@ -9,6 +9,7 @@ pub enum Error {
   TooFewArgs(String, usize),
   TooManyArgs(String, usize),
   InvalidArg(String, AST, String), // Function, argument, expected
+  NoSuchVar(String),
 }
 
 impl From<sxp::dotted::TryFromDottedExprError> for Error {

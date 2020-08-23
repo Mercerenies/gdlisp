@@ -3,6 +3,7 @@ pub mod names;
 pub mod body;
 pub mod error;
 pub mod stmt_wrapper;
+pub mod symbol_table;
 
 use body::builder::StmtBuilder;
 use names::fresh::FreshNameGenerator;
@@ -13,6 +14,7 @@ use crate::gdscript::stmt::{self, Stmt};
 use crate::gdscript::literal::Literal;
 use error::Error;
 use stmt_wrapper::StmtWrapper;
+use symbol_table::{SymbolTable, HasSymbolTable};
 
 use std::convert::TryInto;
 
@@ -22,7 +24,8 @@ use std::convert::TryInto;
 // original AST to be sharing responsibilities for the same data.
 
 pub struct Compiler<'a> {
-  gen: FreshNameGenerator<'a>
+  gen: FreshNameGenerator<'a>,
+  table: SymbolTable,
 }
 
 #[derive(Debug, Clone)]
@@ -46,7 +49,7 @@ impl From<bool> for NeedsResult {
 impl<'a> Compiler<'a> {
 
   pub fn new(gen: FreshNameGenerator<'a>) -> Compiler<'a> {
-    Compiler { gen }
+    Compiler { gen, table: SymbolTable::new() }
   }
 
   pub fn compile_stmts(&mut self,
@@ -111,7 +114,9 @@ impl<'a> Compiler<'a> {
       }
       AST::Symbol(s) => {
         // May have to revisit needs_resultness of this one. setget may cause issues here.
-        Ok(StExpr(Expr::Var(names::lisp_to_gd(s)), false))
+        self.get_var(s).ok_or_else(|| Error::NoSuchVar(s.clone())).map(|var| {
+          StExpr(Expr::Var(var.to_string()), false)
+        })
       }
     }
   }
@@ -221,6 +226,18 @@ impl<'a> Compiler<'a> {
 
 }
 
+impl HasSymbolTable for Compiler<'_> {
+
+  fn get_symbol_table(&self) -> &SymbolTable {
+    &self.table
+  }
+
+  fn get_symbol_table_mut(&mut self) -> &mut SymbolTable {
+    &mut self.table
+  }
+
+}
+
 #[cfg(test)]
 mod tests {
   use super::*;
@@ -237,6 +254,7 @@ mod tests {
     Ok(builder.build())
   }
 
+  /* With our new scoping rules, this won't work since the variable doesn't exist.
   #[test]
   fn compile_var() {
     let ast = AST::Symbol(String::from("foobar"));
@@ -245,11 +263,12 @@ mod tests {
     assert_eq!(actual.0, vec!(expected));
     assert_eq!(actual.1, vec!());
   }
+  */
 
   #[test]
   fn compile_call() {
-    let ast = ast::list(vec!(AST::Symbol(String::from("foobar")), AST::Symbol(String::from("arg"))));
-    let expected = Stmt::ReturnStmt(Expr::Call(None, String::from("foobar"), vec!(Expr::Var(String::from("arg")))));
+    let ast = ast::list(vec!(AST::Symbol(String::from("foobar")), AST::Int(10)));
+    let expected = Stmt::ReturnStmt(Expr::Call(None, String::from("foobar"), vec!(Expr::Literal(Literal::Int(10)))));
     let actual = compile_stmt(&ast).unwrap();
     assert_eq!(actual.0, vec!(expected));
     assert_eq!(actual.1, vec!());
