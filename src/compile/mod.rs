@@ -211,6 +211,30 @@ impl<'a> Compiler<'a> {
         builder.append_all(&mut body.into_iter());
         Ok(Some(result))
       }
+      "let" => {
+        if tail.len() < 1 {
+          return Err(Error::TooFewArgs(String::from("let"), tail.len()));
+        }
+        let vars: Vec<_> = DottedExpr::new(tail[0]).try_into()?;
+        let var_names = vars.iter().map(|curr| {
+          let var: Vec<_> = DottedExpr::new(curr).try_into()?;
+          if var.len() == 0 {
+            return Err(Error::InvalidArg(String::from("let"), (*curr).clone(), String::from("variable declaration")));
+          }
+          let result_value = self.compile_stmts(builder, &var[1..], NeedsResult::Yes)?;
+          let ast_name = match var[0] {
+            AST::Symbol(s) => Ok(s.clone()),
+            _ => Err(Error::InvalidArg(String::from("let"), (*curr).clone(), String::from("variable declaration"))),
+          }?;
+          let gd_name = self.declare_var(builder, &ast_name, Some(result_value.0));
+          Ok((ast_name, gd_name))
+        }).collect::<Result<Vec<_>, _>>()?;
+        Ok(Some(
+          self.with_local_vars(&mut var_names.into_iter(), |curr| {
+            curr.compile_stmts(builder, &tail[1..], NeedsResult::Yes)
+          })?
+        ))
+      }
       _ => {
         Ok(None)
       }

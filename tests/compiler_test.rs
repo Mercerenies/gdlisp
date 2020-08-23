@@ -73,3 +73,24 @@ pub fn cond_tests_abbr_expr() {
 pub fn cond_tests_abbr_stmt() {
   assert_eq!(parse_compile_and_output("(progn (cond ((a) (foo)) ((bar))) 1)"), "if a():\n    foo()\nelse:\n    var _cond_0 = bar()\n    if _cond_0:\n        pass\n    else:\n        pass\nreturn 1\n");
 }
+
+#[test]
+pub fn let_tests() {
+  assert_eq!(parse_compile_and_output("(let () 1)"), "return 1\n");
+  // TODO This next one is not supported right now but shouldn't be hard to allow.
+  //assert_eq!(parse_compile_and_output("(let (a) 1)"), "var a_0 = GDLisp.Nil\nreturn 1\n");
+  assert_eq!(parse_compile_and_output("(let ((a)) 1)"), "var a_0 = GDLisp.Nil\nreturn 1\n");
+  assert_eq!(parse_compile_and_output("(let ((a 1)) (foo a))"), "var a_0 = 1\nreturn foo(a_0)\n");
+  assert_eq!(parse_compile_and_output("(let ((a 1) (b 2)) (foo a b))"), "var a_0 = 1\nvar b_1 = 2\nreturn foo(a_0, b_1)\n");
+  assert_eq!(parse_compile_and_output("(let ((a (foo) (bar))) (baz a))"), "foo()\nvar a_0 = bar()\nreturn baz(a_0)\n");
+}
+
+#[test]
+pub fn var_shadowing() {
+  assert_eq!(parse_compile_and_output("(let ((a)) (let ((a a)) a))"), "var a_0 = GDLisp.Nil\nvar a_1 = a_0\nreturn a_1\n");
+}
+
+#[test]
+pub fn inline_if_in_let_test() {
+  assert_eq!(parse_compile_and_output("(let ((a (if (foo) (bar) (baz)))) a)"), "var _if_0 = GDLisp.Nil\nif foo():\n    _if_0 = bar()\nelse:\n    _if_0 = baz()\nvar a_1 = _if_0\nreturn a_1\n");
+}
