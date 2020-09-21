@@ -11,7 +11,7 @@ use names::fresh::FreshNameGenerator;
 use crate::sxp::ast::AST;
 use crate::sxp::dotted::DottedExpr;
 use crate::gdscript::expr::Expr;
-use crate::gdscript::stmt::{self, Stmt};
+use crate::gdscript::stmt::Stmt;
 use crate::gdscript::literal::Literal;
 use error::Error;
 use stmt_wrapper::StmtWrapper;
@@ -143,104 +143,8 @@ impl<'a> Compiler<'a> {
                           needs_result: NeedsResult)
                           -> Result<Option<StExpr>, Error> {
     match special_form::lookup_and_compile(self, builder, head, tail, needs_result)? {
-      None => {},
+      None => Ok(None),
       Some(expr) => return Ok(Some(expr)),
-    }
-    match head {
-      "if" => {
-        let (cond, t, f) = match tail {
-          [] | [_] => Err(Error::TooFewArgs(String::from("if"), tail.len())),
-          [cond, t] => Ok((*cond, *t, &AST::Nil)),
-          [cond, t, f] => Ok((*cond, *t, *f)),
-          _ => Err(Error::TooManyArgs(String::from("if"), tail.len())),
-        }?;
-        let (destination, result) = if needs_result.into() {
-          let var_name = self.declare_var(builder, "_if", None);
-          let destination = Box::new(stmt_wrapper::AssignToVar(var_name.clone())) as Box<dyn StmtWrapper>;
-          (destination, StExpr(Expr::Var(var_name), false))
-        } else {
-          let destination = Box::new(stmt_wrapper::Vacuous) as Box<dyn StmtWrapper>;
-          (destination, Compiler::nil_expr())
-        };
-        let cond_expr = self.compile_expr(builder, cond, NeedsResult::Yes)?.0;
-        let mut true_builder = StmtBuilder::new();
-        let mut false_builder = StmtBuilder::new();
-        self.compile_stmt(&mut true_builder, destination.as_ref(), t)?;
-        self.compile_stmt(&mut false_builder, destination.as_ref(), f)?;
-        let true_body = true_builder.build_into(builder);
-        let false_body = false_builder.build_into(builder);
-        builder.append(stmt::if_else(cond_expr, true_body, false_body));
-        Ok(Some(result))
-      }
-      "cond" => {
-        let (destination, result) = if needs_result.into() {
-          let var_name = self.declare_var(builder, "_cond", None);
-          let destination = Box::new(stmt_wrapper::AssignToVar(var_name.clone())) as Box<dyn StmtWrapper>;
-          (destination, StExpr(Expr::Var(var_name), false))
-        } else {
-          let destination = Box::new(stmt_wrapper::Vacuous) as Box<dyn StmtWrapper>;
-          (destination, Compiler::nil_expr())
-        };
-        let init: Vec<Stmt> = destination.wrap_to_stmts(Compiler::nil_expr());
-        let body = tail.iter().rev().fold(Ok(init), |acc: Result<_, Error>, curr| {
-          let acc = acc?;
-          let vec: Vec<&AST> = DottedExpr::new(curr).try_into()?;
-          match vec.len() {
-            0 =>
-              Err(Error::InvalidArg(String::from("cond"), (*curr).clone(), String::from("nonempty list"))),
-            1 => {
-              let mut outer_builder = StmtBuilder::new();
-              let mut inner_builder = StmtBuilder::new();
-              let cond = self.compile_expr(&mut outer_builder, vec[0], NeedsResult::Yes)?.0;
-              let var_name = self.declare_var(&mut outer_builder, "_cond", Some(cond));
-              destination.wrap_to_builder(&mut inner_builder, StExpr(Expr::Var(var_name.clone()), false));
-              let if_branch = inner_builder.build_into(builder);
-              outer_builder.append(stmt::if_else(Expr::Var(var_name.clone()), if_branch, acc));
-              Ok(outer_builder.build_into(builder))
-            }
-            _ => {
-              let mut outer_builder = StmtBuilder::new();
-              let mut inner_builder = StmtBuilder::new();
-              let cond = self.compile_expr(&mut outer_builder, vec[0], NeedsResult::Yes)?.0;
-              let result = self.compile_stmts(&mut inner_builder, &vec[1..], needs_result)?;
-              destination.wrap_to_builder(&mut inner_builder, result);
-              let if_branch = inner_builder.build_into(builder);
-              outer_builder.append(stmt::if_else(cond, if_branch, acc));
-              Ok(outer_builder.build_into(builder))
-            }
-          }
-        })?;
-        builder.append_all(&mut body.into_iter());
-        Ok(Some(result))
-      }
-      "let" => {
-        if tail.len() < 1 {
-          return Err(Error::TooFewArgs(String::from("let"), tail.len()));
-        }
-        let vars: Vec<_> = DottedExpr::new(tail[0]).try_into()?;
-        let var_names = vars.iter().map(|curr| {
-          let var: Vec<_> = match DottedExpr::new(curr) {
-            DottedExpr { elements, terminal: AST::Nil } if elements.len() > 0 => elements,
-            DottedExpr { elements, terminal: tail@AST::Symbol(_) } if elements.len() == 0 => vec!(tail),
-            _ => return Err(Error::InvalidArg(String::from("let"), (*curr).clone(), String::from("variable declaration")))
-          };
-          let result_value = self.compile_stmts(builder, &var[1..], NeedsResult::Yes)?;
-          let ast_name = match var[0] {
-            AST::Symbol(s) => Ok(s.clone()),
-            _ => Err(Error::InvalidArg(String::from("let"), (*curr).clone(), String::from("variable declaration"))),
-          }?;
-          let gd_name = self.declare_var(builder, &ast_name, Some(result_value.0));
-          Ok((ast_name, gd_name))
-        }).collect::<Result<Vec<_>, _>>()?;
-        Ok(Some(
-          self.with_local_vars(&mut var_names.into_iter(), |curr| {
-            curr.compile_stmts(builder, &tail[1..], NeedsResult::Yes)
-          })?
-        ))
-      }
-      _ => {
-        Ok(None)
-      }
     }
   }
 

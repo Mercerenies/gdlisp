@@ -1,5 +1,8 @@
 
 pub mod progn;
+pub mod if_;
+pub mod cond;
+pub mod let_;
 
 use super::{Compiler, StExpr, NeedsResult};
 use crate::compile::body::builder::StmtBuilder;
@@ -20,6 +23,9 @@ pub trait SpecialForm {
 pub fn lookup(head: &str) -> Option<Box<dyn SpecialForm>> {
   match head {
     "progn" => Some(Box::new(progn::Progn)),
+    "if" => Some(Box::new(if_::If)),
+    "cond" => Some(Box::new(cond::Cond)),
+    "let" => Some(Box::new(let_::Let)),
     _ => None,
   }
 }
