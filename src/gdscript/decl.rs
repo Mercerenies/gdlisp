@@ -2,6 +2,7 @@
 use crate::gdscript::expr::Expr;
 use crate::gdscript::stmt::Stmt;
 use crate::gdscript::indent;
+use crate::gdscript::arglist::ArgList;
 
 use std::fmt;
 
@@ -33,11 +34,10 @@ pub enum ClassExtends {
   Named(String), // StringLit(String), // TODO Support string literals (once we have them in general)
 }
 
-// TODO Support default arguments
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct FnDecl {
   pub name: String,
-  pub args: Vec<String>,
+  pub args: ArgList,
   pub body: Vec<Stmt>,
 }
 
@@ -49,7 +49,7 @@ pub enum Static {
 fn empty_class_body() -> Decl {
   Decl::FnDecl(Static::NonStatic, FnDecl {
     name: String::from("_init"),
-    args: vec!(),
+    args: ArgList::empty(),
     body: vec!(),
   })
 }
@@ -77,7 +77,7 @@ impl Decl {
         if *stat == Static::IsStatic {
           write!(w, "static ")?;
         }
-        write!(w, "func {}({}):\n", name, args.join(", "))?;
+        write!(w, "func {}({}):\n", name, args.to_gd())?;
         Stmt::write_gd_stmts(body, w, ind + 4)
       }
     }
@@ -139,35 +139,35 @@ mod tests {
 
     let decl1 = Decl::FnDecl(Static::NonStatic, FnDecl {
       name: String::from("foobar"),
-      args: vec!(),
+      args: ArgList::required(vec!()),
       body: vec!()
     });
     assert_eq!(decl1.to_gd(0), "func foobar():\n    pass\n");
 
     let decl2 = Decl::FnDecl(Static::IsStatic, FnDecl {
       name: String::from("foobar"),
-      args: vec!(),
+      args: ArgList::required(vec!()),
       body: vec!()
     });
     assert_eq!(decl2.to_gd(0), "static func foobar():\n    pass\n");
 
     let decl3 = Decl::FnDecl(Static::NonStatic, FnDecl {
       name: String::from("foobar"),
-      args: vec!(String::from("arg1")),
+      args: ArgList::required(vec!(String::from("arg1"))),
       body: vec!()
     });
     assert_eq!(decl3.to_gd(0), "func foobar(arg1):\n    pass\n");
 
     let decl4 = Decl::FnDecl(Static::NonStatic, FnDecl {
       name: String::from("foobar"),
-      args: vec!(String::from("arg1"), String::from("arg2")),
+      args: ArgList::required(vec!(String::from("arg1"), String::from("arg2"))),
       body: vec!()
     });
     assert_eq!(decl4.to_gd(0), "func foobar(arg1, arg2):\n    pass\n");
 
     let decl5 = Decl::FnDecl(Static::NonStatic, FnDecl {
       name: String::from("foobar"),
-      args: vec!(String::from("arg1"), String::from("arg2")),
+      args: ArgList::required(vec!(String::from("arg1"), String::from("arg2"))),
       body: vec!(Stmt::Expr(Expr::Var(String::from("function_body"))))
     });
     assert_eq!(decl5.to_gd(0), "func foobar(arg1, arg2):\n    function_body\n");
@@ -179,7 +179,7 @@ mod tests {
 
     let sample_function = Decl::FnDecl(Static::NonStatic, FnDecl {
       name: String::from("sample"),
-      args: vec!(),
+      args: ArgList::required(vec!()),
       body: vec!()
     });
 
