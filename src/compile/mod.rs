@@ -142,10 +142,7 @@ impl<'a> Compiler<'a> {
                           tail: &[&AST],
                           needs_result: NeedsResult)
                           -> Result<Option<StExpr>, Error> {
-    match special_form::lookup_and_compile(self, builder, head, tail, needs_result)? {
-      None => Ok(None),
-      Some(expr) => return Ok(Some(expr)),
-    }
+    special_form::lookup_and_compile(self, builder, head, tail, needs_result)
   }
 
   fn declare_var(&mut self, builder: &mut StmtBuilder, prefix: &str, value: Option<Expr>) -> String {
