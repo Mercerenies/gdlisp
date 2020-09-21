@@ -4,6 +4,7 @@ pub mod body;
 pub mod error;
 pub mod stmt_wrapper;
 pub mod symbol_table;
+pub mod special_form;
 
 use body::builder::StmtBuilder;
 use names::fresh::FreshNameGenerator;
@@ -141,10 +142,11 @@ impl<'a> Compiler<'a> {
                           tail: &[&AST],
                           needs_result: NeedsResult)
                           -> Result<Option<StExpr>, Error> {
+    match special_form::lookup_and_compile(self, builder, head, tail, needs_result)? {
+      None => {},
+      Some(expr) => return Ok(Some(expr)),
+    }
     match head {
-      "progn" => {
-        self.compile_stmts(builder, tail, needs_result).map(Some)
-      }
       "if" => {
         let (cond, t, f) = match tail {
           [] | [_] => Err(Error::TooFewArgs(String::from("if"), tail.len())),
