@@ -34,8 +34,8 @@ fn main() {
         match compiler.compile_stmt(&mut tmp, &mut stmt_wrapper::Return, &value) {
           Err(err) => println!("Error: {:?}", err),
           Ok(()) => {
-            // TODO Print helpers too
-            let (stmts, _) = tmp.build();
+            let (stmts, helpers) = tmp.build();
+            helpers.into_iter().for_each(|decl| print!("{}", decl.to_gd(0)));
             stmts.into_iter().for_each(|stmt| print!("{}", stmt.to_gd(0)));
           }
         }

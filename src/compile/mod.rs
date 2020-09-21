@@ -127,6 +127,10 @@ impl<'a> Compiler<'a> {
     StExpr(Expr::Attribute(Box::new(Expr::Var(name)), String::from("Nil")), false)
   }
 
+  pub fn name_generator(&mut self) -> &mut FreshNameGenerator<'a> {
+    &mut self.gen
+  }
+
   // TODO For now, we can only call symbols. We'll need to extend this
   // eventually to support attributed calls (foo.bar(), etc).
   fn resolve_call_name<'c>(ast: &'c AST) -> Result<&'c str, Error> {

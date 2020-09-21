@@ -5,7 +5,7 @@
 // it, so we can update it easily.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct ArgList {
-  pub args : Vec<String>,
+  pub args: Vec<String>,
 }
 
 // TODO Support default arguments

@@ -3,6 +3,7 @@ pub mod progn;
 pub mod if_;
 pub mod cond;
 pub mod let_;
+pub mod lambda;
 
 use super::{Compiler, StExpr, NeedsResult};
 use crate::compile::body::builder::StmtBuilder;
@@ -26,6 +27,7 @@ pub fn lookup(head: &str) -> Option<Box<dyn SpecialForm>> {
     "if" => Some(Box::new(if_::If)),
     "cond" => Some(Box::new(cond::Cond)),
     "let" => Some(Box::new(let_::Let)),
+    "lambda" => Some(Box::new(lambda::Lambda)),
     _ => None,
   }
 }

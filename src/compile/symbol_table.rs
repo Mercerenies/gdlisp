@@ -53,6 +53,19 @@ pub trait HasSymbolTable {
     self.get_symbol_table().data.get(name).map(|x| x.as_str())
   }
 
+  fn with_disjoint_scope<B>(&mut self,
+                            block: impl FnOnce(&mut Self) -> B) -> B {
+    let old_data = {
+      let table = self.get_symbol_table_mut();
+      let tmp = table.data.clone(); // Don't own, so can't move :(
+      table.data = HashMap::new();
+      tmp
+    };
+    let result = block(self);
+    self.get_symbol_table_mut().data = old_data;
+    result
+  }
+
 }
 
 impl HasSymbolTable for SymbolTable {
