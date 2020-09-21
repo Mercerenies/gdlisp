@@ -217,10 +217,11 @@ impl<'a> Compiler<'a> {
         }
         let vars: Vec<_> = DottedExpr::new(tail[0]).try_into()?;
         let var_names = vars.iter().map(|curr| {
-          let var: Vec<_> = DottedExpr::new(curr).try_into()?;
-          if var.len() == 0 {
-            return Err(Error::InvalidArg(String::from("let"), (*curr).clone(), String::from("variable declaration")));
-          }
+          let var: Vec<_> = match DottedExpr::new(curr) {
+            DottedExpr { elements, terminal: AST::Nil } if elements.len() > 0 => elements,
+            DottedExpr { elements, terminal: tail@AST::Symbol(_) } if elements.len() == 0 => vec!(tail),
+            _ => return Err(Error::InvalidArg(String::from("let"), (*curr).clone(), String::from("variable declaration")))
+          };
           let result_value = self.compile_stmts(builder, &var[1..], NeedsResult::Yes)?;
           let ast_name = match var[0] {
             AST::Symbol(s) => Ok(s.clone()),
