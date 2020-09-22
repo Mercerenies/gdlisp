@@ -53,6 +53,7 @@ pub trait HasSymbolTable {
     self.get_symbol_table().data.get(name).map(|x| x.as_str())
   }
 
+  #[deprecated(note="Simply make a new symbol table")]
   fn with_disjoint_scope<B>(&mut self,
                             block: impl FnOnce(&mut Self) -> B) -> B {
     let old_data = {
