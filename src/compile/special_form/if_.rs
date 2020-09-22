@@ -6,6 +6,7 @@ use crate::compile::{Compiler, StExpr, NeedsResult};
 use crate::compile::body::builder::StmtBuilder;
 use crate::compile::error::Error;
 use crate::compile::stmt_wrapper::{self, StmtWrapper};
+use crate::compile::symbol_table::SymbolTable;
 use crate::sxp::ast::AST;
 use crate::gdscript::expr::Expr;
 use crate::gdscript::stmt;
@@ -15,6 +16,7 @@ impl SpecialForm for If {
   fn compile<'a>(&mut self,
                  compiler: &mut Compiler<'a>,
                  builder: &mut StmtBuilder,
+                 table: &mut SymbolTable,
                  tail: &[&AST],
                  needs_result: NeedsResult)
                  -> Result<StExpr, Error> {
@@ -32,11 +34,11 @@ impl SpecialForm for If {
       let destination = Box::new(stmt_wrapper::Vacuous) as Box<dyn StmtWrapper>;
       (destination, Compiler::nil_expr())
     };
-    let cond_expr = compiler.compile_expr(builder, cond, NeedsResult::Yes)?.0;
+    let cond_expr = compiler.compile_expr(builder, table, cond, NeedsResult::Yes)?.0;
     let mut true_builder = StmtBuilder::new();
     let mut false_builder = StmtBuilder::new();
-    compiler.compile_stmt(&mut true_builder, destination.as_ref(), t)?;
-    compiler.compile_stmt(&mut false_builder, destination.as_ref(), f)?;
+    compiler.compile_stmt(&mut true_builder, table, destination.as_ref(), t)?;
+    compiler.compile_stmt(&mut false_builder, table, destination.as_ref(), f)?;
     let true_body = true_builder.build_into(builder);
     let false_body = false_builder.build_into(builder);
     builder.append(stmt::if_else(cond_expr, true_body, false_body));

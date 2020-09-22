@@ -15,6 +15,7 @@ use gdlisp::compile::Compiler;
 use gdlisp::compile::stmt_wrapper;
 use gdlisp::compile::names::fresh::FreshNameGenerator;
 use gdlisp::compile::body::builder::StmtBuilder;
+use gdlisp::compile::symbol_table::SymbolTable;
 use gdlisp::parser;
 
 use std::io::{self, BufRead};
@@ -23,6 +24,7 @@ fn main() {
   let stdin = io::stdin();
   let parser = parser::ASTParser::new();
   let mut compiler = Compiler::new(FreshNameGenerator::new(vec!()));
+  let mut table = SymbolTable::new();
 
   for line in stdin.lock().lines() {
     let str = line.unwrap();
@@ -31,7 +33,7 @@ fn main() {
       Ok(value) => {
         println!("{}", value);
         let mut tmp = StmtBuilder::new();
-        match compiler.compile_stmt(&mut tmp, &mut stmt_wrapper::Return, &value) {
+        match compiler.compile_stmt(&mut tmp, &mut table, &mut stmt_wrapper::Return, &value) {
           Err(err) => println!("Error: {:?}", err),
           Ok(()) => {
             let (stmts, helpers) = tmp.build();

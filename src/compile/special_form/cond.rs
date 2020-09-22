@@ -6,6 +6,7 @@ use crate::compile::{Compiler, StExpr, NeedsResult};
 use crate::compile::body::builder::StmtBuilder;
 use crate::compile::error::Error;
 use crate::compile::stmt_wrapper::{self, StmtWrapper};
+use crate::compile::symbol_table::SymbolTable;
 use crate::sxp::ast::AST;
 use crate::sxp::dotted::DottedExpr;
 use crate::gdscript::expr::Expr;
@@ -18,6 +19,7 @@ impl SpecialForm for Cond {
   fn compile<'a>(&mut self,
                  compiler: &mut Compiler<'a>,
                  builder: &mut StmtBuilder,
+                 table: &mut SymbolTable,
                  tail: &[&AST],
                  needs_result: NeedsResult)
                  -> Result<StExpr, Error> {
@@ -39,7 +41,7 @@ impl SpecialForm for Cond {
         1 => {
           let mut outer_builder = StmtBuilder::new();
           let mut inner_builder = StmtBuilder::new();
-          let cond = compiler.compile_expr(&mut outer_builder, vec[0], NeedsResult::Yes)?.0;
+          let cond = compiler.compile_expr(&mut outer_builder, table, vec[0], NeedsResult::Yes)?.0;
           let var_name = compiler.declare_var(&mut outer_builder, "_cond", Some(cond));
           destination.wrap_to_builder(&mut inner_builder, StExpr(Expr::Var(var_name.clone()), false));
           let if_branch = inner_builder.build_into(builder);
@@ -49,8 +51,8 @@ impl SpecialForm for Cond {
         _ => {
           let mut outer_builder = StmtBuilder::new();
           let mut inner_builder = StmtBuilder::new();
-          let cond = compiler.compile_expr(&mut outer_builder, vec[0], NeedsResult::Yes)?.0;
-          let result = compiler.compile_stmts(&mut inner_builder, &vec[1..], needs_result)?;
+          let cond = compiler.compile_expr(&mut outer_builder, table, vec[0], NeedsResult::Yes)?.0;
+          let result = compiler.compile_stmts(&mut inner_builder, table, &vec[1..], needs_result)?;
           destination.wrap_to_builder(&mut inner_builder, result);
           let if_branch = inner_builder.build_into(builder);
           outer_builder.append(stmt::if_else(cond, if_branch, acc));

@@ -26,7 +26,6 @@ use std::convert::TryInto;
 
 pub struct Compiler<'a> {
   gen: FreshNameGenerator<'a>,
-  table: SymbolTable,
 }
 
 #[derive(Debug, Clone)]
@@ -50,11 +49,12 @@ impl From<bool> for NeedsResult {
 impl<'a> Compiler<'a> {
 
   pub fn new(gen: FreshNameGenerator<'a>) -> Compiler<'a> {
-    Compiler { gen, table: SymbolTable::new() }
+    Compiler { gen }
   }
 
   pub fn compile_stmts(&mut self,
                        builder: &mut StmtBuilder,
+                       table: &mut SymbolTable,
                        stmts: &[&AST],
                        needs_result: NeedsResult)
                        -> Result<StExpr, Error> {
@@ -64,25 +64,27 @@ impl<'a> Compiler<'a> {
       let prefix = &stmts[..stmts.len()-1];
       let end = &stmts[stmts.len()-1];
       for x in prefix {
-        self.compile_stmt(builder, &mut stmt_wrapper::Vacuous, x)?;
+        self.compile_stmt(builder, table, &mut stmt_wrapper::Vacuous, x)?;
       }
-      self.compile_expr(builder, end, needs_result)
+      self.compile_expr(builder, table, end, needs_result)
     }
   }
 
   pub fn compile_stmt(&mut self,
                       builder: &mut StmtBuilder,
+                      table: &mut SymbolTable,
                       destination: &dyn StmtWrapper,
                       stmt: &AST)
                       -> Result<(), Error> {
     let needs_result = NeedsResult::from(!destination.is_vacuous());
-    let expr = self.compile_expr(builder, stmt, needs_result)?;
+    let expr = self.compile_expr(builder, table, stmt, needs_result)?;
     destination.wrap_to_builder(builder, expr);
     Ok(())
   }
 
   pub fn compile_expr(&mut self,
                       builder: &mut StmtBuilder,
+                      table: &mut SymbolTable,
                       expr: &AST,
                       needs_result: NeedsResult)
                       -> Result<StExpr, Error> {
@@ -94,9 +96,9 @@ impl<'a> Compiler<'a> {
         } else {
           let head = Compiler::resolve_call_name(vec[0])?;
           let tail = &vec[1..];
-          self.resolve_special_form(builder, head, tail, needs_result)?.map_or_else(|| {
+          self.resolve_special_form(builder, table, head, tail, needs_result)?.map_or_else(|| {
             let args = tail.into_iter()
-                           .map(|x| self.compile_expr(builder, x, NeedsResult::Yes))
+                           .map(|x| self.compile_expr(builder, table, x, NeedsResult::Yes))
                            .collect::<Result<Vec<_>, _>>()?;
             // Discard the stateful flag; we need the args either way.
             let args = args.into_iter().map(|x| x.0).collect();
@@ -115,7 +117,7 @@ impl<'a> Compiler<'a> {
       }
       AST::Symbol(s) => {
         // May have to revisit needs_resultness of this one. setget may cause issues here.
-        self.get_var(s).ok_or_else(|| Error::NoSuchVar(s.clone())).map(|var| {
+        table.get_var(s).ok_or_else(|| Error::NoSuchVar(s.clone())).map(|var| {
           StExpr(Expr::Var(var.to_string()), false)
         })
       }
@@ -142,11 +144,12 @@ impl<'a> Compiler<'a> {
 
   fn resolve_special_form(&mut self,
                           builder: &mut StmtBuilder,
+                          table: &mut SymbolTable,
                           head: &str,
                           tail: &[&AST],
                           needs_result: NeedsResult)
                           -> Result<Option<StExpr>, Error> {
-    special_form::lookup_and_compile(self, builder, head, tail, needs_result)
+    special_form::lookup_and_compile(self, builder, table, head, tail, needs_result)
   }
 
   fn declare_var(&mut self, builder: &mut StmtBuilder, prefix: &str, value: Option<Expr>) -> String {
@@ -154,18 +157,6 @@ impl<'a> Compiler<'a> {
     let value = value.unwrap_or(Compiler::nil_expr().0);
     builder.append(Stmt::VarDecl(var_name.clone(), value));
     var_name
-  }
-
-}
-
-impl HasSymbolTable for Compiler<'_> {
-
-  fn get_symbol_table(&self) -> &SymbolTable {
-    &self.table
-  }
-
-  fn get_symbol_table_mut(&mut self) -> &mut SymbolTable {
-    &mut self.table
   }
 
 }
@@ -181,8 +172,9 @@ mod tests {
   fn compile_stmt(ast: &AST) -> Result<(Vec<Stmt>, Vec<Decl>), Error> {
     let used_names = ast.all_symbols();
     let mut compiler = Compiler::new(FreshNameGenerator::new(used_names));
+    let mut table = SymbolTable::new();
     let mut builder = StmtBuilder::new();
-    let () = compiler.compile_stmt(&mut builder, &mut stmt_wrapper::Return, &ast)?;
+    let () = compiler.compile_stmt(&mut builder, &mut table, &mut stmt_wrapper::Return, &ast)?;
     Ok(builder.build())
   }
 

@@ -5,6 +5,7 @@ use super::SpecialForm;
 use crate::compile::{Compiler, StExpr, NeedsResult};
 use crate::compile::body::builder::StmtBuilder;
 use crate::compile::error::Error;
+use crate::compile::symbol_table::SymbolTable;
 use crate::gdscript::expr::Expr;
 use crate::sxp::ast::AST;
 
@@ -18,6 +19,7 @@ impl SpecialForm for Funcall {
   fn compile<'a>(&mut self,
                  compiler: &mut Compiler<'a>,
                  builder: &mut StmtBuilder,
+                 table: &mut SymbolTable,
                  tail: &[&AST],
                  _needs_result: NeedsResult)
                  -> Result<StExpr, Error> {
@@ -26,9 +28,9 @@ impl SpecialForm for Funcall {
     }
     let func = tail[0];
     let args = &tail[1..];
-    let func_expr = compiler.compile_expr(builder, func, NeedsResult::Yes)?.0;
+    let func_expr = compiler.compile_expr(builder, table, func, NeedsResult::Yes)?.0;
     let args_expr = args.iter().map(|arg| {
-      compiler.compile_expr(builder, arg, NeedsResult::Yes).map(|x| x.0)
+      compiler.compile_expr(builder, table, arg, NeedsResult::Yes).map(|x| x.0)
     }).collect::<Result<Vec<_>, _>>()?;
     let fn_name = String::from("call_func");
     let expr = Expr::Call(Some(Box::new(func_expr)), fn_name, args_expr);
