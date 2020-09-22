@@ -13,11 +13,13 @@ pub trait SymbolTable {
 // So this probably doesn't need to be a trait anymore. It could
 // almost be merged into SymbolTable. It was necessary back when the
 // compiler directly stored a SymbolTable, which we don't do anymore.
-pub trait HasSymbolTable<Table: SymbolTable> {
+pub trait HasSymbolTable {
 
-  fn get_symbol_table(&self) -> &Table;
+  type Table: SymbolTable;
 
-  fn get_symbol_table_mut(&mut self) -> &mut Table;
+  fn get_symbol_table(&self) -> &Self::Table;
+
+  fn get_symbol_table_mut(&mut self) -> &mut Self::Table;
 
   fn with_local_var<B>(&mut self,
                        name: String,
@@ -47,13 +49,14 @@ pub trait HasSymbolTable<Table: SymbolTable> {
 
 }
 
-impl<Table: SymbolTable> HasSymbolTable<Table> for Table {
+impl<T: SymbolTable> HasSymbolTable for T {
+  type Table = T;
 
-  fn get_symbol_table(&self) -> &Table {
+  fn get_symbol_table(&self) -> &Self::Table {
     self
   }
 
-  fn get_symbol_table_mut(&mut self) -> &mut Table {
+  fn get_symbol_table_mut(&mut self) -> &mut Self::Table {
     self
   }
 
