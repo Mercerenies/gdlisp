@@ -52,6 +52,10 @@ impl<'a, Table: SymbolTable<'a>> MonitoredTable<'a, Table> {
     *self.monitor.get(name).unwrap_or(&false)
   }
 
+  pub fn get_used_vars(&self) -> impl Iterator<Item = &String> {
+    self.monitor.iter().filter(|x| *x.1).map(|x| x.0)
+  }
+
 }
 
 impl<'a, Table: SymbolTable<'a>> SymbolTable<'a> for MonitoredTable<'a, Table> {
