@@ -12,6 +12,10 @@ use gdlisp::parser;
 // (so we can represent parse errors and compile errors with one
 // common type), we should return a Result<...> here.
 fn parse_compile_and_output(input: &str) -> String {
+  parse_compile_and_output_h(input).0
+}
+
+fn parse_compile_and_output_h(input: &str) -> (String, String) {
   let parser = parser::ASTParser::new();
   let value = parser.parse(input).unwrap();
   let used_names = value.all_symbols();
@@ -20,8 +24,10 @@ fn parse_compile_and_output(input: &str) -> String {
   let mut builder = StmtBuilder::new();
   let () = compiler.compile_stmt(&mut builder, &mut stmt_wrapper::Return, &value).unwrap();
   // TODO Print helpers here, too
-  let (stmts, _) = builder.build();
-  stmts.into_iter().map(|stmt| stmt.to_gd(0)).collect::<String>()
+  let (stmts, helpers) = builder.build();
+  let a = stmts.into_iter().map(|stmt| stmt.to_gd(0)).collect::<String>();
+  let b = helpers.into_iter().map(|decl| decl.to_gd(0)).collect::<String>();
+  (a, b)
 }
 
 #[test]
@@ -94,4 +100,21 @@ pub fn var_shadowing() {
 #[test]
 pub fn inline_if_in_let_test() {
   assert_eq!(parse_compile_and_output("(let ((a (if (foo) (bar) (baz)))) a)"), "var _if_0 = GDLisp.Nil\nif foo():\n    _if_0 = bar()\nelse:\n    _if_0 = baz()\nvar a_1 = _if_0\nreturn a_1\n");
+}
+
+#[test]
+pub fn basic_lambda_test() {
+
+  let result0 = parse_compile_and_output_h("(lambda ())");
+  assert_eq!(result0.0, "return _LambdaBlock_0.new()\n");
+  assert_eq!(result0.1, "class _LambdaBlock_0 extends Reference:\n    func call_func():\n        return GDLisp.Nil\n");
+
+  let result1 = parse_compile_and_output_h("(lambda (a) a)");
+  assert_eq!(result1.0, "return _LambdaBlock_1.new()\n");
+  assert_eq!(result1.1, "class _LambdaBlock_1 extends Reference:\n    func call_func(a_0):\n        return a_0\n");
+
+  let result2 = parse_compile_and_output_h("(progn (lambda (a) a) 1)");
+  assert_eq!(result2.0, "return 1\n");
+  assert_eq!(result2.1, "class _LambdaBlock_1 extends Reference:\n    func call_func(a_0):\n        return a_0\n");
+
 }
