@@ -11,8 +11,16 @@ impl SymbolTable {
     SymbolTable { data: HashMap::new() }
   }
 
-  pub fn get_table(&self) -> &HashMap<String, String> {
-    &self.data
+  pub fn get_var(&self, name: &str) -> Option<&str> {
+    self.data.get(name).map(|x| x.as_str())
+  }
+
+  pub fn set_var(&mut self, name: String, value: String) -> Option<String> {
+    self.data.insert(name, value)
+  }
+
+  pub fn del_var(&mut self, name: &str) {
+    self.data.remove(name);
   }
 
 }
@@ -27,12 +35,12 @@ pub trait HasSymbolTable {
                        name: String,
                        value: String,
                        block: impl FnOnce(&mut Self) -> B) -> B {
-    let previous = self.get_symbol_table_mut().data.insert(name.clone(), value);
+    let previous = self.get_symbol_table_mut().set_var(name.clone(), value);
     let result = block(self);
     if let Some(previous) = previous {
-      self.get_symbol_table_mut().data.insert(name, previous);
+      self.get_symbol_table_mut().set_var(name, previous);
     } else {
-      self.get_symbol_table_mut().data.remove(&name);
+      self.get_symbol_table_mut().del_var(&name);
     };
     result
   }
@@ -47,10 +55,6 @@ pub trait HasSymbolTable {
     } else {
       block(self)
     }
-  }
-
-  fn get_var(&self, name: &str) -> Option<&str> {
-    self.get_symbol_table().data.get(name).map(|x| x.as_str())
   }
 
   #[deprecated(note="Simply make a new symbol table")]

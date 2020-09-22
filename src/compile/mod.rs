@@ -15,7 +15,7 @@ use crate::gdscript::stmt::Stmt;
 use crate::gdscript::literal::Literal;
 use error::Error;
 use stmt_wrapper::StmtWrapper;
-use symbol_table::{SymbolTable, HasSymbolTable};
+use symbol_table::SymbolTable;
 
 use std::convert::TryInto;
 
