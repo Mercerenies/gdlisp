@@ -54,7 +54,7 @@ impl<'a> Compiler<'a> {
 
   pub fn compile_stmts(&mut self,
                        builder: &mut StmtBuilder,
-                       table: &mut SymbolTable,
+                       table: &mut impl SymbolTable,
                        stmts: &[&AST],
                        needs_result: NeedsResult)
                        -> Result<StExpr, Error> {
@@ -72,7 +72,7 @@ impl<'a> Compiler<'a> {
 
   pub fn compile_stmt(&mut self,
                       builder: &mut StmtBuilder,
-                      table: &mut SymbolTable,
+                      table: &mut impl SymbolTable,
                       destination: &dyn StmtWrapper,
                       stmt: &AST)
                       -> Result<(), Error> {
@@ -84,7 +84,7 @@ impl<'a> Compiler<'a> {
 
   pub fn compile_expr(&mut self,
                       builder: &mut StmtBuilder,
-                      table: &mut SymbolTable,
+                      table: &mut impl SymbolTable,
                       expr: &AST,
                       needs_result: NeedsResult)
                       -> Result<StExpr, Error> {
@@ -144,7 +144,7 @@ impl<'a> Compiler<'a> {
 
   fn resolve_special_form(&mut self,
                           builder: &mut StmtBuilder,
-                          table: &mut SymbolTable,
+                          table: &mut impl SymbolTable,
                           head: &str,
                           tail: &[&AST],
                           needs_result: NeedsResult)
@@ -166,13 +166,14 @@ mod tests {
   use super::*;
   use crate::gdscript::decl::Decl;
   use crate::sxp::ast;
+  use symbol_table::concrete::ConcreteTable;
 
   // TODO A lot more of this
 
   fn compile_stmt(ast: &AST) -> Result<(Vec<Stmt>, Vec<Decl>), Error> {
     let used_names = ast.all_symbols();
     let mut compiler = Compiler::new(FreshNameGenerator::new(used_names));
-    let mut table = SymbolTable::new();
+    let mut table = ConcreteTable::new();
     let mut builder = StmtBuilder::new();
     let () = compiler.compile_stmt(&mut builder, &mut table, &mut stmt_wrapper::Return, &ast)?;
     Ok(builder.build())

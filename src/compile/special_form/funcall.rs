@@ -19,7 +19,7 @@ impl SpecialForm for Funcall {
   fn compile<'a>(&mut self,
                  compiler: &mut Compiler<'a>,
                  builder: &mut StmtBuilder,
-                 table: &mut SymbolTable,
+                 table: &mut impl SymbolTable,
                  tail: &[&AST],
                  _needs_result: NeedsResult)
                  -> Result<StExpr, Error> {

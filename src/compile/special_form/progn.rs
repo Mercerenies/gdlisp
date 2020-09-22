@@ -13,7 +13,7 @@ impl SpecialForm for Progn {
   fn compile<'a>(&mut self,
                  compiler: &mut Compiler<'a>,
                  builder: &mut StmtBuilder,
-                 table: &mut SymbolTable,
+                 table: &mut impl SymbolTable,
                  tail: &[&AST],
                  needs_result: NeedsResult)
                  -> Result<StExpr, Error> {

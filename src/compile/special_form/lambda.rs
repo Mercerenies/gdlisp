@@ -8,6 +8,7 @@ use crate::compile::stmt_wrapper::StmtWrapper;
 use crate::compile::error::Error;
 use crate::compile::stmt_wrapper;
 use crate::compile::symbol_table::HasSymbolTable;
+use crate::compile::symbol_table::concrete::ConcreteTable;
 use crate::compile::names::fresh::FreshNameGenerator;
 use crate::compile::symbol_table::SymbolTable;
 use crate::gdscript::decl::{self, Decl};
@@ -26,7 +27,7 @@ impl SpecialForm for Lambda {
   fn compile<'a>(&mut self,
                  compiler: &mut Compiler<'a>,
                  builder: &mut StmtBuilder,
-                 _table: &mut SymbolTable,
+                 _table: &mut impl SymbolTable,
                  tail: &[&AST],
                  _needs_result: NeedsResult)
                  -> Result<StExpr, Error> {
@@ -49,7 +50,7 @@ impl SpecialForm for Lambda {
       }
     }).collect::<Result<Vec<_>, _>>()?;
     let mut lambda_builder = StmtBuilder::new();
-    let mut lambda_table = SymbolTable::new();
+    let mut lambda_table = ConcreteTable::new();
     let () = lambda_table.with_local_vars(&mut arg_names.clone().into_iter(), |lambda_table| {
       let result = compiler.compile_stmts(&mut lambda_builder, lambda_table, body, NeedsResult::Yes)?;
       stmt_wrapper::Return.wrap_to_builder(&mut lambda_builder, result);

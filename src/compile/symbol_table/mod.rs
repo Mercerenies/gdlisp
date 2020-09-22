@@ -1,35 +1,20 @@
 
-use std::collections::HashMap;
+pub mod concrete;
 
-pub struct SymbolTable {
-  data: HashMap<String, String>,
+pub trait SymbolTable {
+  fn get_var(&self, name: &str) -> Option<&str>;
+  fn set_var(&mut self, name: String, value: String) -> Option<String>;
+  fn del_var(&mut self, name: &str);
 }
 
-impl SymbolTable {
+// So this probably doesn't need to be a trait anymore. It could
+// almost be merged into SymbolTable. It was necessary back when the
+// compiler directly stored a SymbolTable, which we don't do anymore.
+pub trait HasSymbolTable<Table: SymbolTable> {
 
-  pub fn new() -> SymbolTable {
-    SymbolTable { data: HashMap::new() }
-  }
+  fn get_symbol_table(&self) -> &Table;
 
-  pub fn get_var(&self, name: &str) -> Option<&str> {
-    self.data.get(name).map(|x| x.as_str())
-  }
-
-  pub fn set_var(&mut self, name: String, value: String) -> Option<String> {
-    self.data.insert(name, value)
-  }
-
-  pub fn del_var(&mut self, name: &str) {
-    self.data.remove(name);
-  }
-
-}
-
-pub trait HasSymbolTable {
-
-  fn get_symbol_table(&self) -> &SymbolTable;
-
-  fn get_symbol_table_mut(&mut self) -> &mut SymbolTable;
+  fn get_symbol_table_mut(&mut self) -> &mut Table;
 
   fn with_local_var<B>(&mut self,
                        name: String,
@@ -57,29 +42,15 @@ pub trait HasSymbolTable {
     }
   }
 
-  #[deprecated(note="Simply make a new symbol table")]
-  fn with_disjoint_scope<B>(&mut self,
-                            block: impl FnOnce(&mut Self) -> B) -> B {
-    let old_data = {
-      let table = self.get_symbol_table_mut();
-      let tmp = table.data.clone(); // Don't own, so can't move :(
-      table.data = HashMap::new();
-      tmp
-    };
-    let result = block(self);
-    self.get_symbol_table_mut().data = old_data;
-    result
-  }
-
 }
 
-impl HasSymbolTable for SymbolTable {
+impl<Table: SymbolTable> HasSymbolTable<Table> for Table {
 
-  fn get_symbol_table(&self) -> &SymbolTable {
+  fn get_symbol_table(&self) -> &Table {
     self
   }
 
-  fn get_symbol_table_mut(&mut self) -> &mut SymbolTable {
+  fn get_symbol_table_mut(&mut self) -> &mut Table {
     self
   }
 

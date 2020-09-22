@@ -5,7 +5,7 @@ use gdlisp::compile::Compiler;
 use gdlisp::compile::stmt_wrapper;
 use gdlisp::compile::names::fresh::FreshNameGenerator;
 use gdlisp::compile::body::builder::StmtBuilder;
-use gdlisp::compile::symbol_table::SymbolTable;
+use gdlisp::compile::symbol_table::concrete::ConcreteTable;
 use gdlisp::parser;
 
 // TODO Currently, this panics if it fails. This is okay-ish, since
@@ -21,7 +21,7 @@ fn parse_compile_and_output_h(input: &str) -> (String, String) {
   let value = parser.parse(input).unwrap();
   let used_names = value.all_symbols();
   let mut compiler = Compiler::new(FreshNameGenerator::new(used_names));
-  let mut table = SymbolTable::new();
+  let mut table = ConcreteTable::new();
 
   let mut builder = StmtBuilder::new();
   let () = compiler.compile_stmt(&mut builder, &mut table, &mut stmt_wrapper::Return, &value).unwrap();
