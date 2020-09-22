@@ -15,7 +15,7 @@ impl ConcreteTable {
 
 impl SymbolTable for ConcreteTable {
 
-  fn get_var(&self, name: &str) -> Option<&str> {
+  fn get_var(&mut self, name: &str) -> Option<&str> {
     self.data.get(name).map(|x| x.as_str())
   }
 

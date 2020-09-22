@@ -1,8 +1,11 @@
 
 pub mod concrete;
+pub mod monitored;
 
 pub trait SymbolTable {
-  fn get_var(&self, name: &str) -> Option<&str>;
+  // get_var requires &mut self so we can do monitoring tricks to
+  // detect closure arguments.
+  fn get_var(&mut self, name: &str) -> Option<&str>;
   fn set_var(&mut self, name: String, value: String) -> Option<String>;
   fn del_var(&mut self, name: &str);
 }
