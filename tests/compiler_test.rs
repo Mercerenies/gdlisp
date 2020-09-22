@@ -118,3 +118,18 @@ pub fn basic_lambda_test() {
   assert_eq!(result2.1, "class _LambdaBlock_1 extends Reference:\n    func call_func(a_0):\n        return a_0\n");
 
 }
+
+#[test]
+pub fn basic_funcall_test() {
+  assert_eq!(parse_compile_and_output("(funcall 1)"), "return 1.call_func()\n");
+  assert_eq!(parse_compile_and_output("(progn (funcall 1) 2)"), "1.call_func()\nreturn 2\n");
+  assert_eq!(parse_compile_and_output("(funcall 1 2 3)"), "return 1.call_func(2, 3)\n");
+}
+
+#[test]
+pub fn funcall_lambda_test() {
+
+  let result0 = parse_compile_and_output_h("(let ((f (lambda (a) a))) (funcall f 3))");
+  assert_eq!(result0.0, "var f_2 = _LambdaBlock_1.new()\nreturn f_2.call_func(3)\n");
+  assert_eq!(result0.1, "class _LambdaBlock_1 extends Reference:\n    func call_func(a_0):\n        return a_0\n");
+}

@@ -4,6 +4,7 @@ pub mod if_;
 pub mod cond;
 pub mod let_;
 pub mod lambda;
+pub mod funcall;
 
 use super::{Compiler, StExpr, NeedsResult};
 use crate::compile::body::builder::StmtBuilder;
@@ -28,6 +29,7 @@ pub fn lookup(head: &str) -> Option<Box<dyn SpecialForm>> {
     "cond" => Some(Box::new(cond::Cond)),
     "let" => Some(Box::new(let_::Let)),
     "lambda" => Some(Box::new(lambda::Lambda)),
+    "funcall" => Some(Box::new(funcall::Funcall)),
     _ => None,
   }
 }
