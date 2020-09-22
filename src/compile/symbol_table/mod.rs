@@ -2,20 +2,27 @@
 pub mod concrete;
 pub mod monitored;
 
-pub trait SymbolTable {
+// Won't need this lifetime parameter once we have https://github.com/rust-lang/rust/issues/44265
+pub trait SymbolTable<'a> {
+
+  type Iter: Iterator<Item=(&'a String, &'a String)>;
+
   // get_var requires &mut self so we can do monitoring tricks to
   // detect closure arguments.
   fn get_var(&mut self, name: &str) -> Option<&str>;
   fn set_var(&mut self, name: String, value: String) -> Option<String>;
   fn del_var(&mut self, name: &str);
+
+  fn vars(&'a self) -> Self::Iter;
+
 }
 
 // So this probably doesn't need to be a trait anymore. It could
 // almost be merged into SymbolTable. It was necessary back when the
 // compiler directly stored a SymbolTable, which we don't do anymore.
-pub trait HasSymbolTable {
+pub trait HasSymbolTable<'a> {
 
-  type Table: SymbolTable;
+  type Table: SymbolTable<'a>;
 
   fn get_symbol_table(&self) -> &Self::Table;
 
@@ -49,7 +56,7 @@ pub trait HasSymbolTable {
 
 }
 
-impl<T: SymbolTable> HasSymbolTable for T {
+impl<'a, T: SymbolTable<'a>> HasSymbolTable<'a> for T {
   type Table = T;
 
   fn get_symbol_table(&self) -> &Self::Table {

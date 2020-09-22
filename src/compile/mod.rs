@@ -52,12 +52,12 @@ impl<'a> Compiler<'a> {
     Compiler { gen }
   }
 
-  pub fn compile_stmts(&mut self,
-                       builder: &mut StmtBuilder,
-                       table: &mut impl SymbolTable,
-                       stmts: &[&AST],
-                       needs_result: NeedsResult)
-                       -> Result<StExpr, Error> {
+  pub fn compile_stmts<'b>(&mut self,
+                           builder: &mut StmtBuilder,
+                           table: &mut impl SymbolTable<'b>,
+                           stmts: &[&AST],
+                           needs_result: NeedsResult)
+                           -> Result<StExpr, Error> {
     if stmts.is_empty() {
       Ok(Compiler::nil_expr())
     } else {
@@ -70,24 +70,24 @@ impl<'a> Compiler<'a> {
     }
   }
 
-  pub fn compile_stmt(&mut self,
-                      builder: &mut StmtBuilder,
-                      table: &mut impl SymbolTable,
-                      destination: &dyn StmtWrapper,
-                      stmt: &AST)
-                      -> Result<(), Error> {
+  pub fn compile_stmt<'b>(&mut self,
+                          builder: &mut StmtBuilder,
+                          table: &mut impl SymbolTable<'b>,
+                          destination: &dyn StmtWrapper,
+                          stmt: &AST)
+                          -> Result<(), Error> {
     let needs_result = NeedsResult::from(!destination.is_vacuous());
     let expr = self.compile_expr(builder, table, stmt, needs_result)?;
     destination.wrap_to_builder(builder, expr);
     Ok(())
   }
 
-  pub fn compile_expr(&mut self,
-                      builder: &mut StmtBuilder,
-                      table: &mut impl SymbolTable,
-                      expr: &AST,
-                      needs_result: NeedsResult)
-                      -> Result<StExpr, Error> {
+  pub fn compile_expr<'b>(&mut self,
+                          builder: &mut StmtBuilder,
+                          table: &mut impl SymbolTable<'b>,
+                          expr: &AST,
+                          needs_result: NeedsResult)
+                          -> Result<StExpr, Error> {
     match expr {
       AST::Nil | AST::Cons(_, _) => {
         let vec: Vec<&AST> = DottedExpr::new(expr).try_into()?;
@@ -142,13 +142,13 @@ impl<'a> Compiler<'a> {
     }
   }
 
-  fn resolve_special_form(&mut self,
-                          builder: &mut StmtBuilder,
-                          table: &mut impl SymbolTable,
-                          head: &str,
-                          tail: &[&AST],
-                          needs_result: NeedsResult)
-                          -> Result<Option<StExpr>, Error> {
+  fn resolve_special_form<'b>(&mut self,
+                              builder: &mut StmtBuilder,
+                              table: &mut impl SymbolTable<'b>,
+                              head: &str,
+                              tail: &[&AST],
+                              needs_result: NeedsResult)
+                              -> Result<Option<StExpr>, Error> {
     special_form::lookup_and_compile(self, builder, table, head, tail, needs_result)
   }
 

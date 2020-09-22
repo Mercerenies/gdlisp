@@ -2,6 +2,7 @@
 use super::SymbolTable;
 
 use std::collections::HashMap;
+use std::marker::PhantomData;
 
 // Note: The keys in the monitor HashMap are actually the GD names,
 // NOT the AST ones. This is to ensure that if an AST name gets
@@ -15,17 +16,19 @@ use std::collections::HashMap;
 // closure object. The second is a simple local variable that happens
 // to share its name with a possible capture. The local variable
 // should not be monitored.
-pub struct MonitoredTable<Table: SymbolTable> {
+pub struct MonitoredTable<'a, Table: SymbolTable<'a>> {
   table: Table,
   monitor: HashMap<String, bool>,
+  phantom: PhantomData<&'a ()>,
 }
 
-impl<Table: SymbolTable> MonitoredTable<Table> {
+impl<'a, Table: SymbolTable<'a>> MonitoredTable<'a, Table> {
 
-  pub fn new(table: Table) -> MonitoredTable<Table> {
+  pub fn new(table: Table) -> MonitoredTable<'a, Table> {
     MonitoredTable {
       table: table,
       monitor: HashMap::new(),
+      phantom: PhantomData,
     }
   }
 
@@ -51,7 +54,9 @@ impl<Table: SymbolTable> MonitoredTable<Table> {
 
 }
 
-impl<Table: SymbolTable> SymbolTable for MonitoredTable<Table> {
+impl<'a, Table: SymbolTable<'a>> SymbolTable<'a> for MonitoredTable<'a, Table> {
+
+  type Iter = Table::Iter;
 
   fn get_var(&mut self, name: &str) -> Option<&str> {
     let name = self.table.get_var(name);
@@ -70,6 +75,10 @@ impl<Table: SymbolTable> SymbolTable for MonitoredTable<Table> {
 
   fn del_var(&mut self, name: &str) {
     self.table.del_var(name)
+  }
+
+  fn vars(&'a self) -> Self::Iter {
+    self.table.vars()
   }
 
 }

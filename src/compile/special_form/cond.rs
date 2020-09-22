@@ -16,13 +16,13 @@ use std::convert::TryInto;
 
 impl SpecialForm for Cond {
 
-  fn compile<'a>(&mut self,
-                 compiler: &mut Compiler<'a>,
-                 builder: &mut StmtBuilder,
-                 table: &mut impl SymbolTable,
-                 tail: &[&AST],
-                 needs_result: NeedsResult)
-                 -> Result<StExpr, Error> {
+  fn compile<'a, 'b>(&mut self,
+                     compiler: &mut Compiler<'a>,
+                     builder: &mut StmtBuilder,
+                     table: &mut impl SymbolTable<'b>,
+                     tail: &[&AST],
+                     needs_result: NeedsResult)
+             -> Result<StExpr, Error> {
     let (destination, result) = if needs_result.into() {
       let var_name = compiler.declare_var(builder, "_cond", None);
       let destination = Box::new(stmt_wrapper::AssignToVar(var_name.clone())) as Box<dyn StmtWrapper>;
