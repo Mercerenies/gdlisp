@@ -13,14 +13,14 @@ use crate::compile::names::fresh::FreshNameGenerator;
 use crate::compile::symbol_table::SymbolTable;
 use crate::gdscript::decl::{self, Decl};
 use crate::gdscript::arglist::ArgList;
+use crate::gdscript::op;
+use crate::gdscript::stmt::Stmt;
 use crate::gdscript::expr::Expr;
 use crate::sxp::ast::AST;
 use crate::sxp::dotted::DottedExpr;
 
 use std::convert::TryInto;
-
-// TODO Currently, lambdas don't close over local variables (they just
-// get their own new scope). We'll fix this soon.
+use std::borrow::Borrow;
 
 impl SpecialForm for Lambda {
 
@@ -56,15 +56,36 @@ impl SpecialForm for Lambda {
     for arg in arg_names.clone().into_iter() {
       lambda_table.set_var(arg.0, arg.1);
     }
+    for local in table.vars() {
+      // We're reusing the local_gd name from the lexical scope here.
+      // It should always be safe to do so, since the lambda class
+      // will always be instantiated strictly outside of the current
+      // lexical scope. (TODO It does produce warnings in Godot if the
+      // settings are right, so we might consider generating new names
+      // anyway)
+      let (local_ast, local_gd) = local;
+      lambda_table.set_var(String::from(local_ast), String::from(local_gd));
+      lambda_table.monitor_var(String::from(local_gd));
+    }
 
     let result = compiler.compile_stmts(&mut lambda_builder, &mut lambda_table, body, NeedsResult::Yes)?;
     stmt_wrapper::Return.wrap_to_builder(&mut lambda_builder, result);
 
+    // I don't care what order these things end up in, but I do need
+    // to get them in some kind of internally consistent order so I
+    // can call the constructor with the right arguments.
+    let closed_vars = lambda_table.get_used_vars().map(|x| x.borrow()).collect::<Vec<&str>>();
+
     let arglist = ArgList::required(arg_names.into_iter().map(|x| x.1.clone()).collect());
-    let class = generate_lambda_class(&mut compiler.name_generator(), arglist, builder, lambda_builder);
+    let class = generate_lambda_class(&mut compiler.name_generator(),
+                                      arglist,
+                                      &closed_vars,
+                                      builder,
+                                      lambda_builder);
     let class_name = class.name.clone();
     builder.add_helper(Decl::ClassDecl(class));
-    let expr = Expr::Call(Some(Box::new(Expr::Var(class_name))), String::from("new"), vec!());
+    let constructor_args = closed_vars.into_iter().map(|x| Expr::Var(x.to_owned())).collect();
+    let expr = Expr::Call(Some(Box::new(Expr::Var(class_name))), String::from("new"), constructor_args);
     Ok(StExpr(expr, false))
   }
 
@@ -72,6 +93,7 @@ impl SpecialForm for Lambda {
 
 fn generate_lambda_class(gen: &mut FreshNameGenerator,
                          args: ArgList,
+                         closed_vars: &Vec<&str>,
                          parent_builder: &mut StmtBuilder,
                          lambda_builder: StmtBuilder)
                          -> decl::ClassDecl {
@@ -83,10 +105,29 @@ fn generate_lambda_class(gen: &mut FreshNameGenerator,
     args: args,
     body: func_body,
   };
-  let class_body = vec!(Decl::FnDecl(decl::Static::NonStatic, func));
+  let constructor =
+    decl::FnDecl {
+      name: String::from("_init"),
+      args: ArgList::required(closed_vars.iter().map(|x| (*x).to_owned()).collect()),
+      body: closed_vars.iter().map(|name| assign_to_self(name.to_string(), name.to_string())).collect(),
+    };
+  let mut class_body = vec!();
+  for var in closed_vars {
+    class_body.push(Decl::VarDecl(String::from(*var), None));
+  }
+  class_body.append(&mut vec!(
+    Decl::FnDecl(decl::Static::NonStatic, constructor),
+    Decl::FnDecl(decl::Static::NonStatic, func),
+  ));
   decl::ClassDecl {
     name: class_name,
     extends: decl::ClassExtends::Named(String::from("Reference")),
     body: class_body,
   }
+}
+
+fn assign_to_self(inst_var: String, local_var: String) -> Stmt {
+  let self_target = Box::new(Expr::Attribute(Box::new(Expr::Var(String::from("self"))), inst_var));
+  let value = Box::new(Expr::Var(local_var));
+  Stmt::Assign(self_target, op::AssignOp::Eq, value)
 }

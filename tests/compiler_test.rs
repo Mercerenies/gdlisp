@@ -108,15 +108,33 @@ pub fn basic_lambda_test() {
 
   let result0 = parse_compile_and_output_h("(lambda ())");
   assert_eq!(result0.0, "return _LambdaBlock_0.new()\n");
-  assert_eq!(result0.1, "class _LambdaBlock_0 extends Reference:\n    func call_func():\n        return GDLisp.Nil\n");
+  assert_eq!(result0.1, "class _LambdaBlock_0 extends Reference:\n    func _init():\n        pass\n    func call_func():\n        return GDLisp.Nil\n");
 
   let result1 = parse_compile_and_output_h("(lambda (a) a)");
   assert_eq!(result1.0, "return _LambdaBlock_1.new()\n");
-  assert_eq!(result1.1, "class _LambdaBlock_1 extends Reference:\n    func call_func(a_0):\n        return a_0\n");
+  assert_eq!(result1.1, "class _LambdaBlock_1 extends Reference:\n    func _init():\n        pass\n    func call_func(a_0):\n        return a_0\n");
 
   let result2 = parse_compile_and_output_h("(progn (lambda (a) a) 1)");
   assert_eq!(result2.0, "return 1\n");
-  assert_eq!(result2.1, "class _LambdaBlock_1 extends Reference:\n    func call_func(a_0):\n        return a_0\n");
+  assert_eq!(result2.1, "class _LambdaBlock_1 extends Reference:\n    func _init():\n        pass\n    func call_func(a_0):\n        return a_0\n");
+
+}
+
+#[test]
+pub fn closure_lambda_test() {
+
+  let result0 = parse_compile_and_output_h("(let (a) (lambda () a))");
+  assert_eq!(result0.0, "var a_0 = GDLisp.Nil\nreturn _LambdaBlock_1.new(a_0)\n");
+  assert_eq!(result0.1, "class _LambdaBlock_1 extends Reference:\n    var a_0\n    func _init(a_0):\n        self.a_0 = a_0\n    func call_func():\n        return a_0\n");
+
+}
+
+#[test]
+pub fn non_closure_lambda_test() {
+
+  let result0 = parse_compile_and_output_h("(let (a) (lambda () (let (a) a)))");
+  assert_eq!(result0.0, "var a_0 = GDLisp.Nil\nreturn _LambdaBlock_2.new()\n");
+  assert_eq!(result0.1, "class _LambdaBlock_2 extends Reference:\n    func _init():\n        pass\n    func call_func():\n        var a_1 = GDLisp.Nil\n        return a_1\n");
 
 }
 
@@ -132,5 +150,5 @@ pub fn funcall_lambda_test() {
 
   let result0 = parse_compile_and_output_h("(let ((f (lambda (a) a))) (funcall f 3))");
   assert_eq!(result0.0, "var f_2 = _LambdaBlock_1.new()\nreturn f_2.call_func(3)\n");
-  assert_eq!(result0.1, "class _LambdaBlock_1 extends Reference:\n    func call_func(a_0):\n        return a_0\n");
+  assert_eq!(result0.1, "class _LambdaBlock_1 extends Reference:\n    func _init():\n        pass\n    func call_func(a_0):\n        return a_0\n");
 }
