@@ -13,6 +13,7 @@ use crate::sxp::dotted::DottedExpr;
 use crate::gdscript::expr::Expr;
 use crate::gdscript::stmt::Stmt;
 use crate::gdscript::literal::Literal;
+use crate::gdscript::library;
 use error::Error;
 use stmt_wrapper::StmtWrapper;
 use symbol_table::SymbolTable;
@@ -125,8 +126,7 @@ impl<'a> Compiler<'a> {
   }
 
   pub fn nil_expr() -> StExpr {
-    let name = String::from("GDLisp");
-    StExpr(Expr::Attribute(Box::new(Expr::Var(name)), String::from("Nil")), false)
+    StExpr(library::on_gdlisp_root(String::from("Nil")), false)
   }
 
   pub fn name_generator(&mut self) -> &mut FreshNameGenerator<'a> {
