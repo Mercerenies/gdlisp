@@ -2,10 +2,7 @@
 pub mod concrete;
 pub mod monitored;
 
-// Won't need this lifetime parameter once we have https://github.com/rust-lang/rust/issues/44265
-pub trait SymbolTable<'a> {
-
-  type Iter: Iterator<Item=(&'a String, &'a String)>;
+pub trait SymbolTable {
 
   // get_var requires &mut self so we can do monitoring tricks to
   // detect closure arguments.
@@ -13,16 +10,20 @@ pub trait SymbolTable<'a> {
   fn set_var(&mut self, name: String, value: String) -> Option<String>;
   fn del_var(&mut self, name: &str);
 
-  fn vars(&'a self) -> Self::Iter;
+  // Would be nice if we could get this thing to return an iterator,
+  // but between GATs being unstable, no impl trait return on trait
+  // methods, and just generally me still learning Rust, we're going
+  // to keep it simple.
+  fn vars<'a>(&'a self) -> Vec<(&'a str, &'a str)>;
 
 }
 
 // So this probably doesn't need to be a trait anymore. It could
 // almost be merged into SymbolTable. It was necessary back when the
 // compiler directly stored a SymbolTable, which we don't do anymore.
-pub trait HasSymbolTable<'a> {
+pub trait HasSymbolTable {
 
-  type Table: SymbolTable<'a>;
+  type Table: SymbolTable;
 
   fn get_symbol_table(&self) -> &Self::Table;
 
@@ -56,7 +57,7 @@ pub trait HasSymbolTable<'a> {
 
 }
 
-impl<'a, T: SymbolTable<'a>> HasSymbolTable<'a> for T {
+impl<T: SymbolTable> HasSymbolTable for T {
   type Table = T;
 
   fn get_symbol_table(&self) -> &Self::Table {

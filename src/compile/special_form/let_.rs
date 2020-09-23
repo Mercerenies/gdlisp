@@ -13,13 +13,13 @@ use std::convert::TryInto;
 
 impl SpecialForm for Let {
 
-  fn compile<'a, 'b>(&mut self,
-                     compiler: &mut Compiler<'a>,
-                     builder: &mut StmtBuilder,
-                     table: &mut impl SymbolTable<'b>,
-                     tail: &[&AST],
-                     needs_result: NeedsResult)
-                     -> Result<StExpr, Error> {
+  fn compile<'a>(&mut self,
+                 compiler: &mut Compiler<'a>,
+                 builder: &mut StmtBuilder,
+                 table: &mut impl SymbolTable,
+                 tail: &[&AST],
+                 needs_result: NeedsResult)
+                 -> Result<StExpr, Error> {
     if tail.len() < 1 {
       return Err(Error::TooFewArgs(String::from("let"), tail.len()));
     }

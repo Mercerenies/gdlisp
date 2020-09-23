@@ -14,23 +14,23 @@ use crate::sxp::ast::AST;
 
 pub trait SpecialForm {
 
-  fn compile<'a, 'b>(&mut self,
-                     compiler: &mut Compiler<'a>,
-                     builder: &mut StmtBuilder,
-                     table: &mut impl SymbolTable<'b>,
-                     tail: &[&AST],
-                     needs_result: NeedsResult)
-                     -> Result<StExpr, Error>;
+  fn compile<'a>(&mut self,
+                 compiler: &mut Compiler<'a>,
+                 builder: &mut StmtBuilder,
+                 table: &mut impl SymbolTable,
+                 tail: &[&AST],
+                 needs_result: NeedsResult)
+                 -> Result<StExpr, Error>;
 
 }
 
-pub fn lookup_and_compile<'a, 'b>(compiler: &mut Compiler<'a>,
-                                  builder: &mut StmtBuilder,
-                                  table: &mut impl SymbolTable<'b>,
-                                  head: &str,
-                                  tail: &[&AST],
-                                  needs_result: NeedsResult)
-                                  -> Result<Option<StExpr>, Error> {
+pub fn lookup_and_compile<'a>(compiler: &mut Compiler<'a>,
+                              builder: &mut StmtBuilder,
+                              table: &mut impl SymbolTable,
+                              head: &str,
+                              tail: &[&AST],
+                              needs_result: NeedsResult)
+                              -> Result<Option<StExpr>, Error> {
   match head {
     "progn" => Box::new(progn::Progn).compile(compiler, builder, table, tail, needs_result).map(Some),
     "if" => Box::new(if_::If).compile(compiler, builder, table, tail, needs_result).map(Some),

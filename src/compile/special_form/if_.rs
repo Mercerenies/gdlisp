@@ -13,13 +13,13 @@ use crate::gdscript::stmt;
 
 impl SpecialForm for If {
 
-  fn compile<'a, 'b>(&mut self,
-                     compiler: &mut Compiler<'a>,
-                     builder: &mut StmtBuilder,
-                     table: &mut impl SymbolTable<'b>,
-                     tail: &[&AST],
-                     needs_result: NeedsResult)
-                     -> Result<StExpr, Error> {
+  fn compile<'a>(&mut self,
+                 compiler: &mut Compiler<'a>,
+                 builder: &mut StmtBuilder,
+                 table: &mut impl SymbolTable,
+                 tail: &[&AST],
+                 needs_result: NeedsResult)
+                 -> Result<StExpr, Error> {
     let (cond, t, f) = match tail {
       [] | [_] => Err(Error::TooFewArgs(String::from("if"), tail.len())),
       [cond, t] => Ok((*cond, *t, &AST::Nil)),

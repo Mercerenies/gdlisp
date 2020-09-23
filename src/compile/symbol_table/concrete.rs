@@ -2,7 +2,7 @@
 use super::SymbolTable;
 
 use std::collections::HashMap;
-use std::collections::hash_map;
+use std::borrow::Borrow;
 
 pub struct ConcreteTable {
   data: HashMap<String, String>,
@@ -14,9 +14,7 @@ impl ConcreteTable {
   }
 }
 
-impl<'a> SymbolTable<'a> for ConcreteTable {
-
-  type Iter = hash_map::Iter<'a, String, String>;
+impl SymbolTable for ConcreteTable {
 
   fn get_var(&mut self, name: &str) -> Option<&str> {
     self.data.get(name).map(|x| x.as_str())
@@ -30,8 +28,8 @@ impl<'a> SymbolTable<'a> for ConcreteTable {
     self.data.remove(name);
   }
 
-  fn vars(&'a self) -> Self::Iter {
-    return self.data.iter();
+  fn vars<'a>(&'a self) -> Vec<(&'a str, &'a str)> {
+    return self.data.iter().map(|x| (x.0.borrow(), x.1.borrow())).collect();
   }
 
 }

@@ -24,13 +24,13 @@ use std::convert::TryInto;
 
 impl SpecialForm for Lambda {
 
-  fn compile<'a, 'b>(&mut self,
-                     compiler: &mut Compiler<'a>,
-                     builder: &mut StmtBuilder,
-                     table: &mut impl SymbolTable<'b>,
-                     tail: &[&AST],
-                     _needs_result: NeedsResult)
-                     -> Result<StExpr, Error> {
+  fn compile<'a>(&mut self,
+                 compiler: &mut Compiler<'a>,
+                 builder: &mut StmtBuilder,
+                 table: &mut impl SymbolTable,
+                 tail: &[&AST],
+                 _needs_result: NeedsResult)
+                 -> Result<StExpr, Error> {
     if tail.len() <= 0 {
       return Err(Error::TooFewArgs(String::from("lambda"), 1));
     }
