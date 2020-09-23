@@ -12,3 +12,11 @@ pub fn gdlisp_root() -> Expr {
 pub fn on_gdlisp_root(name: String) -> Expr {
   Expr::Attribute(Box::new(gdlisp_root()), name)
 }
+
+pub fn nil() -> Expr {
+  on_gdlisp_root(String::from("Nil"))
+}
+
+pub fn cons_class() -> Expr {
+  on_gdlisp_root(String::from("Cons"))
+}

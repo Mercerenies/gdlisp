@@ -5,6 +5,7 @@ pub mod error;
 pub mod stmt_wrapper;
 pub mod symbol_table;
 pub mod special_form;
+pub mod builtin;
 
 use body::builder::StmtBuilder;
 use names::fresh::FreshNameGenerator;
@@ -98,12 +99,14 @@ impl<'a> Compiler<'a> {
           let head = Compiler::resolve_call_name(vec[0])?;
           let tail = &vec[1..];
           self.resolve_special_form(builder, table, head, tail, needs_result)?.map_or_else(|| {
-            let args = tail.into_iter()
-                           .map(|x| self.compile_expr(builder, table, x, NeedsResult::Yes))
-                           .collect::<Result<Vec<_>, _>>()?;
-            // Discard the stateful flag; we need the args either way.
-            let args = args.into_iter().map(|x| x.0).collect();
-            Ok(StExpr(Expr::Call(None, names::lisp_to_gd(head), args), true))
+            self.compile_builtin_call(builder, table, head, tail, needs_result)?.map_or_else(|| {
+              let args = tail.into_iter()
+                             .map(|x| self.compile_expr(builder, table, x, NeedsResult::Yes))
+                             .collect::<Result<Vec<_>, _>>()?;
+              // Discard the stateful flag; we need the args either way.
+              let args = args.into_iter().map(|x| x.0).collect();
+              Ok(StExpr(Expr::Call(None, names::lisp_to_gd(head), args), true))
+            }, Ok)
           }, Ok)
         }
       }
@@ -126,7 +129,7 @@ impl<'a> Compiler<'a> {
   }
 
   pub fn nil_expr() -> StExpr {
-    StExpr(library::on_gdlisp_root(String::from("Nil")), false)
+    StExpr(library::nil(), false)
   }
 
   pub fn name_generator(&mut self) -> &mut FreshNameGenerator<'a> {
@@ -150,6 +153,25 @@ impl<'a> Compiler<'a> {
                           needs_result: NeedsResult)
                           -> Result<Option<StExpr>, Error> {
     special_form::lookup_and_compile(self, builder, table, head, tail, needs_result)
+  }
+
+  fn compile_builtin_call(&mut self,
+                          builder: &mut StmtBuilder,
+                          table: &mut impl SymbolTable,
+                          head: &str,
+                          tail: &[&AST],
+                          _needs_result: NeedsResult)
+                          -> Result<Option<StExpr>, Error> {
+    match builtin::translate_builtin(head) {
+      None => Ok(None), // Not a builtin; move on
+      Some((target, name)) => {
+        let args = tail.iter()
+                       .map(|x| self.compile_expr(builder, table, x, NeedsResult::Yes))
+                       .collect::<Result<Vec<_>, _>>()?;
+        let args = args.into_iter().map(|x| x.0).collect();
+        Ok(Some(StExpr(Expr::Call(target, name, args), true)))
+      }
+    }
   }
 
   fn declare_var(&mut self, builder: &mut StmtBuilder, prefix: &str, value: Option<Expr>) -> String {

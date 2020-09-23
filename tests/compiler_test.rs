@@ -152,3 +152,9 @@ pub fn funcall_lambda_test() {
   assert_eq!(result0.0, "var f_2 = _LambdaBlock_1.new()\nreturn f_2.call_func(3)\n");
   assert_eq!(result0.1, "class _LambdaBlock_1 extends Reference:\n    func _init():\n        pass\n    func call_func(a_0):\n        return a_0\n");
 }
+
+#[test]
+pub fn simple_builtin_test() {
+  assert_eq!(parse_compile_and_output("(cons 1 2)"), "return GDLisp.Cons.new(1, 2)\n");
+  assert_eq!(parse_compile_and_output("(cons 1 (cons 2 3))"), "return GDLisp.Cons.new(1, GDLisp.Cons.new(2, 3))\n");
+}
