@@ -63,14 +63,14 @@ impl<'a, Table: SymbolTable<'a>> SymbolTable<'a> for MonitoredTable<'a, Table> {
   type Iter = Table::Iter;
 
   fn get_var(&mut self, name: &str) -> Option<&str> {
-    let name = self.table.get_var(name);
-    if let Some(name) = name {
-      if self.monitor.contains_key(name) {
+    let res_name = self.table.get_var(name);
+    if let Some(res_name) = res_name {
+      if self.monitor.contains_key(res_name) {
         // Seems like an avoidable copy, but meh
-        self.monitor.insert(String::from(name), true);
+        self.monitor.insert(String::from(res_name), true);
       }
     }
-    name
+    res_name
   }
 
   fn set_var(&mut self, name: String, value: String) -> Option<String> {
