@@ -3,6 +3,7 @@
 
 pub mod sxp;
 pub mod compile;
+pub mod ir;
 pub mod gdscript;
 mod parser_test;
 
