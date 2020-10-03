@@ -15,13 +15,11 @@ use expr::Expr;
 use literal::Literal;
 use crate::sxp::ast::AST;
 use crate::sxp::dotted::DottedExpr;
-use crate::compile::symbol_table::SymbolTable;
 use crate::compile::error::Error;
 
 use std::convert::TryInto;
 
-pub fn compile_expr(expr: &AST,
-                    table: &mut impl SymbolTable)
+pub fn compile_expr(expr: &AST)
                     -> Result<Expr, Error> {
   match expr {
     AST::Nil | AST::Cons(_, _) => {
@@ -31,12 +29,12 @@ pub fn compile_expr(expr: &AST,
       } else {
         let head = resolve_call_name(vec[0])?;
         let tail = &vec[1..];
-        if let Some(sf) = resolve_special_form(table, head, tail)? {
+        if let Some(sf) = resolve_special_form(head, tail)? {
           Ok(sf)
-        } else if let Some(call) = compile_builtin_call(table, head, tail)? {
+        } else if let Some(call) = compile_builtin_call(head, tail)? {
           Ok(call)
         } else {
-          let args = tail.into_iter().map(|x| compile_expr(x, table)).collect::<Result<Vec<_>, _>>()?;
+          let args = tail.into_iter().map(|x| compile_expr(x)).collect::<Result<Vec<_>, _>>()?;
           Ok(Expr::Call(head.to_owned(), args))
         }
       }
@@ -44,18 +42,15 @@ pub fn compile_expr(expr: &AST,
     AST::Int(n) => {
       Ok(Expr::Literal(Literal::Int(*n)))
     }
-      AST::Float(_) => {
-        panic!("Not implemented yet!") ////
-      }
-      AST::String(_) => {
-        panic!("Not implemented yet!") ////
-      }
-      AST::Symbol(s) => {
-        // TODO Keep track of what kind of variable it is. (local, closure, etc.)
-        table.get_var(s).ok_or_else(|| Error::NoSuchVar(s.clone())).map(|var| {
-          Expr::LocalVar(var.to_string())
-        })
-      }
+    AST::Float(_) => {
+      panic!("Not implemented yet!") ////
+    }
+    AST::String(_) => {
+      panic!("Not implemented yet!") ////
+    }
+    AST::Symbol(s) => {
+      Ok(Expr::LocalVar(s.to_string()))
+    }
   }
 }
 
@@ -68,22 +63,20 @@ fn resolve_call_name<'c>(ast: &'c AST) -> Result<&'c str, Error> {
   }
 }
 
-fn resolve_special_form(table: &mut impl SymbolTable,
-                        head: &str,
+fn resolve_special_form(head: &str,
                         tail: &[&AST])
                         -> Result<Option<Expr>, Error> {
-  special_form::dispatch_form(table, head, tail)
+  special_form::dispatch_form(head, tail)
 }
 
-fn compile_builtin_call(table: &mut impl SymbolTable,
-                        head: &str,
+fn compile_builtin_call(head: &str,
                         tail: &[&AST])
                         -> Result<Option<Expr>, Error> {
   match head {
     "cons" => Some(String::from("cons")),
     _ => None,
   }.map(|head| {
-    let args = tail.into_iter().map(|x| compile_expr(x, table)).collect::<Result<Vec<_>, _>>()?;
+    let args = tail.into_iter().map(|x| compile_expr(x)).collect::<Result<Vec<_>, _>>()?;
     Ok(Expr::BuiltInCall(head, args))
   }).transpose()
 }
@@ -92,11 +85,9 @@ fn compile_builtin_call(table: &mut impl SymbolTable,
 mod tests {
   use super::*;
   use crate::sxp::ast;
-  use crate::compile::symbol_table::concrete::ConcreteTable;
 
   fn compile(ast: &AST) -> Result<Expr, Error> {
-    let mut table = ConcreteTable::new();
-    compile_expr(ast, &mut table)
+    compile_expr(ast)
   }
 
   #[test]
