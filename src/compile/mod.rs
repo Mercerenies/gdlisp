@@ -25,11 +25,6 @@ use crate::ir;
 type IRExpr = ir::expr::Expr;
 type IRLiteral = ir::literal::Literal;
 
-// Note that we are NOT consuming the AST here. This means that (at
-// least for atoms) we'll be doing some copying, especially of strings
-// and the like. This is fine; I don't want the compiled form and the
-// original AST to be sharing responsibilities for the same data.
-
 pub struct Compiler<'a> {
   gen: FreshNameGenerator<'a>,
 }
@@ -306,37 +301,6 @@ impl<'a> Compiler<'a> {
   pub fn name_generator(&mut self) -> &mut FreshNameGenerator<'a> {
     &mut self.gen
   }
-
-/*
-  fn resolve_special_form(&mut self,
-                          builder: &mut StmtBuilder,
-                          table: &mut impl SymbolTable,
-                          head: &str,
-                          tail: &[&IRExpr],
-                          needs_result: NeedsResult)
-                          -> Result<Option<StExpr>, Error> {
-    special_form::lookup_and_compile(self, builder, table, head, tail, needs_result)
-  }
-
-  fn compile_builtin_call(&mut self,
-                          builder: &mut StmtBuilder,
-                          table: &mut impl SymbolTable,
-                          head: &str,
-                          tail: &[&IRExpr],
-                          _needs_result: NeedsResult)
-                          -> Result<Option<StExpr>, Error> {
-    match builtin::translate_builtin(head) {
-      None => Ok(None), // Not a builtin; move on
-      Some((target, name)) => {
-        let args = tail.iter()
-                       .map(|x| self.compile_expr(builder, table, x, NeedsResult::Yes))
-                       .collect::<Result<Vec<_>, _>>()?;
-        let args = args.into_iter().map(|x| x.0).collect();
-        Ok(Some(StExpr(Expr::Call(target, name, args), true)))
-      }
-    }
-  }
-*/
 
   fn declare_var(&mut self, builder: &mut StmtBuilder, prefix: &str, value: Option<Expr>) -> String {
     let var_name = self.gen.generate_with(prefix);
