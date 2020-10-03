@@ -6,6 +6,7 @@ pub mod let_;
 pub mod lambda;
 pub mod funcall;
 
+/*
 use super::{Compiler, StExpr, NeedsResult};
 use crate::compile::body::builder::StmtBuilder;
 use crate::compile::error::Error;
@@ -41,3 +42,5 @@ pub fn lookup_and_compile<'a>(compiler: &mut Compiler<'a>,
     _ => Ok(None),
   }
 }
+*/
+

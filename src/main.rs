@@ -11,6 +11,7 @@ mod parser_test;
 lalrpop_mod!(pub parser);
 */
 
+use gdlisp::ir;
 use gdlisp::compile::Compiler;
 use gdlisp::compile::stmt_wrapper;
 use gdlisp::compile::names::fresh::FreshNameGenerator;
@@ -32,13 +33,18 @@ fn main() {
       Err(err) => println!("Error: {}", err),
       Ok(value) => {
         println!("{}", value);
-        let mut tmp = StmtBuilder::new();
-        match compiler.compile_stmt(&mut tmp, &mut table, &mut stmt_wrapper::Return, &value) {
+        match ir::compile_expr(&value) {
           Err(err) => println!("Error: {:?}", err),
-          Ok(()) => {
-            let (stmts, helpers) = tmp.build();
-            helpers.into_iter().for_each(|decl| print!("{}", decl.to_gd(0)));
-            stmts.into_iter().for_each(|stmt| print!("{}", stmt.to_gd(0)));
+          Ok(value) => {
+            let mut tmp = StmtBuilder::new();
+            match compiler.compile_stmt(&mut tmp, &mut table, &mut stmt_wrapper::Return, &value) {
+              Err(err) => println!("Error: {:?}", err),
+              Ok(()) => {
+                let (stmts, helpers) = tmp.build();
+                helpers.into_iter().for_each(|decl| print!("{}", decl.to_gd(0)));
+                stmts.into_iter().for_each(|stmt| print!("{}", stmt.to_gd(0)));
+              }
+            }
           }
         }
       }

@@ -9,17 +9,21 @@ pub mod builtin;
 
 use body::builder::StmtBuilder;
 use names::fresh::FreshNameGenerator;
-use crate::sxp::ast::AST;
-use crate::sxp::dotted::DottedExpr;
 use crate::gdscript::expr::Expr;
-use crate::gdscript::stmt::Stmt;
+use crate::gdscript::stmt::{self, Stmt};
+use crate::gdscript::decl::{self, Decl};
 use crate::gdscript::literal::Literal;
 use crate::gdscript::library;
+use crate::gdscript::op;
+use crate::gdscript::arglist::ArgList;
 use error::Error;
 use stmt_wrapper::StmtWrapper;
-use symbol_table::SymbolTable;
+use symbol_table::{HasSymbolTable, SymbolTable};
+use symbol_table::concrete::ConcreteTable;
+use crate::ir;
 
-use std::convert::TryInto;
+type IRExpr = ir::expr::Expr;
+type IRLiteral = ir::literal::Literal;
 
 // Note that we are NOT consuming the AST here. This means that (at
 // least for atoms) we'll be doing some copying, especially of strings
@@ -57,7 +61,7 @@ impl<'a> Compiler<'a> {
   pub fn compile_stmts(&mut self,
                        builder: &mut StmtBuilder,
                        table: &mut impl SymbolTable,
-                       stmts: &[&AST],
+                       stmts: &[&IRExpr],
                        needs_result: NeedsResult)
                        -> Result<StExpr, Error> {
     if stmts.is_empty() {
@@ -76,7 +80,7 @@ impl<'a> Compiler<'a> {
                       builder: &mut StmtBuilder,
                       table: &mut impl SymbolTable,
                       destination: &dyn StmtWrapper,
-                      stmt: &AST)
+                      stmt: &IRExpr)
                       -> Result<(), Error> {
     let needs_result = NeedsResult::from(!destination.is_vacuous());
     let expr = self.compile_expr(builder, table, stmt, needs_result)?;
@@ -87,45 +91,212 @@ impl<'a> Compiler<'a> {
   pub fn compile_expr(&mut self,
                       builder: &mut StmtBuilder,
                       table: &mut impl SymbolTable,
-                      expr: &AST,
+                      expr: &IRExpr,
                       needs_result: NeedsResult)
                       -> Result<StExpr, Error> {
+    // TODO I made a mess of this when converting to IR. Separate this
+    // into many helper functions, probably over multiple files.
     match expr {
-      AST::Nil | AST::Cons(_, _) => {
-        let vec: Vec<&AST> = DottedExpr::new(expr).try_into()?;
-        if vec.is_empty() {
-          Ok(Compiler::nil_expr())
-        } else {
-          let head = Compiler::resolve_call_name(vec[0])?;
-          let tail = &vec[1..];
-          self.resolve_special_form(builder, table, head, tail, needs_result)?.map_or_else(|| {
-            self.compile_builtin_call(builder, table, head, tail, needs_result)?.map_or_else(|| {
-              let args = tail.into_iter()
-                             .map(|x| self.compile_expr(builder, table, x, NeedsResult::Yes))
-                             .collect::<Result<Vec<_>, _>>()?;
-              // Discard the stateful flag; we need the args either way.
-              let args = args.into_iter().map(|x| x.0).collect();
-              Ok(StExpr(Expr::Call(None, names::lisp_to_gd(head), args), true))
-            }, Ok)
-          }, Ok)
-        }
-      }
-      AST::Int(n) => {
-        Ok(StExpr(Expr::Literal(Literal::Int(*n)), false))
-      }
-      AST::Float(_) => {
-        panic!("Not implemented yet!") ////
-      }
-      AST::String(_) => {
-        panic!("Not implemented yet!") ////
-      }
-      AST::Symbol(s) => {
-        // May have to revisit needs_resultness of this one. setget may cause issues here.
+      IRExpr::LocalVar(s) => {
         table.get_var(s).ok_or_else(|| Error::NoSuchVar(s.clone())).map(|var| {
           StExpr(Expr::Var(var.to_string()), false)
         })
       }
+      IRExpr::Literal(lit) => {
+        match lit {
+          IRLiteral::Nil => Ok(Compiler::nil_expr()),
+          IRLiteral::Int(n) => Ok(StExpr(Expr::Literal(Literal::Int(*n)), false)),
+        }
+      }
+      IRExpr::Progn(body) => {
+        let body: Vec<_> = body.iter().map(|x| x).collect(); // TODO Hilarious copy that should be removable.
+        self.compile_stmts(builder, table, &body[..], needs_result)
+      }
+      IRExpr::IfStmt(c, t, f) => {
+        let (destination, result) = if needs_result.into() {
+          let var_name = self.declare_var(builder, "_if", None);
+          let destination = Box::new(stmt_wrapper::AssignToVar(var_name.clone())) as Box<dyn StmtWrapper>;
+          (destination, StExpr(Expr::Var(var_name), false))
+        } else {
+          let destination = Box::new(stmt_wrapper::Vacuous) as Box<dyn StmtWrapper>;
+          (destination, Compiler::nil_expr())
+        };
+        let cond_expr = self.compile_expr(builder, table, c, NeedsResult::Yes)?.0;
+        let mut true_builder = StmtBuilder::new();
+        let mut false_builder = StmtBuilder::new();
+        self.compile_stmt(&mut true_builder , table, destination.as_ref(), t)?;
+        self.compile_stmt(&mut false_builder, table, destination.as_ref(), f)?;
+        let true_body  =  true_builder.build_into(builder);
+        let false_body = false_builder.build_into(builder);
+        builder.append(stmt::if_else(cond_expr, true_body, false_body));
+        Ok(result)
+      }
+      IRExpr::CondStmt(clauses) => {
+        let (destination, result) = if needs_result.into() {
+          let var_name = self.declare_var(builder, "_cond", None);
+          let destination = Box::new(stmt_wrapper::AssignToVar(var_name.clone())) as Box<dyn StmtWrapper>;
+          (destination, StExpr(Expr::Var(var_name), false))
+        } else {
+          let destination = Box::new(stmt_wrapper::Vacuous) as Box<dyn StmtWrapper>;
+          (destination, Compiler::nil_expr())
+        };
+        let init: Vec<Stmt> = destination.wrap_to_stmts(Compiler::nil_expr());
+        let body = clauses.iter().rev().fold(Ok(init), |acc: Result<_, Error>, curr| {
+          let acc = acc?;
+          let (cond, body) = curr;
+          match body {
+            None => {
+              let mut outer_builder = StmtBuilder::new();
+              let mut inner_builder = StmtBuilder::new();
+              let cond = self.compile_expr(&mut outer_builder, table, cond, NeedsResult::Yes)?.0;
+              let var_name = self.declare_var(&mut outer_builder, "_cond", Some(cond));
+              destination.wrap_to_builder(&mut inner_builder, StExpr(Expr::Var(var_name.clone()), false));
+              let if_branch = inner_builder.build_into(builder);
+              outer_builder.append(stmt::if_else(Expr::Var(var_name.clone()), if_branch, acc));
+              Ok(outer_builder.build_into(builder))
+            }
+            Some(body) => {
+              let mut outer_builder = StmtBuilder::new();
+              let mut inner_builder = StmtBuilder::new();
+              let cond = self.compile_expr(&mut outer_builder, table, cond, NeedsResult::Yes)?.0;
+              self.compile_stmt(&mut inner_builder, table, destination.as_ref(), body)?;
+              let if_branch = inner_builder.build_into(builder);
+              outer_builder.append(stmt::if_else(cond, if_branch, acc));
+              Ok(outer_builder.build_into(builder))
+            }
+          }
+        })?;
+        builder.append_all(&mut body.into_iter());
+        Ok(result)
+      }
+      IRExpr::Call(f, args) => {
+        let args = args.into_iter()
+                       .map(|x| self.compile_expr(builder, table, x, NeedsResult::Yes))
+                       .map(|x| x.map(|y| y.0))
+                       .collect::<Result<Vec<_>, _>>()?;
+        Ok(StExpr(Expr::Call(None, names::lisp_to_gd(f), args), true))
+      }
+      IRExpr::BuiltInCall(f, args) => {
+        match builtin::translate_builtin(f) {
+          // TODO Make the builtin be an enum rather than a raw
+          // string, so we can prove exhaustiveness.
+          None => panic!("Internal error! No such builtin {}", f),
+          Some((target, name)) => {
+            let args = args.into_iter()
+                           .map(|x| self.compile_expr(builder, table, x, NeedsResult::Yes))
+                           .map(|x| x.map(|y| y.0))
+                           .collect::<Result<Vec<_>, _>>()?;
+            Ok(StExpr(Expr::Call(target, name, args), true))
+          }
+        }
+      }
+      IRExpr::Let(clauses, body) => {
+        let var_names = clauses.iter().map::<Result<(String, String), Error>, _>(|clause| {
+          let (ast_name, expr) = clause;
+          let ast_name = ast_name.to_owned();
+          let result_value = self.compile_expr(builder, table, &expr, NeedsResult::Yes)?.0;
+          let gd_name = self.declare_var(builder, &ast_name, Some(result_value));
+          Ok((ast_name, gd_name))
+        }).collect::<Result<Vec<_>, _>>()?;
+        table.with_local_vars(&mut var_names.into_iter(), |table| {
+          self.compile_expr(builder, table, body, needs_result)
+        })
+      }
+      IRExpr::Lambda(args, body) => {
+        let arg_names = args.iter().map(|s| {
+          let ast_name = s.clone();
+          let gd_name = self.name_generator().generate_with(&ast_name);
+          (ast_name, gd_name)
+        }).collect::<Vec<_>>();
+
+        let mut lambda_builder = StmtBuilder::new();
+        let mut closure_vars = body.get_locals();
+        for arg in args {
+          closure_vars.remove(arg);
+        }
+        // I want them in a consistent order for the constructor
+        // function. I don't care which order, but I need an order, so
+        // let's make a Vec now.
+        let closure_vars: Vec<_> = closure_vars.into_iter().collect();
+
+        let mut lambda_table = ConcreteTable::new();
+        for arg in &arg_names {
+          lambda_table.set_var(arg.0.to_owned(), arg.1.to_owned());
+        }
+        for var in &closure_vars {
+          // Ensure the variable actually exists
+          match table.get_var(var) {
+            None => return Err(Error::NoSuchVar(var.clone())),
+            Some(gdvar) => lambda_table.set_var(var.clone(), gdvar.to_owned()), // TODO Generate new names here
+          };
+        }
+
+        let gd_closure_vars = closure_vars.iter().map(|ast_name| {
+          lambda_table.get_var(&ast_name).unwrap_or_else(|| {
+            panic!("Internal error compiling lambda variable {}", ast_name)
+          }).to_owned()
+        }).collect();
+
+        self.compile_stmt(&mut lambda_builder, &mut lambda_table, &stmt_wrapper::Return, body)?;
+        let arglist = ArgList::required(arg_names.into_iter().map(|x| x.1.clone()).collect());
+        let class = self.generate_lambda_class(arglist, &gd_closure_vars, builder, lambda_builder);
+        let class_name = class.name.clone();
+        builder.add_helper(Decl::ClassDecl(class));
+        let constructor_args = gd_closure_vars.into_iter().map(|s| Expr::Var(s.to_owned())).collect();
+        let expr = Expr::Call(Some(Box::new(Expr::Var(class_name))), String::from("new"), constructor_args);
+        Ok(StExpr(expr, false))
+      }
+      IRExpr::Funcall(f, args) => {
+        let func_expr = self.compile_expr(builder, table, f, NeedsResult::Yes)?.0;
+        let args_expr = args.iter().map(|arg| {
+          self.compile_expr(builder, table, arg, NeedsResult::Yes).map(|x| x.0)
+        }).collect::<Result<Vec<_>, _>>()?;
+        let fn_name = String::from("call_func");
+        let expr = Expr::Call(Some(Box::new(func_expr)), fn_name, args_expr);
+        Ok(StExpr(expr, true))
+      }
     }
+  }
+
+  fn generate_lambda_class(&mut self,
+                           args: ArgList,
+                           closed_vars: &Vec<String>,
+                           parent_builder: &mut StmtBuilder,
+                           lambda_builder: StmtBuilder)
+                           -> decl::ClassDecl {
+    let class_name = self.gen.generate_with("_LambdaBlock");
+    let func_name = String::from("call_func");
+    let func_body = lambda_builder.build_into(parent_builder);
+    let func = decl::FnDecl {
+      name: func_name,
+      args: args,
+      body: func_body,
+    };
+    let constructor =
+    decl::FnDecl {
+      name: String::from("_init"),
+      args: ArgList::required(closed_vars.iter().map(|x| (*x).to_owned()).collect()),
+      body: closed_vars.iter().map(|name| Compiler::assign_to_self(name.to_string(), name.to_string())).collect(),
+    };
+    let mut class_body = vec!();
+    for var in closed_vars {
+      class_body.push(Decl::VarDecl(var.clone(), None));
+    }
+    class_body.append(&mut vec!(
+      Decl::FnDecl(decl::Static::NonStatic, constructor),
+      Decl::FnDecl(decl::Static::NonStatic, func),
+    ));
+    decl::ClassDecl {
+      name: class_name,
+      extends: decl::ClassExtends::Named(String::from("Reference")),
+      body: class_body,
+    }
+  }
+
+  fn assign_to_self(inst_var: String, local_var: String) -> Stmt {
+    let self_target = Box::new(Expr::Attribute(Box::new(Expr::Var(String::from("self"))), inst_var));
+    let value = Box::new(Expr::Var(local_var));
+    Stmt::Assign(self_target, op::AssignOp::Eq, value)
   }
 
   pub fn nil_expr() -> StExpr {
@@ -136,20 +307,12 @@ impl<'a> Compiler<'a> {
     &mut self.gen
   }
 
-  // TODO For now, we can only call symbols. We'll need to extend this
-  // eventually to support attributed calls (foo.bar(), etc).
-  fn resolve_call_name<'c>(ast: &'c AST) -> Result<&'c str, Error> {
-    match ast {
-      AST::Symbol(s) => Ok(&*s),
-      _ => Err(Error::CannotCall(ast.clone())),
-    }
-  }
-
+/*
   fn resolve_special_form(&mut self,
                           builder: &mut StmtBuilder,
                           table: &mut impl SymbolTable,
                           head: &str,
-                          tail: &[&AST],
+                          tail: &[&IRExpr],
                           needs_result: NeedsResult)
                           -> Result<Option<StExpr>, Error> {
     special_form::lookup_and_compile(self, builder, table, head, tail, needs_result)
@@ -159,7 +322,7 @@ impl<'a> Compiler<'a> {
                           builder: &mut StmtBuilder,
                           table: &mut impl SymbolTable,
                           head: &str,
-                          tail: &[&AST],
+                          tail: &[&IRExpr],
                           _needs_result: NeedsResult)
                           -> Result<Option<StExpr>, Error> {
     match builtin::translate_builtin(head) {
@@ -173,6 +336,7 @@ impl<'a> Compiler<'a> {
       }
     }
   }
+*/
 
   fn declare_var(&mut self, builder: &mut StmtBuilder, prefix: &str, value: Option<Expr>) -> String {
     let var_name = self.gen.generate_with(prefix);
@@ -187,7 +351,7 @@ impl<'a> Compiler<'a> {
 mod tests {
   use super::*;
   use crate::gdscript::decl::Decl;
-  use crate::sxp::ast;
+  use crate::sxp::ast::{self, AST};
   use symbol_table::concrete::ConcreteTable;
 
   // TODO A lot more of this
@@ -197,7 +361,8 @@ mod tests {
     let mut compiler = Compiler::new(FreshNameGenerator::new(used_names));
     let mut table = ConcreteTable::new();
     let mut builder = StmtBuilder::new();
-    let () = compiler.compile_stmt(&mut builder, &mut table, &mut stmt_wrapper::Return, &ast)?;
+    let expr = ir::compile_expr(ast)?;
+    let () = compiler.compile_stmt(&mut builder, &mut table, &mut stmt_wrapper::Return, &expr)?;
     Ok(builder.build())
   }
 

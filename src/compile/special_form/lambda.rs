@@ -1,4 +1,5 @@
 
+/*
 pub struct Lambda;
 
 use super::SpecialForm;
@@ -131,3 +132,4 @@ fn assign_to_self(inst_var: String, local_var: String) -> Stmt {
   let value = Box::new(Expr::Var(local_var));
   Stmt::Assign(self_target, op::AssignOp::Eq, value)
 }
+*/

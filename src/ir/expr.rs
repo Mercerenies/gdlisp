@@ -9,7 +9,7 @@ use std::iter::FromIterator;
 pub enum Expr {
   LocalVar(String),
   Literal(literal::Literal),
-  Subscript(Box<Expr>, Box<Expr>),
+//  Subscript(Box<Expr>, Box<Expr>),
   Progn(Vec<Expr>),
   IfStmt(Box<Expr>, Box<Expr>, Box<Expr>),
   CondStmt(Vec<(Expr, Option<Expr>)>),
@@ -32,10 +32,10 @@ impl Expr {
         acc.insert(s.to_owned());
       }
       Expr::Literal(_) => {}
-      Expr::Subscript(a, b) => {
-        a.walk_locals(acc);
-        b.walk_locals(acc);
-      }
+//      Expr::Subscript(a, b) => {
+//        a.walk_locals(acc);
+//        b.walk_locals(acc);
+//      }
       Expr::Progn(exprs) => {
         for expr in exprs {
           expr.walk_locals(acc);

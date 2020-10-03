@@ -7,6 +7,7 @@ use gdlisp::compile::names::fresh::FreshNameGenerator;
 use gdlisp::compile::body::builder::StmtBuilder;
 use gdlisp::compile::symbol_table::concrete::ConcreteTable;
 use gdlisp::parser;
+use gdlisp::ir;
 
 // TODO Currently, this panics if it fails. This is okay-ish, since
 // it's only being used for tests. But once we unify all of our errors
@@ -24,6 +25,7 @@ fn parse_compile_and_output_h(input: &str) -> (String, String) {
   let mut table = ConcreteTable::new();
 
   let mut builder = StmtBuilder::new();
+  let value = ir::compile_expr(&value).unwrap();
   let () = compiler.compile_stmt(&mut builder, &mut table, &mut stmt_wrapper::Return, &value).unwrap();
   let (stmts, helpers) = builder.build();
   let a = stmts.into_iter().map(|stmt| stmt.to_gd(0)).collect::<String>();

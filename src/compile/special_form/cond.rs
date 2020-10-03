@@ -1,4 +1,5 @@
 
+/*
 pub struct Cond;
 
 use super::SpecialForm;
@@ -65,4 +66,5 @@ impl SpecialForm for Cond {
   }
 
 }
+*/
 

@@ -1,4 +1,5 @@
 
+/*
 pub struct Funcall;
 
 use super::SpecialForm;
@@ -38,3 +39,4 @@ impl SpecialForm for Funcall {
   }
 
 }
+*/
