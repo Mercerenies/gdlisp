@@ -16,6 +16,8 @@ pub fn dispatch_form(head: &str,
     "if" => if_form(tail).map(Some),
     "cond" => cond_form(tail).map(Some),
     "let" => let_form(tail).map(Some),
+    "lambda" => lambda_form(tail).map(Some),
+    "funcall" => funcall_form(tail).map(Some),
     _ => Ok(None),
   }
 }
@@ -83,4 +85,33 @@ pub fn let_form(tail: &[&AST])
   }).collect::<Result<Vec<_>, _>>()?;
   let body = tail[1..].into_iter().map(|expr| compile_expr(expr)).collect::<Result<Vec<_>, _>>()?;
   Ok(Expr::Let(var_clauses, Box::new(Expr::Progn(body))))
+}
+
+pub fn lambda_form(tail: &[&AST])
+                   -> Result<Expr, Error> {
+  if tail.len() <= 0 {
+    return Err(Error::TooFewArgs(String::from("lambda"), 1));
+  }
+  // TODO Currently, we don't (can't) support varargs directly since
+  // GDScript doesn't expose that functionality. Consider some sort of
+  // workaround?
+  let args: Vec<_> = DottedExpr::new(tail[0]).try_into()?;
+  let arg_names = args.iter().map(|curr| {
+    match curr {
+      AST::Symbol(s) => Ok(s.to_owned()),
+      _ => Err(Error::InvalidArg(String::from("lambda"), (*curr).clone(), String::from("variable name"))),
+    }
+  }).collect::<Result<Vec<_>, _>>()?;
+  let body = tail[1..].into_iter().map(|expr| compile_expr(expr)).collect::<Result<Vec<_>, _>>()?;
+  Ok(Expr::Lambda(arg_names, Box::new(Expr::Progn(body))))
+}
+
+pub fn funcall_form(tail: &[&AST])
+                    -> Result<Expr, Error> {
+  if tail.len() <= 0 {
+    return Err(Error::TooFewArgs(String::from("funcall"), 1));
+  }
+  let func = compile_expr(tail[0])?;
+  let args = tail[1..].into_iter().map(|expr| compile_expr(expr)).collect::<Result<Vec<_>, _>>()?;
+  Ok(Expr::Funcall(Box::new(func), args))
 }

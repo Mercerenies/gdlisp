@@ -3,6 +3,7 @@ use super::literal;
 //use crate::gdscript::op::{self, UnaryOp, BinaryOp, OperatorHasInfo};
 
 use std::collections::HashSet;
+use std::iter::FromIterator;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Expr {
@@ -15,6 +16,8 @@ pub enum Expr {
   Call(String, Vec<Expr>),
   BuiltInCall(String, Vec<Expr>),
   Let(Vec<(String, Expr)>, Box<Expr>),
+  Lambda(Vec<String>, Box<Expr>),
+  Funcall(Box<Expr>, Vec<Expr>),
 }
 
 impl Expr {
@@ -71,6 +74,20 @@ impl Expr {
         body.walk_locals(&mut local_scope);
         for var in local_scope.difference(&vars) {
           acc.insert(var.to_owned());
+        }
+      }
+      Expr::Lambda(args, body) => {
+        let vars = HashSet::from_iter(args.iter().map(|x| x.to_owned()));
+        let mut local_scope = HashSet::new();
+        body.walk_locals(&mut local_scope);
+        for var in local_scope.difference(&vars) {
+          acc.insert(var.to_owned());
+        }
+      }
+      Expr::Funcall(func, args) => {
+        func.walk_locals(acc);
+        for arg in args {
+          arg.walk_locals(acc);
         }
       }
     };
