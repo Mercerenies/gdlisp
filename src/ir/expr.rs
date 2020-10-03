@@ -15,6 +15,10 @@ pub enum Expr {
   Let(Vec<(String, Expr)>, Box<Expr>),
 }
 
-pub fn if_stmt(cond: Expr, t: Expr, f: Expr) -> Expr {
-  Expr::IfStmt(Box::new(cond), Box::new(t), Box::new(f))
+impl Expr {
+
+  pub fn if_stmt(cond: Expr, t: Expr, f: Expr) -> Expr {
+    Expr::IfStmt(Box::new(cond), Box::new(t), Box::new(f))
+  }
+
 }

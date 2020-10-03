@@ -1,7 +1,7 @@
 
 use crate::sxp::ast::AST;
 use crate::sxp::dotted::DottedExpr;
-use super::expr::{self, Expr};
+use super::expr::Expr;
 //use super::literal::Literal;
 use crate::compile::symbol_table::{SymbolTable, HasSymbolTable};
 use crate::compile::error::Error;
@@ -41,7 +41,7 @@ pub fn if_form(table: &mut impl SymbolTable,
   let cond = compile_expr(cond, table)?;
   let t = compile_expr(t, table)?;
   let f = compile_expr(f, table)?;
-  Ok(expr::if_stmt(cond, t, f))
+  Ok(Expr::if_stmt(cond, t, f))
 }
 
 pub fn cond_form(table: &mut impl SymbolTable,
