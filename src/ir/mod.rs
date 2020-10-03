@@ -9,6 +9,7 @@
 
 pub mod expr;
 pub mod literal;
+pub mod special_form;
 
 use expr::Expr;
 use literal::Literal;
@@ -36,8 +37,7 @@ pub fn compile_expr(expr: &AST,
           Ok(call)
         } else {
           let args = tail.into_iter().map(|x| compile_expr(x, table)).collect::<Result<Vec<_>, _>>()?;
-//          Ok(Expr::Call(None, head, args))
-          panic!("Not implemented yet!") ////
+          Ok(Expr::Call(head.to_owned(), args))
         }
       }
     }
@@ -53,7 +53,7 @@ pub fn compile_expr(expr: &AST,
       AST::Symbol(s) => {
         // TODO Keep track of what kind of variable it is. (local, closure, etc.)
         table.get_var(s).ok_or_else(|| Error::NoSuchVar(s.clone())).map(|var| {
-          Expr::Var(var.to_string())
+          Expr::LocalVar(var.to_string())
         })
       }
   }
@@ -72,12 +72,68 @@ fn resolve_special_form(table: &mut impl SymbolTable,
                         head: &str,
                         tail: &[&AST])
                         -> Result<Option<Expr>, Error> {
-  Ok(None)
+  special_form::dispatch_form(table, head, tail)
 }
 
 fn compile_builtin_call(table: &mut impl SymbolTable,
                         head: &str,
                         tail: &[&AST])
                         -> Result<Option<Expr>, Error> {
-  Ok(None)
+  match head {
+    "cons" => Some(String::from("cons")),
+    _ => None,
+  }.map(|head| {
+    let args = tail.into_iter().map(|x| compile_expr(x, table)).collect::<Result<Vec<_>, _>>()?;
+    Ok(Expr::BuiltInCall(head, args))
+  }).transpose()
+}
+
+#[cfg(test)]
+mod tests {
+  use super::*;
+  use crate::sxp::ast;
+  use crate::compile::symbol_table::concrete::ConcreteTable;
+
+  fn compile(ast: &AST) -> Result<Expr, Error> {
+    let mut table = ConcreteTable::new();
+    compile_expr(ast, &mut table)
+  }
+
+  #[test]
+  fn compile_call() {
+    let ast = ast::list(vec!(AST::Symbol(String::from("foobar")), AST::Int(10)));
+    let expected = Expr::Call(String::from("foobar"), vec!(Expr::Literal(Literal::Int(10))));
+    let actual = compile(&ast).unwrap();
+    assert_eq!(actual, expected);
+  }
+
+  #[test]
+  fn compile_builtin() {
+    let ast = ast::list(vec!(AST::Symbol(String::from("cons")), AST::Int(10)));
+    let expected = Expr::BuiltInCall(String::from("cons"), vec!(Expr::Literal(Literal::Int(10))));
+    let actual = compile(&ast).unwrap();
+    assert_eq!(actual, expected);
+  }
+
+  #[test]
+  fn compile_int() {
+    assert_eq!(compile(&AST::Int(99)).unwrap(), Expr::Literal(Literal::Int(99)));
+    assert_eq!(compile(&AST::Int(-10)).unwrap(), Expr::Literal(Literal::Int(-10)));
+  }
+
+  #[test]
+  fn compile_nil() {
+    assert_eq!(compile(&AST::Nil).unwrap(), Expr::Literal(Literal::Nil));
+  }
+
+  #[test]
+  fn compile_progn() {
+    assert_eq!(compile(&ast::list(vec!(AST::Symbol(String::from("progn"))))).unwrap(),
+               Expr::Progn(vec!()));
+    assert_eq!(compile(&ast::list(vec!(AST::Symbol(String::from("progn")), AST::Int(1)))).unwrap(),
+               Expr::Progn(vec!(Expr::Literal(Literal::Int(1)))));
+    assert_eq!(compile(&ast::list(vec!(AST::Symbol(String::from("progn")), AST::Int(1), AST::Int(2)))).unwrap(),
+               Expr::Progn(vec!(Expr::Literal(Literal::Int(1)), Expr::Literal(Literal::Int(2)))));
+  }
+
 }
