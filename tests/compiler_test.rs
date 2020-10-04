@@ -5,7 +5,7 @@ use gdlisp::compile::Compiler;
 use gdlisp::compile::stmt_wrapper;
 use gdlisp::compile::names::fresh::FreshNameGenerator;
 use gdlisp::compile::body::builder::StmtBuilder;
-use gdlisp::compile::symbol_table::concrete::ConcreteTable;
+use gdlisp::compile::symbol_table::SymbolTable;
 use gdlisp::parser;
 use gdlisp::ir;
 
@@ -22,7 +22,7 @@ fn parse_compile_and_output_h(input: &str) -> (String, String) {
   let value = parser.parse(input).unwrap();
   let used_names = value.all_symbols();
   let mut compiler = Compiler::new(FreshNameGenerator::new(used_names));
-  let mut table = ConcreteTable::new();
+  let mut table = SymbolTable::new();
 
   let mut builder = StmtBuilder::new();
   let value = ir::compile_expr(&value).unwrap();

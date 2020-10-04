@@ -19,7 +19,6 @@ use crate::gdscript::arglist::ArgList;
 use error::Error;
 use stmt_wrapper::StmtWrapper;
 use symbol_table::{HasSymbolTable, SymbolTable};
-use symbol_table::concrete::ConcreteTable;
 use crate::ir;
 
 type IRExpr = ir::expr::Expr;
@@ -55,7 +54,7 @@ impl<'a> Compiler<'a> {
 
   pub fn compile_stmts(&mut self,
                        builder: &mut StmtBuilder,
-                       table: &mut impl SymbolTable,
+                       table: &mut SymbolTable,
                        stmts: &[&IRExpr],
                        needs_result: NeedsResult)
                        -> Result<StExpr, Error> {
@@ -73,7 +72,7 @@ impl<'a> Compiler<'a> {
 
   pub fn compile_stmt(&mut self,
                       builder: &mut StmtBuilder,
-                      table: &mut impl SymbolTable,
+                      table: &mut SymbolTable,
                       destination: &dyn StmtWrapper,
                       stmt: &IRExpr)
                       -> Result<(), Error> {
@@ -85,7 +84,7 @@ impl<'a> Compiler<'a> {
 
   pub fn compile_expr(&mut self,
                       builder: &mut StmtBuilder,
-                      table: &mut impl SymbolTable,
+                      table: &mut SymbolTable,
                       expr: &IRExpr,
                       needs_result: NeedsResult)
                       -> Result<StExpr, Error> {
@@ -214,7 +213,7 @@ impl<'a> Compiler<'a> {
         // let's make a Vec now.
         let closure_vars: Vec<_> = closure_vars.into_iter().collect();
 
-        let mut lambda_table = ConcreteTable::new();
+        let mut lambda_table = SymbolTable::new();
         for arg in &arg_names {
           lambda_table.set_var(arg.0.to_owned(), arg.1.to_owned());
         }
@@ -316,14 +315,13 @@ mod tests {
   use super::*;
   use crate::gdscript::decl::Decl;
   use crate::sxp::ast::{self, AST};
-  use symbol_table::concrete::ConcreteTable;
 
   // TODO A lot more of this
 
   fn compile_stmt(ast: &AST) -> Result<(Vec<Stmt>, Vec<Decl>), Error> {
     let used_names = ast.all_symbols();
     let mut compiler = Compiler::new(FreshNameGenerator::new(used_names));
-    let mut table = ConcreteTable::new();
+    let mut table = SymbolTable::new();
     let mut builder = StmtBuilder::new();
     let expr = ir::compile_expr(ast)?;
     let () = compiler.compile_stmt(&mut builder, &mut table, &mut stmt_wrapper::Return, &expr)?;
