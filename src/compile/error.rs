@@ -11,6 +11,8 @@ pub enum Error {
   InvalidArg(String, AST, String), // Function, argument, expected
   NoSuchVar(String),
   NoSuchFn(String),
+  UnknownDecl(String),
+  InvalidDecl(AST),
 }
 
 impl From<sxp::dotted::TryFromDottedExprError> for Error {
