@@ -164,25 +164,15 @@ impl<'a> Compiler<'a> {
         Ok(result)
       }
       IRExpr::Call(f, args) => {
+        let fcall = match table.get_fn(f) {
+          None => return Err(Error::NoSuchFn(f.clone())),
+          Some(x) => x.clone(),
+        };
         let args = args.into_iter()
                        .map(|x| self.compile_expr(builder, table, x, NeedsResult::Yes))
                        .map(|x| x.map(|y| y.0))
                        .collect::<Result<Vec<_>, _>>()?;
-        Ok(StExpr(Expr::Call(None, names::lisp_to_gd(f), args), true))
-      }
-      IRExpr::BuiltInCall(f, args) => {
-        match builtin::translate_builtin(f) {
-          // TODO Make the builtin be an enum rather than a raw
-          // string, so we can prove exhaustiveness.
-          None => panic!("Internal error! No such builtin {}", f),
-          Some((target, name)) => {
-            let args = args.into_iter()
-                           .map(|x| self.compile_expr(builder, table, x, NeedsResult::Yes))
-                           .map(|x| x.map(|y| y.0))
-                           .collect::<Result<Vec<_>, _>>()?;
-            Ok(StExpr(Expr::Call(target, name, args), true))
-          }
-        }
+        Ok(StExpr(fcall.into_expr(args), true))
       }
       IRExpr::Let(clauses, body) => {
         let var_names = clauses.iter().map::<Result<(String, String), Error>, _>(|clause| {
@@ -315,20 +305,31 @@ mod tests {
   use super::*;
   use crate::gdscript::decl::Decl;
   use crate::sxp::ast::{self, AST};
+  use crate::compile::symbol_table::function_call::{FnCall, FnScope};
 
   // TODO A lot more of this
+
+  fn bind_helper_symbols(table: &mut SymbolTable) {
+    // Binds a few helper names to the symbol table for the sake of
+    // debugging.
+    table.set_fn(String::from("foobar"), FnCall::unqualified(FnScope::Global, String::from("foobar")));
+    table.set_fn(String::from("foo"), FnCall::unqualified(FnScope::Global, String::from("foo")));
+    table.set_fn(String::from("bar"), FnCall::unqualified(FnScope::Global, String::from("bar")));
+    table.set_var(String::from("foobar"), String::from("foobar"));
+  }
 
   fn compile_stmt(ast: &AST) -> Result<(Vec<Stmt>, Vec<Decl>), Error> {
     let used_names = ast.all_symbols();
     let mut compiler = Compiler::new(FreshNameGenerator::new(used_names));
     let mut table = SymbolTable::new();
+    bind_helper_symbols(&mut table);
+    library::bind_builtins(&mut table);
     let mut builder = StmtBuilder::new();
     let expr = ir::compile_expr(ast)?;
     let () = compiler.compile_stmt(&mut builder, &mut table, &mut stmt_wrapper::Return, &expr)?;
     Ok(builder.build())
   }
 
-  /* With our new scoping rules, this won't work since the variable doesn't exist.
   #[test]
   fn compile_var() {
     let ast = AST::Symbol(String::from("foobar"));
@@ -337,7 +338,6 @@ mod tests {
     assert_eq!(actual.0, vec!(expected));
     assert_eq!(actual.1, vec!());
   }
-  */
 
   #[test]
   fn compile_call() {

@@ -31,8 +31,6 @@ pub fn compile_expr(expr: &AST)
         let tail = &vec[1..];
         if let Some(sf) = resolve_special_form(head, tail)? {
           Ok(sf)
-        } else if let Some(call) = compile_builtin_call(head, tail)? {
-          Ok(call)
         } else {
           let args = tail.into_iter().map(|x| compile_expr(x)).collect::<Result<Vec<_>, _>>()?;
           Ok(Expr::Call(head.to_owned(), args))
@@ -69,18 +67,6 @@ fn resolve_special_form(head: &str,
   special_form::dispatch_form(head, tail)
 }
 
-fn compile_builtin_call(head: &str,
-                        tail: &[&AST])
-                        -> Result<Option<Expr>, Error> {
-  match head {
-    "cons" => Some(String::from("cons")),
-    _ => None,
-  }.map(|head| {
-    let args = tail.into_iter().map(|x| compile_expr(x)).collect::<Result<Vec<_>, _>>()?;
-    Ok(Expr::BuiltInCall(head, args))
-  }).transpose()
-}
-
 #[cfg(test)]
 mod tests {
   use super::*;
@@ -98,10 +84,12 @@ mod tests {
     assert_eq!(actual, expected);
   }
 
+  // These used to compile to different IR but they don't anymore.
+  // Test is still here because meh.
   #[test]
   fn compile_builtin() {
     let ast = ast::list(vec!(AST::Symbol(String::from("cons")), AST::Int(10)));
-    let expected = Expr::BuiltInCall(String::from("cons"), vec!(Expr::Literal(Literal::Int(10))));
+    let expected = Expr::Call(String::from("cons"), vec!(Expr::Literal(Literal::Int(10))));
     let actual = compile(&ast).unwrap();
     assert_eq!(actual, expected);
   }

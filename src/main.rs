@@ -18,6 +18,7 @@ use gdlisp::compile::names::fresh::FreshNameGenerator;
 use gdlisp::compile::body::builder::StmtBuilder;
 use gdlisp::compile::symbol_table::SymbolTable;
 use gdlisp::parser;
+use gdlisp::gdscript::library;
 
 use std::io::{self, BufRead};
 
@@ -26,6 +27,7 @@ fn main() {
   let parser = parser::ASTParser::new();
   let mut compiler = Compiler::new(FreshNameGenerator::new(vec!()));
   let mut table = SymbolTable::new();
+  library::bind_builtins(&mut table);
 
   for line in stdin.lock().lines() {
     let str = line.unwrap();

@@ -14,7 +14,6 @@ pub enum Expr {
   IfStmt(Box<Expr>, Box<Expr>, Box<Expr>),
   CondStmt(Vec<(Expr, Option<Expr>)>),
   Call(String, Vec<Expr>),
-  BuiltInCall(String, Vec<Expr>),
   Let(Vec<(String, Expr)>, Box<Expr>),
   Lambda(Vec<String>, Box<Expr>),
   Funcall(Box<Expr>, Vec<Expr>),
@@ -55,11 +54,6 @@ impl Expr {
         }
       }
       Expr::Call(_, args) => {
-        for expr in args {
-          expr.walk_locals(acc);
-        }
-      }
-      Expr::BuiltInCall(_, args) => {
         for expr in args {
           expr.walk_locals(acc);
         }

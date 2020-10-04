@@ -6,8 +6,23 @@ use gdlisp::compile::stmt_wrapper;
 use gdlisp::compile::names::fresh::FreshNameGenerator;
 use gdlisp::compile::body::builder::StmtBuilder;
 use gdlisp::compile::symbol_table::SymbolTable;
+use gdlisp::compile::symbol_table::function_call::{FnCall, FnScope};
 use gdlisp::parser;
 use gdlisp::ir;
+use gdlisp::gdscript::library;
+
+fn bind_helper_symbols(table: &mut SymbolTable) {
+  // Binds a few helper names to the symbol table for the sake of
+  // debugging.
+  table.set_fn(String::from("foobar"), FnCall::unqualified(FnScope::Global, String::from("foobar")));
+  table.set_fn(String::from("foo"), FnCall::unqualified(FnScope::Global, String::from("foo")));
+  table.set_fn(String::from("bar"), FnCall::unqualified(FnScope::Global, String::from("bar")));
+  table.set_fn(String::from("baz"), FnCall::unqualified(FnScope::Global, String::from("baz")));
+  table.set_fn(String::from("a"), FnCall::unqualified(FnScope::Global, String::from("a")));
+  table.set_fn(String::from("b"), FnCall::unqualified(FnScope::Global, String::from("b")));
+  table.set_fn(String::from("c"), FnCall::unqualified(FnScope::Global, String::from("c")));
+  table.set_var(String::from("foobar"), String::from("foobar"));
+}
 
 // TODO Currently, this panics if it fails. This is okay-ish, since
 // it's only being used for tests. But once we unify all of our errors
@@ -23,6 +38,8 @@ fn parse_compile_and_output_h(input: &str) -> (String, String) {
   let used_names = value.all_symbols();
   let mut compiler = Compiler::new(FreshNameGenerator::new(used_names));
   let mut table = SymbolTable::new();
+  bind_helper_symbols(&mut table);
+  library::bind_builtins(&mut table);
 
   let mut builder = StmtBuilder::new();
   let value = ir::compile_expr(&value).unwrap();
