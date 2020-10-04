@@ -86,6 +86,32 @@ pub trait HasSymbolTable {
     }
   }
 
+  fn with_local_fn<B>(&mut self,
+                      name: String,
+                      value: FnCall,
+                      block: impl FnOnce(&mut Self) -> B) -> B {
+    let previous = self.get_symbol_table_mut().set_fn(name.clone(), value);
+    let result = block(self);
+    if let Some(previous) = previous {
+      self.get_symbol_table_mut().set_fn(name, previous);
+    } else {
+      self.get_symbol_table_mut().del_fn(&name);
+    };
+    result
+  }
+
+  fn with_local_fns<B>(&mut self,
+                       vars: &mut dyn Iterator<Item=(String, FnCall)>,
+                       block: impl FnOnce(&mut Self) -> B) -> B {
+    if let Some((name, value)) = vars.next() {
+      self.with_local_fn(name, value, |curr| {
+        curr.with_local_fns(vars, block)
+      })
+    } else {
+      block(self)
+    }
+  }
+
 }
 
 impl HasSymbolTable for SymbolTable {
