@@ -13,6 +13,10 @@ pub struct StmtBuilder {
   helpers: Vec<Decl>,
 }
 
+pub trait HasDecls {
+  fn add_decl(&mut self, decl: Decl);
+}
+
 impl CodeBuilder {
 
   pub fn new(extends: decl::ClassExtends) -> CodeBuilder {
@@ -33,6 +37,12 @@ impl CodeBuilder {
     self.toplevel
   }
 
+}
+
+impl HasDecls for CodeBuilder {
+  fn add_decl(&mut self, decl: Decl) {
+    self.toplevel.body.push(decl);
+  }
 }
 
 impl StmtBuilder {
@@ -64,12 +74,18 @@ impl StmtBuilder {
 
   // Builds the StmtBuilder, passing any helper declarations onto the
   // subsequent builder.
-  pub fn build_into(self, other: &mut StmtBuilder) -> Vec<Stmt> {
+  pub fn build_into(self, other: &mut impl HasDecls) -> Vec<Stmt> {
     let (body, helpers) = self.build();
     for h in helpers {
-      other.add_helper(h);
+      other.add_decl(h);
     }
     body
   }
 
+}
+
+impl HasDecls for StmtBuilder {
+  fn add_decl(&mut self, decl: Decl) {
+    self.add_helper(decl);
+  }
 }
