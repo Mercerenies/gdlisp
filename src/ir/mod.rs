@@ -24,6 +24,8 @@ use crate::compile::error::Error;
 use std::convert::TryInto;
 use std::borrow::Borrow;
 
+pub const MAIN_BODY_NAME: &'static str = "run";
+
 pub fn compile_expr(expr: &AST)
                     -> Result<Expr, Error> {
   match expr {
@@ -95,6 +97,27 @@ pub fn compile_decl(decl: &AST)
       return Err(Error::InvalidDecl(decl.clone()));
     }
   }
+}
+
+pub fn compile_toplevel(body: &AST)
+                        -> Result<Vec<Decl>, Error> {
+  let body: Vec<_> = DottedExpr::new(body).try_into()?;
+  let mut decls: Vec<Decl> = Vec::new();
+  let mut main: Vec<Expr> = Vec::new();
+  for curr in body {
+    match compile_decl(curr) {
+      Ok(d) => decls.push(d),
+      Err(Error::UnknownDecl(_)) => main.push(compile_expr(curr)?),
+      Err(e) => return Err(e),
+    }
+  }
+  let main_decl = Decl::FnDecl(decl::FnDecl {
+    name: MAIN_BODY_NAME.to_owned(),
+    args: ArgList::empty(),
+    body: Expr::Progn(main),
+  });
+  decls.push(main_decl);
+  Ok(decls)
 }
 
 // TODO For now, we can only call symbols. We'll need to extend this
