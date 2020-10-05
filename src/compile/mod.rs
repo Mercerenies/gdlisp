@@ -174,7 +174,7 @@ impl<'a> Compiler<'a> {
                        .map(|x| self.compile_expr(builder, table, x, NeedsResult::Yes))
                        .map(|x| x.map(|y| y.0))
                        .collect::<Result<Vec<_>, _>>()?;
-        Ok(StExpr(fcall.into_expr(args), true))
+        Ok(StExpr(fcall.into_expr(args)?, true))
       }
       IRExpr::Let(clauses, body) => {
         let var_names = clauses.iter().map::<Result<(String, String), Error>, _>(|clause| {
@@ -375,8 +375,8 @@ mod tests {
     // Binds a few helper names to the symbol table for the sake of
     // debugging.
     table.set_fn(String::from("foobar"), FnCall::unqualified(FnSpecs::new(1, 0, false), FnScope::Global, String::from("foobar")));
-    table.set_fn(String::from("foo"), FnCall::unqualified(FnSpecs::new(1, 0, false), FnScope::Global, String::from("foo")));
-    table.set_fn(String::from("bar"), FnCall::unqualified(FnSpecs::new(1, 0, false), FnScope::Global, String::from("bar")));
+    table.set_fn(String::from("foo"), FnCall::unqualified(FnSpecs::new(0, 0, true), FnScope::Global, String::from("foo")));
+    table.set_fn(String::from("bar"), FnCall::unqualified(FnSpecs::new(0, 0, true), FnScope::Global, String::from("bar")));
     table.set_var(String::from("foobar"), String::from("foobar"));
   }
 
