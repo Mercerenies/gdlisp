@@ -1,5 +1,6 @@
 
 use crate::gdscript::expr::Expr;
+use crate::gdscript::library;
 use crate::compile::error::Error;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -33,7 +34,7 @@ impl FnCall {
   // TODO Currently, this uses the GD name in error messages, which is
   // super wonky, especially for stdlib calls. Store the Lisp name and
   // use it for this.
-  pub fn into_expr(self, args: Vec<Expr>) -> Result<Expr, Error> {
+  pub fn into_expr(self, mut args: Vec<Expr>) -> Result<Expr, Error> {
     // First, check arity
     if args.len() < self.specs.min_arity() as usize {
       return Err(Error::TooFewArgs(self.function, args.len()));
@@ -41,7 +42,19 @@ impl FnCall {
     if args.len() > self.specs.max_arity() as usize {
       return Err(Error::TooManyArgs(self.function, args.len()));
     }
-    // TODO Handle rest args
+    let rest = if args.len() < (self.specs.required + self.specs.optional) as usize {
+      vec!()
+    } else {
+      args.split_off((self.specs.required + self.specs.optional) as usize)
+    };
+    let rest = library::construct_list(rest);
+    // Extend with nulls
+    while args.len() < (self.specs.required + self.specs.optional) as usize {
+      args.push(Expr::Var("null".to_owned())); // TODO Actually represent this in AST
+    }
+    if self.specs.rest {
+      args.push(rest)
+    }
     Ok(Expr::Call(self.object, self.function, args))
   }
 

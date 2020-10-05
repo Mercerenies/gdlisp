@@ -14,13 +14,16 @@ use gdlisp::gdscript::library;
 fn bind_helper_symbols(table: &mut SymbolTable) {
   // Binds a few helper names to the symbol table for the sake of
   // debugging.
-  table.set_fn(String::from("foobar"), FnCall::unqualified(FnSpecs::new(0, 0, true), FnScope::Global, String::from("foobar")));
-  table.set_fn(String::from("foo"), FnCall::unqualified(FnSpecs::new(0, 0, true), FnScope::Global, String::from("foo")));
-  table.set_fn(String::from("bar"), FnCall::unqualified(FnSpecs::new(0, 0, true), FnScope::Global, String::from("bar")));
-  table.set_fn(String::from("baz"), FnCall::unqualified(FnSpecs::new(0, 0, true), FnScope::Global, String::from("baz")));
-  table.set_fn(String::from("a"), FnCall::unqualified(FnSpecs::new(0, 0, true), FnScope::Global, String::from("a")));
-  table.set_fn(String::from("b"), FnCall::unqualified(FnSpecs::new(0, 0, true), FnScope::Global, String::from("b")));
-  table.set_fn(String::from("c"), FnCall::unqualified(FnSpecs::new(0, 0, true), FnScope::Global, String::from("c")));
+  table.set_fn(String::from("foobar"), FnCall::unqualified(FnSpecs::new(0, 0, false), FnScope::Global, String::from("foobar")));
+  table.set_fn(String::from("foo"), FnCall::unqualified(FnSpecs::new(0, 0, false), FnScope::Global, String::from("foo")));
+  table.set_fn(String::from("foo1"), FnCall::unqualified(FnSpecs::new(1, 0, false), FnScope::Global, String::from("foo1")));
+  table.set_fn(String::from("foo2"), FnCall::unqualified(FnSpecs::new(2, 0, false), FnScope::Global, String::from("foo2")));
+  table.set_fn(String::from("bar"), FnCall::unqualified(FnSpecs::new(0, 0, false), FnScope::Global, String::from("bar")));
+  table.set_fn(String::from("baz"), FnCall::unqualified(FnSpecs::new(0, 0, false), FnScope::Global, String::from("baz")));
+  table.set_fn(String::from("baz1"), FnCall::unqualified(FnSpecs::new(1, 0, false), FnScope::Global, String::from("baz1")));
+  table.set_fn(String::from("a"), FnCall::unqualified(FnSpecs::new(0, 0, false), FnScope::Global, String::from("a")));
+  table.set_fn(String::from("b"), FnCall::unqualified(FnSpecs::new(0, 0, false), FnScope::Global, String::from("b")));
+  table.set_fn(String::from("c"), FnCall::unqualified(FnSpecs::new(0, 0, false), FnScope::Global, String::from("c")));
   table.set_var(String::from("foobar"), String::from("foobar"));
 }
 
@@ -105,9 +108,9 @@ pub fn let_tests() {
   assert_eq!(parse_compile_and_output("(let () 1)"), "return 1\n");
   assert_eq!(parse_compile_and_output("(let (a) 1)"), "var a_0 = GDLisp.Nil\nreturn 1\n");
   assert_eq!(parse_compile_and_output("(let ((a)) 1)"), "var a_0 = GDLisp.Nil\nreturn 1\n");
-  assert_eq!(parse_compile_and_output("(let ((a 1)) (foo a))"), "var a_0 = 1\nreturn foo(a_0)\n");
-  assert_eq!(parse_compile_and_output("(let ((a 1) (b 2)) (foo a b))"), "var a_0 = 1\nvar b_1 = 2\nreturn foo(a_0, b_1)\n");
-  assert_eq!(parse_compile_and_output("(let ((a (foo) (bar))) (baz a))"), "foo()\nvar a_0 = bar()\nreturn baz(a_0)\n");
+  assert_eq!(parse_compile_and_output("(let ((a 1)) (foo1 a))"), "var a_0 = 1\nreturn foo1(a_0)\n");
+  assert_eq!(parse_compile_and_output("(let ((a 1) (b 2)) (foo2 a b))"), "var a_0 = 1\nvar b_1 = 2\nreturn foo2(a_0, b_1)\n");
+  assert_eq!(parse_compile_and_output("(let ((a (foo) (bar))) (baz1 a))"), "foo()\nvar a_0 = bar()\nreturn baz1(a_0)\n");
   assert_eq!(parse_compile_and_output("(let ((a) b) 1)"), "var a_0 = GDLisp.Nil\nvar b_1 = GDLisp.Nil\nreturn 1\n");
   assert_eq!(parse_compile_and_output("(let (a (b)) 1)"), "var a_0 = GDLisp.Nil\nvar b_1 = GDLisp.Nil\nreturn 1\n");
 }

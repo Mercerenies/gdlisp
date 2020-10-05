@@ -23,6 +23,12 @@ pub fn cons_class() -> Expr {
   on_gdlisp_root(String::from("Cons"))
 }
 
+pub fn construct_list(vec: Vec<Expr>) -> Expr {
+  vec.into_iter().rev().fold(nil(), |rest, first| {
+    Expr::Call(Some(Box::new(cons_class())), String::from("new"), vec!(first, rest))
+  })
+}
+
 pub fn bind_builtins(table: &mut SymbolTable) {
   table.set_fn("cons".to_owned(),
                FnCall::qualified(FnSpecs::new(2, 0, false), FnScope::Global, cons_class(), "new".to_owned()));
