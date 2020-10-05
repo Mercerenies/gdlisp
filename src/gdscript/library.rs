@@ -3,7 +3,7 @@
 
 use super::expr::Expr;
 use crate::compile::symbol_table::SymbolTable;
-use crate::compile::symbol_table::function_call::{FnCall, FnScope};
+use crate::compile::symbol_table::function_call::{FnCall, FnScope, FnSpecs};
 
 pub const GDLISP_NAME: &'static str = "GDLisp";
 
@@ -24,5 +24,6 @@ pub fn cons_class() -> Expr {
 }
 
 pub fn bind_builtins(table: &mut SymbolTable) {
-  table.set_fn("cons".to_owned(), FnCall::qualified(FnScope::Global, cons_class(), "new".to_owned()));
+  table.set_fn("cons".to_owned(),
+               FnCall::qualified(FnSpecs::new(2, 0, false), FnScope::Global, cons_class(), "new".to_owned()));
 }

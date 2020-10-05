@@ -130,7 +130,7 @@ impl HasSymbolTable for SymbolTable {
 #[cfg(test)]
 mod tests {
   use super::*;
-  use function_call::FnScope;
+  use function_call::{FnSpecs, FnScope};
 
   #[test]
   fn test_vars() {
@@ -155,7 +155,7 @@ mod tests {
   }
 
   fn sample_fn() -> FnCall {
-    FnCall::unqualified(FnScope::Global, "foobar".to_owned())
+    FnCall::unqualified(FnSpecs::new(1, 0, false), FnScope::Global, "foobar".to_owned())
   }
 
   #[test]

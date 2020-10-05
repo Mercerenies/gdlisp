@@ -6,7 +6,7 @@ use gdlisp::compile::stmt_wrapper;
 use gdlisp::compile::names::fresh::FreshNameGenerator;
 use gdlisp::compile::body::builder::StmtBuilder;
 use gdlisp::compile::symbol_table::SymbolTable;
-use gdlisp::compile::symbol_table::function_call::{FnCall, FnScope};
+use gdlisp::compile::symbol_table::function_call::{FnCall, FnScope, FnSpecs};
 use gdlisp::parser;
 use gdlisp::ir;
 use gdlisp::gdscript::library;
@@ -14,13 +14,13 @@ use gdlisp::gdscript::library;
 fn bind_helper_symbols(table: &mut SymbolTable) {
   // Binds a few helper names to the symbol table for the sake of
   // debugging.
-  table.set_fn(String::from("foobar"), FnCall::unqualified(FnScope::Global, String::from("foobar")));
-  table.set_fn(String::from("foo"), FnCall::unqualified(FnScope::Global, String::from("foo")));
-  table.set_fn(String::from("bar"), FnCall::unqualified(FnScope::Global, String::from("bar")));
-  table.set_fn(String::from("baz"), FnCall::unqualified(FnScope::Global, String::from("baz")));
-  table.set_fn(String::from("a"), FnCall::unqualified(FnScope::Global, String::from("a")));
-  table.set_fn(String::from("b"), FnCall::unqualified(FnScope::Global, String::from("b")));
-  table.set_fn(String::from("c"), FnCall::unqualified(FnScope::Global, String::from("c")));
+  table.set_fn(String::from("foobar"), FnCall::unqualified(FnSpecs::new(0, 0, true), FnScope::Global, String::from("foobar")));
+  table.set_fn(String::from("foo"), FnCall::unqualified(FnSpecs::new(0, 0, true), FnScope::Global, String::from("foo")));
+  table.set_fn(String::from("bar"), FnCall::unqualified(FnSpecs::new(0, 0, true), FnScope::Global, String::from("bar")));
+  table.set_fn(String::from("baz"), FnCall::unqualified(FnSpecs::new(0, 0, true), FnScope::Global, String::from("baz")));
+  table.set_fn(String::from("a"), FnCall::unqualified(FnSpecs::new(0, 0, true), FnScope::Global, String::from("a")));
+  table.set_fn(String::from("b"), FnCall::unqualified(FnSpecs::new(0, 0, true), FnScope::Global, String::from("b")));
+  table.set_fn(String::from("c"), FnCall::unqualified(FnSpecs::new(0, 0, true), FnScope::Global, String::from("c")));
   table.set_var(String::from("foobar"), String::from("foobar"));
 }
 

@@ -308,11 +308,7 @@ impl<'a> Compiler<'a> {
     match decl {
       IRDecl::FnDecl(ir::decl::FnDecl { name, args, body }) => {
         let gd_name = names::lisp_to_gd(&name);
-        // TODO How to handle varargs here?
-        let gd_args: Vec<_> = args.args.iter().map(|arg| {
-          let gd_arg = self.gen.generate_with(arg);
-          (arg.to_owned(), gd_arg)
-        }).collect();
+        let (arglist, gd_args) = args.clone().into_gd_arglist(&mut self.gen);
         let mut stmt_builder = StmtBuilder::new();
         table.with_local_vars(&mut gd_args.clone().into_iter(), |table| {
           self.compile_stmt(&mut stmt_builder, table, &stmt_wrapper::Return, body)
@@ -320,7 +316,7 @@ impl<'a> Compiler<'a> {
         let gd_body = stmt_builder.build_into(builder);
         builder.add_decl(Decl::FnDecl(decl::Static::IsStatic, decl::FnDecl {
           name: gd_name,
-          args: ArgList::required(gd_args.into_iter().map(|x| x.1).collect()),
+          args: arglist,
           body: gd_body,
         }));
         Ok(())
@@ -332,13 +328,13 @@ impl<'a> Compiler<'a> {
                decl: &IRDecl)
                -> Result<(), Error> {
     match decl {
-      IRDecl::FnDecl(ir::decl::FnDecl { name, args: _, body: _ }) => {
+      IRDecl::FnDecl(ir::decl::FnDecl { name, args, body: _ }) => {
         // TODO Some special handling for varargs will be necessary here as well
-        let func = function_call::FnCall {
-          scope: function_call::FnScope::Global,
-          object: None,
-          function: names::lisp_to_gd(name),
-        };
+        let func = function_call::FnCall::unqualified(
+          function_call::FnSpecs::from(args.to_owned()),
+          function_call::FnScope::Global,
+          names::lisp_to_gd(name)
+        );
         table.set_fn(name.clone(), func);
       }
     };
@@ -371,16 +367,16 @@ mod tests {
   use super::*;
   use crate::gdscript::decl::Decl;
   use crate::sxp::ast::{self, AST};
-  use crate::compile::symbol_table::function_call::{FnCall, FnScope};
+  use crate::compile::symbol_table::function_call::{FnCall, FnScope, FnSpecs};
 
   // TODO A lot more of this
 
   fn bind_helper_symbols(table: &mut SymbolTable) {
     // Binds a few helper names to the symbol table for the sake of
     // debugging.
-    table.set_fn(String::from("foobar"), FnCall::unqualified(FnScope::Global, String::from("foobar")));
-    table.set_fn(String::from("foo"), FnCall::unqualified(FnScope::Global, String::from("foo")));
-    table.set_fn(String::from("bar"), FnCall::unqualified(FnScope::Global, String::from("bar")));
+    table.set_fn(String::from("foobar"), FnCall::unqualified(FnSpecs::new(1, 0, false), FnScope::Global, String::from("foobar")));
+    table.set_fn(String::from("foo"), FnCall::unqualified(FnSpecs::new(1, 0, false), FnScope::Global, String::from("foo")));
+    table.set_fn(String::from("bar"), FnCall::unqualified(FnSpecs::new(1, 0, false), FnScope::Global, String::from("bar")));
     table.set_var(String::from("foobar"), String::from("foobar"));
   }
 

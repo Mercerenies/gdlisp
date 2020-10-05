@@ -77,14 +77,11 @@ pub fn compile_decl(decl: &AST)
             _ => return Err(Error::InvalidDecl(decl.clone())),
           };
           let args: Vec<_> = DottedExpr::new(vec[2]).try_into()?;
-          let args = args.into_iter().map(|x| match x {
-            AST::Symbol(s) => Ok(s.to_owned()),
-            _ => Err(Error::InvalidDecl(decl.clone())),
-          }).collect::<Result<Vec<_>, _>>()?;
+          let args = ArgList::parse(args)?;
           let body = vec[3..].into_iter().map(|expr| compile_expr(expr)).collect::<Result<Vec<_>, _>>()?;
           Ok(Decl::FnDecl(decl::FnDecl {
             name: name.to_owned(),
-            args: ArgList::required(args),
+            args: args,
             body: Expr::Progn(body),
           }))
         }
