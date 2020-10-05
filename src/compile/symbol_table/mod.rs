@@ -6,6 +6,7 @@ use function_call::FnCall;
 use std::collections::HashMap;
 use std::borrow::Borrow;
 
+#[derive(Clone)]
 pub struct SymbolTable {
   locals: HashMap<String, String>,
   functions: HashMap<String, FnCall>,

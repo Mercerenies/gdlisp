@@ -4,7 +4,7 @@ use crate::gdscript::stmt::Stmt;
 use crate::gdscript::indent;
 use crate::gdscript::arglist::ArgList;
 
-use std::fmt;
+use std::fmt::{self, Write};
 
 // TODO _init has some special syntax that we need to be prepared to handle.
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -107,10 +107,25 @@ impl Decl {
 
 impl ClassExtends {
 
-  fn to_gd(&self) -> String {
+  pub fn to_gd(&self) -> String {
     match self {
       ClassExtends::Named(name) => name.clone()
     }
+  }
+
+}
+
+impl TopLevelClass {
+
+  pub fn to_gd(&self) -> String {
+    let mut string = String::new();
+    if let Some(name) = &self.name {
+      write!(string, "class_name {}\n", name).expect("Could not write to string in TopLevelClass::to_gd");
+    }
+    write!(string, "extends {}\n", self.extends.to_gd()).expect("Could not write to string in TopLevelClass::to_gd");
+    Decl::write_gd_decls(self.body.iter().map(|x| x), &empty_class_body(), &mut string, 0)
+      .expect("Could not write to string in TopLevelClass::to_gd");
+    string
   }
 
 }

@@ -13,12 +13,13 @@ lalrpop_mod!(pub parser);
 
 use gdlisp::ir;
 use gdlisp::compile::Compiler;
-use gdlisp::compile::stmt_wrapper;
 use gdlisp::compile::names::fresh::FreshNameGenerator;
-use gdlisp::compile::body::builder::StmtBuilder;
+use gdlisp::compile::body::builder::CodeBuilder;
 use gdlisp::compile::symbol_table::SymbolTable;
 use gdlisp::parser;
 use gdlisp::gdscript::library;
+use gdlisp::gdscript::decl;
+use gdlisp::sxp::ast;
 
 use std::io::{self, BufRead};
 
@@ -35,16 +36,17 @@ fn main() {
       Err(err) => println!("Error: {}", err),
       Ok(value) => {
         println!("{}", value);
-        match ir::compile_expr(&value) {
+        // Make it a singleton list so we can compile decls globally.
+        let value = ast::cons(value, ast::AST::Nil);
+        match ir::compile_toplevel(&value) {
           Err(err) => println!("Error: {:?}", err),
           Ok(value) => {
-            let mut tmp = StmtBuilder::new();
-            match compiler.compile_stmt(&mut tmp, &mut table, &mut stmt_wrapper::Return, &value) {
+            let mut tmp = CodeBuilder::new(decl::ClassExtends::Named("Node".to_owned()));
+            match compiler.compile_decls(&mut tmp, &mut table, &value) {
               Err(err) => println!("Error: {:?}", err),
               Ok(()) => {
-                let (stmts, helpers) = tmp.build();
-                helpers.into_iter().for_each(|decl| print!("{}", decl.to_gd(0)));
-                stmts.into_iter().for_each(|stmt| print!("{}", stmt.to_gd(0)));
+                let result = tmp.build();
+                print!("{}", result.to_gd());
               }
             }
           }

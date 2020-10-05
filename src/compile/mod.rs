@@ -7,7 +7,7 @@ pub mod symbol_table;
 pub mod special_form;
 pub mod builtin;
 
-use body::builder::StmtBuilder;
+use body::builder::{CodeBuilder, StmtBuilder, HasDecls};
 use names::fresh::FreshNameGenerator;
 use crate::gdscript::expr::Expr;
 use crate::gdscript::stmt::{self, Stmt};
@@ -19,8 +19,10 @@ use crate::gdscript::arglist::ArgList;
 use error::Error;
 use stmt_wrapper::StmtWrapper;
 use symbol_table::{HasSymbolTable, SymbolTable};
+use symbol_table::function_call;
 use crate::ir;
 
+type IRDecl = ir::decl::Decl;
 type IRExpr = ir::expr::Expr;
 type IRLiteral = ir::literal::Literal;
 
@@ -296,6 +298,70 @@ impl<'a> Compiler<'a> {
     let value = value.unwrap_or(Compiler::nil_expr().0);
     builder.append(Stmt::VarDecl(var_name.clone(), value));
     var_name
+  }
+
+  pub fn compile_decl(&mut self,
+                      builder: &mut CodeBuilder,
+                      table: &mut SymbolTable,
+                      decl: &IRDecl)
+                      -> Result<(), Error> {
+    match decl {
+      IRDecl::FnDecl(ir::decl::FnDecl { name, args, body }) => {
+        let gd_name = names::lisp_to_gd(&name);
+        // TODO How to handle varargs here?
+        let gd_args: Vec<_> = args.args.iter().map(|arg| {
+          let gd_arg = self.gen.generate_with(arg);
+          (arg.to_owned(), gd_arg)
+        }).collect();
+        let mut stmt_builder = StmtBuilder::new();
+        table.with_local_vars(&mut gd_args.clone().into_iter(), |table| {
+          self.compile_stmt(&mut stmt_builder, table, &stmt_wrapper::Return, body)
+        })?;
+        let gd_body = stmt_builder.build_into(builder);
+        builder.add_decl(Decl::FnDecl(decl::Static::IsStatic, decl::FnDecl {
+          name: gd_name,
+          args: ArgList::required(gd_args.into_iter().map(|x| x.1).collect()),
+          body: gd_body,
+        }));
+        Ok(())
+      }
+    }
+  }
+
+  fn bind_decl(table: &mut SymbolTable,
+               decl: &IRDecl)
+               -> Result<(), Error> {
+    match decl {
+      IRDecl::FnDecl(ir::decl::FnDecl { name, args: _, body: _ }) => {
+        // TODO Some special handling for varargs will be necessary here as well
+        let func = function_call::FnCall {
+          scope: function_call::FnScope::Global,
+          object: None,
+          function: names::lisp_to_gd(name),
+        };
+        table.set_fn(name.clone(), func);
+      }
+    };
+    Ok(())
+  }
+
+  pub fn compile_decls(&mut self,
+                       builder: &mut CodeBuilder,
+                       table: &SymbolTable,
+                       decls: &Vec<IRDecl>)
+                       -> Result<(), Error> {
+    // Since we're going to be altering it a lot (and this function
+    // should be getting called infrequently), it's going to be easier
+    // to just copy the symbol table now, rather than try to track all
+    // changes and undo them.
+    let mut table = table.clone();
+    for decl in decls {
+      Compiler::bind_decl(&mut table, decl)?;
+    }
+    for decl in decls {
+      self.compile_decl(builder, &mut table, decl)?;
+    }
+    Ok(())
   }
 
 }
