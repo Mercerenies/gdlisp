@@ -28,7 +28,19 @@ class Cons:
 
 class Function:
     var __is_gdlisp_function = true
+    var __gdlisp_required = 0
+    var __gdlisp_optional = 0
+    var __gdlisp_rest = true
     func _init():
         pass
+    func call_func(args):
+        push_error("Unimplemented function")
+    func call_funcv(args):
+        call_func(args)
 
 onready var Nil = NilClass.new()
+
+func funcall(f, args):
+    if not (f is Function):
+        push_error("Attempt to call non-function")
+    f.call_funcv(args)
