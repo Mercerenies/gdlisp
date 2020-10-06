@@ -263,6 +263,11 @@ impl<'a> Compiler<'a> {
     for var in closed_vars {
       class_body.push(Decl::VarDecl(var.clone(), None));
     }
+    // TODO Actual true in GDScript AST
+    // TODO Put these field names somewhere central and reserve them in the name generator
+    class_body.push(Decl::VarDecl(String::from("__is_gdlisp_function"),
+                                  Some(Expr::Var(String::from("true")))));
+    /////
     class_body.append(&mut vec!(
       Decl::FnDecl(decl::Static::NonStatic, constructor),
       Decl::FnDecl(decl::Static::NonStatic, func),
