@@ -31,7 +31,9 @@ pub struct TopLevelClass {
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum ClassExtends {
-  Named(String), // StringLit(String), // TODO Support string literals (once we have them in general)
+  Qualified(String, String),
+  Named(String),
+  // StringLit(String), // TODO Support string literals (once we have them in general)
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -109,7 +111,8 @@ impl ClassExtends {
 
   pub fn to_gd(&self) -> String {
     match self {
-      ClassExtends::Named(name) => name.clone()
+      ClassExtends::Qualified(a, b) => format!("{}.{}", a, b),
+      ClassExtends::Named(name) => name.clone(),
     }
   }
 

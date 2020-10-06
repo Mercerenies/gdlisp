@@ -26,4 +26,9 @@ class Cons:
     func _iter_get(arg):
         return arg.car
 
+class Function:
+    var __is_gdlisp_function = true
+    func _init():
+        pass
+
 onready var Nil = NilClass.new()
