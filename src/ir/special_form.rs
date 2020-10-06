@@ -17,7 +17,6 @@ pub fn dispatch_form(head: &str,
     "cond" => cond_form(tail).map(Some),
     "let" => let_form(tail).map(Some),
     "lambda" => lambda_form(tail).map(Some),
-    "funcall" => funcall_form(tail).map(Some),
     _ => Ok(None),
   }
 }
@@ -96,14 +95,4 @@ pub fn lambda_form(tail: &[&AST])
   let args = ArgList::parse(args)?;
   let body = tail[1..].into_iter().map(|expr| compile_expr(expr)).collect::<Result<Vec<_>, _>>()?;
   Ok(Expr::Lambda(args, Box::new(Expr::Progn(body))))
-}
-
-pub fn funcall_form(tail: &[&AST])
-                    -> Result<Expr, Error> {
-  if tail.len() <= 0 {
-    return Err(Error::TooFewArgs(String::from("funcall"), 1));
-  }
-  let func = compile_expr(tail[0])?;
-  let args = tail[1..].into_iter().map(|expr| compile_expr(expr)).collect::<Result<Vec<_>, _>>()?;
-  Ok(Expr::Funcall(Box::new(func), args))
 }

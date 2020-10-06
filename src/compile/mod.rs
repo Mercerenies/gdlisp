@@ -227,6 +227,7 @@ impl<'a> Compiler<'a> {
         let expr = Expr::Call(Some(Box::new(Expr::Var(class_name))), String::from("new"), constructor_args);
         Ok(StExpr(expr, false))
       }
+      /* // This will eventually be an optimization.
       IRExpr::Funcall(f, args) => {
         let func_expr = self.compile_expr(builder, table, f, NeedsResult::Yes)?.0;
         let args_expr = args.iter().map(|arg| {
@@ -236,6 +237,7 @@ impl<'a> Compiler<'a> {
         let expr = Expr::Call(Some(Box::new(func_expr)), fn_name, args_expr);
         Ok(StExpr(expr, true))
       }
+      */
     }
   }
 
@@ -282,13 +284,13 @@ impl<'a> Compiler<'a> {
       .collect();
     if specs.rest {
       all_args.push(Expr::Var(args));
-      builder.append(Stmt::Expr(Expr::Call(None, String::from("call_func"), all_args)));
+      builder.append(Stmt::ReturnStmt(Expr::Call(None, String::from("call_func"), all_args)));
     } else {
       builder.append(
         stmt::if_else(
           Expr::Binary(Box::new(Expr::Var(String::from("args"))), op::BinaryOp::Is, Box::new(Expr::Attribute(Box::new(Expr::Var(String::from("GDLisp"))), String::from("NilClass")))),
           vec!(
-            Stmt::Expr(Expr::Call(None, String::from("call_func"), all_args)),
+            Stmt::ReturnStmt(Expr::Call(None, String::from("call_func"), all_args)),
           ),
           vec!(
             Stmt::Expr(Expr::Call(None, String::from("push_error"), vec!(Expr::Literal(Literal::String(String::from("Too many arguments")))))),
@@ -528,10 +530,10 @@ mod tests {
 
   #[test]
   fn test_lambda_vararg() {
-    assert_eq!(compile_vararg(FnSpecs::new(0, 0, false)), "func call_funcv(args):\n    if args is GDLisp.NilClass:\n        call_func()\n    else:\n        push_error(\"Too many arguments\")\n");
-    assert_eq!(compile_vararg(FnSpecs::new(0, 0, true)), "func call_funcv(args):\n    call_func(args)\n");
-    assert_eq!(compile_vararg(FnSpecs::new(1, 0, true)), "func call_funcv(args):\n    var required_0 = null\n    if args is GDLisp.NilClass:\n        push_error(\"Not enough arguments\")\n    else:\n        required_0 = args.car\n        args = args.cdr\n    call_func(required_0, args)\n");
-    assert_eq!(compile_vararg(FnSpecs::new(0, 1, true)), "func call_funcv(args):\n    var optional_0 = null\n    if args is GDLisp.NilClass:\n        optional_0 = GDLisp.Nil\n    else:\n        optional_0 = args.car\n        args = args.cdr\n    call_func(optional_0, args)\n");
+    assert_eq!(compile_vararg(FnSpecs::new(0, 0, false)), "func call_funcv(args):\n    if args is GDLisp.NilClass:\n        return call_func()\n    else:\n        push_error(\"Too many arguments\")\n");
+    assert_eq!(compile_vararg(FnSpecs::new(0, 0, true)), "func call_funcv(args):\n    return call_func(args)\n");
+    assert_eq!(compile_vararg(FnSpecs::new(1, 0, true)), "func call_funcv(args):\n    var required_0 = null\n    if args is GDLisp.NilClass:\n        push_error(\"Not enough arguments\")\n    else:\n        required_0 = args.car\n        args = args.cdr\n    return call_func(required_0, args)\n");
+    assert_eq!(compile_vararg(FnSpecs::new(0, 1, true)), "func call_funcv(args):\n    var optional_0 = null\n    if args is GDLisp.NilClass:\n        optional_0 = GDLisp.Nil\n    else:\n        optional_0 = args.car\n        args = args.cdr\n    return call_func(optional_0, args)\n");
   }
 
 }

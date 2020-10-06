@@ -36,11 +36,11 @@ class Function:
     func call_func(args):
         push_error("Unimplemented function")
     func call_funcv(args):
-        call_func(args)
+        return call_func(args)
 
 onready var Nil = NilClass.new()
 
 func funcall(f, args):
     if not (f is Function):
         push_error("Attempt to call non-function")
-    f.call_funcv(args)
+    return f.call_funcv(args)

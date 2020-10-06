@@ -10,14 +10,12 @@ use std::iter::FromIterator;
 pub enum Expr {
   LocalVar(String),
   Literal(literal::Literal),
-//  Subscript(Box<Expr>, Box<Expr>),
   Progn(Vec<Expr>),
   IfStmt(Box<Expr>, Box<Expr>, Box<Expr>),
   CondStmt(Vec<(Expr, Option<Expr>)>),
   Call(String, Vec<Expr>),
   Let(Vec<(String, Expr)>, Box<Expr>),
   Lambda(ArgList, Box<Expr>),
-  Funcall(Box<Expr>, Vec<Expr>),
 }
 
 impl Expr {
@@ -77,12 +75,6 @@ impl Expr {
         body.walk_locals(&mut local_scope);
         for var in local_scope.difference(&vars) {
           acc.insert(var.to_owned());
-        }
-      }
-      Expr::Funcall(func, args) => {
-        func.walk_locals(acc);
-        for arg in args {
-          arg.walk_locals(acc);
         }
       }
     };
