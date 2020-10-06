@@ -1,5 +1,6 @@
 
 use super::literal;
+use super::arglist::ArgList;
 //use crate::gdscript::op::{self, UnaryOp, BinaryOp, OperatorHasInfo};
 
 use std::collections::HashSet;
@@ -15,7 +16,7 @@ pub enum Expr {
   CondStmt(Vec<(Expr, Option<Expr>)>),
   Call(String, Vec<Expr>),
   Let(Vec<(String, Expr)>, Box<Expr>),
-  Lambda(Vec<String>, Box<Expr>),
+  Lambda(ArgList, Box<Expr>),
   Funcall(Box<Expr>, Vec<Expr>),
 }
 
@@ -71,7 +72,7 @@ impl Expr {
         }
       }
       Expr::Lambda(args, body) => {
-        let vars = HashSet::from_iter(args.iter().map(|x| x.to_owned()));
+        let vars = HashSet::from_iter(args.iter_vars().map(|x| x.to_owned()));
         let mut local_scope = HashSet::new();
         body.walk_locals(&mut local_scope);
         for var in local_scope.difference(&vars) {

@@ -2,7 +2,7 @@
 use crate::sxp::ast::AST;
 use crate::sxp::dotted::DottedExpr;
 use super::expr::Expr;
-//use super::literal::Literal;
+use super::arglist::ArgList;
 use crate::compile::error::Error;
 use crate::ir::compile_expr;
 
@@ -92,18 +92,10 @@ pub fn lambda_form(tail: &[&AST])
   if tail.len() <= 0 {
     return Err(Error::TooFewArgs(String::from("lambda"), 1));
   }
-  // TODO Currently, we don't (can't) support varargs directly since
-  // GDScript doesn't expose that functionality. Consider some sort of
-  // workaround?
   let args: Vec<_> = DottedExpr::new(tail[0]).try_into()?;
-  let arg_names = args.iter().map(|curr| {
-    match curr {
-      AST::Symbol(s) => Ok(s.to_owned()),
-      _ => Err(Error::InvalidArg(String::from("lambda"), (*curr).clone(), String::from("variable name"))),
-    }
-  }).collect::<Result<Vec<_>, _>>()?;
+  let args = ArgList::parse(args)?;
   let body = tail[1..].into_iter().map(|expr| compile_expr(expr)).collect::<Result<Vec<_>, _>>()?;
-  Ok(Expr::Lambda(arg_names, Box::new(Expr::Progn(body))))
+  Ok(Expr::Lambda(args, Box::new(Expr::Progn(body))))
 }
 
 pub fn funcall_form(tail: &[&AST])

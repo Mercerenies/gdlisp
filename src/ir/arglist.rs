@@ -133,6 +133,13 @@ impl ArgList {
     (GDArgList::required(args), name_translations)
   }
 
+  pub fn iter_vars(&self) -> impl Iterator<Item = &str> {
+    self.required_args.iter()
+      .chain(self.optional_args.iter())
+      .chain(self.rest_arg.iter())
+      .map(|x| x.borrow())
+  }
+
 }
 
 impl From<ArgList> for FnSpecs {

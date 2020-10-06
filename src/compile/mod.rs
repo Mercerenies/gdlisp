@@ -189,16 +189,12 @@ impl<'a> Compiler<'a> {
         })
       }
       IRExpr::Lambda(args, body) => {
-        let arg_names = args.iter().map(|s| {
-          let ast_name = s.clone();
-          let gd_name = self.name_generator().generate_with(&ast_name);
-          (ast_name, gd_name)
-        }).collect::<Vec<_>>();
+        let (arglist, gd_args) = args.clone().into_gd_arglist(&mut self.gen);
 
         let mut lambda_builder = StmtBuilder::new();
         let mut closure_vars = body.get_locals();
-        for arg in args {
-          closure_vars.remove(arg);
+        for arg in &gd_args {
+          closure_vars.remove(&arg.0);
         }
         // I want them in a consistent order for the constructor
         // function. I don't care which order, but I need an order, so
@@ -206,7 +202,7 @@ impl<'a> Compiler<'a> {
         let closure_vars: Vec<_> = closure_vars.into_iter().collect();
 
         let mut lambda_table = SymbolTable::new();
-        for arg in &arg_names {
+        for arg in &gd_args {
           lambda_table.set_var(arg.0.to_owned(), arg.1.to_owned());
         }
         for var in &closure_vars {
@@ -224,7 +220,6 @@ impl<'a> Compiler<'a> {
         }).collect();
 
         self.compile_stmt(&mut lambda_builder, &mut lambda_table, &stmt_wrapper::Return, body)?;
-        let arglist = ArgList::required(arg_names.into_iter().map(|x| x.1.clone()).collect());
         let class = self.generate_lambda_class(arglist, &gd_closure_vars, builder, lambda_builder);
         let class_name = class.name.clone();
         builder.add_helper(Decl::ClassDecl(class));
