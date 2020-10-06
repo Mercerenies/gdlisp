@@ -315,6 +315,9 @@ impl<'a> Compiler<'a> {
 
   }
 
+  // TODO Assign __gdlisp_required, __gdlisp_optional, and __gdlisp_rest in the constructor
+  //
+  // ///// (function ...) and #'... syntax
   fn generate_lambda_class(&mut self,
                            specs: FnSpecs,
                            args: ArgList,
