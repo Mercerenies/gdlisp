@@ -374,7 +374,7 @@ mod tests {
   fn bind_helper_symbols(table: &mut SymbolTable) {
     // Binds a few helper names to the symbol table for the sake of
     // debugging.
-    table.set_fn(String::from("foobar"), FnCall::unqualified(FnSpecs::new(1, 0, false), FnScope::Global, String::from("foobar")));
+    table.set_fn(String::from("foo1"), FnCall::unqualified(FnSpecs::new(1, 0, false), FnScope::Global, String::from("foo1")));
     table.set_fn(String::from("foo"), FnCall::unqualified(FnSpecs::new(0, 0, false), FnScope::Global, String::from("foo")));
     table.set_fn(String::from("bar"), FnCall::unqualified(FnSpecs::new(0, 0, false), FnScope::Global, String::from("bar")));
     table.set_var(String::from("foobar"), String::from("foobar"));
@@ -403,8 +403,8 @@ mod tests {
 
   #[test]
   fn compile_call() {
-    let ast = ast::list(vec!(AST::Symbol(String::from("foobar")), AST::Int(10)));
-    let expected = Stmt::ReturnStmt(Expr::Call(None, String::from("foobar"), vec!(Expr::Literal(Literal::Int(10)))));
+    let ast = ast::list(vec!(AST::Symbol(String::from("foo1")), AST::Int(10)));
+    let expected = Stmt::ReturnStmt(Expr::Call(None, String::from("foo1"), vec!(Expr::Literal(Literal::Int(10)))));
     let actual = compile_stmt(&ast).unwrap();
     assert_eq!(actual.0, vec!(expected));
     assert_eq!(actual.1, vec!());

@@ -14,16 +14,10 @@ use gdlisp::gdscript::library;
 fn bind_helper_symbols(table: &mut SymbolTable) {
   // Binds a few helper names to the symbol table for the sake of
   // debugging.
-  table.set_fn(String::from("foobar"), FnCall::unqualified(FnSpecs::new(0, 0, false), FnScope::Global, String::from("foobar")));
   table.set_fn(String::from("foo"), FnCall::unqualified(FnSpecs::new(0, 0, false), FnScope::Global, String::from("foo")));
   table.set_fn(String::from("foo1"), FnCall::unqualified(FnSpecs::new(1, 0, false), FnScope::Global, String::from("foo1")));
   table.set_fn(String::from("foo2"), FnCall::unqualified(FnSpecs::new(2, 0, false), FnScope::Global, String::from("foo2")));
   table.set_fn(String::from("bar"), FnCall::unqualified(FnSpecs::new(0, 0, false), FnScope::Global, String::from("bar")));
-  table.set_fn(String::from("baz"), FnCall::unqualified(FnSpecs::new(0, 0, false), FnScope::Global, String::from("baz")));
-  table.set_fn(String::from("baz1"), FnCall::unqualified(FnSpecs::new(1, 0, false), FnScope::Global, String::from("baz1")));
-  table.set_fn(String::from("a"), FnCall::unqualified(FnSpecs::new(0, 0, false), FnScope::Global, String::from("a")));
-  table.set_fn(String::from("b"), FnCall::unqualified(FnSpecs::new(0, 0, false), FnScope::Global, String::from("b")));
-  table.set_fn(String::from("c"), FnCall::unqualified(FnSpecs::new(0, 0, false), FnScope::Global, String::from("c")));
   table.set_var(String::from("foobar"), String::from("foobar"));
 }
 
@@ -62,7 +56,7 @@ pub fn expr_tests() {
 
 #[test]
 pub fn progn_tests() {
-  assert_eq!(parse_compile_and_output("(progn (a) (b) (c))"), "a()\nb()\nreturn c()\n");
+  assert_eq!(parse_compile_and_output("(progn (foo) (bar) (foo))"), "foo()\nbar()\nreturn foo()\n");
   assert_eq!(parse_compile_and_output("(progn)"), "return GDLisp.Nil\n");
   assert_eq!(parse_compile_and_output("(progn (progn))"), "return GDLisp.Nil\n");
   assert_eq!(parse_compile_and_output("(progn ())"), "return GDLisp.Nil\n");
@@ -74,33 +68,33 @@ pub fn if_tests_expr() {
   assert_eq!(parse_compile_and_output("(if 1 2)"), "var _if_0 = GDLisp.Nil\nif 1:\n    _if_0 = 2\nelse:\n    _if_0 = GDLisp.Nil\nreturn _if_0\n");
   assert_eq!(parse_compile_and_output("(if 1 2 ())"), "var _if_0 = GDLisp.Nil\nif 1:\n    _if_0 = 2\nelse:\n    _if_0 = GDLisp.Nil\nreturn _if_0\n");
   //assert_eq!(parse_compile_and_output("(if _if_0 2 ())"), "var _if_1 = GDLisp.Nil\nif _if_0:\n    _if_1 = 2\nelse:\n    _if_1 = GDLisp.Nil\nreturn _if_1\n"); // Variable scoping issues; can't do this one right now
-  assert_eq!(parse_compile_and_output("(if 1 (a) (b))"), "var _if_0 = GDLisp.Nil\nif 1:\n    _if_0 = a()\nelse:\n    _if_0 = b()\nreturn _if_0\n");
+  assert_eq!(parse_compile_and_output("(if 1 (foo) (bar))"), "var _if_0 = GDLisp.Nil\nif 1:\n    _if_0 = foo()\nelse:\n    _if_0 = bar()\nreturn _if_0\n");
 }
 
 #[test]
 pub fn if_tests_stmt() {
   assert_eq!(parse_compile_and_output("(progn (if 1 2 3) 1)"), "if 1:\n    pass\nelse:\n    pass\nreturn 1\n");
-  assert_eq!(parse_compile_and_output("(progn (if 1 (a) (b)) 1)"), "if 1:\n    a()\nelse:\n    b()\nreturn 1\n");
+  assert_eq!(parse_compile_and_output("(progn (if 1 (foo) (bar)) 1)"), "if 1:\n    foo()\nelse:\n    bar()\nreturn 1\n");
 }
 
 #[test]
 pub fn cond_tests_expr() {
-  assert_eq!(parse_compile_and_output("(cond ((a) (foo)) ((b) (bar)))"), "var _cond_0 = GDLisp.Nil\nif a():\n    _cond_0 = foo()\nelse:\n    if b():\n        _cond_0 = bar()\n    else:\n        _cond_0 = GDLisp.Nil\nreturn _cond_0\n");
+  assert_eq!(parse_compile_and_output("(cond ((bar) (foo)) (foobar (bar)))"), "var _cond_0 = GDLisp.Nil\nif bar():\n    _cond_0 = foo()\nelse:\n    if foobar:\n        _cond_0 = bar()\n    else:\n        _cond_0 = GDLisp.Nil\nreturn _cond_0\n");
 }
 
 #[test]
 pub fn cond_tests_stmt() {
-  assert_eq!(parse_compile_and_output("(progn (cond ((a) (foo)) ((b) (bar))) 1)"), "if a():\n    foo()\nelse:\n    if b():\n        bar()\n    else:\n        pass\nreturn 1\n");
+  assert_eq!(parse_compile_and_output("(progn (cond ((bar) (foo)) (foobar (bar))) 1)"), "if bar():\n    foo()\nelse:\n    if foobar:\n        bar()\n    else:\n        pass\nreturn 1\n");
 }
 
 #[test]
 pub fn cond_tests_abbr_expr() {
-  assert_eq!(parse_compile_and_output("(cond ((a) (foo)) ((bar)))"), "var _cond_0 = GDLisp.Nil\nif a():\n    _cond_0 = foo()\nelse:\n    var _cond_1 = bar()\n    if _cond_1:\n        _cond_0 = _cond_1\n    else:\n        _cond_0 = GDLisp.Nil\nreturn _cond_0\n");
+  assert_eq!(parse_compile_and_output("(cond ((foo) (foo)) ((bar)))"), "var _cond_0 = GDLisp.Nil\nif foo():\n    _cond_0 = foo()\nelse:\n    var _cond_1 = bar()\n    if _cond_1:\n        _cond_0 = _cond_1\n    else:\n        _cond_0 = GDLisp.Nil\nreturn _cond_0\n");
 }
 
 #[test]
 pub fn cond_tests_abbr_stmt() {
-  assert_eq!(parse_compile_and_output("(progn (cond ((a) (foo)) ((bar))) 1)"), "if a():\n    foo()\nelse:\n    var _cond_0 = bar()\n    if _cond_0:\n        pass\n    else:\n        pass\nreturn 1\n");
+  assert_eq!(parse_compile_and_output("(progn (cond ((foo) (foo)) ((bar))) 1)"), "if foo():\n    foo()\nelse:\n    var _cond_0 = bar()\n    if _cond_0:\n        pass\n    else:\n        pass\nreturn 1\n");
 }
 
 #[test]
@@ -110,7 +104,7 @@ pub fn let_tests() {
   assert_eq!(parse_compile_and_output("(let ((a)) 1)"), "var a_0 = GDLisp.Nil\nreturn 1\n");
   assert_eq!(parse_compile_and_output("(let ((a 1)) (foo1 a))"), "var a_0 = 1\nreturn foo1(a_0)\n");
   assert_eq!(parse_compile_and_output("(let ((a 1) (b 2)) (foo2 a b))"), "var a_0 = 1\nvar b_1 = 2\nreturn foo2(a_0, b_1)\n");
-  assert_eq!(parse_compile_and_output("(let ((a (foo) (bar))) (baz1 a))"), "foo()\nvar a_0 = bar()\nreturn baz1(a_0)\n");
+  assert_eq!(parse_compile_and_output("(let ((a (foo) (bar))) (foo1 a))"), "foo()\nvar a_0 = bar()\nreturn foo1(a_0)\n");
   assert_eq!(parse_compile_and_output("(let ((a) b) 1)"), "var a_0 = GDLisp.Nil\nvar b_1 = GDLisp.Nil\nreturn 1\n");
   assert_eq!(parse_compile_and_output("(let (a (b)) 1)"), "var a_0 = GDLisp.Nil\nvar b_1 = GDLisp.Nil\nreturn 1\n");
 }
@@ -122,7 +116,7 @@ pub fn var_shadowing() {
 
 #[test]
 pub fn inline_if_in_let_test() {
-  assert_eq!(parse_compile_and_output("(let ((a (if (foo) (bar) (baz)))) a)"), "var _if_0 = GDLisp.Nil\nif foo():\n    _if_0 = bar()\nelse:\n    _if_0 = baz()\nvar a_1 = _if_0\nreturn a_1\n");
+  assert_eq!(parse_compile_and_output("(let ((a (if (foo) (bar) (foo)))) a)"), "var _if_0 = GDLisp.Nil\nif foo():\n    _if_0 = bar()\nelse:\n    _if_0 = foo()\nvar a_1 = _if_0\nreturn a_1\n");
 }
 
 #[test]
