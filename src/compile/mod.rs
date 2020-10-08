@@ -345,11 +345,7 @@ impl<'a> Compiler<'a> {
     constructor_body.push(Compiler::assign_expr_to_self(String::from("__gdlisp_optional"),
                                                         Expr::Literal(Literal::Int(o))));
     constructor_body.push(Compiler::assign_expr_to_self(String::from("__gdlisp_rest"),
-                                                        Expr::Var(if specs.rest {
-                                                          String::from("true")
-                                                        } else {
-                                                          String::from("false")
-                                                        })));
+                                                        Expr::Literal(Literal::Bool(specs.rest))));
     let constructor =
       decl::FnDecl {
         name: String::from("_init"),

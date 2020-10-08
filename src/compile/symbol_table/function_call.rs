@@ -1,5 +1,6 @@
 
 use crate::gdscript::expr::Expr;
+use crate::gdscript::literal::Literal;
 use crate::gdscript::library;
 use crate::compile::error::Error;
 
@@ -50,10 +51,10 @@ impl FnCall {
     let rest = library::construct_list(rest);
     // Extend with nulls
     while args.len() < (self.specs.required + self.specs.optional) as usize {
-      args.push(Expr::Var("null".to_owned())); // TODO Actually represent this in AST
+      args.push(Expr::Literal(Literal::Null));
     }
     if self.specs.rest {
-      args.push(rest)
+      args.push(rest);
     }
     Ok(Expr::Call(self.object, self.function, args))
   }
