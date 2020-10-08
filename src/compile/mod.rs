@@ -22,6 +22,8 @@ use symbol_table::{HasSymbolTable, SymbolTable};
 use symbol_table::function_call::{self, FnSpecs};
 use crate::ir;
 
+use std::convert::TryInto;
+
 type IRDecl = ir::decl::Decl;
 type IRExpr = ir::expr::Expr;
 type IRLiteral = ir::literal::Literal;
@@ -315,8 +317,6 @@ impl<'a> Compiler<'a> {
 
   }
 
-  // TODO Assign __gdlisp_required, __gdlisp_optional, and __gdlisp_rest in the constructor
-  //
   // ///// (function ...) and #'... syntax
   fn generate_lambda_class(&mut self,
                            specs: FnSpecs,
@@ -334,12 +334,28 @@ impl<'a> Compiler<'a> {
       body: func_body,
     };
     let funcv = self.generate_lambda_vararg(specs);
+    let mut constructor_body = Vec::new();
+    for name in closed_vars.iter() {
+      constructor_body.push(Compiler::assign_to_self(name.to_string(), name.to_string()));
+    }
+    let r: i32 = specs.required.try_into().unwrap();
+    let o: i32 = specs.optional.try_into().unwrap();
+    constructor_body.push(Compiler::assign_expr_to_self(String::from("__gdlisp_required"),
+                                                        Expr::Literal(Literal::Int(r))));
+    constructor_body.push(Compiler::assign_expr_to_self(String::from("__gdlisp_optional"),
+                                                        Expr::Literal(Literal::Int(o))));
+    constructor_body.push(Compiler::assign_expr_to_self(String::from("__gdlisp_rest"),
+                                                        Expr::Var(if specs.rest {
+                                                          String::from("true")
+                                                        } else {
+                                                          String::from("false")
+                                                        })));
     let constructor =
-    decl::FnDecl {
-      name: String::from("_init"),
-      args: ArgList::required(closed_vars.iter().map(|x| (*x).to_owned()).collect()),
-      body: closed_vars.iter().map(|name| Compiler::assign_to_self(name.to_string(), name.to_string())).collect(),
-    };
+      decl::FnDecl {
+        name: String::from("_init"),
+        args: ArgList::required(closed_vars.iter().map(|x| (*x).to_owned()).collect()),
+        body: constructor_body,
+      };
     let mut class_body = vec!();
     for var in closed_vars {
       class_body.push(Decl::VarDecl(var.clone(), None));
@@ -357,8 +373,12 @@ impl<'a> Compiler<'a> {
   }
 
   fn assign_to_self(inst_var: String, local_var: String) -> Stmt {
+    Compiler::assign_expr_to_self(inst_var, Expr::Var(local_var))
+  }
+
+  fn assign_expr_to_self(inst_var: String, expr: Expr) -> Stmt {
     let self_target = Box::new(Expr::Attribute(Box::new(Expr::Var(String::from("self"))), inst_var));
-    let value = Box::new(Expr::Var(local_var));
+    let value = Box::new(expr);
     Stmt::Assign(self_target, op::AssignOp::Eq, value)
   }
 
