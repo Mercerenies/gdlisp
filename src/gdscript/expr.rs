@@ -1,6 +1,6 @@
 
 use crate::gdscript::op::{self, UnaryOp, BinaryOp, OperatorHasInfo};
-use crate::gdscript::literal;
+use crate::gdscript::literal::Literal;
 
 pub const PRECEDENCE_LOWEST: i32 = -99;
 pub const PRECEDENCE_SUBSCRIPT: i32 = 21;
@@ -14,7 +14,7 @@ pub const PRECEDENCE_CALL: i32 = 19;
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Expr {
   Var(String),
-  Literal(literal::Literal),
+  Literal(Literal),
   Subscript(Box<Expr>, Box<Expr>),
   Attribute(Box<Expr>, String),
   Call(Option<Box<Expr>>, String, Vec<Expr>),
@@ -32,6 +32,14 @@ fn maybe_parens(cond: bool, inner: String) -> String {
 }
 
 impl Expr {
+
+  pub fn null() -> Expr {
+    Expr::Literal(Literal::Null)
+  }
+
+  pub fn str_lit(a: &str) -> Expr {
+    Expr::from(a.to_owned())
+  }
 
   pub fn to_gd_prec(&self, prec: i32) -> String {
     match self {
@@ -84,19 +92,25 @@ impl Expr {
 
 }
 
+impl<T> From<T> for Expr
+  where Literal : From<T> {
+  fn from(x: T) -> Expr {
+    Expr::Literal(Literal::from(x))
+  }
+}
+
 #[cfg(test)]
 mod tests {
   use super::*;
-  use crate::gdscript::literal::Literal;
 
   #[test]
   fn basic_expr_types() {
     let var = Expr::Var(String::from("foobar"));
-    let n = Expr::Literal(Literal::Int(99));
+    let n = Expr::from(99);
     let name = String::from("attr");
 
-    let arg1 = Expr::Literal(Literal::Int(1));
-    let arg2 = Expr::Literal(Literal::Int(2));
+    let arg1 = Expr::from(1);
+    let arg2 = Expr::from(2);
     let lhs = Expr::Binary(Box::new(arg1), BinaryOp::Add, Box::new(arg2));
 
     let attr = Expr::Attribute(Box::new(var.clone()), name.clone());
@@ -121,9 +135,9 @@ mod tests {
   fn call_exprs() {
     let lhs = Expr::Var(String::from("lhs"));
     let name = String::from("func");
-    let arg1 = Expr::Literal(Literal::Int(1));
-    let arg2 = Expr::Literal(Literal::Int(2));
-    let arg3 = Expr::Literal(Literal::Int(3));
+    let arg1 = Expr::from(1);
+    let arg2 = Expr::from(2);
+    let arg3 = Expr::from(3);
 
     let lhs_p = Expr::Binary(Box::new(arg1.clone()), BinaryOp::Add, Box::new(arg2.clone()));
 
@@ -156,7 +170,7 @@ mod tests {
 
   #[test]
   fn unary_ops() {
-    let operand = Expr::Literal(Literal::Int(3));
+    let operand = Expr::from(3);
     assert_eq!(unary(UnaryOp::BitNot, &operand).to_gd(), "~3");
     assert_eq!(unary(UnaryOp::Negate, &operand).to_gd(), "-3");
     assert_eq!(unary(UnaryOp::Not, &operand).to_gd(), "!3");

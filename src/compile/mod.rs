@@ -12,7 +12,6 @@ use names::fresh::FreshNameGenerator;
 use crate::gdscript::expr::Expr;
 use crate::gdscript::stmt::{self, Stmt};
 use crate::gdscript::decl::{self, Decl};
-use crate::gdscript::literal::Literal;
 use crate::gdscript::library;
 use crate::gdscript::op;
 use crate::gdscript::arglist::ArgList;
@@ -103,7 +102,7 @@ impl<'a> Compiler<'a> {
       IRExpr::Literal(lit) => {
         match lit {
           IRLiteral::Nil => Ok(Compiler::nil_expr()),
-          IRLiteral::Int(n) => Ok(StExpr(Expr::Literal(Literal::Int(*n)), false)),
+          IRLiteral::Int(n) => Ok(StExpr(Expr::from(*n), false)),
         }
       }
       IRExpr::Progn(body) => {
@@ -252,11 +251,11 @@ impl<'a> Compiler<'a> {
     // TODO Make these nulls actually part of the GDScript AST
 
     for req in &required {
-      builder.append(Stmt::VarDecl(req.to_owned(), Expr::Var(String::from("null"))));
+      builder.append(Stmt::VarDecl(req.to_owned(), Expr::null()));
       builder.append(stmt::if_else(
         Expr::Binary(Box::new(Expr::Var(String::from("args"))), op::BinaryOp::Is, Box::new(Expr::Attribute(Box::new(Expr::Var(String::from("GDLisp"))), String::from("NilClass")))),
         vec!(
-          Stmt::Expr(Expr::Call(None, String::from("push_error"), vec!(Expr::Literal(Literal::String(String::from("Not enough arguments"))))))
+          Stmt::Expr(Expr::Call(None, String::from("push_error"), vec!(Expr::str_lit("Not enough arguments"))))
         ),
         vec!(
           Stmt::Assign(Box::new(Expr::Var(req.to_owned())), op::AssignOp::Eq, Box::new(Expr::Attribute(Box::new(Expr::Var(args.clone())), String::from("car")))),
@@ -266,7 +265,7 @@ impl<'a> Compiler<'a> {
     }
 
     for opt in &optional {
-      builder.append(Stmt::VarDecl(opt.to_owned(), Expr::Var(String::from("null"))));
+      builder.append(Stmt::VarDecl(opt.to_owned(), Expr::null()));
       builder.append(stmt::if_else(
         Expr::Binary(Box::new(Expr::Var(String::from("args"))), op::BinaryOp::Is, Box::new(Expr::Attribute(Box::new(Expr::Var(String::from("GDLisp"))), String::from("NilClass")))),
         vec!(
@@ -295,7 +294,7 @@ impl<'a> Compiler<'a> {
             Stmt::ReturnStmt(Expr::Call(None, String::from("call_func"), all_args)),
           ),
           vec!(
-            Stmt::Expr(Expr::Call(None, String::from("push_error"), vec!(Expr::Literal(Literal::String(String::from("Too many arguments")))))),
+            Stmt::Expr(Expr::Call(None, String::from("push_error"), vec!(Expr::str_lit("Too many arguments")))),
           ),
         )
       );
@@ -338,14 +337,12 @@ impl<'a> Compiler<'a> {
     for name in closed_vars.iter() {
       constructor_body.push(Compiler::assign_to_self(name.to_string(), name.to_string()));
     }
-    let r: i32 = specs.required.try_into().unwrap();
-    let o: i32 = specs.optional.try_into().unwrap();
-    constructor_body.push(Compiler::assign_expr_to_self(String::from("__gdlisp_required"),
-                                                        Expr::Literal(Literal::Int(r))));
-    constructor_body.push(Compiler::assign_expr_to_self(String::from("__gdlisp_optional"),
-                                                        Expr::Literal(Literal::Int(o))));
-    constructor_body.push(Compiler::assign_expr_to_self(String::from("__gdlisp_rest"),
-                                                        Expr::Literal(Literal::Bool(specs.rest))));
+    let r: i32  = specs.required.try_into().unwrap();
+    let o: i32  = specs.optional.try_into().unwrap();
+    let x: bool = specs.rest;
+    constructor_body.push(Compiler::assign_expr_to_self(String::from("__gdlisp_required"), Expr::from(r)));
+    constructor_body.push(Compiler::assign_expr_to_self(String::from("__gdlisp_optional"), Expr::from(o)));
+    constructor_body.push(Compiler::assign_expr_to_self(String::from("__gdlisp_rest"), Expr::from(x)));
     let constructor =
       decl::FnDecl {
         name: String::from("_init"),
@@ -502,7 +499,7 @@ mod tests {
   #[test]
   fn compile_call() {
     let ast = ast::list(vec!(AST::Symbol(String::from("foo1")), AST::Int(10)));
-    let expected = Stmt::ReturnStmt(Expr::Call(None, String::from("foo1"), vec!(Expr::Literal(Literal::Int(10)))));
+    let expected = Stmt::ReturnStmt(Expr::Call(None, String::from("foo1"), vec!(Expr::from(10))));
     let actual = compile_stmt(&ast).unwrap();
     assert_eq!(actual.0, vec!(expected));
     assert_eq!(actual.1, vec!());
@@ -511,7 +508,7 @@ mod tests {
   #[test]
   fn compile_int() {
     let ast = AST::Int(99);
-    let expected = Stmt::ReturnStmt(Expr::Literal(Literal::Int(99)));
+    let expected = Stmt::ReturnStmt(Expr::from(99));
     let actual = compile_stmt(&ast).unwrap();
     assert_eq!(actual.0, vec!(expected));
     assert_eq!(actual.1, vec!());
@@ -520,7 +517,7 @@ mod tests {
   #[test]
   fn compile_progn_vacuous() {
     let ast = ast::list(vec!(AST::Symbol(String::from("progn")), AST::Int(1), AST::Int(2)));
-    let expected = vec!(Stmt::ReturnStmt(Expr::Literal(Literal::Int(2))));
+    let expected = vec!(Stmt::ReturnStmt(Expr::from(2)));
     let actual = compile_stmt(&ast).unwrap();
     assert_eq!(actual.0, expected);
     assert_eq!(actual.1, vec!());

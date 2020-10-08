@@ -167,7 +167,7 @@ mod tests {
   #[test]
   fn expr_stmt() {
     assert_eq!(Stmt::Expr(Expr::Var(String::from("foobar"))).to_gd(0), "foobar\n");
-    assert_eq!(Stmt::Expr(Expr::Literal(Literal::Int(9))).to_gd(0), "9\n");
+    assert_eq!(Stmt::Expr(Expr::from(9)).to_gd(0), "9\n");
   }
 
   #[test]
@@ -179,7 +179,7 @@ mod tests {
 
   #[test]
   fn simple_stmts() {
-    let expr = Expr::Literal(Literal::Int(1000));
+    let expr = Expr::from(1000);
     assert_eq!(Stmt::VarDecl(String::from("var_name"), expr.clone()).to_gd(0), "var var_name = 1000\n");
     assert_eq!(Stmt::ReturnStmt(expr.clone()).to_gd(0), "return 1000\n");
   }
@@ -190,11 +190,11 @@ mod tests {
     let cond2 = Expr::Var(String::from("condition2"));
     let cond3 = Expr::Var(String::from("condition3"));
 
-    let stmt1 = Stmt::Expr(Expr::Literal(Literal::Int(1)));
-    let stmt2 = Stmt::Expr(Expr::Literal(Literal::Int(2)));
-    let stmt3 = Stmt::Expr(Expr::Literal(Literal::Int(3)));
-    let stmt4 = Stmt::Expr(Expr::Literal(Literal::Int(4)));
-    let stmt5 = Stmt::Expr(Expr::Literal(Literal::Int(5)));
+    let stmt1 = Stmt::Expr(Expr::from(1));
+    let stmt2 = Stmt::Expr(Expr::from(2));
+    let stmt3 = Stmt::Expr(Expr::from(3));
+    let stmt4 = Stmt::Expr(Expr::from(4));
+    let stmt5 = Stmt::Expr(Expr::from(5));
 
     let if1 = Stmt::IfStmt(IfStmt {
       if_clause: (cond1.clone(), vec!()),
@@ -252,10 +252,10 @@ mod tests {
     let cond1 = Expr::Var(String::from("condition1"));
     let cond2 = Expr::Var(String::from("condition2"));
 
-    let stmt1 = Stmt::Expr(Expr::Literal(Literal::Int(1)));
-    let stmt2 = Stmt::Expr(Expr::Literal(Literal::Int(2)));
-    let stmt3 = Stmt::Expr(Expr::Literal(Literal::Int(3)));
-    let stmt4 = Stmt::Expr(Expr::Literal(Literal::Int(4)));
+    let stmt1 = Stmt::Expr(Expr::from(1));
+    let stmt2 = Stmt::Expr(Expr::from(2));
+    let stmt3 = Stmt::Expr(Expr::from(3));
+    let stmt4 = Stmt::Expr(Expr::from(4));
 
     let inner = Stmt::IfStmt(IfStmt {
       if_clause: (cond2.clone(), vec!(stmt2.clone(), stmt3.clone())),
@@ -274,7 +274,7 @@ mod tests {
   #[test]
   fn for_loop() {
     let expr = Expr::Var(String::from("collection"));
-    let stmt = Stmt::Expr(Expr::Literal(Literal::Int(1)));
+    let stmt = Stmt::Expr(Expr::from(1));
 
     let for1 = Stmt::ForLoop(ForLoop {
       iter_var: String::from("i"),
@@ -295,7 +295,7 @@ mod tests {
   #[test]
   fn while_loop() {
     let expr = Expr::Var(String::from("condition"));
-    let stmt = Stmt::Expr(Expr::Literal(Literal::Int(1)));
+    let stmt = Stmt::Expr(Expr::from(1));
 
     let while1 = Stmt::WhileLoop(WhileLoop {
       condition: expr.clone(),

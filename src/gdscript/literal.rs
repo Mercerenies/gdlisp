@@ -23,6 +23,24 @@ impl Literal {
 
 }
 
+impl From<i32> for Literal {
+  fn from(x: i32) -> Literal {
+    Literal::Int(x)
+  }
+}
+
+impl From<String> for Literal {
+  fn from(x: String) -> Literal {
+    Literal::String(x)
+  }
+}
+
+impl From<bool> for Literal {
+  fn from(x: bool) -> Literal {
+    Literal::Bool(x)
+  }
+}
+
 #[cfg(test)]
 mod tests {
   use super::*;

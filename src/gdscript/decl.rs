@@ -142,11 +142,10 @@ impl From<Static> for bool {
 #[cfg(test)]
 mod tests {
   use super::*;
-  use crate::gdscript::literal::Literal;
 
   #[test]
   fn var_and_const() {
-    let expr = Expr::Literal(Literal::Int(10));
+    let expr = Expr::from(10);
     assert_eq!(Decl::VarDecl(String::from("foo"), None).to_gd(0), "var foo\n");
     assert_eq!(Decl::VarDecl(String::from("foo"), Some(expr.clone())).to_gd(0), "var foo = 10\n");
     assert_eq!(Decl::ConstDecl(String::from("FOO"), expr.clone()).to_gd(0), "const FOO = 10\n");
