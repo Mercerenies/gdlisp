@@ -130,42 +130,7 @@ impl<'a> Compiler<'a> {
         special_form::compile_if_stmt(self, builder, table, c, t, f, needs_result)
       }
       IRExpr::CondStmt(clauses) => {
-        let (destination, result) = if needs_result.into() {
-          let var_name = self.declare_var(builder, "_cond", None);
-          let destination = Box::new(stmt_wrapper::AssignToVar(var_name.clone())) as Box<dyn StmtWrapper>;
-          (destination, StExpr(Expr::Var(var_name), false))
-        } else {
-          let destination = Box::new(stmt_wrapper::Vacuous) as Box<dyn StmtWrapper>;
-          (destination, Compiler::nil_expr())
-        };
-        let init: Vec<Stmt> = destination.wrap_to_stmts(Compiler::nil_expr());
-        let body = clauses.iter().rev().fold(Ok(init), |acc: Result<_, Error>, curr| {
-          let acc = acc?;
-          let (cond, body) = curr;
-          match body {
-            None => {
-              let mut outer_builder = StmtBuilder::new();
-              let mut inner_builder = StmtBuilder::new();
-              let cond = self.compile_expr(&mut outer_builder, table, cond, NeedsResult::Yes)?.0;
-              let var_name = self.declare_var(&mut outer_builder, "_cond", Some(cond));
-              destination.wrap_to_builder(&mut inner_builder, StExpr(Expr::Var(var_name.clone()), false));
-              let if_branch = inner_builder.build_into(builder);
-              outer_builder.append(stmt::if_else(Expr::Var(var_name.clone()), if_branch, acc));
-              Ok(outer_builder.build_into(builder))
-            }
-            Some(body) => {
-              let mut outer_builder = StmtBuilder::new();
-              let mut inner_builder = StmtBuilder::new();
-              let cond = self.compile_expr(&mut outer_builder, table, cond, NeedsResult::Yes)?.0;
-              self.compile_stmt(&mut inner_builder, table, destination.as_ref(), body)?;
-              let if_branch = inner_builder.build_into(builder);
-              outer_builder.append(stmt::if_else(cond, if_branch, acc));
-              Ok(outer_builder.build_into(builder))
-            }
-          }
-        })?;
-        builder.append_all(&mut body.into_iter());
-        Ok(result)
+        special_form::compile_cond_stmt(self, builder, table, clauses, needs_result)
       }
       IRExpr::Call(f, args) => {
         let fcall = match table.get_fn(f) {

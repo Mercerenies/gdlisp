@@ -4,7 +4,8 @@ use crate::compile::{Compiler, StExpr, NeedsResult};
 use crate::compile::body::builder::StmtBuilder;
 use crate::compile::symbol_table::SymbolTable;
 use crate::compile::error::Error;
-use crate::gdscript::stmt;
+use crate::gdscript::stmt::{self, Stmt};
+use crate::gdscript::expr::Expr;
 
 type IRExpr = ir::expr::Expr;
 
@@ -25,5 +26,42 @@ pub fn compile_if_stmt<'a>(compiler: &mut Compiler<'a>,
   let true_body  =  true_builder.build_into(builder);
   let false_body = false_builder.build_into(builder);
   builder.append(stmt::if_else(cond_expr, true_body, false_body));
+  Ok(StExpr(result, false))
+}
+
+pub fn compile_cond_stmt<'a>(compiler: &mut Compiler<'a>,
+                             builder: &mut StmtBuilder,
+                             table: &mut SymbolTable,
+                             clauses: &Vec<(IRExpr, Option<IRExpr>)>,
+                             needs_result: NeedsResult)
+                             -> Result<StExpr, Error> {
+  let (destination, result) = needs_result.into_destination(compiler, builder, "_cond");
+  let init: Vec<Stmt> = destination.wrap_to_stmts(Compiler::nil_expr());
+  let body = clauses.iter().rev().fold(Ok(init), |acc: Result<_, Error>, curr| {
+    let acc = acc?;
+    let (cond, body) = curr;
+    match body {
+      None => {
+        let mut outer_builder = StmtBuilder::new();
+        let mut inner_builder = StmtBuilder::new();
+        let cond = compiler.compile_expr(&mut outer_builder, table, cond, NeedsResult::Yes)?.0;
+        let var_name = compiler.declare_var(&mut outer_builder, "_cond", Some(cond));
+        destination.wrap_to_builder(&mut inner_builder, StExpr(Expr::Var(var_name.clone()), false));
+        let if_branch = inner_builder.build_into(builder);
+        outer_builder.append(stmt::if_else(Expr::Var(var_name.clone()), if_branch, acc));
+        Ok(outer_builder.build_into(builder))
+      }
+      Some(body) => {
+        let mut outer_builder = StmtBuilder::new();
+        let mut inner_builder = StmtBuilder::new();
+        let cond = compiler.compile_expr(&mut outer_builder, table, cond, NeedsResult::Yes)?.0;
+        compiler.compile_stmt(&mut inner_builder, table, destination.as_ref(), body)?;
+        let if_branch = inner_builder.build_into(builder);
+        outer_builder.append(stmt::if_else(cond, if_branch, acc));
+        Ok(outer_builder.build_into(builder))
+      }
+    }
+  })?;
+  builder.append_all(&mut body.into_iter());
   Ok(StExpr(result, false))
 }
