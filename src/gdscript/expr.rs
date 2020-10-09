@@ -41,6 +41,10 @@ impl Expr {
     Expr::from(a.to_owned())
   }
 
+  pub fn var(a: &str) -> Expr {
+    Expr::Var(a.to_owned())
+  }
+
   pub fn to_gd_prec(&self, prec: i32) -> String {
     match self {
       Expr::Var(s) => s.clone(),

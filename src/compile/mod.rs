@@ -49,6 +49,23 @@ impl From<bool> for NeedsResult {
   }
 }
 
+impl NeedsResult {
+  pub fn into_destination<'a>(self,
+                              compiler: &mut Compiler<'a>,
+                              builder: &mut StmtBuilder,
+                              prefix: &str)
+                              -> (Box<dyn StmtWrapper>, Expr) {
+    if self.into() {
+      let var_name = compiler.declare_var(builder, prefix, None);
+      let destination = Box::new(stmt_wrapper::AssignToVar(var_name.clone())) as Box<dyn StmtWrapper>;
+      (destination, Expr::Var(var_name))
+    } else {
+      let destination = Box::new(stmt_wrapper::Vacuous) as Box<dyn StmtWrapper>;
+      (destination, library::nil())
+    }
+  }
+}
+
 impl<'a> Compiler<'a> {
 
   pub fn new(gen: FreshNameGenerator<'a>) -> Compiler<'a> {
@@ -96,7 +113,7 @@ impl<'a> Compiler<'a> {
     match expr {
       IRExpr::LocalVar(s) => {
         table.get_var(s).ok_or_else(|| Error::NoSuchVar(s.clone())).map(|var| {
-          StExpr(Expr::Var(var.to_string()), false)
+          StExpr(Expr::var(var), false)
         })
       }
       IRExpr::Literal(lit) => {
@@ -110,23 +127,7 @@ impl<'a> Compiler<'a> {
         self.compile_stmts(builder, table, &body[..], needs_result)
       }
       IRExpr::IfStmt(c, t, f) => {
-        let (destination, result) = if needs_result.into() {
-          let var_name = self.declare_var(builder, "_if", None);
-          let destination = Box::new(stmt_wrapper::AssignToVar(var_name.clone())) as Box<dyn StmtWrapper>;
-          (destination, StExpr(Expr::Var(var_name), false))
-        } else {
-          let destination = Box::new(stmt_wrapper::Vacuous) as Box<dyn StmtWrapper>;
-          (destination, Compiler::nil_expr())
-        };
-        let cond_expr = self.compile_expr(builder, table, c, NeedsResult::Yes)?.0;
-        let mut true_builder = StmtBuilder::new();
-        let mut false_builder = StmtBuilder::new();
-        self.compile_stmt(&mut true_builder , table, destination.as_ref(), t)?;
-        self.compile_stmt(&mut false_builder, table, destination.as_ref(), f)?;
-        let true_body  =  true_builder.build_into(builder);
-        let false_body = false_builder.build_into(builder);
-        builder.append(stmt::if_else(cond_expr, true_body, false_body));
-        Ok(result)
+        special_form::compile_if_stmt(self, builder, table, c, t, f, needs_result)
       }
       IRExpr::CondStmt(clauses) => {
         let (destination, result) = if needs_result.into() {
