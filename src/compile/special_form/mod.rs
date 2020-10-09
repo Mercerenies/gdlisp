@@ -1,4 +1,6 @@
 
+pub mod lambda;
+
 use crate::ir;
 use crate::compile::{Compiler, StExpr, NeedsResult};
 use crate::compile::body::builder::StmtBuilder;

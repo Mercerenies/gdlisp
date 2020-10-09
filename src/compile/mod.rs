@@ -10,18 +10,15 @@ pub mod builtin;
 use body::builder::{CodeBuilder, StmtBuilder, HasDecls};
 use names::fresh::FreshNameGenerator;
 use crate::gdscript::expr::Expr;
-use crate::gdscript::stmt::{self, Stmt};
+use crate::gdscript::stmt::Stmt;
 use crate::gdscript::decl::{self, Decl};
 use crate::gdscript::library;
-use crate::gdscript::op;
-use crate::gdscript::arglist::ArgList;
 use error::Error;
 use stmt_wrapper::StmtWrapper;
 use symbol_table::{HasSymbolTable, SymbolTable};
-use symbol_table::function_call::{self, FnSpecs};
+use symbol_table::function_call;
 use crate::ir;
-
-use std::convert::TryInto;
+use special_form::lambda;
 
 type IRDecl = ir::decl::Decl;
 type IRExpr = ir::expr::Expr;
@@ -156,43 +153,7 @@ impl<'a> Compiler<'a> {
         })
       }
       IRExpr::Lambda(args, body) => {
-        let (arglist, gd_args) = args.clone().into_gd_arglist(&mut self.gen);
-
-        let mut lambda_builder = StmtBuilder::new();
-        let mut closure_vars = body.get_locals();
-        for arg in &gd_args {
-          closure_vars.remove(&arg.0);
-        }
-        // I want them in a consistent order for the constructor
-        // function. I don't care which order, but I need an order, so
-        // let's make a Vec now.
-        let closure_vars: Vec<_> = closure_vars.into_iter().collect();
-
-        let mut lambda_table = SymbolTable::new();
-        for arg in &gd_args {
-          lambda_table.set_var(arg.0.to_owned(), arg.1.to_owned());
-        }
-        for var in &closure_vars {
-          // Ensure the variable actually exists
-          match table.get_var(var) {
-            None => return Err(Error::NoSuchVar(var.clone())),
-            Some(gdvar) => lambda_table.set_var(var.clone(), gdvar.to_owned()), // TODO Generate new names here
-          };
-        }
-
-        let gd_closure_vars = closure_vars.iter().map(|ast_name| {
-          lambda_table.get_var(&ast_name).unwrap_or_else(|| {
-            panic!("Internal error compiling lambda variable {}", ast_name)
-          }).to_owned()
-        }).collect();
-
-        self.compile_stmt(&mut lambda_builder, &mut lambda_table, &stmt_wrapper::Return, body)?;
-        let class = self.generate_lambda_class(args.clone().into(), arglist, &gd_closure_vars, builder, lambda_builder);
-        let class_name = class.name.clone();
-        builder.add_helper(Decl::ClassDecl(class));
-        let constructor_args = gd_closure_vars.into_iter().map(|s| Expr::Var(s.to_owned())).collect();
-        let expr = Expr::Call(Some(Box::new(Expr::Var(class_name))), String::from("new"), constructor_args);
-        Ok(StExpr(expr, false))
+        lambda::compile_lambda_stmt(self, builder, table, args, body)
       }
       /* // This will eventually be an optimization.
       IRExpr::Funcall(f, args) => {
@@ -206,139 +167,6 @@ impl<'a> Compiler<'a> {
       }
       */
     }
-  }
-
-  fn generate_lambda_vararg(&mut self, specs: FnSpecs) -> decl::FnDecl {
-    let mut builder = StmtBuilder::new();
-    let args = String::from("args");
-    let required: Vec<_> = (0..specs.required).map(|_| self.gen.generate_with("required")).collect();
-    let optional: Vec<_> = (0..specs.optional).map(|_| self.gen.generate_with("optional")).collect();
-
-    // TODO Make these nulls actually part of the GDScript AST
-
-    for req in &required {
-      builder.append(Stmt::VarDecl(req.to_owned(), Expr::null()));
-      builder.append(stmt::if_else(
-        Expr::Binary(Box::new(Expr::Var(String::from("args"))), op::BinaryOp::Is, Box::new(Expr::Attribute(Box::new(Expr::Var(String::from("GDLisp"))), String::from("NilClass")))),
-        vec!(
-          Stmt::Expr(Expr::Call(None, String::from("push_error"), vec!(Expr::str_lit("Not enough arguments"))))
-        ),
-        vec!(
-          Stmt::Assign(Box::new(Expr::Var(req.to_owned())), op::AssignOp::Eq, Box::new(Expr::Attribute(Box::new(Expr::Var(args.clone())), String::from("car")))),
-          Stmt::Assign(Box::new(Expr::Var(args.clone())), op::AssignOp::Eq, Box::new(Expr::Attribute(Box::new(Expr::Var(args.clone())), String::from("cdr"))))
-        ),
-      ));
-    }
-
-    for opt in &optional {
-      builder.append(Stmt::VarDecl(opt.to_owned(), Expr::null()));
-      builder.append(stmt::if_else(
-        Expr::Binary(Box::new(Expr::Var(String::from("args"))), op::BinaryOp::Is, Box::new(Expr::Attribute(Box::new(Expr::Var(String::from("GDLisp"))), String::from("NilClass")))),
-        vec!(
-          Stmt::Assign(Box::new(Expr::Var(opt.to_owned())), op::AssignOp::Eq, Box::new(library::nil()))
-        ),
-        vec!(
-          Stmt::Assign(Box::new(Expr::Var(opt.to_owned())), op::AssignOp::Eq, Box::new(Expr::Attribute(Box::new(Expr::Var(args.clone())), String::from("car")))),
-          Stmt::Assign(Box::new(Expr::Var(args.clone())), op::AssignOp::Eq, Box::new(Expr::Attribute(Box::new(Expr::Var(args.clone())), String::from("cdr"))))
-        ),
-      ));
-    }
-
-    let mut all_args: Vec<_> =
-      required.into_iter()
-      .chain(optional.into_iter())
-      .map(|x| Expr::Var(x))
-      .collect();
-    if specs.rest {
-      all_args.push(Expr::Var(args));
-      builder.append(Stmt::ReturnStmt(Expr::Call(None, String::from("call_func"), all_args)));
-    } else {
-      builder.append(
-        stmt::if_else(
-          Expr::Binary(Box::new(Expr::Var(String::from("args"))), op::BinaryOp::Is, Box::new(Expr::Attribute(Box::new(Expr::Var(String::from("GDLisp"))), String::from("NilClass")))),
-          vec!(
-            Stmt::ReturnStmt(Expr::Call(None, String::from("call_func"), all_args)),
-          ),
-          vec!(
-            Stmt::Expr(Expr::Call(None, String::from("push_error"), vec!(Expr::str_lit("Too many arguments")))),
-          ),
-        )
-      );
-    }
-
-    // I'm only really using the builder for the sake of convenience
-    // here. I know exactly what it does, and it should never generate
-    // helpers. Thus, if it somehow does, that's an error in my code
-    // and you should report it as a bug. :)
-    let (stmts, decls) = builder.build();
-    if decls.len() > 0 {
-      panic!("Helper declarations in synthetic lambda! (This is a bug in GDLisp)");
-    }
-    decl::FnDecl {
-      name: String::from("call_funcv"),
-      args: ArgList::required(vec!(String::from("args"))),
-      body: stmts,
-    }
-
-  }
-
-  // ///// (function ...) and #'... syntax
-  fn generate_lambda_class(&mut self,
-                           specs: FnSpecs,
-                           args: ArgList,
-                           closed_vars: &Vec<String>,
-                           parent_builder: &mut StmtBuilder,
-                           lambda_builder: StmtBuilder)
-                           -> decl::ClassDecl {
-    let class_name = self.gen.generate_with("_LambdaBlock");
-    let func_name = String::from("call_func");
-    let func_body = lambda_builder.build_into(parent_builder);
-    let func = decl::FnDecl {
-      name: func_name,
-      args: args,
-      body: func_body,
-    };
-    let funcv = self.generate_lambda_vararg(specs);
-    let mut constructor_body = Vec::new();
-    for name in closed_vars.iter() {
-      constructor_body.push(Compiler::assign_to_self(name.to_string(), name.to_string()));
-    }
-    let r: i32  = specs.required.try_into().unwrap();
-    let o: i32  = specs.optional.try_into().unwrap();
-    let x: bool = specs.rest;
-    constructor_body.push(Compiler::assign_expr_to_self(String::from("__gdlisp_required"), Expr::from(r)));
-    constructor_body.push(Compiler::assign_expr_to_self(String::from("__gdlisp_optional"), Expr::from(o)));
-    constructor_body.push(Compiler::assign_expr_to_self(String::from("__gdlisp_rest"), Expr::from(x)));
-    let constructor =
-      decl::FnDecl {
-        name: String::from("_init"),
-        args: ArgList::required(closed_vars.iter().map(|x| (*x).to_owned()).collect()),
-        body: constructor_body,
-      };
-    let mut class_body = vec!();
-    for var in closed_vars {
-      class_body.push(Decl::VarDecl(var.clone(), None));
-    }
-    class_body.append(&mut vec!(
-      Decl::FnDecl(decl::Static::NonStatic, constructor),
-      Decl::FnDecl(decl::Static::NonStatic, func),
-      Decl::FnDecl(decl::Static::NonStatic, funcv),
-    ));
-    decl::ClassDecl {
-      name: class_name,
-      extends: decl::ClassExtends::Qualified(String::from("GDLisp"), String::from("Function")),
-      body: class_body,
-    }
-  }
-
-  fn assign_to_self(inst_var: String, local_var: String) -> Stmt {
-    Compiler::assign_expr_to_self(inst_var, Expr::Var(local_var))
-  }
-
-  fn assign_expr_to_self(inst_var: String, expr: Expr) -> Stmt {
-    let self_target = Box::new(Expr::Attribute(Box::new(Expr::Var(String::from("self"))), inst_var));
-    let value = Box::new(expr);
-    Stmt::Assign(self_target, op::AssignOp::Eq, value)
   }
 
   pub fn nil_expr() -> StExpr {
@@ -447,12 +275,6 @@ mod tests {
     Ok(builder.build())
   }
 
-  fn compile_vararg(specs: FnSpecs) -> String {
-    let mut compiler = Compiler::new(FreshNameGenerator::new(vec!()));
-    let result = compiler.generate_lambda_vararg(specs);
-    Decl::FnDecl(decl::Static::NonStatic, result).to_gd(0)
-  }
-
   #[test]
   fn compile_var() {
     let ast = AST::Symbol(String::from("foobar"));
@@ -508,14 +330,6 @@ mod tests {
 
     let result2 = compile_stmt(&ast::list(vec!(AST::Symbol(String::from("progn"))))).unwrap();
     assert_eq!(result2, (vec!(Stmt::ReturnStmt(Compiler::nil_expr().0)), vec!()));
-  }
-
-  #[test]
-  fn test_lambda_vararg() {
-    assert_eq!(compile_vararg(FnSpecs::new(0, 0, false)), "func call_funcv(args):\n    if args is GDLisp.NilClass:\n        return call_func()\n    else:\n        push_error(\"Too many arguments\")\n");
-    assert_eq!(compile_vararg(FnSpecs::new(0, 0, true)), "func call_funcv(args):\n    return call_func(args)\n");
-    assert_eq!(compile_vararg(FnSpecs::new(1, 0, true)), "func call_funcv(args):\n    var required_0 = null\n    if args is GDLisp.NilClass:\n        push_error(\"Not enough arguments\")\n    else:\n        required_0 = args.car\n        args = args.cdr\n    return call_func(required_0, args)\n");
-    assert_eq!(compile_vararg(FnSpecs::new(0, 1, true)), "func call_funcv(args):\n    var optional_0 = null\n    if args is GDLisp.NilClass:\n        optional_0 = GDLisp.Nil\n    else:\n        optional_0 = args.car\n        args = args.cdr\n    return call_func(optional_0, args)\n");
   }
 
 }
