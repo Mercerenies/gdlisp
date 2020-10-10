@@ -18,6 +18,7 @@ use stmt_wrapper::StmtWrapper;
 use symbol_table::{HasSymbolTable, SymbolTable};
 use symbol_table::function_call;
 use crate::ir;
+use crate::ir::expr::FuncRefTarget;
 use special_form::lambda;
 
 type IRDecl = ir::decl::Decl;
@@ -154,6 +155,14 @@ impl<'a> Compiler<'a> {
       }
       IRExpr::Lambda(args, body) => {
         lambda::compile_lambda_stmt(self, builder, table, args, body)
+      }
+      IRExpr::FuncRef(name) => {
+        match name {
+          FuncRefTarget::SimpleName(name) => {
+            let func = table.get_fn(name).ok_or_else(|| Error::NoSuchFn(name.clone()))?.clone();
+            lambda::compile_function_ref(self, builder, table, func)
+          }
+        }
       }
       /* // This will eventually be an optimization.
       IRExpr::Funcall(f, args) => {

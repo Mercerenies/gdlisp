@@ -3,7 +3,7 @@ use crate::ir;
 use crate::compile::{Compiler, StExpr};
 use crate::compile::body::builder::StmtBuilder;
 use crate::compile::symbol_table::SymbolTable;
-use crate::compile::symbol_table::function_call::FnSpecs;
+use crate::compile::symbol_table::function_call::{FnCall, FnSpecs, FnScope};
 use crate::compile::stmt_wrapper;
 use crate::compile::error::Error;
 use crate::gdscript::stmt::{self, Stmt};
@@ -18,12 +18,12 @@ use std::convert::TryInto;
 type IRExpr = ir::expr::Expr;
 type IRArgList = ir::arglist::ArgList;
 
-fn generate_lambda_vararg<'a>(compiler: &mut Compiler<'a>, specs: FnSpecs) -> decl::FnDecl {
+fn generate_lambda_vararg<'a>(specs: FnSpecs) -> decl::FnDecl {
   let mut stmts = Vec::new();
 
   let args = String::from("args");
-  let required: Vec<_> = (0..specs.required).map(|_| compiler.gen.generate_with("required")).collect();
-  let optional: Vec<_> = (0..specs.optional).map(|_| compiler.gen.generate_with("optional")).collect();
+  let required: Vec<_> = (0..specs.required).map(|i| format!("required_{}", i)).collect();
+  let optional: Vec<_> = (0..specs.optional).map(|i| format!("optional_{}", i)).collect();
 
   for req in &required {
     stmts.push(Stmt::VarDecl(req.to_owned(), Expr::null()));
@@ -87,18 +87,16 @@ fn generate_lambda_class<'a>(compiler: &mut Compiler<'a>,
                              specs: FnSpecs,
                              args: ArgList,
                              closed_vars: &Vec<String>,
-                             parent_builder: &mut StmtBuilder,
-                             lambda_builder: StmtBuilder)
+                             lambda_body: Vec<Stmt>)
                              -> decl::ClassDecl {
-  let class_name = compiler.gen.generate_with("_LambdaBlock");
+  let class_name = compiler.name_generator().generate_with("_LambdaBlock");
   let func_name = String::from("call_func");
-  let func_body = lambda_builder.build_into(parent_builder);
   let func = decl::FnDecl {
     name: func_name,
     args: args,
-    body: func_body,
+    body: lambda_body,
   };
-  let funcv = generate_lambda_vararg(compiler, specs);
+  let funcv = generate_lambda_vararg(specs);
   let mut constructor_body = Vec::new();
   for name in closed_vars.iter() {
     constructor_body.push(assign_to_compiler(name.to_string(), name.to_string()));
@@ -178,7 +176,8 @@ pub fn compile_lambda_stmt<'a>(compiler: &mut Compiler<'a>,
   }).collect();
 
   compiler.compile_stmt(&mut lambda_builder, &mut lambda_table, &stmt_wrapper::Return, body)?;
-  let class = generate_lambda_class(compiler, args.clone().into(), arglist, &gd_closure_vars, builder, lambda_builder);
+  let lambda_body = lambda_builder.build_into(builder);
+  let class = generate_lambda_class(compiler, args.clone().into(), arglist, &gd_closure_vars, lambda_body);
   let class_name = class.name.clone();
   builder.add_helper(Decl::ClassDecl(class));
   let constructor_args = gd_closure_vars.into_iter().map(|s| Expr::Var(s.to_owned())).collect();
@@ -186,14 +185,36 @@ pub fn compile_lambda_stmt<'a>(compiler: &mut Compiler<'a>,
   Ok(StExpr(expr, false))
 }
 
+pub fn compile_function_ref<'a>(compiler: &mut Compiler<'a>,
+                                builder: &mut StmtBuilder,
+                                _table: &mut SymbolTable,
+                                func: FnCall)
+                                -> Result<StExpr, Error> {
+  if func.scope != FnScope::Global {
+    panic!("Local function refs not implemented yet!"); // TODO This
+  }
+  let specs = func.specs;
+  let arg_count = func.specs.runtime_arity();
+  let arg_names: Vec<_> = (0..arg_count).map(|i| format!("arg{}", i)).collect();
+  let arglist = ArgList::required(arg_names.clone());
+
+  let body = Stmt::ReturnStmt(
+    Expr::Call(func.object, func.function, arg_names.into_iter().map(Expr::Var).collect())
+  );
+  // TODO Don't use LambdaBlock as the name prefix for func refs
+  let class = generate_lambda_class(compiler, specs, arglist.clone(), &vec!(), vec!(body));
+  let class_name = class.name.clone();
+  builder.add_helper(Decl::ClassDecl(class));
+  let expr = Expr::Call(Some(Box::new(Expr::Var(class_name))), String::from("new"), vec!());
+  Ok(StExpr(expr, false))
+}
+
 #[cfg(test)]
 mod tests {
   use super::*;
-  use crate::compile::names::fresh::FreshNameGenerator;
 
   fn compile_vararg(specs: FnSpecs) -> String {
-    let mut compiler = Compiler::new(FreshNameGenerator::new(vec!()));
-    let result = generate_lambda_vararg(&mut compiler, specs);
+    let result = generate_lambda_vararg(specs);
     Decl::FnDecl(decl::Static::NonStatic, result).to_gd(0)
   }
 

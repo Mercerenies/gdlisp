@@ -16,6 +16,12 @@ pub enum Expr {
   Call(String, Vec<Expr>),
   Let(Vec<(String, Expr)>, Box<Expr>),
   Lambda(ArgList, Box<Expr>),
+  FuncRef(FuncRefTarget),
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum FuncRefTarget {
+  SimpleName(String),
 }
 
 impl Expr {
@@ -24,6 +30,7 @@ impl Expr {
     Expr::IfStmt(Box::new(cond), Box::new(t), Box::new(f))
   }
 
+  // TODO We'll need a walk_locals for function names too. (FuncRef will respond to it)
   fn walk_locals(&self, acc: &mut HashSet<String>) {
     match self {
       Expr::LocalVar(s) => {
@@ -77,6 +84,7 @@ impl Expr {
           acc.insert(var.to_owned());
         }
       }
+      Expr::FuncRef(_) => {}
     };
   }
 

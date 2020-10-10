@@ -1,7 +1,7 @@
 
 use crate::sxp::ast::AST;
 use crate::sxp::dotted::DottedExpr;
-use super::expr::Expr;
+use super::expr::{Expr, FuncRefTarget};
 use super::arglist::ArgList;
 use crate::compile::error::Error;
 use crate::ir::compile_expr;
@@ -17,6 +17,7 @@ pub fn dispatch_form(head: &str,
     "cond" => cond_form(tail).map(Some),
     "let" => let_form(tail).map(Some),
     "lambda" => lambda_form(tail).map(Some),
+    "function" => function_form(tail).map(Some),
     _ => Ok(None),
   }
 }
@@ -95,4 +96,22 @@ pub fn lambda_form(tail: &[&AST])
   let args = ArgList::parse(args)?;
   let body = tail[1..].into_iter().map(|expr| compile_expr(expr)).collect::<Result<Vec<_>, _>>()?;
   Ok(Expr::Lambda(args, Box::new(Expr::Progn(body))))
+}
+
+pub fn function_form(tail: &[&AST])
+                     -> Result<Expr, Error> {
+  if tail.len() < 1 {
+    return Err(Error::TooFewArgs(String::from("function"), 1));
+  }
+  if tail.len() > 1 {
+    return Err(Error::TooManyArgs(String::from("function"), 1));
+  }
+  match tail[0] {
+    AST::Symbol(s) => {
+      Ok(Expr::FuncRef(FuncRefTarget::SimpleName(s.clone())))
+    }
+    x => {
+      Err(Error::InvalidArg(String::from("function"), x.clone(), String::from("symbol")))
+    }
+  }
 }

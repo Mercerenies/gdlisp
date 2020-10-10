@@ -66,6 +66,10 @@ impl FnSpecs {
     FnSpecs { required, optional, rest }
   }
 
+  pub fn runtime_arity(&self) -> u32 {
+    self.required + self.optional + if self.rest { 1 } else { 0 }
+  }
+
   pub fn min_arity(&self) -> u32 {
     self.required
   }
