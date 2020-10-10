@@ -18,7 +18,7 @@ impl SymbolTable {
     SymbolTable { locals: HashMap::new(), functions: HashMap::new() }
   }
 
-  pub fn get_var(&mut self, name: &str) -> Option<&str> {
+  pub fn get_var(&self, name: &str) -> Option<&str> {
     self.locals.get(name).map(|x| x.as_str())
   }
 
@@ -30,7 +30,7 @@ impl SymbolTable {
     self.locals.remove(name);
   }
 
-  pub fn get_fn(&mut self, name: &str) -> Option<&FnCall> {
+  pub fn get_fn(&self, name: &str) -> Option<&FnCall> {
     self.functions.get(name)
   }
 
