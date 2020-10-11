@@ -47,7 +47,7 @@ where T : IntoGDFile + ?Sized {
   run_with_file(tmp.path())
 }
 
-pub fn run_with_temporary_in<T, P>(data: &impl IntoGDFile, dir: P) -> io::Result<String>
+pub fn run_with_temporary_in<T, P>(data: &T, dir: P) -> io::Result<String>
 where T : IntoGDFile + ?Sized,
       P : AsRef<Path> {
   let mut tmp = make_tmp_file_in(dir)?;
