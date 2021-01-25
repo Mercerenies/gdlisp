@@ -83,13 +83,14 @@ fn generate_lambda_vararg<'a>(specs: FnSpecs) -> decl::FnDecl {
 }
 
 // ///// (function ...) and #'... syntax
-fn generate_lambda_class<'a>(compiler: &mut Compiler<'a>,
-                             specs: FnSpecs,
-                             args: ArgList,
-                             closed_vars: &Vec<String>,
-                             lambda_body: Vec<Stmt>)
-                             -> decl::ClassDecl {
-  let class_name = compiler.name_generator().generate_with("_LambdaBlock");
+fn generate_lambda_class<'a, 'b>(compiler: &mut Compiler<'a>,
+                                 specs: FnSpecs,
+                                 args: ArgList,
+                                 closed_vars: &Vec<String>,
+                                 lambda_body: Vec<Stmt>,
+                                 block_prefix: &'b str)
+                                 -> decl::ClassDecl {
+  let class_name = compiler.name_generator().generate_with(block_prefix);
   let func_name = String::from("call_func");
   let func = decl::FnDecl {
     name: func_name,
@@ -177,7 +178,7 @@ pub fn compile_lambda_stmt<'a>(compiler: &mut Compiler<'a>,
 
   compiler.compile_stmt(&mut lambda_builder, &mut lambda_table, &stmt_wrapper::Return, body)?;
   let lambda_body = lambda_builder.build_into(builder);
-  let class = generate_lambda_class(compiler, args.clone().into(), arglist, &gd_closure_vars, lambda_body);
+  let class = generate_lambda_class(compiler, args.clone().into(), arglist, &gd_closure_vars, lambda_body, "_LambdaBlock");
   let class_name = class.name.clone();
   builder.add_helper(Decl::ClassDecl(class));
   let constructor_args = gd_closure_vars.into_iter().map(|s| Expr::Var(s.to_owned())).collect();
@@ -201,8 +202,7 @@ pub fn compile_function_ref<'a>(compiler: &mut Compiler<'a>,
   let body = Stmt::ReturnStmt(
     Expr::Call(func.object, func.function, arg_names.into_iter().map(Expr::Var).collect())
   );
-  // TODO Don't use LambdaBlock as the name prefix for func refs
-  let class = generate_lambda_class(compiler, specs, arglist.clone(), &vec!(), vec!(body));
+  let class = generate_lambda_class(compiler, specs, arglist.clone(), &vec!(), vec!(body), "_FunctionRefBlock");
   let class_name = class.name.clone();
   builder.add_helper(Decl::ClassDecl(class));
   let expr = Expr::Call(Some(Box::new(Expr::Var(class_name))), String::from("new"), vec!());
