@@ -13,13 +13,14 @@ use gdlisp::ir;
 use gdlisp::gdscript::library;
 use gdlisp::gdscript::decl;
 
-use tempfile::{Builder, NamedTempFile};
+use tempfile::{Builder, TempDir};
 
-use std::path::Path;
+use std::fs::{File, copy};
 use std::io::{self, Write};
 
 pub const BEGIN_GDLISP_TESTS: &'static str = "__BEGIN_GDLISP_TESTS__";
 
+/*
 fn template_contents<P : AsRef<Path>>(filename: P) -> String {
   format!(r#"
 extends SceneTree
@@ -49,12 +50,64 @@ where T : IntoGDFile + ?Sized {
   let runner_text = template_contents(temp_file.path());
   runner::run_with_temporary(&runner_text)
 }
+*/
 
 fn bind_helper_symbols(table: &mut SymbolTable) {
   // TODO This is just a single-argument shim which calls print. It
   // will be obsolete once we have an actual print function in the
   // language.
   table.set_fn(String::from("print"), FnCall::unqualified(FnSpecs::new(1, 0, false), FnScope::Global, String::from("print")));
+}
+
+pub fn dump_files<T>(dir: &mut TempDir, data: &T) -> io::Result<()>
+where T : IntoGDFile + ?Sized {
+
+  // The target file itself
+  let mut target_file = File::create(dir.path().join("target.gd"))?;
+  data.write_to_gd(&mut target_file)?;
+
+  // The runner shim
+  let mut temp_file = File::create(dir.path().join("main.tscn"))?;
+  write!(temp_file, r#"
+[gd_scene load_steps=2 format=2]
+
+[ext_resource path="res://main.gd" type="Script" id=1]
+
+[node name="main" type="Node"]
+script = ExtResource( 1 )
+"#)?;
+  let mut temp_scr_file = File::create(dir.path().join("main.gd"))?;
+  write!(temp_scr_file, r#"
+extends Node
+
+func _ready():
+    var file = load("res://target.gd")
+    print("{}")
+    file.run()
+    get_tree().quit()
+
+"#, BEGIN_GDLISP_TESTS)?;
+
+  // The GDLisp.gd file
+  copy("GDLisp.gd", dir.path().join("GDLisp.gd"))?;
+
+  // Project file
+  let mut project_file = File::create(dir.path().join("project.godot"))?;
+  write!(project_file, r#"
+config_version=4
+
+[application]
+
+run/main_scene="res://main.tscn"
+
+[autoload]
+
+GDLisp="*res://GDLisp.gd"
+
+"#)?;
+
+  Ok(())
+
 }
 
 // TODO As in compiler_test.rs, it would be ideal if this would return
@@ -72,5 +125,14 @@ pub fn parse_and_run(input: &str) -> String {
   let decls = ir::compile_toplevel(&value).unwrap();
   let mut builder = CodeBuilder::new(decl::ClassExtends::Named(String::from("Reference")));
   compiler.compile_decls(&mut builder, &mut table, &decls).unwrap();
-  run_temporary(&builder.build()).unwrap()
+
+  let mut temp_dir = Builder::new().prefix("__gdlisp_test").rand_bytes(5).tempdir().unwrap();
+  dump_files(&mut temp_dir, &builder.build()).unwrap();
+  let result = runner::run_project(temp_dir).unwrap();
+
+  match result.find(BEGIN_GDLISP_TESTS) {
+    None => result,
+    Some(idx) => result[idx + BEGIN_GDLISP_TESTS.bytes().count()..].to_owned(),
+  }
+
 }

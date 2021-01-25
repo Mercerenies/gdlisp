@@ -23,6 +23,18 @@ pub fn run_with_file<P : AsRef<Path>>(path: P) -> io::Result<String> {
   Ok(text.into())
 }
 
+pub fn run_project<P : AsRef<Path>>(path: P) -> io::Result<String> {
+  let out =
+    Command::new("godot")
+    .arg("--path")
+    .arg(path.as_ref().as_os_str())
+    .stderr(Stdio::inherit())
+    .stdout(Stdio::piped())
+    .output()?;
+  let text = String::from_utf8_lossy(&out.stdout);
+  Ok(text.into())
+}
+
 fn make_tmp_file() -> io::Result<NamedTempFile> {
   Builder::new()
     .prefix("__gdlisp_test")
