@@ -156,7 +156,7 @@ pub fn compile_lambda_stmt<'a>(compiler: &mut Compiler<'a>,
   // I want them in a consistent order for the constructor
   // function. I don't care which order, but I need an order, so
   // let's make a Vec now.
-  let closure_vars: Vec<_> = closure_vars.into_iter().collect();
+  let closure_vars: Vec<_> = closure_vars.into_names().collect();
 
   let mut lambda_table = SymbolTable::new();
   for arg in &gd_args {

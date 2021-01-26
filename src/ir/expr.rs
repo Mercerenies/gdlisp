@@ -97,10 +97,10 @@ impl Expr {
   // Returns all of the variable names which appear unbound in the
   // current scope. Crucially, this excludes names which are bound to
   // lambda arguments or let instantiations.
-  pub fn get_locals(&self) -> HashSet<String> {
+  pub fn get_locals(&self) -> Locals {
     let mut result = Locals::new();
     self.walk_locals(&mut result);
-    result.0
+    result
   }
 
 }
@@ -116,24 +116,28 @@ mod tests {
     vec.into_iter().collect()
   }
 
+  fn lhash(vec: Vec<String>) -> Locals {
+    Locals(hash(vec))
+  }
+
   fn nil() -> Expr {
     Expr::Literal(Literal::Nil)
   }
 
   #[test]
   fn test_locals_simple() {
-    assert_eq!(Expr::LocalVar(String::from("foobar")).get_locals(), hash(vec!("foobar".to_owned())));
-    assert_eq!(Expr::LocalVar(String::from("aaa")).get_locals(), hash(vec!("aaa".to_owned())));
-    assert_eq!(Expr::Literal(Literal::Int(99)).get_locals(), hash(vec!()));
-    assert_eq!(Expr::Literal(Literal::Nil).get_locals(), hash(vec!()));
-    assert_eq!(Expr::Progn(vec!()).get_locals(), hash(vec!()));
+    assert_eq!(Expr::LocalVar(String::from("foobar")).get_locals(), lhash(vec!("foobar".to_owned())));
+    assert_eq!(Expr::LocalVar(String::from("aaa")).get_locals(), lhash(vec!("aaa".to_owned())));
+    assert_eq!(Expr::Literal(Literal::Int(99)).get_locals(), lhash(vec!()));
+    assert_eq!(Expr::Literal(Literal::Nil).get_locals(), lhash(vec!()));
+    assert_eq!(Expr::Progn(vec!()).get_locals(), lhash(vec!()));
   }
 
   #[test]
   fn test_locals_compound() {
     let progn = Expr::Progn(vec!(Expr::LocalVar(String::from("aa")),
                                  Expr::LocalVar(String::from("bb"))));
-    assert_eq!(progn.get_locals(), hash(vec!("aa".to_owned(), "bb".to_owned())));
+    assert_eq!(progn.get_locals(), lhash(vec!("aa".to_owned(), "bb".to_owned())));
   }
 
   #[test]
@@ -142,27 +146,27 @@ mod tests {
     // Declared variable
     let e1 = Expr::Let(vec!(("var".to_owned(), nil())),
                        Box::new(nil()));
-    assert_eq!(e1.get_locals(), hash(vec!()));
+    assert_eq!(e1.get_locals(), lhash(vec!()));
 
     // Declared and used variable
     let e2 = Expr::Let(vec!(("var".to_owned(), nil())),
                        Box::new(Expr::LocalVar("var".to_owned())));
-    assert_eq!(e2.get_locals(), hash(vec!()));
+    assert_eq!(e2.get_locals(), lhash(vec!()));
 
     // Different variable
     let e3 = Expr::Let(vec!(("var_unused".to_owned(), nil())),
                        Box::new(Expr::LocalVar("var1".to_owned())));
-    assert_eq!(e3.get_locals(), hash(vec!("var1".to_owned())));
+    assert_eq!(e3.get_locals(), lhash(vec!("var1".to_owned())));
 
     // Variable in decl
     let e4 = Expr::Let(vec!(("var_unused".to_owned(), Expr::LocalVar("var".to_owned()))),
                        Box::new(nil()));
-    assert_eq!(e4.get_locals(), hash(vec!("var".to_owned())));
+    assert_eq!(e4.get_locals(), lhash(vec!("var".to_owned())));
 
     // Variable in decl (soon to be shadowed)
     let e4 = Expr::Let(vec!(("var".to_owned(), Expr::LocalVar("var".to_owned()))),
                        Box::new(nil()));
-    assert_eq!(e4.get_locals(), hash(vec!("var".to_owned())));
+    assert_eq!(e4.get_locals(), lhash(vec!("var".to_owned())));
 
   }
 
@@ -171,11 +175,11 @@ mod tests {
 
     // Simple assignment
     let e1 = Expr::Assign(String::from("var"), Box::new(Expr::Literal(Literal::Nil)));
-    assert_eq!(e1.get_locals(), hash(vec!("var".to_owned())));
+    assert_eq!(e1.get_locals(), lhash(vec!("var".to_owned())));
 
     // Assignment including RHS
     let e2 = Expr::Assign(String::from("var1"), Box::new(Expr::LocalVar("var2".to_owned())));
-    assert_eq!(e2.get_locals(), hash(vec!("var1".to_owned(), "var2".to_owned())));
+    assert_eq!(e2.get_locals(), lhash(vec!("var1".to_owned(), "var2".to_owned())));
 
   }
 
