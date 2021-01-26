@@ -2,6 +2,7 @@
 use super::literal;
 use super::arglist::ArgList;
 //use crate::gdscript::op::{self, UnaryOp, BinaryOp, OperatorHasInfo};
+use super::locals::Locals;
 
 use std::collections::HashSet;
 use std::iter::FromIterator;
@@ -32,10 +33,10 @@ impl Expr {
   }
 
   // TODO We'll need a walk_locals for function names too. (FuncRef will respond to it)
-  fn walk_locals(&self, acc: &mut HashSet<String>) {
+  fn walk_locals(&self, acc: &mut Locals) {
     match self {
       Expr::LocalVar(s) => {
-        acc.insert(s.to_owned());
+        acc.visited(s);
       }
       Expr::Literal(_) => {}
 //      Expr::Subscript(a, b) => {
@@ -71,22 +72,22 @@ impl Expr {
           vars.insert(clause.0.to_owned());
           clause.1.walk_locals(acc);
         }
-        let mut local_scope = HashSet::new();
+        let mut local_scope = Locals::new();
         body.walk_locals(&mut local_scope);
-        for var in local_scope.difference(&vars) {
-          acc.insert(var.to_owned());
+        for var in local_scope.0.difference(&vars) {
+          acc.visited(var);
         }
       }
       Expr::Lambda(args, body) => {
         let vars = HashSet::from_iter(args.iter_vars().map(|x| x.to_owned()));
-        let mut local_scope = HashSet::new();
+        let mut local_scope = Locals::new();
         body.walk_locals(&mut local_scope);
-        for var in local_scope.difference(&vars) {
-          acc.insert(var.to_owned());
+        for var in local_scope.0.difference(&vars) {
+          acc.visited(var);
         }
       }
       Expr::Assign(s, expr) => {
-        acc.insert(s.to_owned());
+        acc.visited(s);
         expr.walk_locals(acc);
       }
       Expr::FuncRef(_) => {}
@@ -97,9 +98,9 @@ impl Expr {
   // current scope. Crucially, this excludes names which are bound to
   // lambda arguments or let instantiations.
   pub fn get_locals(&self) -> HashSet<String> {
-    let mut result = HashSet::new();
+    let mut result = Locals::new();
     self.walk_locals(&mut result);
-    result
+    result.0
   }
 
 }
