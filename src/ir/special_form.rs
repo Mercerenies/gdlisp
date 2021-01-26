@@ -18,6 +18,7 @@ pub fn dispatch_form(head: &str,
     "let" => let_form(tail).map(Some),
     "lambda" => lambda_form(tail).map(Some),
     "function" => function_form(tail).map(Some),
+    "setq" => assign_form(tail).map(Some),
     _ => Ok(None),
   }
 }
@@ -114,4 +115,20 @@ pub fn function_form(tail: &[&AST])
       Err(Error::InvalidArg(String::from("function"), x.clone(), String::from("symbol")))
     }
   }
+}
+
+pub fn assign_form(tail: &[&AST])
+                   -> Result<Expr, Error> {
+  if tail.len() < 2 {
+    return Err(Error::TooFewArgs(String::from("setq"), 2))
+  }
+  if tail.len() > 2 {
+    return Err(Error::TooManyArgs(String::from("setq"), 2))
+  }
+  let var_name = match tail[0] {
+    AST::Symbol(s) => s,
+    x => return Err(Error::InvalidArg(String::from("setq"), x.clone(), String::from("symbol"))),
+  };
+  let value = compile_expr(tail[1])?;
+  Ok(Expr::Assign(var_name.clone(), Box::new(value)))
 }

@@ -190,4 +190,12 @@ mod tests {
                }));
   }
 
+  #[test]
+  fn compile_setq() {
+    assert_eq!(compile_expr(&ast::list(vec!(AST::Symbol(String::from("setq")),
+                                            AST::Symbol(String::from("foobar")),
+                                            AST::Int(1)))).unwrap(),
+               Expr::Assign(String::from("foobar"), Box::new(Expr::Literal(Literal::Int(1)))));
+  }
+
 }

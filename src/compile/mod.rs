@@ -164,6 +164,11 @@ impl<'a> Compiler<'a> {
           }
         }
       }
+      IRExpr::Assign(name, expr) => {
+        let var = table.get_var(name).ok_or_else(|| Error::NoSuchVar(name.clone()))?.to_owned();
+        self.compile_stmt(builder, table, &stmt_wrapper::AssignToVar(var.clone()), expr)?;
+        Ok(StExpr(Expr::Var(var), false))
+      }
       /* // This will eventually be an optimization.
       IRExpr::Funcall(f, args) => {
         let func_expr = self.compile_expr(builder, table, f, NeedsResult::Yes)?.0;

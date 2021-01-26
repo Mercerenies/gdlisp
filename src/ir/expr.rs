@@ -17,6 +17,7 @@ pub enum Expr {
   Let(Vec<(String, Expr)>, Box<Expr>),
   Lambda(ArgList, Box<Expr>),
   FuncRef(FuncRefTarget),
+  Assign(String, Box<Expr>),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -83,6 +84,10 @@ impl Expr {
         for var in local_scope.difference(&vars) {
           acc.insert(var.to_owned());
         }
+      }
+      Expr::Assign(s, expr) => {
+        acc.insert(s.to_owned());
+        expr.walk_locals(acc);
       }
       Expr::FuncRef(_) => {}
     };
@@ -157,6 +162,19 @@ mod tests {
     let e4 = Expr::Let(vec!(("var".to_owned(), Expr::LocalVar("var".to_owned()))),
                        Box::new(nil()));
     assert_eq!(e4.get_locals(), hash(vec!("var".to_owned())));
+
+  }
+
+  #[test]
+  fn test_locals_assignment() {
+
+    // Simple assignment
+    let e1 = Expr::Assign(String::from("var"), Box::new(Expr::Literal(Literal::Nil)));
+    assert_eq!(e1.get_locals(), hash(vec!("var".to_owned())));
+
+    // Assignment including RHS
+    let e2 = Expr::Assign(String::from("var1"), Box::new(Expr::LocalVar("var2".to_owned())));
+    assert_eq!(e2.get_locals(), hash(vec!("var1".to_owned(), "var2".to_owned())));
 
   }
 

@@ -181,3 +181,20 @@ pub fn function_ref_test() {
   assert_eq!(result0.0, "return _FunctionRefBlock_0.new()\n");
   assert_eq!(result0.1, "class _FunctionRefBlock_0 extends GDLisp.Function:\n    func _init():\n        self.__gdlisp_required = 1\n        self.__gdlisp_optional = 0\n        self.__gdlisp_rest = false\n    func call_func(arg0):\n        return foo1(arg0)\n    func call_funcv(args):\n        var required_0 = null\n        if args is GDLisp.NilClass:\n            push_error(\"Not enough arguments\")\n        else:\n            required_0 = args.car\n            args = args.cdr\n        if args is GDLisp.NilClass:\n            return call_func(required_0)\n        else:\n            push_error(\"Too many arguments\")\n");
 }
+
+#[test]
+#[should_panic]
+pub fn nonexistent_assignment_test() {
+  parse_compile_and_output("(setq nonexistent-var 0)");
+}
+
+#[test]
+pub fn assignment_test() {
+
+  let result0 = parse_compile_and_output("(let ((x 1)) (setq x 2))");
+  assert_eq!(result0, "var x_0 = 1\nx_0 = 2\nreturn x_0\n");
+
+  let result1 = parse_compile_and_output("(let ((x 1)) (setq x 2) 3)");
+  assert_eq!(result1, "var x_0 = 1\nx_0 = 2\nreturn 3\n");
+
+}
