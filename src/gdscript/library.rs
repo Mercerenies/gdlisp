@@ -23,6 +23,10 @@ pub fn cons_class() -> Expr {
   on_gdlisp_root(String::from("Cons"))
 }
 
+pub fn cell_class() -> Expr {
+  on_gdlisp_root(String::from("Cell"))
+}
+
 pub fn construct_list(vec: Vec<Expr>) -> Expr {
   vec.into_iter().rev().fold(nil(), |rest, first| {
     Expr::Call(Some(Box::new(cons_class())), String::from("new"), vec!(first, rest))

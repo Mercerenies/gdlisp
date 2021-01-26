@@ -33,10 +33,11 @@ class Function:
     var __gdlisp_rest = true
     func _init():
         pass
-    func call_func(args):
-        push_error("Unimplemented function")
-    func call_funcv(args):
-        return call_func(args)
+
+class Cell:
+    var contents
+    func _init(contents):
+        self.contents = contents
 
 onready var Nil = NilClass.new()
 
