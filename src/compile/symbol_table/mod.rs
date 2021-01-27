@@ -3,6 +3,8 @@ pub mod function_call;
 
 use function_call::FnCall;
 use crate::ir::locals::AccessType;
+use crate::gdscript::expr::Expr;
+use crate::gdscript::library::CELL_CONTENTS;
 
 use std::collections::HashMap;
 use std::borrow::Borrow;
@@ -71,6 +73,17 @@ impl LocalVar {
 
   pub fn new(name: String, access_type: AccessType) -> LocalVar {
     LocalVar { name, access_type }
+  }
+
+  pub fn expr(&self) -> Expr {
+    match self.access_type {
+      AccessType::None | AccessType::Read => {
+        Expr::var(&self.name)
+      }
+      AccessType::RW => {
+        Expr::Attribute(Box::new(Expr::var(&self.name)), CELL_CONTENTS.to_owned())
+      }
+    }
   }
 
 }
