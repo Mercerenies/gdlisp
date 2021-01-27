@@ -21,3 +21,15 @@ fn closure_lambda_test() {
   "#);
   assert_eq!(output, "\n99\n");
 }
+
+// This fails right now! /////
+#[test]
+#[ignore]
+fn modifying_closure_test() {
+  let output = parse_and_run(r#"
+  ((let ((a 0))
+    (funcall (lambda () (setq a 1)))
+    (print a)))
+  "#);
+  assert_eq!(output, "\n1\n");
+}

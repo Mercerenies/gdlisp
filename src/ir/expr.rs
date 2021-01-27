@@ -2,9 +2,10 @@
 use super::literal;
 use super::arglist::ArgList;
 //use crate::gdscript::op::{self, UnaryOp, BinaryOp, OperatorHasInfo};
-use super::locals::Locals;
+use super::locals::{Locals, AccessType};
 
 use std::collections::HashSet;
+use std::collections::hash_map::RandomState;
 use std::iter::FromIterator;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -36,7 +37,7 @@ impl Expr {
   fn walk_locals(&self, acc: &mut Locals) {
     match self {
       Expr::LocalVar(s) => {
-        acc.visited(s);
+        acc.visited(s, AccessType::Read);
       }
       Expr::Literal(_) => {}
 //      Expr::Subscript(a, b) => {
@@ -74,20 +75,24 @@ impl Expr {
         }
         let mut local_scope = Locals::new();
         body.walk_locals(&mut local_scope);
-        for var in local_scope.0.difference(&vars) {
-          acc.visited(var);
+        for var in local_scope.names() {
+          if !vars.contains(var) {
+            acc.visited(var, AccessType::Read);
+          }
         }
       }
       Expr::Lambda(args, body) => {
-        let vars = HashSet::from_iter(args.iter_vars().map(|x| x.to_owned()));
+        let vars: HashSet<_, RandomState> = HashSet::from_iter(args.iter_vars().map(|x| x.to_owned()));
         let mut local_scope = Locals::new();
         body.walk_locals(&mut local_scope);
-        for var in local_scope.0.difference(&vars) {
-          acc.visited(var);
+        for var in local_scope.names() {
+          if !vars.contains(var) {
+            acc.visited(var, AccessType::Read);
+          }
         }
       }
       Expr::Assign(s, expr) => {
-        acc.visited(s);
+        acc.visited(s, AccessType::RW);
         expr.walk_locals(acc);
       }
       Expr::FuncRef(_) => {}
@@ -109,15 +114,13 @@ impl Expr {
 mod tests {
   use super::*;
   use literal::Literal;
-  use std::hash::Hash;
-  use std::cmp::Eq;
-
-  fn hash<T : Hash + Eq>(vec: Vec<T>) -> HashSet<T> {
-    vec.into_iter().collect()
-  }
 
   fn lhash(vec: Vec<String>) -> Locals {
-    Locals(hash(vec))
+    Locals(vec.into_iter().map(|x| (x, AccessType::Read)).collect())
+  }
+
+  fn lhash_rw(vec: Vec<(String, AccessType)>) -> Locals {
+    Locals(vec.into_iter().collect())
   }
 
   fn nil() -> Expr {
@@ -175,11 +178,25 @@ mod tests {
 
     // Simple assignment
     let e1 = Expr::Assign(String::from("var"), Box::new(Expr::Literal(Literal::Nil)));
-    assert_eq!(e1.get_locals(), lhash(vec!("var".to_owned())));
+    assert_eq!(e1.get_locals(), lhash_rw(vec!(("var".to_owned(), AccessType::RW))));
 
     // Assignment including RHS
     let e2 = Expr::Assign(String::from("var1"), Box::new(Expr::LocalVar("var2".to_owned())));
-    assert_eq!(e2.get_locals(), lhash(vec!("var1".to_owned(), "var2".to_owned())));
+    assert_eq!(e2.get_locals(), lhash_rw(vec!(("var1".to_owned(), AccessType::RW), ("var2".to_owned(), AccessType::Read))));
+
+    // Reading and writing (I)
+    let e3 = Expr::Progn(vec!(
+      Expr::Assign(String::from("var"), Box::new(Expr::Literal(Literal::Nil))),
+      Expr::LocalVar("var".to_owned()),
+    ));
+    assert_eq!(e3.get_locals(), lhash_rw(vec!(("var".to_owned(), AccessType::RW))));
+
+    // Reading and writing (II)
+    let e4 = Expr::Progn(vec!(
+      Expr::LocalVar("var".to_owned()),
+      Expr::Assign(String::from("var"), Box::new(Expr::Literal(Literal::Nil))),
+    ));
+    assert_eq!(e4.get_locals(), lhash_rw(vec!(("var".to_owned(), AccessType::RW))));
 
   }
 
