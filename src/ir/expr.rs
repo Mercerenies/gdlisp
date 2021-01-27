@@ -108,19 +108,20 @@ impl Expr {
   // current scope. Crucially, this excludes names which are bound to
   // lambda arguments or let instantiations.
   pub fn get_locals(&self) -> Locals {
-    let mut result = Locals::new();
-    let mut ignore = Functions::new();
-    self.walk_locals(&mut result, &mut ignore);
-    result
+    self.get_names().0
   }
 
   // Returns all of the function names which appear unbound in the
   // current scope.
   pub fn get_functions(&self) -> Functions {
-    let mut ignore = Locals::new();
-    let mut result = Functions::new();
-    self.walk_locals(&mut ignore, &mut result);
-    result
+    self.get_names().1
+  }
+
+  pub fn get_names(&self) -> (Locals, Functions) {
+    let mut vars = Locals::new();
+    let mut fns = Functions::new();
+    self.walk_locals(&mut vars, &mut fns);
+    (vars, fns)
   }
 
 }

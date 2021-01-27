@@ -149,7 +149,8 @@ pub fn compile_lambda_stmt<'a>(compiler: &mut Compiler<'a>,
   let (arglist, gd_args) = args.clone().into_gd_arglist(&mut compiler.name_generator());
 
   let mut lambda_builder = StmtBuilder::new();
-  let mut closure_vars = body.get_locals();
+  let (all_vars, closure_fns) = body.get_names();
+  let mut closure_vars = all_vars.clone();
   for arg in &gd_args {
     closure_vars.remove(&arg.0);
   }
@@ -160,7 +161,7 @@ pub fn compile_lambda_stmt<'a>(compiler: &mut Compiler<'a>,
 
   let mut lambda_table = SymbolTable::new();
   for arg in &gd_args {
-    lambda_table.set_var(arg.0.to_owned(), LocalVar::new(arg.1.to_owned(), closure_vars.get(&arg.0)));
+    lambda_table.set_var(arg.0.to_owned(), LocalVar::new(arg.1.to_owned(), all_vars.get(&arg.0)));
   }
   for var in &closure_vars_vec {
     // Ensure the variable actually exists
@@ -168,6 +169,14 @@ pub fn compile_lambda_stmt<'a>(compiler: &mut Compiler<'a>,
       None => return Err(Error::NoSuchVar((*var).to_owned())),
       Some(gdvar) => lambda_table.set_var((*var).to_owned(), gdvar.to_owned()), // TODO Generate new names here
     };
+  }
+  for func in closure_fns.names() {
+    // Ensure the function actually exists
+    match table.get_fn(func) {
+      None => { return Err(Error::NoSuchFn(func.to_owned())) }
+      Some(       FnCall { scope: FnScope::Local , .. }) => { panic!("Not yet supported!"); } ////
+      Some(call @ FnCall { scope: FnScope::Global, .. }) => { lambda_table.set_fn(func.to_owned(), call.clone()); }
+    }
   }
 
   let gd_closure_vars = closure_vars_vec.iter().map(|ast_name| {
@@ -177,7 +186,7 @@ pub fn compile_lambda_stmt<'a>(compiler: &mut Compiler<'a>,
   }).collect();
 
   for arg in &gd_args {
-    if closure_vars.get(&arg.0).requires_cell() {
+    if all_vars.get(&arg.0).requires_cell() {
       // Special behavior to wrap the argument in a cell.
       lambda_builder.append(Stmt::Assign(Box::new(Expr::var(&arg.1)),
                                          op::AssignOp::Eq,

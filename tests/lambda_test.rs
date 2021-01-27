@@ -33,7 +33,6 @@ fn modifying_closure_test() {
   assert_eq!(output, "\n1\n");
 }
 
-/* // TODO Function names aren't inherited inside lambdas yet
 #[test]
 #[ignore]
 fn modifying_closure_inside_lambda_test() {
@@ -44,4 +43,3 @@ fn modifying_closure_inside_lambda_test() {
   "#);
   assert_eq!(output, "\n1\n");
 }
-*/

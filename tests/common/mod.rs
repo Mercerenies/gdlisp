@@ -128,7 +128,7 @@ pub fn parse_and_run(input: &str) -> String {
 
   let mut temp_dir = Builder::new().prefix("__gdlisp_test").rand_bytes(5).tempdir().unwrap();
   let code_output = builder.build();
-  //println!("{}", code_output.to_gd());
+  // println!("{}", code_output.to_gd());
   dump_files(&mut temp_dir, &code_output).unwrap();
   let result = runner::run_project(temp_dir).unwrap();
 
