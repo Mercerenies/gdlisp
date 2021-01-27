@@ -71,20 +71,28 @@ impl LocalVar {
     LocalVar { name, access_type: AccessType::RW }
   }
 
+  pub fn closed_rw(name: String) -> LocalVar {
+    LocalVar { name, access_type: AccessType::ClosedRW }
+  }
+
   pub fn new(name: String, access_type: AccessType) -> LocalVar {
     LocalVar { name, access_type }
   }
 
   pub fn expr(&self) -> Expr {
     match self.access_type {
-      AccessType::None | AccessType::Read => {
+      AccessType::None | AccessType::Read | AccessType::RW => {
         Expr::var(&self.name)
       }
-      AccessType::RW => {
+      AccessType::ClosedRW => {
         Expr::Attribute(Box::new(Expr::var(&self.name)), CELL_CONTENTS.to_owned())
       }
     }
   }
+
+  // TODO Put all of the declaration-site stuff here as well, like
+  // .expr() for access, so we have it all in one place (i.e. the
+  // difference between "var x = ..." and "var x = Cell.new(...)")
 
 }
 

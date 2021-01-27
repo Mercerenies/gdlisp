@@ -87,7 +87,7 @@ impl Expr {
         body.walk_locals(&mut local_scope);
         for var in local_scope.names() {
           if !vars.contains(var) {
-            acc.visited(var, local_scope.get(var));
+            acc.visited(var, local_scope.get(var).closed());
           }
         }
       }

@@ -190,15 +190,21 @@ pub fn nonexistent_assignment_test() {
 
 #[test]
 pub fn assignment_test() {
-  // TODO Don't actually need to wrap in cell if the variable is never used in a closure
 
+  // No cell; only accessed directly
   let result0 = parse_compile_and_output("(let ((x 1)) (setq x 2))");
-  assert_eq!(result0, "var x_0 = GDLisp.Cell.new(1)\nx_0.contents = 2\nreturn x_0.contents\n");
+  assert_eq!(result0, "var x_0 = 1\nx_0 = 2\nreturn x_0\n");
 
+  // No cell; only accessed directly
   let result1 = parse_compile_and_output("(let ((x 1)) (setq x 2) 3)");
-  assert_eq!(result1, "var x_0 = GDLisp.Cell.new(1)\nx_0.contents = 2\nreturn 3\n");
+  assert_eq!(result1, "var x_0 = 1\nx_0 = 2\nreturn 3\n");
 
+  // Cell; accessed inside lambda
   let result2 = parse_compile_and_output("(let ((x 1)) (lambda () (setq x 2)))");
   assert_eq!(result2, "var x_0 = GDLisp.Cell.new(1)\nreturn _LambdaBlock_1.new(x_0)\n");
+
+  // Cell; accessed both inside and outside lambda
+  let result3 = parse_compile_and_output("(let ((x 1)) (lambda () (setq x 2)) (setq x 3))");
+  assert_eq!(result3, "var x_0 = GDLisp.Cell.new(1)\nx_0.contents = 3\nreturn x_0.contents\n");
 
 }

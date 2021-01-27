@@ -149,7 +149,7 @@ impl<'a> Compiler<'a> {
           let ast_name = ast_name.to_owned();
           let result_value = self.compile_expr(builder, table, &expr, NeedsResult::Yes)?.0;
           let result_value =
-            if closure_vars.get(&ast_name) == AccessType::RW {
+            if closure_vars.get(&ast_name) >= AccessType::ClosedRW {
               library::construct_cell(result_value)
             } else {
               result_value

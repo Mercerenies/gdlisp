@@ -178,7 +178,7 @@ pub fn compile_lambda_stmt<'a>(compiler: &mut Compiler<'a>,
   }).collect();
 
   for arg in &gd_args {
-    if closure_vars.get(&arg.0) == AccessType::RW {
+    if closure_vars.get(&arg.0) >= AccessType::ClosedRW {
       // Special behavior to wrap the argument in a cell.
       lambda_builder.append(Stmt::Assign(Box::new(Expr::var(&arg.1)),
                                          op::AssignOp::Eq,
