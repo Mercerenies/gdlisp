@@ -2,14 +2,21 @@
 pub mod function_call;
 
 use function_call::FnCall;
+use crate::ir::locals::AccessType;
 
 use std::collections::HashMap;
 use std::borrow::Borrow;
 
 #[derive(Clone, Debug)]
 pub struct SymbolTable {
-  locals: HashMap<String, String>,
+  locals: HashMap<String, LocalVar>,
   functions: HashMap<String, FnCall>,
+}
+
+#[derive(PartialEq, Eq, Clone, Debug)]
+pub struct LocalVar {
+  pub name: String,
+  pub access_type: AccessType,
 }
 
 impl SymbolTable {
@@ -18,11 +25,11 @@ impl SymbolTable {
     SymbolTable { locals: HashMap::new(), functions: HashMap::new() }
   }
 
-  pub fn get_var(&self, name: &str) -> Option<&str> {
-    self.locals.get(name).map(|x| x.as_str())
+  pub fn get_var(&self, name: &str) -> Option<&LocalVar> {
+    self.locals.get(name)
   }
 
-  pub fn set_var(&mut self, name: String, value: String) -> Option<String> {
+  pub fn set_var(&mut self, name: String, value: LocalVar) -> Option<LocalVar> {
     self.locals.insert(name, value)
   }
 
@@ -42,12 +49,28 @@ impl SymbolTable {
     self.functions.remove(name);
   }
 
-  pub fn vars<'a>(&'a self) -> impl Iterator<Item=(&'a str, &'a str)> {
-    return self.locals.iter().map(|x| (x.0.borrow(), x.1.borrow()));
+  pub fn vars<'a>(&'a self) -> impl Iterator<Item=(&'a str, &'a LocalVar)> {
+    return self.locals.iter().map(|x| (x.0.borrow(), x.1));
   }
 
   pub fn fns<'a>(&'a self) -> impl Iterator<Item=(&'a str, &'a FnCall)> {
     return self.functions.iter().map(|x| (x.0.borrow(), x.1));
+  }
+
+}
+
+impl LocalVar {
+
+  pub fn read(name: String) -> LocalVar {
+    LocalVar { name, access_type: AccessType::Read }
+  }
+
+  pub fn rw(name: String) -> LocalVar {
+    LocalVar { name, access_type: AccessType::RW }
+  }
+
+  pub fn new(name: String, access_type: AccessType) -> LocalVar {
+    LocalVar { name, access_type }
   }
 
 }
@@ -63,7 +86,7 @@ pub trait HasSymbolTable {
 
   fn with_local_var<B>(&mut self,
                        name: String,
-                       value: String,
+                       value: LocalVar,
                        block: impl FnOnce(&mut Self) -> B) -> B {
     let previous = self.get_symbol_table_mut().set_var(name.clone(), value);
     let result = block(self);
@@ -76,7 +99,7 @@ pub trait HasSymbolTable {
   }
 
   fn with_local_vars<B>(&mut self,
-                        vars: &mut dyn Iterator<Item=(String, String)>,
+                        vars: &mut dyn Iterator<Item=(String, LocalVar)>,
                         block: impl FnOnce(&mut Self) -> B) -> B {
     if let Some((name, value)) = vars.next() {
       self.with_local_var(name, value, |curr| {

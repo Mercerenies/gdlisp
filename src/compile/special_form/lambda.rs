@@ -2,7 +2,7 @@
 use crate::ir;
 use crate::compile::{Compiler, StExpr};
 use crate::compile::body::builder::StmtBuilder;
-use crate::compile::symbol_table::SymbolTable;
+use crate::compile::symbol_table::{SymbolTable, LocalVar};
 use crate::compile::symbol_table::function_call::{FnCall, FnSpecs, FnScope};
 use crate::compile::stmt_wrapper;
 use crate::compile::error::Error;
@@ -86,7 +86,7 @@ fn generate_lambda_vararg<'a>(specs: FnSpecs) -> decl::FnDecl {
 fn generate_lambda_class<'a, 'b>(compiler: &mut Compiler<'a>,
                                  specs: FnSpecs,
                                  args: ArgList,
-                                 closed_vars: &Vec<String>,
+                                 closed_vars: &Vec<LocalVar>,
                                  lambda_body: Vec<Stmt>,
                                  block_prefix: &'b str)
                                  -> decl::ClassDecl {
@@ -99,8 +99,9 @@ fn generate_lambda_class<'a, 'b>(compiler: &mut Compiler<'a>,
   };
   let funcv = generate_lambda_vararg(specs);
   let mut constructor_body = Vec::new();
-  for name in closed_vars.iter() {
-    constructor_body.push(assign_to_compiler(name.to_string(), name.to_string()));
+  for var in closed_vars.iter() {
+    ////
+    constructor_body.push(assign_to_compiler(var.name.to_string(), var.name.to_string()));
   }
   let r: i32  = specs.required.try_into().unwrap();
   let o: i32  = specs.optional.try_into().unwrap();
@@ -111,12 +112,13 @@ fn generate_lambda_class<'a, 'b>(compiler: &mut Compiler<'a>,
   let constructor =
     decl::FnDecl {
       name: String::from("_init"),
-      args: ArgList::required(closed_vars.iter().map(|x| (*x).to_owned()).collect()),
+      args: ArgList::required(closed_vars.iter().map(|x| x.name.to_owned()).collect()), ////
       body: constructor_body,
     };
   let mut class_body = vec!();
   for var in closed_vars {
-    class_body.push(Decl::VarDecl(var.clone(), None));
+    ////
+    class_body.push(Decl::VarDecl(var.name.clone(), None));
   }
   class_body.append(&mut vec!(
     Decl::FnDecl(decl::Static::NonStatic, constructor),
@@ -160,7 +162,8 @@ pub fn compile_lambda_stmt<'a>(compiler: &mut Compiler<'a>,
 
   let mut lambda_table = SymbolTable::new();
   for arg in &gd_args {
-    lambda_table.set_var(arg.0.to_owned(), arg.1.to_owned());
+    ////
+    lambda_table.set_var(arg.0.to_owned(), LocalVar::read(arg.1.to_owned()));
   }
   for var in &closure_vars {
     // Ensure the variable actually exists
@@ -181,7 +184,7 @@ pub fn compile_lambda_stmt<'a>(compiler: &mut Compiler<'a>,
   let class = generate_lambda_class(compiler, args.clone().into(), arglist, &gd_closure_vars, lambda_body, "_LambdaBlock");
   let class_name = class.name.clone();
   builder.add_helper(Decl::ClassDecl(class));
-  let constructor_args = gd_closure_vars.into_iter().map(|s| Expr::Var(s.to_owned())).collect();
+  let constructor_args = gd_closure_vars.into_iter().map(|s| Expr::Var(s.name.to_owned())).collect();
   let expr = Expr::Call(Some(Box::new(Expr::Var(class_name))), String::from("new"), constructor_args);
   Ok(StExpr(expr, false))
 }

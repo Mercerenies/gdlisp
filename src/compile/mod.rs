@@ -15,7 +15,7 @@ use crate::gdscript::decl::{self, Decl};
 use crate::gdscript::library;
 use error::Error;
 use stmt_wrapper::StmtWrapper;
-use symbol_table::{HasSymbolTable, SymbolTable};
+use symbol_table::{HasSymbolTable, SymbolTable, LocalVar};
 use symbol_table::function_call;
 use crate::ir;
 use crate::ir::expr::FuncRefTarget;
@@ -111,7 +111,8 @@ impl<'a> Compiler<'a> {
     match expr {
       IRExpr::LocalVar(s) => {
         table.get_var(s).ok_or_else(|| Error::NoSuchVar(s.clone())).map(|var| {
-          StExpr(Expr::var(var), false)
+          ////
+          StExpr(Expr::var(&var.name), false)
         })
       }
       IRExpr::Literal(lit) => {
@@ -149,7 +150,8 @@ impl<'a> Compiler<'a> {
           let gd_name = self.declare_var(builder, &ast_name, Some(result_value));
           Ok((ast_name, gd_name))
         }).collect::<Result<Vec<_>, _>>()?;
-        table.with_local_vars(&mut var_names.into_iter(), |table| {
+        ////
+        table.with_local_vars(&mut var_names.into_iter().map(|x| (x.0, LocalVar::read(x.1))), |table| {
           self.compile_expr(builder, table, body, needs_result)
         })
       }
@@ -166,8 +168,9 @@ impl<'a> Compiler<'a> {
       }
       IRExpr::Assign(name, expr) => {
         let var = table.get_var(name).ok_or_else(|| Error::NoSuchVar(name.clone()))?.to_owned();
-        self.compile_stmt(builder, table, &stmt_wrapper::AssignToVar(var.clone()), expr)?;
-        Ok(StExpr(Expr::Var(var), false))
+        ////
+        self.compile_stmt(builder, table, &stmt_wrapper::AssignToVar(var.name.clone()), expr)?;
+        Ok(StExpr(Expr::Var(var.name), false))
       }
       /* // This will eventually be an optimization.
       IRExpr::Funcall(f, args) => {
@@ -208,7 +211,8 @@ impl<'a> Compiler<'a> {
         let gd_name = names::lisp_to_gd(&name);
         let (arglist, gd_args) = args.clone().into_gd_arglist(&mut self.gen);
         let mut stmt_builder = StmtBuilder::new();
-        table.with_local_vars(&mut gd_args.clone().into_iter(), |table| {
+        ////
+        table.with_local_vars(&mut gd_args.clone().into_iter().map(|x| (x.0, LocalVar::read(x.1))), |table| {
           self.compile_stmt(&mut stmt_builder, table, &stmt_wrapper::Return, body)
         })?;
         let gd_body = stmt_builder.build_into(builder);
