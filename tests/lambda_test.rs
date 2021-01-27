@@ -22,7 +22,6 @@ fn closure_lambda_test() {
   assert_eq!(output, "\n99\n");
 }
 
-// This fails right now! /////
 #[test]
 #[ignore]
 fn modifying_closure_test() {

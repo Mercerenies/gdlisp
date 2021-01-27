@@ -35,6 +35,10 @@ pub fn construct_list(vec: Vec<Expr>) -> Expr {
   })
 }
 
+pub fn construct_cell(expr: Expr) -> Expr {
+  Expr::Call(Some(Box::new(cell_class())), String::from("new"), vec!(expr))
+}
+
 pub fn bind_builtins(table: &mut SymbolTable) {
   table.set_fn("cons".to_owned(),
                FnCall::qualified(FnSpecs::new(2, 0, false), FnScope::Global, cons_class(), "new".to_owned()));

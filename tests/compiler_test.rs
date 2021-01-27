@@ -190,11 +190,12 @@ pub fn nonexistent_assignment_test() {
 
 #[test]
 pub fn assignment_test() {
+  // TODO Don't actually need to wrap in cell if the variable is never used in a closure
 
   let result0 = parse_compile_and_output("(let ((x 1)) (setq x 2))");
-  assert_eq!(result0, "var x_0 = 1\nx_0 = 2\nreturn x_0\n");
+  assert_eq!(result0, "var x_0 = GDLisp.Cell.new(1)\nx_0.contents = 2\nreturn x_0.contents\n");
 
   let result1 = parse_compile_and_output("(let ((x 1)) (setq x 2) 3)");
-  assert_eq!(result1, "var x_0 = 1\nx_0 = 2\nreturn 3\n");
+  assert_eq!(result1, "var x_0 = GDLisp.Cell.new(1)\nx_0.contents = 2\nreturn 3\n");
 
 }

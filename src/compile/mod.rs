@@ -18,6 +18,7 @@ use stmt_wrapper::StmtWrapper;
 use symbol_table::{HasSymbolTable, SymbolTable, LocalVar};
 use symbol_table::function_call;
 use crate::ir;
+use crate::ir::locals::AccessType;
 use crate::ir::expr::FuncRefTarget;
 use special_form::lambda;
 
@@ -111,8 +112,7 @@ impl<'a> Compiler<'a> {
     match expr {
       IRExpr::LocalVar(s) => {
         table.get_var(s).ok_or_else(|| Error::NoSuchVar(s.clone())).map(|var| {
-          ////
-          StExpr(Expr::var(&var.name), false)
+          StExpr(var.expr(), false)
         })
       }
       IRExpr::Literal(lit) => {
@@ -143,15 +143,21 @@ impl<'a> Compiler<'a> {
         Ok(StExpr(fcall.into_expr(args)?, true))
       }
       IRExpr::Let(clauses, body) => {
+        let closure_vars = body.get_locals();
         let var_names = clauses.iter().map::<Result<(String, String), Error>, _>(|clause| {
           let (ast_name, expr) = clause;
           let ast_name = ast_name.to_owned();
           let result_value = self.compile_expr(builder, table, &expr, NeedsResult::Yes)?.0;
+          let result_value =
+            if closure_vars.get(&ast_name) == AccessType::RW {
+              library::construct_cell(result_value)
+            } else {
+              result_value
+            };
           let gd_name = self.declare_var(builder, &ast_name, Some(result_value));
           Ok((ast_name, gd_name))
         }).collect::<Result<Vec<_>, _>>()?;
-        ////
-        table.with_local_vars(&mut var_names.into_iter().map(|x| (x.0, LocalVar::read(x.1))), |table| {
+        table.with_local_vars(&mut var_names.into_iter().map(|x| (x.0.clone(), LocalVar::new(x.1, closure_vars.get(&x.0)))), |table| {
           self.compile_expr(builder, table, body, needs_result)
         })
       }
@@ -168,9 +174,8 @@ impl<'a> Compiler<'a> {
       }
       IRExpr::Assign(name, expr) => {
         let var = table.get_var(name).ok_or_else(|| Error::NoSuchVar(name.clone()))?.to_owned();
-        ////
-        self.compile_stmt(builder, table, &stmt_wrapper::AssignToVar(var.name.clone()), expr)?;
-        Ok(StExpr(Expr::Var(var.name), false))
+        self.compile_stmt(builder, table, &stmt_wrapper::AssignToExpr(var.expr()), expr)?;
+        Ok(StExpr(var.expr(), false))
       }
       /* // This will eventually be an optimization.
       IRExpr::Funcall(f, args) => {

@@ -1,5 +1,6 @@
 
 use crate::ir;
+use crate::ir::locals::AccessType;
 use crate::compile::{Compiler, StExpr};
 use crate::compile::body::builder::StmtBuilder;
 use crate::compile::symbol_table::{SymbolTable, LocalVar};
@@ -100,7 +101,6 @@ fn generate_lambda_class<'a, 'b>(compiler: &mut Compiler<'a>,
   let funcv = generate_lambda_vararg(specs);
   let mut constructor_body = Vec::new();
   for var in closed_vars.iter() {
-    ////
     constructor_body.push(assign_to_compiler(var.name.to_string(), var.name.to_string()));
   }
   let r: i32  = specs.required.try_into().unwrap();
@@ -112,12 +112,11 @@ fn generate_lambda_class<'a, 'b>(compiler: &mut Compiler<'a>,
   let constructor =
     decl::FnDecl {
       name: String::from("_init"),
-      args: ArgList::required(closed_vars.iter().map(|x| x.name.to_owned()).collect()), ////
+      args: ArgList::required(closed_vars.iter().map(|x| x.name.to_owned()).collect()),
       body: constructor_body,
     };
   let mut class_body = vec!();
   for var in closed_vars {
-    ////
     class_body.push(Decl::VarDecl(var.name.clone(), None));
   }
   class_body.append(&mut vec!(
@@ -158,27 +157,34 @@ pub fn compile_lambda_stmt<'a>(compiler: &mut Compiler<'a>,
   // I want them in a consistent order for the constructor
   // function. I don't care which order, but I need an order, so
   // let's make a Vec now.
-  let closure_vars: Vec<_> = closure_vars.into_names().collect();
+  let closure_vars_vec: Vec<_> = closure_vars.names().collect();
 
   let mut lambda_table = SymbolTable::new();
   for arg in &gd_args {
-    ////
-    lambda_table.set_var(arg.0.to_owned(), LocalVar::read(arg.1.to_owned()));
+    lambda_table.set_var(arg.0.to_owned(), LocalVar::new(arg.1.to_owned(), closure_vars.get(&arg.0)));
   }
-  for var in &closure_vars {
+  for var in &closure_vars_vec {
     // Ensure the variable actually exists
     match table.get_var(var) {
-      None => return Err(Error::NoSuchVar(var.clone())),
-      Some(gdvar) => lambda_table.set_var(var.clone(), gdvar.to_owned()), // TODO Generate new names here
+      None => return Err(Error::NoSuchVar((*var).to_owned())),
+      Some(gdvar) => lambda_table.set_var((*var).to_owned(), gdvar.to_owned()), // TODO Generate new names here
     };
   }
 
-  let gd_closure_vars = closure_vars.iter().map(|ast_name| {
+  let gd_closure_vars = closure_vars_vec.iter().map(|ast_name| {
     lambda_table.get_var(&ast_name).unwrap_or_else(|| {
       panic!("Internal error compiling lambda variable {}", ast_name)
     }).to_owned()
   }).collect();
 
+  for arg in &gd_args {
+    if closure_vars.get(&arg.0) == AccessType::RW {
+      // Special behavior to wrap the argument in a cell.
+      lambda_builder.append(Stmt::Assign(Box::new(Expr::var(&arg.1)),
+                                         op::AssignOp::Eq,
+                                         Box::new(library::construct_cell(Expr::var(&arg.1)))));
+    }
+  }
   compiler.compile_stmt(&mut lambda_builder, &mut lambda_table, &stmt_wrapper::Return, body)?;
   let lambda_body = lambda_builder.build_into(builder);
   let class = generate_lambda_class(compiler, args.clone().into(), arglist, &gd_closure_vars, lambda_body, "_LambdaBlock");
