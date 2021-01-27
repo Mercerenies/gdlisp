@@ -12,6 +12,7 @@ use names::fresh::FreshNameGenerator;
 use crate::gdscript::expr::Expr;
 use crate::gdscript::stmt::Stmt;
 use crate::gdscript::decl::{self, Decl};
+use crate::gdscript::op;
 use crate::gdscript::library;
 use error::Error;
 use stmt_wrapper::StmtWrapper;
@@ -212,11 +213,19 @@ impl<'a> Compiler<'a> {
                       -> Result<(), Error> {
     match decl {
       IRDecl::FnDecl(ir::decl::FnDecl { name, args, body }) => {
+        let local_vars = body.get_locals();
         let gd_name = names::lisp_to_gd(&name);
         let (arglist, gd_args) = args.clone().into_gd_arglist(&mut self.gen);
         let mut stmt_builder = StmtBuilder::new();
-        ////
-        table.with_local_vars(&mut gd_args.clone().into_iter().map(|x| (x.0, LocalVar::read(x.1))), |table| {
+        for arg in &gd_args {
+          if local_vars.get(&arg.0).requires_cell() {
+            // Special behavior to wrap the argument in a cell.
+            stmt_builder.append(Stmt::Assign(Box::new(Expr::var(&arg.1)),
+                                             op::AssignOp::Eq,
+                                             Box::new(library::construct_cell(Expr::var(&arg.1)))));
+          }
+        }
+        table.with_local_vars(&mut gd_args.clone().into_iter().map(|x| (x.0.to_owned(), LocalVar::new(x.1, local_vars.get(&x.0)))), |table| {
           self.compile_stmt(&mut stmt_builder, table, &stmt_wrapper::Return, body)
         })?;
         let gd_body = stmt_builder.build_into(builder);
