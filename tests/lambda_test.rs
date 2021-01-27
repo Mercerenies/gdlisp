@@ -32,3 +32,16 @@ fn modifying_closure_test() {
   "#);
   assert_eq!(output, "\n1\n");
 }
+
+/* // TODO Function names aren't inherited inside lambdas yet
+#[test]
+#[ignore]
+fn modifying_closure_inside_lambda_test() {
+  // Basically, modifying_closure_test stuffed inside an extra lambda layer and then called.
+  let output = parse_and_run(r#"
+  ((let ((f (lambda (x) (funcall (lambda () (setq x 1))) x)))
+    (print (funcall f 0))))
+  "#);
+  assert_eq!(output, "\n1\n");
+}
+*/
