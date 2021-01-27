@@ -3,6 +3,7 @@ use super::literal;
 use super::arglist::ArgList;
 //use crate::gdscript::op::{self, UnaryOp, BinaryOp, OperatorHasInfo};
 use super::locals::{Locals, AccessType};
+use super::functions::Functions;
 
 use std::collections::HashSet;
 use std::collections::hash_map::RandomState;
@@ -33,69 +34,73 @@ impl Expr {
     Expr::IfStmt(Box::new(cond), Box::new(t), Box::new(f))
   }
 
-  // TODO We'll need a walk_locals for function names too. (FuncRef will respond to it)
-  fn walk_locals(&self, acc: &mut Locals) {
+  fn walk_locals(&self, acc_vars: &mut Locals, acc_fns: &mut Functions) {
     match self {
       Expr::LocalVar(s) => {
-        acc.visited(s, AccessType::Read);
+        acc_vars.visited(s, AccessType::Read);
       }
       Expr::Literal(_) => {}
 //      Expr::Subscript(a, b) => {
-//        a.walk_locals(acc);
-//        b.walk_locals(acc);
+//        a.walk_locals(acc_vars, acc_fns);
+//        b.walk_locals(acc_vars, acc_fns);
 //      }
       Expr::Progn(exprs) => {
         for expr in exprs {
-          expr.walk_locals(acc);
+          expr.walk_locals(acc_vars, acc_fns);
         }
       }
       Expr::IfStmt(c, t, f) => {
-        c.walk_locals(acc);
-        t.walk_locals(acc);
-        f.walk_locals(acc);
+        c.walk_locals(acc_vars, acc_fns);
+        t.walk_locals(acc_vars, acc_fns);
+        f.walk_locals(acc_vars, acc_fns);
       }
       Expr::CondStmt(clauses) => {
         for clause in clauses {
-          clause.0.walk_locals(acc);
+          clause.0.walk_locals(acc_vars, acc_fns);
           if let Some(body) = &clause.1 {
-            body.walk_locals(acc);
+            body.walk_locals(acc_vars, acc_fns);
           }
         }
       }
-      Expr::Call(_, args) => {
+      Expr::Call(name, args) => {
+        acc_fns.visited(name);
         for expr in args {
-          expr.walk_locals(acc);
+          expr.walk_locals(acc_vars, acc_fns);
         }
       }
       Expr::Let(clauses, body) => {
         let mut vars = HashSet::new();
         for clause in clauses {
           vars.insert(clause.0.to_owned());
-          clause.1.walk_locals(acc);
+          clause.1.walk_locals(acc_vars, acc_fns);
         }
         let mut local_scope = Locals::new();
-        body.walk_locals(&mut local_scope);
+        body.walk_locals(&mut local_scope, acc_fns);
         for var in local_scope.names() {
           if !vars.contains(var) {
-            acc.visited(var, local_scope.get(var));
+            acc_vars.visited(var, local_scope.get(var));
           }
         }
       }
       Expr::Lambda(args, body) => {
         let vars: HashSet<_, RandomState> = HashSet::from_iter(args.iter_vars().map(|x| x.to_owned()));
         let mut local_scope = Locals::new();
-        body.walk_locals(&mut local_scope);
+        body.walk_locals(&mut local_scope, acc_fns);
         for var in local_scope.names() {
           if !vars.contains(var) {
-            acc.visited(var, local_scope.get(var).closed());
+            acc_vars.visited(var, local_scope.get(var).closed());
           }
         }
       }
       Expr::Assign(s, expr) => {
-        acc.visited(s, AccessType::RW);
-        expr.walk_locals(acc);
+        acc_vars.visited(s, AccessType::RW);
+        expr.walk_locals(acc_vars, acc_fns);
       }
-      Expr::FuncRef(_) => {}
+      Expr::FuncRef(target) => {
+        match target {
+          FuncRefTarget::SimpleName(name) => acc_fns.visited(name),
+        }
+      }
     };
   }
 
@@ -104,7 +109,17 @@ impl Expr {
   // lambda arguments or let instantiations.
   pub fn get_locals(&self) -> Locals {
     let mut result = Locals::new();
-    self.walk_locals(&mut result);
+    let mut ignore = Functions::new();
+    self.walk_locals(&mut result, &mut ignore);
+    result
+  }
+
+  // Returns all of the function names which appear unbound in the
+  // current scope.
+  pub fn get_functions(&self) -> Functions {
+    let mut ignore = Locals::new();
+    let mut result = Functions::new();
+    self.walk_locals(&mut ignore, &mut result);
     result
   }
 
@@ -121,6 +136,10 @@ mod tests {
 
   fn lhash_rw(vec: Vec<(String, AccessType)>) -> Locals {
     Locals::from_hashmap(vec.into_iter().collect())
+  }
+
+  fn fhash(vec: Vec<String>) -> Functions {
+    Functions::from_hashset(vec.into_iter().collect())
   }
 
   fn nil() -> Expr {
@@ -198,6 +217,24 @@ mod tests {
     ));
     assert_eq!(e4.get_locals(), lhash_rw(vec!(("var".to_owned(), AccessType::RW))));
 
+  }
+
+  #[test]
+  fn test_functions_trivial() {
+    let e1 = Expr::Literal(Literal::Int(1));
+    assert_eq!(e1.get_functions(), fhash(vec!()));
+  }
+
+  #[test]
+  fn test_functions_calls() {
+    let e1 = Expr::Call("abc".to_owned(), vec!(Expr::Call("def".to_owned(), vec!())));
+    assert_eq!(e1.get_functions(), fhash(vec!("abc".to_owned(), "def".to_owned())));
+  }
+
+  #[test]
+  fn test_functions_ref() {
+    let e1 = Expr::FuncRef(FuncRefTarget::SimpleName("abc".to_owned()));
+    assert_eq!(e1.get_functions(), fhash(vec!("abc".to_owned())));
   }
 
 }
