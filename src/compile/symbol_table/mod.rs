@@ -80,13 +80,10 @@ impl LocalVar {
   }
 
   pub fn expr(&self) -> Expr {
-    match self.access_type {
-      AccessType::None | AccessType::Read | AccessType::RW => {
-        Expr::var(&self.name)
-      }
-      AccessType::ClosedRW => {
+    if self.access_type.requires_cell() {
         Expr::Attribute(Box::new(Expr::var(&self.name)), CELL_CONTENTS.to_owned())
-      }
+    } else {
+      Expr::var(&self.name)
     }
   }
 

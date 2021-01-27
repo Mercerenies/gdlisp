@@ -18,7 +18,6 @@ use stmt_wrapper::StmtWrapper;
 use symbol_table::{HasSymbolTable, SymbolTable, LocalVar};
 use symbol_table::function_call;
 use crate::ir;
-use crate::ir::locals::AccessType;
 use crate::ir::expr::FuncRefTarget;
 use special_form::lambda;
 
@@ -149,7 +148,7 @@ impl<'a> Compiler<'a> {
           let ast_name = ast_name.to_owned();
           let result_value = self.compile_expr(builder, table, &expr, NeedsResult::Yes)?.0;
           let result_value =
-            if closure_vars.get(&ast_name) >= AccessType::ClosedRW {
+            if closure_vars.get(&ast_name).requires_cell() {
               library::construct_cell(result_value)
             } else {
               result_value

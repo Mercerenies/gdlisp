@@ -3,25 +3,31 @@
 // closed over.
 
 use std::collections::HashMap;
-use std::cmp::max;
 
 #[derive(PartialEq, Eq, Debug, Clone)]
 pub struct Locals(HashMap<String, AccessType>);
 
 /*
- * This requires a bit of explanation. When we look at a variable, we
- * need to be able to tell what we're going to do with that variable.
- * The simplest answer is AccessType::None, which indicates the
- * variable is not used at all. AccessType::Read indicates that the
- * variable may be read but will not be assigned directly to.
- * AccessType::RW indicates that the variable may be read or written,
- * but it will not be written to while it's a closure variable.
- * Finally, AccessType::ClosedRW indicates that the variable may be
- * read / written even as a closure variable. The last distinction is
- * necessary so we know when to use Cell to wrap a variable.
+ * AccessType describes the different ways we can access a variable.
+ *
+ * + None - The variable is never accessed.
+ * + Read - The variable may be read directly.
+ * + RW - The variable may be read and written to directly.
+ * + ClosedRead - The variable may be read directly or from within a closure.
+ * + ClosedRW - The variable may be read and written to directly or from within a closure.
+ *
+ * These possibilities form a lattice as follows.
+ *
+ *   ClosedRW
+ *   /      \
+ *  RW    ClosedRead
+ *   \      /
+ *     Read
+ *      |
+ *     None
  */
-#[derive(PartialEq, Eq, PartialOrd, Ord, Debug, Clone, Copy)]
-pub enum AccessType { None, Read, RW, ClosedRW }
+#[derive(PartialEq, Eq, Debug, Clone, Copy)]
+pub enum AccessType { None, Read, RW, ClosedRead, ClosedRW }
 
 impl Locals {
 
@@ -38,7 +44,7 @@ impl Locals {
   }
 
   pub fn visited(&mut self, name: &str, access_type: AccessType) {
-    self.0.insert(name.to_owned(), max(self.get(name), access_type));
+    self.0.insert(name.to_owned(), AccessType::max(self.get(name), access_type));
   }
 
   pub fn remove(&mut self, name: &str) {
@@ -59,12 +65,36 @@ impl AccessType {
 
   // Use on a closure variable; if the access type inside of a lambda
   // is RW, then the access type outside the lambda is ClosedRW.
+  // Likewise, if it's Read, then on the outside it's ClosedRead.
   pub fn closed(&self) -> AccessType {
-    if *self == AccessType::RW {
-      AccessType::ClosedRW
-    } else {
-      *self
+    match *self {
+      AccessType::None => AccessType::None,
+      AccessType::Read | AccessType::ClosedRead => AccessType::ClosedRead,
+      AccessType::RW | AccessType::ClosedRW => AccessType::ClosedRW,
     }
+  }
+
+  pub fn requires_cell(&self) -> bool {
+    *self == AccessType::ClosedRW
+  }
+
+  pub fn max(a: AccessType, b: AccessType) -> AccessType {
+    if a == AccessType::None {
+      return b;
+    }
+    if b == AccessType::None {
+      return a;
+    }
+    if a == AccessType::Read {
+      return b;
+    }
+    if b == AccessType::Read {
+      return a;
+    }
+    if a == b {
+      return a;
+    }
+    return AccessType::ClosedRW;
   }
 
 }

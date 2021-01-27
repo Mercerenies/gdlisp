@@ -1,6 +1,5 @@
 
 use crate::ir;
-use crate::ir::locals::AccessType;
 use crate::compile::{Compiler, StExpr};
 use crate::compile::body::builder::StmtBuilder;
 use crate::compile::symbol_table::{SymbolTable, LocalVar};
@@ -178,7 +177,7 @@ pub fn compile_lambda_stmt<'a>(compiler: &mut Compiler<'a>,
   }).collect();
 
   for arg in &gd_args {
-    if closure_vars.get(&arg.0) >= AccessType::ClosedRW {
+    if closure_vars.get(&arg.0).requires_cell() {
       // Special behavior to wrap the argument in a cell.
       lambda_builder.append(Stmt::Assign(Box::new(Expr::var(&arg.1)),
                                          op::AssignOp::Eq,

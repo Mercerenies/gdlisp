@@ -207,4 +207,12 @@ pub fn assignment_test() {
   let result3 = parse_compile_and_output("(let ((x 1)) (lambda () (setq x 2)) (setq x 3))");
   assert_eq!(result3, "var x_0 = GDLisp.Cell.new(1)\nx_0.contents = 3\nreturn x_0.contents\n");
 
+  // No cell; read-only
+  let result4 = parse_compile_and_output("(let ((x 1)) (lambda () x) x)");
+  assert_eq!(result4, "var x_0 = 1\nreturn x_0\n");
+
+  // Cell; closure and access separately
+  let result5 = parse_compile_and_output("(let ((x 1)) (lambda () (setq x 1)) x)");
+  assert_eq!(result5, "var x_0 = GDLisp.Cell.new(1)\nreturn x_0.contents\n");
+
 }
