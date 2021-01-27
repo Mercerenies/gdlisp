@@ -116,11 +116,11 @@ mod tests {
   use literal::Literal;
 
   fn lhash(vec: Vec<String>) -> Locals {
-    Locals(vec.into_iter().map(|x| (x, AccessType::Read)).collect())
+    Locals::from_hashmap(vec.into_iter().map(|x| (x, AccessType::Read)).collect())
   }
 
   fn lhash_rw(vec: Vec<(String, AccessType)>) -> Locals {
-    Locals(vec.into_iter().collect())
+    Locals::from_hashmap(vec.into_iter().collect())
   }
 
   fn nil() -> Expr {

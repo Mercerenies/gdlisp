@@ -6,7 +6,7 @@ use std::collections::HashMap;
 use std::cmp::max;
 
 #[derive(PartialEq, Eq, Debug, Clone)]
-pub struct Locals(pub HashMap<String, AccessType>);
+pub struct Locals(HashMap<String, AccessType>);
 
 #[derive(PartialEq, Eq, PartialOrd, Ord, Debug, Clone, Copy)]
 pub enum AccessType { None, Read, RW }
@@ -15,6 +15,10 @@ impl Locals {
 
   pub fn new() -> Locals {
     Locals(HashMap::new())
+  }
+
+  pub fn from_hashmap(map: HashMap<String, AccessType>) -> Locals {
+    Locals(map)
   }
 
   pub fn get(&self, name: &str) -> AccessType {
