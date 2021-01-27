@@ -5,7 +5,7 @@ use gdlisp::compile::Compiler;
 use gdlisp::compile::stmt_wrapper;
 use gdlisp::compile::names::fresh::FreshNameGenerator;
 use gdlisp::compile::body::builder::StmtBuilder;
-use gdlisp::compile::symbol_table::SymbolTable;
+use gdlisp::compile::symbol_table::{LocalVar, SymbolTable};
 use gdlisp::compile::symbol_table::function_call::{FnCall, FnScope, FnSpecs};
 use gdlisp::parser;
 use gdlisp::ir;
@@ -18,7 +18,7 @@ fn bind_helper_symbols(table: &mut SymbolTable) {
   table.set_fn(String::from("foo1"), FnCall::unqualified(FnSpecs::new(1, 0, false), FnScope::Global, String::from("foo1")));
   table.set_fn(String::from("foo2"), FnCall::unqualified(FnSpecs::new(2, 0, false), FnScope::Global, String::from("foo2")));
   table.set_fn(String::from("bar"), FnCall::unqualified(FnSpecs::new(0, 0, false), FnScope::Global, String::from("bar")));
-  table.set_var(String::from("foobar"), String::from("foobar"));
+  table.set_var(String::from("foobar"), LocalVar::read(String::from("foobar")));
 }
 
 // TODO Currently, this panics if it fails. This is okay-ish, since

@@ -172,9 +172,10 @@ mod tests {
   fn test_vars() {
     let mut table = SymbolTable::new();
     assert_eq!(table.get_var("foo"), None);
-    assert_eq!(table.set_var("foo".to_owned(), "bar".to_owned()), None);
-    assert_eq!(table.get_var("foo"), Some("bar"));
-    assert_eq!(table.set_var("foo".to_owned(), "baz".to_owned()), Some("bar".to_owned()));
+    assert_eq!(table.set_var("foo".to_owned(), LocalVar::read("bar".to_owned())), None);
+    assert_eq!(table.get_var("foo"), Some(&LocalVar::read("bar".to_owned())));
+    assert_eq!(table.set_var("foo".to_owned(), LocalVar::read("baz".to_owned())),
+               Some(LocalVar::read("bar".to_owned())));
     table.del_var("foo");
     assert_eq!(table.get_var("foo"), None);
   }
@@ -182,10 +183,10 @@ mod tests {
   #[test]
   fn test_iter_vars() {
     let mut table = SymbolTable::new();
-    table.set_var("foo".to_owned(), "bar".to_owned());
-    table.set_var("foo1".to_owned(), "baz".to_owned());
-    table.set_var("foo2".to_owned(), "abcdef".to_owned());
-    let mut vec: Vec<_> = table.vars().collect();
+    table.set_var("foo".to_owned(), LocalVar::read("bar".to_owned()));
+    table.set_var("foo1".to_owned(), LocalVar::rw("baz".to_owned()));
+    table.set_var("foo2".to_owned(), LocalVar::read("abcdef".to_owned()));
+    let mut vec: Vec<_> = table.vars().map(|x| (x.0, x.1.name.borrow())).collect();
     vec.sort_unstable();
     assert_eq!(vec, vec!(("foo", "bar"), ("foo1", "baz"), ("foo2", "abcdef")));
   }

@@ -278,7 +278,7 @@ mod tests {
     table.set_fn(String::from("foo1"), FnCall::unqualified(FnSpecs::new(1, 0, false), FnScope::Global, String::from("foo1")));
     table.set_fn(String::from("foo"), FnCall::unqualified(FnSpecs::new(0, 0, false), FnScope::Global, String::from("foo")));
     table.set_fn(String::from("bar"), FnCall::unqualified(FnSpecs::new(0, 0, false), FnScope::Global, String::from("bar")));
-    table.set_var(String::from("foobar"), String::from("foobar"));
+    table.set_var(String::from("foobar"), LocalVar::read(String::from("foobar")));
   }
 
   fn compile_stmt(ast: &AST) -> Result<(Vec<Stmt>, Vec<Decl>), Error> {
