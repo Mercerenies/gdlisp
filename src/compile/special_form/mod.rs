@@ -5,9 +5,11 @@ use crate::ir;
 use crate::compile::{Compiler, StExpr, NeedsResult};
 use crate::compile::body::builder::StmtBuilder;
 use crate::compile::symbol_table::SymbolTable;
+use crate::compile::stmt_wrapper;
 use crate::compile::error::Error;
 use crate::gdscript::stmt::{self, Stmt};
 use crate::gdscript::expr::Expr;
+use crate::gdscript::literal::Literal;
 
 type IRExpr = ir::expr::Expr;
 
@@ -66,4 +68,34 @@ pub fn compile_cond_stmt<'a>(compiler: &mut Compiler<'a>,
   })?;
   builder.append_all(&mut body.into_iter());
   Ok(StExpr(result, false))
+}
+
+pub fn compile_while_stmt<'a>(compiler: &mut Compiler<'a>,
+                              builder: &mut StmtBuilder,
+                              table: &mut SymbolTable,
+                              cond: &IRExpr,
+                              body: &IRExpr,
+                              _needs_result: NeedsResult)
+                              -> Result<StExpr, Error> {
+  // If the condition fits in a single GDScript expression, then we'll
+  // just compile straight to a GDScript while loop. If not, then we
+  // need to compile to "while True:" and have a break statement when
+  // we check our conditional. So, to figure out whether the condition
+  // fits in a single expression, we'll compile it with a temporary
+  // builder and then ask that builder whether or not it received any
+  // statements.
+  let mut cond_builder = StmtBuilder::new();
+  let mut body_builder = StmtBuilder::new();
+  let mut cond_expr = compiler.compile_expr(&mut cond_builder, table, cond, NeedsResult::Yes)?.0;
+  let cond_body = cond_builder.build_into(builder);
+  if !cond_body.is_empty() {
+    // Compound while form
+    body_builder.append_all(&mut cond_body.into_iter());
+    body_builder.append(stmt::if_then(cond_expr, vec!(Stmt::BreakStmt)));
+    cond_expr = Expr::Literal(Literal::Bool(true));
+  }
+  compiler.compile_stmt(&mut body_builder, table, &stmt_wrapper::Vacuous, body)?;
+  let body = body_builder.build_into(builder);
+  builder.append(Stmt::WhileLoop(stmt::WhileLoop { condition: cond_expr, body: body }));
+  Ok(Compiler::nil_expr())
 }

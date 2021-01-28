@@ -16,6 +16,7 @@ pub enum Expr {
   Progn(Vec<Expr>),
   IfStmt(Box<Expr>, Box<Expr>, Box<Expr>),
   CondStmt(Vec<(Expr, Option<Expr>)>),
+  WhileStmt(Box<Expr>, Box<Expr>),
   Call(String, Vec<Expr>),
   Let(Vec<(String, Expr)>, Box<Expr>),
   Lambda(ArgList, Box<Expr>),
@@ -32,6 +33,10 @@ impl Expr {
 
   pub fn if_stmt(cond: Expr, t: Expr, f: Expr) -> Expr {
     Expr::IfStmt(Box::new(cond), Box::new(t), Box::new(f))
+  }
+
+  pub fn while_stmt(cond: Expr, body: Expr) -> Expr {
+    Expr::WhileStmt(Box::new(cond), Box::new(body))
   }
 
   fn walk_locals(&self, acc_vars: &mut Locals, acc_fns: &mut Functions) {
@@ -61,6 +66,10 @@ impl Expr {
             body.walk_locals(acc_vars, acc_fns);
           }
         }
+      }
+      Expr::WhileStmt(cond, body) => {
+        cond.walk_locals(acc_vars, acc_fns);
+        body.walk_locals(acc_vars, acc_fns);
       }
       Expr::Call(name, args) => {
         acc_fns.visited(name);

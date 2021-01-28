@@ -15,6 +15,7 @@ pub fn dispatch_form(head: &str,
     "progn" => progn_form(tail).map(Some),
     "if" => if_form(tail).map(Some),
     "cond" => cond_form(tail).map(Some),
+    "while" => while_form(tail).map(Some),
     "let" => let_form(tail).map(Some),
     "lambda" => lambda_form(tail).map(Some),
     "function" => function_form(tail).map(Some),
@@ -63,6 +64,16 @@ pub fn cond_form(tail: &[&AST])
     }
   }).collect::<Result<Vec<_>, _>>()?;
   Ok(Expr::CondStmt(body))
+}
+
+pub fn while_form(tail: &[&AST])
+               -> Result<Expr, Error> {
+  if tail.len() < 1 {
+    return Err(Error::TooFewArgs(String::from("while"), tail.len()));
+  }
+  let cond = compile_expr(tail[0])?;
+  let body = tail[1..].iter().map(|x| compile_expr(x)).collect::<Result<Vec<_>, _>>()?;
+  Ok(Expr::while_stmt(cond, Expr::Progn(body)))
 }
 
 pub fn let_form(tail: &[&AST])
