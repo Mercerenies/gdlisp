@@ -1,5 +1,6 @@
 
 pub mod function_call;
+pub mod call_magic;
 
 use function_call::FnCall;
 use crate::ir::locals::AccessType;
