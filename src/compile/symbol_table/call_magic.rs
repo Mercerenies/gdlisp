@@ -7,13 +7,17 @@
 // function is called directly (i.e. not through a funcref) then it
 // can trigger a special CallMagic which effectively inlines it.
 
+///// (Make this safely cloneable as a trait object or something, so
+//    we can include it in FnCall somehow)
+//    https://stackoverflow.com/questions/30353462/how-to-clone-a-struct-storing-a-boxed-trait-object
+
 use crate::gdscript::expr::Expr;
 use crate::gdscript::library;
 use crate::compile::error::Error;
 use super::function_call::FnCall;
 
 pub trait CallMagic {
-  fn compile(self, call: FnCall, args: Vec<Expr>) -> Result<Expr, Error>;
+  fn compile(&self, call: FnCall, args: Vec<Expr>) -> Result<Expr, Error>;
 }
 
 pub struct DefaultCall;
@@ -22,7 +26,7 @@ impl CallMagic for DefaultCall {
   // TODO Currently, this uses the GD name in error messages, which is
   // super wonky, especially for stdlib calls. Store the Lisp name and
   // use it for this.
-  fn compile(self, call: FnCall, mut args: Vec<Expr>) -> Result<Expr, Error> {
+  fn compile(&self, call: FnCall, mut args: Vec<Expr>) -> Result<Expr, Error> {
     let FnCall { scope: _, object, function, specs } = call;
     // First, check arity
     if args.len() < specs.min_arity() as usize {

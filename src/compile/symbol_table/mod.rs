@@ -3,17 +3,21 @@ pub mod function_call;
 pub mod call_magic;
 
 use function_call::FnCall;
+use call_magic::CallMagic;
 use crate::ir::locals::AccessType;
 use crate::gdscript::expr::Expr;
 use crate::gdscript::library::CELL_CONTENTS;
+use crate::util::debug_wrapper::DebugWrapper;
 
 use std::collections::HashMap;
 use std::borrow::Borrow;
+use std::rc::Rc;
 
 #[derive(Clone, Debug)]
 pub struct SymbolTable {
   locals: HashMap<String, LocalVar>,
   functions: HashMap<String, FnCall>,
+  magic_functions: HashMap<String, DebugWrapper<Rc<dyn CallMagic>>>,
 }
 
 #[derive(PartialEq, Eq, Clone, Debug)]
@@ -25,7 +29,7 @@ pub struct LocalVar {
 impl SymbolTable {
 
   pub fn new() -> SymbolTable {
-    SymbolTable { locals: HashMap::new(), functions: HashMap::new() }
+    SymbolTable { locals: HashMap::new(), functions: HashMap::new(), magic_functions: HashMap::new() }
   }
 
   pub fn get_var(&self, name: &str) -> Option<&LocalVar> {
@@ -52,12 +56,28 @@ impl SymbolTable {
     self.functions.remove(name);
   }
 
+  pub fn get_magic_fn(&self, name: &str) -> Option<&dyn CallMagic> {
+    self.magic_functions.get(name).map(|x| x.0.borrow())
+  }
+
+  pub fn set_magic_fn(&mut self, name: String, value: impl CallMagic + 'static) -> Option<Rc<dyn CallMagic>> {
+    self.magic_functions.insert(name, DebugWrapper(Rc::new(value))).map(|x| x.0)
+  }
+
+  pub fn del_magic_fn(&mut self, name: &str) {
+    self.magic_functions.remove(name);
+  }
+
   pub fn vars<'a>(&'a self) -> impl Iterator<Item=(&'a str, &'a LocalVar)> {
     return self.locals.iter().map(|x| (x.0.borrow(), x.1));
   }
 
   pub fn fns<'a>(&'a self) -> impl Iterator<Item=(&'a str, &'a FnCall)> {
     return self.functions.iter().map(|x| (x.0.borrow(), x.1));
+  }
+
+  pub fn magic_fns<'a>(&'a self) -> impl Iterator<Item=(&'a str, &'a (dyn CallMagic + 'a))> {
+    return self.magic_functions.iter().map(|x| (x.0.borrow(), (x.1).0.borrow()));
   }
 
 }
