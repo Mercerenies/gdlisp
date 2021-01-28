@@ -45,3 +45,10 @@ func funcall(f, args):
     if not (f is Function):
         push_error("Attempt to call non-function")
     return f.call_funcv(args)
+
+func plus(args):
+    var result = 0
+    while args is Cons:
+        result += args.car
+        args = args.cdr
+    return result

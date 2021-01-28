@@ -231,3 +231,9 @@ pub fn assignment_test() {
   assert_eq!(result5, "var x_0 = GDLisp.Cell.new(1)\nreturn x_0.contents\n");
 
 }
+
+#[test]
+pub fn arithmetic_compile_test() {
+  assert_eq!(parse_compile_and_output("(+)"), "return GDLisp.plus(GDLisp.Nil)\n");
+  assert_eq!(parse_compile_and_output("(+ 1)"), "return GDLisp.plus(GDLisp.Cons.new(1, GDLisp.Nil))\n");
+}

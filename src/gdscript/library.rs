@@ -44,4 +44,6 @@ pub fn bind_builtins(table: &mut SymbolTable) {
                FnCall::qualified(FnSpecs::new(2, 0, false), FnScope::Global, cons_class(), "new".to_owned()));
   table.set_fn("funcall".to_owned(),
                FnCall::qualified(FnSpecs::new(1, 0, true), FnScope::Global, gdlisp_root(), "funcall".to_owned()));
+  table.set_fn("+".to_owned(),
+               FnCall::qualified(FnSpecs::new(0, 0, true), FnScope::Global, gdlisp_root(), "plus".to_owned()));
 }
