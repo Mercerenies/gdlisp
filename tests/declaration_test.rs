@@ -88,3 +88,21 @@ static func run():
     return GDLisp.Nil
 "#);
 }
+
+#[test]
+pub fn mutually_recursive_test() {
+  assert_eq!(parse_compile_and_output("((defn foo () (bar)) (defn bar () (foo)))"), r#"extends Reference
+static func foo():
+    return bar()
+static func bar():
+    return foo()
+static func run():
+    return GDLisp.Nil
+"#);
+}
+
+#[test]
+#[should_panic]
+pub fn nonexistent_function_test() {
+  parse_compile_and_output("((defn foo () (bar)))");
+}
