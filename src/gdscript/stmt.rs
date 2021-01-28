@@ -13,6 +13,8 @@ pub enum Stmt {
   ForLoop(ForLoop),
   WhileLoop(WhileLoop),
   PassStmt,
+  BreakStmt,
+  ContinueStmt,
   MatchStmt(Expr, Vec<(Pattern, Vec<Stmt>)>),
   VarDecl(String, Expr),
   ReturnStmt(Expr),
@@ -87,6 +89,8 @@ impl Stmt {
         Ok(())
       }
       Stmt::PassStmt => write!(w, "pass\n"),
+      Stmt::BreakStmt => write!(w, "break\n"),
+      Stmt::ContinueStmt => write!(w, "continue\n"),
       Stmt::ForLoop(ForLoop { iter_var, collection, body }) => {
         write!(w, "for {} in {}:\n", iter_var, collection.to_gd())?;
         Stmt::write_gd_stmts(body, w, ind + 4)
