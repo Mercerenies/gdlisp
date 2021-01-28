@@ -5,7 +5,6 @@ pub mod error;
 pub mod stmt_wrapper;
 pub mod symbol_table;
 pub mod special_form;
-pub mod builtin;
 
 use body::builder::{CodeBuilder, StmtBuilder, HasDecls};
 use names::fresh::FreshNameGenerator;
@@ -122,7 +121,7 @@ impl<'a> Compiler<'a> {
         }
       }
       IRExpr::Progn(body) => {
-        let body: Vec<_> = body.iter().map(|x| x).collect(); // TODO Hilarious copy that should be removable.
+        let body: Vec<_> = body.iter().map(|x| x).collect();
         self.compile_stmts(builder, table, &body[..], needs_result)
       }
       IRExpr::IfStmt(c, t, f) => {
