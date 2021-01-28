@@ -41,6 +41,14 @@ pub struct WhileLoop {
   pub body: Vec<Stmt>,
 }
 
+pub fn if_then(cond: Expr, true_branch: Vec<Stmt>) -> Stmt {
+  Stmt::IfStmt(IfStmt {
+    if_clause: (cond, true_branch),
+    elif_clauses: vec!(),
+    else_clause: None,
+  })
+}
+
 pub fn if_else(cond: Expr, true_branch: Vec<Stmt>, false_branch: Vec<Stmt>) -> Stmt {
   Stmt::IfStmt(IfStmt {
     if_clause: (cond, true_branch),
