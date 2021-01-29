@@ -118,7 +118,7 @@ impl<'a> Compiler<'a> {
                        .map(|x| self.compile_expr(builder, table, x, NeedsResult::Yes))
                        .map(|x| x.map(|y| y.0))
                        .collect::<Result<Vec<_>, _>>()?;
-        Ok(StExpr(fcall.into_expr_with_magic(&*call_magic, args)?, SideEffects::ModifiesState))
+        Ok(StExpr(fcall.into_expr_with_magic(&*call_magic, builder, table, args)?, SideEffects::ModifiesState))
       }
       IRExpr::Let(clauses, body) => {
         let closure_vars = body.get_locals();

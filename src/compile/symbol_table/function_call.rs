@@ -1,7 +1,9 @@
 
 use crate::gdscript::expr::Expr;
 use crate::compile::error::Error;
+use crate::compile::body::builder::StmtBuilder;
 use super::call_magic::{CallMagic, DefaultCall};
+use super::SymbolTable;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct FnCall {
@@ -31,12 +33,21 @@ impl FnCall {
     FnCall { specs, scope, object: Some(Box::new(object)), function }
   }
 
-  pub fn into_expr(self, args: Vec<Expr>) -> Result<Expr, Error> {
-    self.into_expr_with_magic(&DefaultCall, args)
+  pub fn into_expr(self,
+                   builder: &mut StmtBuilder,
+                   table: &mut SymbolTable,
+                   args: Vec<Expr>)
+                   -> Result<Expr, Error> {
+    self.into_expr_with_magic(&DefaultCall, builder, table, args)
   }
 
-  pub fn into_expr_with_magic(self, magic: &dyn CallMagic, args: Vec<Expr>) -> Result<Expr, Error> {
-    magic.compile(self, args)
+  pub fn into_expr_with_magic(self,
+                              magic: &dyn CallMagic,
+                              builder: &mut StmtBuilder,
+                              table: &mut SymbolTable,
+                              args: Vec<Expr>)
+                              -> Result<Expr, Error> {
+    magic.compile(self, builder, table, args)
   }
 
 }
