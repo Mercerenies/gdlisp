@@ -5,6 +5,7 @@ pub mod error;
 pub mod stmt_wrapper;
 pub mod symbol_table;
 pub mod special_form;
+pub mod stateful;
 
 use body::builder::{CodeBuilder, StmtBuilder, HasDecls};
 use names::fresh::FreshNameGenerator;
@@ -21,6 +22,7 @@ use symbol_table::call_magic::{CallMagic, DefaultCall};
 use crate::ir;
 use crate::ir::expr::FuncRefTarget;
 use special_form::lambda;
+use stateful::{StExpr, NeedsResult};
 
 use dyn_clone;
 
@@ -30,41 +32,6 @@ type IRLiteral = ir::literal::Literal;
 
 pub struct Compiler<'a> {
   gen: FreshNameGenerator<'a>,
-}
-
-#[derive(Debug, Clone)]
-pub struct StExpr(pub Expr, pub bool); // An expression and a declaration of whether or not it's stateful.
-
-#[derive(Debug, PartialEq, Eq, Clone, Copy)]
-pub enum NeedsResult { No, Yes }
-
-impl From<NeedsResult> for bool {
-  fn from(s: NeedsResult) -> bool {
-    s == NeedsResult::Yes
-  }
-}
-
-impl From<bool> for NeedsResult {
-  fn from(b: bool) -> NeedsResult {
-    if b { NeedsResult::Yes } else { NeedsResult::No }
-  }
-}
-
-impl NeedsResult {
-  pub fn into_destination<'a>(self,
-                              compiler: &mut Compiler<'a>,
-                              builder: &mut StmtBuilder,
-                              prefix: &str)
-                              -> (Box<dyn StmtWrapper>, Expr) {
-    if self.into() {
-      let var_name = compiler.declare_var(builder, prefix, None);
-      let destination = Box::new(stmt_wrapper::AssignToVar(var_name.clone())) as Box<dyn StmtWrapper>;
-      (destination, Expr::Var(var_name))
-    } else {
-      let destination = Box::new(stmt_wrapper::Vacuous) as Box<dyn StmtWrapper>;
-      (destination, library::nil())
-    }
-  }
 }
 
 impl<'a> Compiler<'a> {
