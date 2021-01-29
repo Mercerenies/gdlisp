@@ -7,19 +7,20 @@
 // function is called directly (i.e. not through a funcref) then it
 // can trigger a special CallMagic which effectively inlines it.
 
-///// (Make this safely cloneable as a trait object or something, so
-//    we can include it in FnCall somehow)
-//    https://stackoverflow.com/questions/30353462/how-to-clone-a-struct-storing-a-boxed-trait-object
+use dyn_clone::{self, DynClone};
 
 use crate::gdscript::expr::Expr;
 use crate::gdscript::library;
 use crate::compile::error::Error;
 use super::function_call::FnCall;
 
-pub trait CallMagic {
+pub trait CallMagic : DynClone {
   fn compile(&self, call: FnCall, args: Vec<Expr>) -> Result<Expr, Error>;
 }
 
+dyn_clone::clone_trait_object!(CallMagic);
+
+#[derive(Clone)]
 pub struct DefaultCall;
 
 impl CallMagic for DefaultCall {

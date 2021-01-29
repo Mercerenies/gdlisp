@@ -11,13 +11,12 @@ use crate::util::debug_wrapper::DebugWrapper;
 
 use std::collections::HashMap;
 use std::borrow::Borrow;
-use std::rc::Rc;
 
 #[derive(Clone, Debug)]
 pub struct SymbolTable {
   locals: HashMap<String, LocalVar>,
   functions: HashMap<String, FnCall>,
-  magic_functions: HashMap<String, DebugWrapper<Rc<dyn CallMagic>>>,
+  magic_functions: HashMap<String, DebugWrapper<Box<dyn CallMagic>>>,
 }
 
 #[derive(PartialEq, Eq, Clone, Debug)]
@@ -60,8 +59,8 @@ impl SymbolTable {
     self.magic_functions.get(name).map(|x| x.0.borrow())
   }
 
-  pub fn set_magic_fn(&mut self, name: String, value: impl CallMagic + 'static) -> Option<Rc<dyn CallMagic>> {
-    self.magic_functions.insert(name, DebugWrapper(Rc::new(value))).map(|x| x.0)
+  pub fn set_magic_fn(&mut self, name: String, value: impl CallMagic + 'static) -> Option<Box<dyn CallMagic>> {
+    self.magic_functions.insert(name, DebugWrapper(Box::new(value))).map(|x| x.0)
   }
 
   pub fn del_magic_fn(&mut self, name: &str) {
