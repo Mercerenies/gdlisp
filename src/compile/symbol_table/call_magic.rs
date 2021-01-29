@@ -23,7 +23,7 @@
 use dyn_clone::{self, DynClone};
 
 use crate::gdscript::expr::Expr;
-use crate::gdscript::op::BinaryOp;
+use crate::gdscript::op;
 use crate::gdscript::library;
 use crate::compile::error::Error;
 use crate::util;
@@ -37,11 +37,14 @@ dyn_clone::clone_trait_object!(CallMagic);
 
 #[derive(Clone)]
 pub struct DefaultCall;
+#[derive(Clone)]
+pub struct MinusOperation;
 
+// Covers addition and multiplication, for instance
 #[derive(Clone)]
 pub struct CompileToBinOp {
   pub zero: Expr,
-  pub bin: BinaryOp,
+  pub bin: op::BinaryOp,
   pub assoc: Assoc,
 }
 
@@ -91,6 +94,20 @@ impl CallMagic for CompileToBinOp {
           util::fold1(args.into_iter().rev(), |x, y| Expr::Binary(Box::new(y), self.bin, Box::new(x)))
         }
       }.unwrap())
+    }
+  }
+}
+
+impl CallMagic for MinusOperation {
+  fn compile(&self, call: FnCall, args: Vec<Expr>) -> Result<Expr, Error> {
+    match args.len() {
+      0 => Err(Error::TooFewArgs(call.function, args.len())),
+      1 => Ok(Expr::Unary(op::UnaryOp::Negate, Box::new(args[0].clone()))),
+      _ => {
+        Ok(
+          util::fold1(args.into_iter(), |x, y| Expr::Binary(Box::new(x), op::BinaryOp::Sub, Box::new(y))).unwrap()
+        )
+      }
     }
   }
 }

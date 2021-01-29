@@ -66,3 +66,13 @@ func times(args):
         result *= args.car
         args = args.cdr
     return result
+
+func minus(x, args):
+    if not (args is Cons):
+        return - x
+    else:
+        var result = x
+        while args is Cons:
+            result -= args.car
+            args = args.cdr
+        return result

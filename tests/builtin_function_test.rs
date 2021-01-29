@@ -92,3 +92,33 @@ fn multiplication_test_indirect_2() {
 fn multiplication_test_indirect_3() {
   assert_eq!(parse_and_run("((print (funcall (function *) 3)))"), "\n3\n");
 }
+
+#[test]
+#[ignore]
+fn subtraction_test_1() {
+  assert_eq!(parse_and_run("((print (- 4)))"), "\n-4\n");
+}
+
+#[test]
+#[ignore]
+fn subtraction_test_2() {
+  assert_eq!(parse_and_run("((print (- 4 3)))"), "\n1\n");
+}
+
+#[test]
+#[ignore]
+fn subtraction_test_3() {
+  assert_eq!(parse_and_run("((print (- 4 3 2)))"), "\n-1\n");
+}
+
+#[test]
+#[ignore]
+fn subtraction_test_indirect_1() {
+  assert_eq!(parse_and_run("((print (funcall (function -) 4 3 2)))"), "\n-1\n");
+}
+
+#[test]
+#[ignore]
+fn subtraction_test_indirect_2() {
+  assert_eq!(parse_and_run("((print (funcall (function -) 3)))"), "\n-3\n");
+}
