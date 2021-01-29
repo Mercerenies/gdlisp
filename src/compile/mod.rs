@@ -22,7 +22,7 @@ use symbol_table::call_magic::{CallMagic, DefaultCall};
 use crate::ir;
 use crate::ir::expr::FuncRefTarget;
 use special_form::lambda;
-use stateful::{StExpr, NeedsResult};
+use stateful::{StExpr, NeedsResult, SideEffects};
 
 use dyn_clone;
 
@@ -81,13 +81,13 @@ impl<'a> Compiler<'a> {
     match expr {
       IRExpr::LocalVar(s) => {
         table.get_var(s).ok_or_else(|| Error::NoSuchVar(s.clone())).map(|var| {
-          StExpr(var.expr(), false)
+          StExpr(var.expr(), SideEffects::from(var.access_type))
         })
       }
       IRExpr::Literal(lit) => {
         match lit {
           IRLiteral::Nil => Ok(Compiler::nil_expr()),
-          IRLiteral::Int(n) => Ok(StExpr(Expr::from(*n), false)),
+          IRLiteral::Int(n) => Ok(StExpr(Expr::from(*n), SideEffects::None)),
         }
       }
       IRExpr::Progn(body) => {
@@ -118,7 +118,7 @@ impl<'a> Compiler<'a> {
                        .map(|x| self.compile_expr(builder, table, x, NeedsResult::Yes))
                        .map(|x| x.map(|y| y.0))
                        .collect::<Result<Vec<_>, _>>()?;
-        Ok(StExpr(fcall.into_expr_with_magic(&*call_magic, args)?, true))
+        Ok(StExpr(fcall.into_expr_with_magic(&*call_magic, args)?, SideEffects::ModifiesState))
       }
       IRExpr::Let(clauses, body) => {
         let closure_vars = body.get_locals();
@@ -153,7 +153,7 @@ impl<'a> Compiler<'a> {
       IRExpr::Assign(name, expr) => {
         let var = table.get_var(name).ok_or_else(|| Error::NoSuchVar(name.clone()))?.to_owned();
         self.compile_stmt(builder, table, &stmt_wrapper::AssignToExpr(var.expr()), expr)?;
-        Ok(StExpr(var.expr(), false))
+        Ok(StExpr(var.expr(), SideEffects::from(var.access_type)))
       }
       /* // This will eventually be an optimization.
       IRExpr::Funcall(f, args) => {
@@ -170,7 +170,7 @@ impl<'a> Compiler<'a> {
   }
 
   pub fn nil_expr() -> StExpr {
-    StExpr(library::nil(), false)
+    StExpr(library::nil(), SideEffects::None)
   }
 
   pub fn name_generator(&mut self) -> &mut FreshNameGenerator<'a> {

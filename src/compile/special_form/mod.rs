@@ -7,6 +7,7 @@ use crate::compile::body::builder::StmtBuilder;
 use crate::compile::symbol_table::SymbolTable;
 use crate::compile::stmt_wrapper;
 use crate::compile::error::Error;
+use crate::compile::stateful::SideEffects;
 use crate::gdscript::stmt::{self, Stmt};
 use crate::gdscript::expr::Expr;
 use crate::gdscript::literal::Literal;
@@ -30,7 +31,7 @@ pub fn compile_if_stmt<'a>(compiler: &mut Compiler<'a>,
   let true_body  =  true_builder.build_into(builder);
   let false_body = false_builder.build_into(builder);
   builder.append(stmt::if_else(cond_expr, true_body, false_body));
-  Ok(StExpr(result, false))
+  Ok(StExpr(result, SideEffects::None))
 }
 
 pub fn compile_cond_stmt<'a>(compiler: &mut Compiler<'a>,
@@ -50,7 +51,7 @@ pub fn compile_cond_stmt<'a>(compiler: &mut Compiler<'a>,
         let mut inner_builder = StmtBuilder::new();
         let cond = compiler.compile_expr(&mut outer_builder, table, cond, NeedsResult::Yes)?.0;
         let var_name = compiler.declare_var(&mut outer_builder, "_cond", Some(cond));
-        destination.wrap_to_builder(&mut inner_builder, StExpr(Expr::Var(var_name.clone()), false));
+        destination.wrap_to_builder(&mut inner_builder, StExpr(Expr::Var(var_name.clone()), SideEffects::None));
         let if_branch = inner_builder.build_into(builder);
         outer_builder.append(stmt::if_else(Expr::Var(var_name.clone()), if_branch, acc));
         Ok(outer_builder.build_into(builder))
@@ -67,7 +68,7 @@ pub fn compile_cond_stmt<'a>(compiler: &mut Compiler<'a>,
     }
   })?;
   builder.append_all(&mut body.into_iter());
-  Ok(StExpr(result, false))
+  Ok(StExpr(result, SideEffects::None))
 }
 
 pub fn compile_while_stmt<'a>(compiler: &mut Compiler<'a>,

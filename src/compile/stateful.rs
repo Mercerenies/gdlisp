@@ -4,9 +4,13 @@ use super::stmt_wrapper::{self, StmtWrapper};
 use super::body::builder::StmtBuilder;
 use crate::gdscript::expr::Expr;
 use crate::gdscript::library;
+use crate::ir::locals::AccessType;
 
 #[derive(Debug, Clone)]
-pub struct StExpr(pub Expr, pub bool); // An expression and a declaration of whether or not it's stateful.
+pub struct StExpr(pub Expr, pub SideEffects); // An expression and a declaration of whether or not it's stateful.
+
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone, Copy)]
+pub enum SideEffects { None, ReadsState, ModifiesState }
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub enum NeedsResult { No, Yes }
@@ -36,6 +40,31 @@ impl NeedsResult {
     } else {
       let destination = Box::new(stmt_wrapper::Vacuous) as Box<dyn StmtWrapper>;
       (destination, library::nil())
+    }
+  }
+}
+
+impl SideEffects {
+  pub fn reads_state(&self) -> bool {
+    *self >= SideEffects::ReadsState
+  }
+  pub fn modifies_state(&self) -> bool {
+    *self >= SideEffects::ModifiesState
+  }
+}
+
+// If we're writing to a variable, then the side effect is obviously
+// ModifiesState and this From instance should not be used. If we're
+// reading from a variable, then we can convert the AccessType of that
+// variable into a SideEffects by determining whether or not the
+// variable is ever modified (x.is_written_to) to figure out if we're
+// querying mutable state or simply accessing a constant value.
+impl From<AccessType> for SideEffects {
+  fn from(x: AccessType) -> SideEffects {
+    if x.is_written_to() {
+      SideEffects::ReadsState
+    } else {
+      SideEffects::None
     }
   }
 }

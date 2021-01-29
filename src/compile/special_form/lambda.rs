@@ -6,6 +6,7 @@ use crate::compile::symbol_table::{SymbolTable, LocalVar};
 use crate::compile::symbol_table::function_call::{FnCall, FnSpecs, FnScope};
 use crate::compile::stmt_wrapper;
 use crate::compile::error::Error;
+use crate::compile::stateful::SideEffects;
 use crate::gdscript::stmt::{self, Stmt};
 use crate::gdscript::expr::Expr;
 use crate::gdscript::decl::{self, Decl};
@@ -200,7 +201,7 @@ pub fn compile_lambda_stmt<'a>(compiler: &mut Compiler<'a>,
   builder.add_helper(Decl::ClassDecl(class));
   let constructor_args = gd_closure_vars.into_iter().map(|s| Expr::Var(s.name.to_owned())).collect();
   let expr = Expr::Call(Some(Box::new(Expr::Var(class_name))), String::from("new"), constructor_args);
-  Ok(StExpr(expr, false))
+  Ok(StExpr(expr, SideEffects::None))
 }
 
 pub fn compile_function_ref<'a>(compiler: &mut Compiler<'a>,
@@ -223,7 +224,7 @@ pub fn compile_function_ref<'a>(compiler: &mut Compiler<'a>,
   let class_name = class.name.clone();
   builder.add_helper(Decl::ClassDecl(class));
   let expr = Expr::Call(Some(Box::new(Expr::Var(class_name))), String::from("new"), vec!());
-  Ok(StExpr(expr, false))
+  Ok(StExpr(expr, SideEffects::None))
 }
 
 #[cfg(test)]

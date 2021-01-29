@@ -78,6 +78,10 @@ impl AccessType {
     *self == AccessType::ClosedRW
   }
 
+  pub fn is_written_to(&self) -> bool {
+    *self == AccessType::ClosedRW || *self == AccessType::RW
+  }
+
   pub fn max(a: AccessType, b: AccessType) -> AccessType {
     if a == AccessType::None {
       return b;
