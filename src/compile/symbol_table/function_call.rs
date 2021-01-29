@@ -35,7 +35,7 @@ impl FnCall {
     self.into_expr_with_magic(&DefaultCall, args)
   }
 
-  pub fn into_expr_with_magic(self, magic: &impl CallMagic, args: Vec<Expr>) -> Result<Expr, Error> {
+  pub fn into_expr_with_magic(self, magic: &dyn CallMagic, args: Vec<Expr>) -> Result<Expr, Error> {
     magic.compile(self, args)
   }
 

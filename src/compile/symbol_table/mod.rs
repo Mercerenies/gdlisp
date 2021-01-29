@@ -16,7 +16,7 @@ use std::borrow::Borrow;
 pub struct SymbolTable {
   locals: HashMap<String, LocalVar>,
   functions: HashMap<String, FnCall>,
-  magic_functions: HashMap<String, DebugWrapper<Box<dyn CallMagic>>>,
+  magic_functions: HashMap<String, DebugWrapper<Box<dyn CallMagic + 'static>>>,
 }
 
 #[derive(PartialEq, Eq, Clone, Debug)]
@@ -55,11 +55,12 @@ impl SymbolTable {
     self.functions.remove(name);
   }
 
-  pub fn get_magic_fn(&self, name: &str) -> Option<&dyn CallMagic> {
+  pub fn get_magic_fn(&self, name: &str) -> Option<&(dyn CallMagic + 'static)> {
     self.magic_functions.get(name).map(|x| x.0.borrow())
   }
 
-  pub fn set_magic_fn(&mut self, name: String, value: impl CallMagic + 'static) -> Option<Box<dyn CallMagic>> {
+  pub fn set_magic_fn(&mut self, name: String, value: impl CallMagic + 'static)
+                      -> Option<Box<dyn CallMagic + 'static>> {
     self.magic_functions.insert(name, DebugWrapper(Box::new(value))).map(|x| x.0)
   }
 
@@ -75,7 +76,7 @@ impl SymbolTable {
     return self.functions.iter().map(|x| (x.0.borrow(), x.1));
   }
 
-  pub fn magic_fns<'a>(&'a self) -> impl Iterator<Item=(&'a str, &'a (dyn CallMagic + 'a))> {
+  pub fn magic_fns<'a>(&'a self) -> impl Iterator<Item=(&'a str, &'a (dyn CallMagic + 'static))> {
     return self.magic_functions.iter().map(|x| (x.0.borrow(), (x.1).0.borrow()));
   }
 

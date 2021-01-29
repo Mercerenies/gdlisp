@@ -2,8 +2,10 @@
 // Convenient access to the builtins in GDLisp.gd
 
 use super::expr::Expr;
+use super::op;
 use crate::compile::symbol_table::SymbolTable;
 use crate::compile::symbol_table::function_call::{FnCall, FnScope, FnSpecs};
+use crate::compile::symbol_table::call_magic;
 
 pub const GDLISP_NAME: &'static str = "GDLisp";
 
@@ -40,10 +42,23 @@ pub fn construct_cell(expr: Expr) -> Expr {
 }
 
 pub fn bind_builtins(table: &mut SymbolTable) {
+
+  // Cons
   table.set_fn("cons".to_owned(),
                FnCall::qualified(FnSpecs::new(2, 0, false), FnScope::Global, cons_class(), "new".to_owned()));
+
+  // Funcall
   table.set_fn("funcall".to_owned(),
                FnCall::qualified(FnSpecs::new(1, 0, true), FnScope::Global, gdlisp_root(), "funcall".to_owned()));
+
+  // + (Addition)
   table.set_fn("+".to_owned(),
                FnCall::qualified(FnSpecs::new(0, 0, true), FnScope::Global, gdlisp_root(), "plus".to_owned()));
+  table.set_magic_fn("+".to_owned(),
+                     call_magic::CompileToBinOp {
+                       zero: Expr::from(0),
+                       bin: op::BinaryOp::Add,
+                       assoc: call_magic::Assoc::Left,
+                     });
+
 }

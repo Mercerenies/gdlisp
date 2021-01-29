@@ -234,6 +234,8 @@ pub fn assignment_test() {
 
 #[test]
 pub fn arithmetic_compile_test() {
-  assert_eq!(parse_compile_and_output("(+)"), "return GDLisp.plus(GDLisp.Nil)\n");
-  assert_eq!(parse_compile_and_output("(+ 1)"), "return GDLisp.plus(GDLisp.Cons.new(1, GDLisp.Nil))\n");
+  assert_eq!(parse_compile_and_output("(+)"), "return 0\n");
+  assert_eq!(parse_compile_and_output("(+ 1)"), "return 1\n");
+  assert_eq!(parse_compile_and_output("(+ 1 2)"), "return 1 + 2\n");
+  assert_eq!(parse_compile_and_output("(+ 1 2 3)"), "return 1 + 2 + 3\n");
 }

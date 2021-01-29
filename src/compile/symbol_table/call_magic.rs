@@ -7,11 +7,26 @@
 // function is called directly (i.e. not through a funcref) then it
 // can trigger a special CallMagic which effectively inlines it.
 
+// For a good example, look at the + GDLisp function. In general, it
+// compiles to GDLisp.plus, which iterates over its arguments, adds
+// them, and returns the result. But, of course, (+ a b) shouldn't
+// require a for loop, so any time we call + with an arity known at
+// compile time (i.e. without invoking funcrefs or anything like
+// that), we can compile directly to the + operator in GDScript, which
+// is much more efficient.
+
+// Note that this is *not* general-purpose inlining, which I'll
+// implement later as a general pass over the IR. This is for the very
+// specific case of certain GDScript functions written in GDLisp.gd
+// which I know how to inline effectively by hand.
+
 use dyn_clone::{self, DynClone};
 
 use crate::gdscript::expr::Expr;
+use crate::gdscript::op::BinaryOp;
 use crate::gdscript::library;
 use crate::compile::error::Error;
+use crate::util;
 use super::function_call::FnCall;
 
 pub trait CallMagic : DynClone {
@@ -22,6 +37,16 @@ dyn_clone::clone_trait_object!(CallMagic);
 
 #[derive(Clone)]
 pub struct DefaultCall;
+
+#[derive(Clone)]
+pub struct CompileToBinOp {
+  pub zero: Expr,
+  pub bin: BinaryOp,
+  pub assoc: Assoc,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd)]
+pub enum Assoc { Left, Right }
 
 impl CallMagic for DefaultCall {
   // TODO Currently, this uses the GD name in error messages, which is
@@ -50,5 +75,22 @@ impl CallMagic for DefaultCall {
       args.push(rest);
     }
     Ok(Expr::Call(object, function, args))
+  }
+}
+
+impl CallMagic for CompileToBinOp {
+  fn compile(&self, _call: FnCall, args: Vec<Expr>) -> Result<Expr, Error> {
+    if args.is_empty() {
+      Ok(self.zero.clone())
+    } else {
+      Ok(match self.assoc {
+        Assoc::Left => {
+          util::fold1(args.into_iter(), |x, y| Expr::Binary(Box::new(x), self.bin, Box::new(y)))
+        }
+        Assoc::Right => {
+          util::fold1(args.into_iter().rev(), |x, y| Expr::Binary(Box::new(y), self.bin, Box::new(x)))
+        }
+      }.unwrap())
+    }
   }
 }

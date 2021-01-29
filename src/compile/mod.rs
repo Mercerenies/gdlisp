@@ -17,9 +17,12 @@ use error::Error;
 use stmt_wrapper::StmtWrapper;
 use symbol_table::{HasSymbolTable, SymbolTable, LocalVar};
 use symbol_table::function_call;
+use symbol_table::call_magic::{CallMagic, DefaultCall};
 use crate::ir;
 use crate::ir::expr::FuncRefTarget;
 use special_form::lambda;
+
+use dyn_clone;
 
 type IRDecl = ir::decl::Decl;
 type IRExpr = ir::expr::Expr;
@@ -138,11 +141,17 @@ impl<'a> Compiler<'a> {
           None => return Err(Error::NoSuchFn(f.clone())),
           Some(x) => x.clone(),
         };
+        // Call magic is used to implement some commonly used wrappers
+        // for simple GDScript operations.
+        let call_magic: Box<dyn CallMagic> = match table.get_magic_fn(f) {
+          None => Box::new(DefaultCall),
+          Some(x) => dyn_clone::clone_box(x),
+        };
         let args = args.into_iter()
                        .map(|x| self.compile_expr(builder, table, x, NeedsResult::Yes))
                        .map(|x| x.map(|y| y.0))
                        .collect::<Result<Vec<_>, _>>()?;
-        Ok(StExpr(fcall.into_expr(args)?, true))
+        Ok(StExpr(fcall.into_expr_with_magic(&*call_magic, args)?, true))
       }
       IRExpr::Let(clauses, body) => {
         let closure_vars = body.get_locals();
