@@ -41,6 +41,13 @@ class Cell:
 
 onready var Nil = NilClass.new()
 
+func length(x):
+    var result = 0
+    while x is Cons:
+        result += 1
+        x = x.cdr
+    return result
+
 func funcall(f, args):
     if not (f is Function):
         push_error("Attempt to call non-function")

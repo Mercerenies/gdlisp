@@ -247,3 +247,8 @@ pub fn multiplication_compile_test() {
   assert_eq!(parse_compile_and_output("(* 2 3)"), "return 2 * 3\n");
   assert_eq!(parse_compile_and_output("(* 2 3 4)"), "return 2 * 3 * 4\n");
 }
+
+#[test]
+pub fn simple_length_test() {
+  assert_eq!(parse_compile_and_output("(length ())"), "return GDLisp.length(GDLisp.Nil)\n");
+}

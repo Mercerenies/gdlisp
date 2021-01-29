@@ -47,6 +47,10 @@ pub fn bind_builtins(table: &mut SymbolTable) {
   table.set_fn("cons".to_owned(),
                FnCall::qualified(FnSpecs::new(2, 0, false), FnScope::Global, cons_class(), "new".to_owned()));
 
+  // Length
+  table.set_fn("length".to_owned(),
+               FnCall::qualified(FnSpecs::new(1, 0, false), FnScope::Global, gdlisp_root(), "length".to_owned()));
+
   // Funcall
   table.set_fn("funcall".to_owned(),
                FnCall::qualified(FnSpecs::new(1, 0, true), FnScope::Global, gdlisp_root(), "funcall".to_owned()));
