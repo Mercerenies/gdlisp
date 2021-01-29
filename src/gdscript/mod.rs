@@ -7,6 +7,7 @@ pub mod pattern;
 pub mod decl;
 pub mod arglist;
 pub mod library;
+pub mod expr_wrapper;
 
 use std::fmt;
 use std::convert::TryInto;
