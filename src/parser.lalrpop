@@ -23,7 +23,7 @@ match {
   "(", ")", ".",
 } else {
   // Currently reserved but unused: []{}`,'#;:.
-  r"[A-Za-z_~+=\-\\!@$%^&*<>][A-Za-z0-9_~+=\-\\!@$%^&*<>]*" => SYMBOL,
+  r"[A-Za-z_~+=\-\\!@$%^&*<>/][A-Za-z0-9_~+=\-\\!@$%^&*<>/]*" => SYMBOL,
 }
 
 pub AST: AST = {
