@@ -122,3 +122,63 @@ fn subtraction_test_indirect_1() {
 fn subtraction_test_indirect_2() {
   assert_eq!(parse_and_run("((print (funcall (function -) 3)))"), "\n-3\n");
 }
+
+#[test]
+#[ignore]
+fn division_test_1() {
+  assert_eq!(parse_and_run("((print (/ 4)))"), "\n0.25\n");
+}
+
+#[test]
+#[ignore]
+fn division_test_2() {
+  assert_eq!(parse_and_run("((print (/ 4 2)))"), "\n2\n");
+}
+
+#[test]
+#[ignore]
+fn division_test_3() {
+  assert_eq!(parse_and_run("((print (/ 4 2 2)))"), "\n1\n");
+}
+
+#[test]
+#[ignore]
+fn division_test_indirect_1() {
+  assert_eq!(parse_and_run("((print (funcall (function /) 4)))"), "\n0.25\n");
+}
+
+#[test]
+#[ignore]
+fn division_test_indirect_2() {
+  assert_eq!(parse_and_run("((print (funcall (function /) 3 2)))"), "\n1.5\n");
+}
+
+#[test]
+#[ignore]
+fn int_division_test_1() {
+  assert_eq!(parse_and_run("((print (div 4)))"), "\n0\n");
+}
+
+#[test]
+#[ignore]
+fn int_division_test_2() {
+  assert_eq!(parse_and_run("((print (div 4 2)))"), "\n2\n");
+}
+
+#[test]
+#[ignore]
+fn int_division_test_3() {
+  assert_eq!(parse_and_run("((print (div 4 2 2)))"), "\n1\n");
+}
+
+#[test]
+#[ignore]
+fn int_division_test_indirect_1() {
+  assert_eq!(parse_and_run("((print (funcall (function div) 4)))"), "\n0\n");
+}
+
+#[test]
+#[ignore]
+fn int_division_test_indirect_2() {
+  assert_eq!(parse_and_run("((print (funcall (function div) 3 2)))"), "\n1\n");
+}

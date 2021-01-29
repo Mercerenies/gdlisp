@@ -256,6 +256,21 @@ pub fn subtraction_compile_test() {
 }
 
 #[test]
+pub fn division_compile_test() {
+  assert_eq!(parse_compile_and_output("(/ 2)"), "return 1 / float(2)\n");
+  assert_eq!(parse_compile_and_output("(/ 2 3)"), "return float(2) / float(3)\n");
+  assert_eq!(parse_compile_and_output("(/ 2 3 4)"), "return float(2) / float(3) / float(4)\n");
+}
+
+#[test]
+pub fn int_division_compile_test() {
+  assert_eq!(parse_compile_and_output("(div 2)"), "return 1 / 2\n");
+  assert_eq!(parse_compile_and_output("(div 2 3)"), "return 2 / 3\n");
+  assert_eq!(parse_compile_and_output("(div 2 3 4)"), "return 2 / 3 / 4\n");
+  assert_eq!(parse_compile_and_output("(div foobar 3 4)"), "return int(foobar) / 3 / 4\n");
+}
+
+#[test]
 pub fn simple_length_test() {
   assert_eq!(parse_compile_and_output("(length ())"), "return GDLisp.length(GDLisp.Nil)\n");
 }

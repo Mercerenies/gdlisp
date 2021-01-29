@@ -76,3 +76,23 @@ func minus(x, args):
             result -= args.car
             args = args.cdr
         return result
+
+func div(x, args):
+    if not (args is Cons):
+        return 1.0 / float(x)
+    else:
+        var result = float(x)
+        while args is Cons:
+            result /= float(args.car)
+            args = args.cdr
+        return result
+
+func intdiv(x, args):
+    if not (args is Cons):
+        return 1 / int(x)
+    else:
+        var result = int(x)
+        while args is Cons:
+            result /= int(args.car)
+            args = args.cdr
+        return result

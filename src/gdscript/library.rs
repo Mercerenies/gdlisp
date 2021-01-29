@@ -78,7 +78,16 @@ pub fn bind_builtins(table: &mut SymbolTable) {
   // - (Subtraction)
   table.set_fn("-".to_owned(),
                FnCall::qualified(FnSpecs::new(1, 0, true), FnScope::Global, gdlisp_root(), "minus".to_owned()));
-  table.set_magic_fn("-".to_owned(),
-                     call_magic::MinusOperation);
+  table.set_magic_fn("-".to_owned(), call_magic::MinusOperation);
+
+  // / (Division)
+  table.set_fn("/".to_owned(),
+               FnCall::qualified(FnSpecs::new(1, 0, true), FnScope::Global, gdlisp_root(), "div".to_owned()));
+  table.set_magic_fn("/".to_owned(), call_magic::DivOperation);
+
+  // div (Integer Division)
+  table.set_fn("div".to_owned(),
+               FnCall::qualified(FnSpecs::new(1, 0, true), FnScope::Global, gdlisp_root(), "intdiv".to_owned()));
+  table.set_magic_fn("div".to_owned(), call_magic::IntDivOperation);
 
 }

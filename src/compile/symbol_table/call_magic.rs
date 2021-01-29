@@ -25,6 +25,7 @@ use dyn_clone::{self, DynClone};
 use crate::gdscript::expr::Expr;
 use crate::gdscript::op;
 use crate::gdscript::library;
+use crate::gdscript::expr_wrapper;
 use crate::compile::error::Error;
 use crate::util;
 use super::function_call::FnCall;
@@ -39,6 +40,10 @@ dyn_clone::clone_trait_object!(CallMagic);
 pub struct DefaultCall;
 #[derive(Clone)]
 pub struct MinusOperation;
+#[derive(Clone)]
+pub struct DivOperation;
+#[derive(Clone)]
+pub struct IntDivOperation;
 
 // Covers addition and multiplication, for instance
 #[derive(Clone)]
@@ -107,6 +112,40 @@ impl CallMagic for MinusOperation {
         Ok(
           util::fold1(args.into_iter(), |x, y| Expr::Binary(Box::new(x), op::BinaryOp::Sub, Box::new(y))).unwrap()
         )
+      }
+    }
+  }
+}
+
+impl CallMagic for DivOperation {
+  fn compile(&self, call: FnCall, args: Vec<Expr>) -> Result<Expr, Error> {
+    match args.len() {
+      0 => Err(Error::TooFewArgs(call.function, args.len())),
+      1 => Ok(Expr::Binary(Box::new(Expr::from(1)),
+                           op::BinaryOp::Div,
+                           Box::new(expr_wrapper::float(args[0].clone())))),
+      _ => {
+        let result = util::fold1(args.into_iter().map(|x| Box::new(expr_wrapper::float(x))), |x, y| {
+          Box::new(Expr::Binary(x, op::BinaryOp::Div, y))
+        });
+        Ok(*result.unwrap())
+      }
+    }
+  }
+}
+
+impl CallMagic for IntDivOperation {
+  fn compile(&self, call: FnCall, args: Vec<Expr>) -> Result<Expr, Error> {
+    match args.len() {
+      0 => Err(Error::TooFewArgs(call.function, args.len())),
+      1 => Ok(Expr::Binary(Box::new(Expr::from(1)),
+                           op::BinaryOp::Div,
+                           Box::new(expr_wrapper::int(args[0].clone())))),
+      _ => {
+        let result = util::fold1(args.into_iter().map(|x| Box::new(expr_wrapper::int(x))), |x, y| {
+          Box::new(Expr::Binary(x, op::BinaryOp::Div, y))
+        });
+        Ok(*result.unwrap())
       }
     }
   }
