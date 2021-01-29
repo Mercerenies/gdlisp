@@ -233,9 +233,17 @@ pub fn assignment_test() {
 }
 
 #[test]
-pub fn arithmetic_compile_test() {
+pub fn addition_compile_test() {
   assert_eq!(parse_compile_and_output("(+)"), "return 0\n");
   assert_eq!(parse_compile_and_output("(+ 1)"), "return 1\n");
   assert_eq!(parse_compile_and_output("(+ 1 2)"), "return 1 + 2\n");
   assert_eq!(parse_compile_and_output("(+ 1 2 3)"), "return 1 + 2 + 3\n");
+}
+
+#[test]
+pub fn multiplication_compile_test() {
+  assert_eq!(parse_compile_and_output("(*)"), "return 1\n");
+  assert_eq!(parse_compile_and_output("(* 2)"), "return 2\n");
+  assert_eq!(parse_compile_and_output("(* 2 3)"), "return 2 * 3\n");
+  assert_eq!(parse_compile_and_output("(* 2 3 4)"), "return 2 * 3 * 4\n");
 }

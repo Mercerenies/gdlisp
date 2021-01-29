@@ -61,4 +61,14 @@ pub fn bind_builtins(table: &mut SymbolTable) {
                        assoc: call_magic::Assoc::Left,
                      });
 
+  // * (Multiplication)
+  table.set_fn("*".to_owned(),
+               FnCall::qualified(FnSpecs::new(0, 0, true), FnScope::Global, gdlisp_root(), "times".to_owned()));
+  table.set_magic_fn("*".to_owned(),
+                     call_magic::CompileToBinOp {
+                       zero: Expr::from(1),
+                       bin: op::BinaryOp::Times,
+                       assoc: call_magic::Assoc::Left,
+                     });
+
 }

@@ -52,3 +52,10 @@ func plus(args):
         result += args.car
         args = args.cdr
     return result
+
+func times(args):
+    var result = 1
+    while args is Cons:
+        result *= args.car
+        args = args.cdr
+    return result
