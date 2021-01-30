@@ -54,6 +54,8 @@ pub struct MinusOperation;
 pub struct DivOperation;
 #[derive(Clone)]
 pub struct IntDivOperation;
+#[derive(Clone)]
+pub struct NEqOperation { pub fallback: Box<dyn CallMagic> }
 
 // Covers addition and multiplication, for instance
 #[derive(Clone)]
@@ -242,6 +244,36 @@ impl CallMagic for IntDivOperation {
           Box::new(Expr::Binary(x, op::BinaryOp::Div, y))
         });
         Ok(*result.unwrap())
+      }
+    }
+  }
+}
+
+impl CallMagic for NEqOperation {
+  fn compile<'a>(&self,
+                 call: FnCall,
+                 compiler: &mut Compiler<'a>,
+                 builder: &mut StmtBuilder,
+                 table: &mut SymbolTable,
+                 args: Vec<StExpr>) -> Result<Expr, Error> {
+    // We only optimize for the 0, 1, and 2 argument cases. Any more
+    // arguments than that and the resulting expression would just be
+    // long and annoying, and it's simply easier to call the built-in
+    // anyway.
+    match args.len() {
+      0 => {
+        Err(Error::TooFewArgs(call.function, args.len()))
+      }
+      1 => {
+        // Dump to the builder as a simple statement if it's stateful.
+        (&stmt_wrapper::Vacuous).wrap_to_builder(builder, args[0].clone());
+        Ok(Expr::from(true))
+      }
+      2 => {
+        Ok(Expr::Binary(Box::new(args[0].0.clone()), op::BinaryOp::NE, Box::new(args[1].0.clone())))
+      }
+      _ => {
+        self.fallback.compile(call, compiler, builder, table, args)
       }
     }
   }

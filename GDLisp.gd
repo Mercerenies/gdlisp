@@ -136,3 +136,17 @@ func ge(x, args):
         x = args.car
         args = args.cdr
     return true
+
+func ne(x, args):
+    var outer = Cons.new(x, args)
+    while outer is Cons:
+        var inner = outer.cdr
+        while inner is Cons:
+            # Double negation here is hilariously nontrivial, as not
+            # (NaN != NaN) is true but NaN == NaN is false. Once
+            # again, NaN is hilarious and ridiculous.
+            if not (outer.car != inner.car):
+                return false
+            inner = inner.cdr
+        outer = outer.cdr
+    return true

@@ -254,3 +254,21 @@ fn le_test_indirect() {
 fn ge_test_indirect() {
   assert_eq!(parse_and_run("((print (funcall (function >=) 3 2 2 1)))"), "\nTrue\n");
 }
+
+#[test]
+#[ignore]
+fn ne_test_1() {
+  assert_eq!(parse_and_run("((print (/= 1 1 1)))"), "\nFalse\n");
+}
+
+#[test]
+#[ignore]
+fn ne_test_2() {
+  assert_eq!(parse_and_run("((print (/= 1 3 2)))"), "\nTrue\n");
+}
+
+#[test]
+#[ignore]
+fn ne_test_3() {
+  assert_eq!(parse_and_run("((print (/= 1 2 1)))"), "\nFalse\n");
+}

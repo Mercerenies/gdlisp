@@ -301,6 +301,14 @@ pub fn cmp_compile_test_stateful() {
 }
 
 #[test]
+pub fn ne_compile_test() {
+  assert_eq!(parse_compile_and_output("(/= 1)"), "return true\n");
+  assert_eq!(parse_compile_and_output("(/= (foo))"), "foo()\nreturn true\n");
+  assert_eq!(parse_compile_and_output("(/= 1 2)"), "return 1 != 2\n");
+  assert_eq!(parse_compile_and_output("(/= 1 2 3)"), "return GDLisp.ne(1, GDLisp.Cons.new(2, GDLisp.Cons.new(3, GDLisp.Nil)))\n");
+}
+
+#[test]
 pub fn simple_length_test() {
   assert_eq!(parse_compile_and_output("(length ())"), "return GDLisp.length(GDLisp.Nil)\n");
 }

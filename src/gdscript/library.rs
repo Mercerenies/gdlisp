@@ -115,4 +115,9 @@ pub fn bind_builtins(table: &mut SymbolTable) {
                FnCall::qualified(FnSpecs::new(1, 0, true), FnScope::Global, gdlisp_root(), "ge".to_owned()));
   table.set_magic_fn(">=".to_owned(), call_magic::CompileToTransCmp { bin: op::BinaryOp::GE });
 
+  // /= (Not Equal)
+  table.set_fn("/=".to_owned(),
+               FnCall::qualified(FnSpecs::new(1, 0, true), FnScope::Global, gdlisp_root(), "ne".to_owned()));
+  table.set_magic_fn("/=".to_owned(), call_magic::NEqOperation { fallback: Box::new(call_magic::DefaultCall) });
+
 }
