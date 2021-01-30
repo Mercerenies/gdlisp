@@ -15,8 +15,26 @@ pub struct FnCall {
   pub specs: FnSpecs,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum FnScope { Local, Global }
+// The ordering is defined by requirements. It is much easier to call
+// a Global function (as it requires no closure) and much harder to
+// call a Local function, so Local > Global. SemiGlobal has some
+// properties of both and requires a bit of care but generally does
+// not necessitate a closure.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+pub enum FnScope {
+  // A global function is defined at the global scope and will be
+  // compiled to a globally-scoped function.
+  Global,
+  // A semiglobal function is still local in scope from the GDLisp
+  // perspective, but it doesn't require any variable closures, so it
+  // will be promoted to a global function on the GDScript side, for
+  // efficiency reasons.
+  SemiGlobal,
+  // A local function is a closure which exists as a local variable on
+  // the GDScript side, very similar to a lambda but with different
+  // name resolution rules.
+  Local,
+}
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct FnSpecs {

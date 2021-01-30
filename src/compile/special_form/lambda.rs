@@ -175,8 +175,13 @@ pub fn compile_lambda_stmt<'a>(compiler: &mut Compiler<'a>,
     // Ensure the function actually exists
     match table.get_fn(func) {
       None => { return Err(Error::NoSuchFn(func.to_owned())) }
-      Some(       FnCall { scope: FnScope::Local , .. }) => { panic!("Not yet supported!"); } ////
-      Some(call @ FnCall { scope: FnScope::Global, .. }) => { lambda_table.set_fn(func.to_owned(), call.clone()); }
+      Some(call) => {
+        match call.scope {
+          FnScope::Local => { panic!("Not yet supported!"); } ////
+          FnScope::SemiGlobal => { panic!("Not yet supported!"); } ////
+          FnScope::Global => { lambda_table.set_fn(func.to_owned(), call.clone()); }
+        }
+      }
     }
   }
 
