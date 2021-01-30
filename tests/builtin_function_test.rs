@@ -230,3 +230,27 @@ fn eq_test_indirect_2() {
 fn eq_test_indirect_3() {
   assert_eq!(parse_and_run("((print (funcall (function =) 1 1 1)))"), "\nTrue\n");
 }
+
+#[test]
+#[ignore]
+fn lt_test_indirect() {
+  assert_eq!(parse_and_run("((print (funcall (function <) 1 2 3)))"), "\nTrue\n");
+}
+
+#[test]
+#[ignore]
+fn gt_test_indirect() {
+  assert_eq!(parse_and_run("((print (funcall (function >) 3 2 1)))"), "\nTrue\n");
+}
+
+#[test]
+#[ignore]
+fn le_test_indirect() {
+  assert_eq!(parse_and_run("((print (funcall (function <=) 1 2 2 3)))"), "\nTrue\n");
+}
+
+#[test]
+#[ignore]
+fn ge_test_indirect() {
+  assert_eq!(parse_and_run("((print (funcall (function >=) 3 2 2 1)))"), "\nTrue\n");
+}

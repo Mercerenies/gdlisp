@@ -285,6 +285,22 @@ pub fn eq_compile_test_stateful() {
 }
 
 #[test]
+pub fn cmp_compile_test() {
+  assert_eq!(parse_compile_and_output("(< 1 2)"), "return 1 < 2\n");
+  assert_eq!(parse_compile_and_output("(> 1 2 3)"), "return 1 > 2 && 2 > 3\n");
+  assert_eq!(parse_compile_and_output("(<= 1 2)"), "return 1 <= 2\n");
+  assert_eq!(parse_compile_and_output("(>= 1 2 3)"), "return 1 >= 2 && 2 >= 3\n");
+}
+
+#[test]
+pub fn cmp_compile_test_stateful() {
+  assert_eq!(parse_compile_and_output("(< (foo))"), "foo()\nreturn true\n");
+  assert_eq!(parse_compile_and_output("(<= (foo) (foo))"), "var _cmp_0 = foo()\nvar _cmp_1 = foo()\nreturn _cmp_0 <= _cmp_1\n");
+  assert_eq!(parse_compile_and_output("(> (foo) (foo) (foo))"), "var _cmp_0 = foo()\nvar _cmp_1 = foo()\nvar _cmp_2 = foo()\nreturn _cmp_0 > _cmp_1 && _cmp_1 > _cmp_2\n");
+  assert_eq!(parse_compile_and_output("(>= (foo) (foo))"), "var _cmp_0 = foo()\nvar _cmp_1 = foo()\nreturn _cmp_0 >= _cmp_1\n");
+}
+
+#[test]
 pub fn simple_length_test() {
   assert_eq!(parse_compile_and_output("(length ())"), "return GDLisp.length(GDLisp.Nil)\n");
 }

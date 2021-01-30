@@ -95,4 +95,24 @@ pub fn bind_builtins(table: &mut SymbolTable) {
                FnCall::qualified(FnSpecs::new(1, 0, true), FnScope::Global, gdlisp_root(), "eq".to_owned()));
   table.set_magic_fn("=".to_owned(), call_magic::CompileToTransCmp { bin: op::BinaryOp::Eq });
 
+  // < (Less Than)
+  table.set_fn("<".to_owned(),
+               FnCall::qualified(FnSpecs::new(1, 0, true), FnScope::Global, gdlisp_root(), "lt".to_owned()));
+  table.set_magic_fn("<".to_owned(), call_magic::CompileToTransCmp { bin: op::BinaryOp::LT });
+
+  // > (Greater Than)
+  table.set_fn(">".to_owned(),
+               FnCall::qualified(FnSpecs::new(1, 0, true), FnScope::Global, gdlisp_root(), "gt".to_owned()));
+  table.set_magic_fn(">".to_owned(), call_magic::CompileToTransCmp { bin: op::BinaryOp::GT });
+
+  // <= (Less Than or Equal)
+  table.set_fn("<=".to_owned(),
+               FnCall::qualified(FnSpecs::new(1, 0, true), FnScope::Global, gdlisp_root(), "le".to_owned()));
+  table.set_magic_fn("<=".to_owned(), call_magic::CompileToTransCmp { bin: op::BinaryOp::LE });
+
+  // >= (Greater Than or Equal)
+  table.set_fn(">=".to_owned(),
+               FnCall::qualified(FnSpecs::new(1, 0, true), FnScope::Global, gdlisp_root(), "ge".to_owned()));
+  table.set_magic_fn(">=".to_owned(), call_magic::CompileToTransCmp { bin: op::BinaryOp::GE });
+
 }

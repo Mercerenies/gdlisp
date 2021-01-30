@@ -99,7 +99,39 @@ func intdiv(x, args):
 
 func eq(x, args):
     while args is Cons:
-        if x != args.car:
+        if not (x == args.car):
+            return false
+        x = args.car
+        args = args.cdr
+    return true
+
+func lt(x, args):
+    while args is Cons:
+        if not (x < args.car):
+            return false
+        x = args.car
+        args = args.cdr
+    return true
+
+func gt(x, args):
+    while args is Cons:
+        if not (x > args.car):
+            return false
+        x = args.car
+        args = args.cdr
+    return true
+
+func le(x, args):
+    while args is Cons:
+        if not (x <= args.car):
+            return false
+        x = args.car
+        args = args.cdr
+    return true
+
+func ge(x, args):
+    while args is Cons:
+        if not (x >= args.car):
             return false
         x = args.car
         args = args.cdr
