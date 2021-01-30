@@ -181,6 +181,13 @@ pub fn compile_lambda_stmt<'a>(compiler: &mut Compiler<'a>,
           FnScope::Global => { lambda_table.set_fn(func.to_owned(), call.clone()); }
         }
       }
+    };
+    // And copy magic
+    match table.get_magic_fn(func) {
+      None => { return Err(Error::NoSuchFn(func.to_owned())) }
+      Some(magic) => {
+        lambda_table.set_magic_fn(func.to_owned(), dyn_clone::clone_box(magic));
+      }
     }
   }
 
