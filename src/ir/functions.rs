@@ -41,4 +41,8 @@ impl Functions {
     self.0.into_iter()
   }
 
+  pub fn is_empty(&self) -> bool {
+    self.0.is_empty()
+  }
+
 }

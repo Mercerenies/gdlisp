@@ -59,6 +59,10 @@ impl Locals {
     self.0.into_iter().map(|x| x.0)
   }
 
+  pub fn is_empty(&self) -> bool {
+    self.0.is_empty()
+  }
+
 }
 
 impl AccessType {
