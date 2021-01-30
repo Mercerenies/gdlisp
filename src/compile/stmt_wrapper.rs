@@ -44,7 +44,6 @@ pub trait StmtWrapper {
 
 pub struct Return;
 pub struct Vacuous;
-pub struct AssignToVar(pub String);
 pub struct AssignToExpr(pub Expr);
 
 impl StmtWrapper for Return {
@@ -65,13 +64,8 @@ impl StmtWrapper for Vacuous {
 
 }
 
-// TODO This should be an obsolete helper for AssignToExpr
-impl StmtWrapper for AssignToVar {
-  fn wrap_expr(&self, expr: Expr) -> Stmt {
-    let lhs = Box::new(Expr::Var(self.0.clone()));
-    let rhs = Box::new(expr);
-    Stmt::Assign(lhs, op::AssignOp::Eq, rhs)
-  }
+pub fn assign_to_var(s: String) -> AssignToExpr {
+  AssignToExpr(Expr::Var(s))
 }
 
 impl StmtWrapper for AssignToExpr {

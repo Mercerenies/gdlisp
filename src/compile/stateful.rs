@@ -35,7 +35,7 @@ impl NeedsResult {
                               -> (Box<dyn StmtWrapper>, Expr) {
     if self.into() {
       let var_name = compiler.declare_var(builder, prefix, None);
-      let destination = Box::new(stmt_wrapper::AssignToVar(var_name.clone())) as Box<dyn StmtWrapper>;
+      let destination = Box::new(stmt_wrapper::assign_to_var(var_name.clone())) as Box<dyn StmtWrapper>;
       (destination, Expr::Var(var_name))
     } else {
       let destination = Box::new(stmt_wrapper::Vacuous) as Box<dyn StmtWrapper>;
