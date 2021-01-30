@@ -1,7 +1,9 @@
 
 use crate::gdscript::expr::Expr;
+use crate::compile::Compiler;
 use crate::compile::error::Error;
 use crate::compile::body::builder::StmtBuilder;
+use crate::compile::stateful::StExpr;
 use super::call_magic::{CallMagic, DefaultCall};
 use super::SymbolTable;
 
@@ -33,21 +35,23 @@ impl FnCall {
     FnCall { specs, scope, object: Some(Box::new(object)), function }
   }
 
-  pub fn into_expr(self,
-                   builder: &mut StmtBuilder,
-                   table: &mut SymbolTable,
-                   args: Vec<Expr>)
-                   -> Result<Expr, Error> {
-    self.into_expr_with_magic(&DefaultCall, builder, table, args)
+  pub fn into_expr<'a>(self,
+                       compiler: &mut Compiler<'a>,
+                       builder: &mut StmtBuilder,
+                       table: &mut SymbolTable,
+                       args: Vec<StExpr>)
+                       -> Result<Expr, Error> {
+    self.into_expr_with_magic(&DefaultCall, compiler, builder, table, args)
   }
 
-  pub fn into_expr_with_magic(self,
-                              magic: &dyn CallMagic,
-                              builder: &mut StmtBuilder,
-                              table: &mut SymbolTable,
-                              args: Vec<Expr>)
-                              -> Result<Expr, Error> {
-    magic.compile(self, builder, table, args)
+  pub fn into_expr_with_magic<'a>(self,
+                                  magic: &dyn CallMagic,
+                                  compiler: &mut Compiler<'a>,
+                                  builder: &mut StmtBuilder,
+                                  table: &mut SymbolTable,
+                                  args: Vec<StExpr>)
+                                  -> Result<Expr, Error> {
+    magic.compile(self, compiler, builder, table, args)
   }
 
 }

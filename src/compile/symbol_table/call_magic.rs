@@ -26,18 +26,21 @@ use crate::gdscript::expr::Expr;
 use crate::gdscript::op;
 use crate::gdscript::library;
 use crate::gdscript::expr_wrapper;
+use crate::compile::Compiler;
 use crate::compile::error::Error;
 use crate::compile::body::builder::StmtBuilder;
+use crate::compile::stateful::StExpr;
 use crate::util;
 use super::function_call::FnCall;
 use super::SymbolTable;
 
 pub trait CallMagic : DynClone {
-  fn compile(&self,
-             call: FnCall,
-             builder: &mut StmtBuilder,
-             table: &mut SymbolTable,
-             args: Vec<Expr>) -> Result<Expr, Error>;
+  fn compile<'a>(&self,
+                 call: FnCall,
+                 compiler: &mut Compiler<'a>,
+                 builder: &mut StmtBuilder,
+                 table: &mut SymbolTable,
+                 args: Vec<StExpr>) -> Result<Expr, Error>;
 }
 
 dyn_clone::clone_trait_object!(CallMagic);
@@ -62,15 +65,24 @@ pub struct CompileToBinOp {
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd)]
 pub enum Assoc { Left, Right }
 
+// For most of these (but *not* all of them), we need Vec<Expr>, not
+// Vec<StExpr>. The latter gives more information than we usually
+// need. So this helper just strips off the excess.
+fn strip_st(x: Vec<StExpr>) -> Vec<Expr> {
+  x.into_iter().map(|x| x.0).collect()
+}
+
 impl CallMagic for DefaultCall {
   // TODO Currently, this uses the GD name in error messages, which is
   // super wonky, especially for stdlib calls. Store the Lisp name and
   // use it for this.
-  fn compile(&self,
-             call: FnCall,
-             _builder: &mut StmtBuilder,
-             _table: &mut SymbolTable,
-             mut args: Vec<Expr>) -> Result<Expr, Error> {
+  fn compile<'a>(&self,
+                 call: FnCall,
+                 _compiler: &mut Compiler<'a>,
+                 _builder: &mut StmtBuilder,
+                 _table: &mut SymbolTable,
+                 args: Vec<StExpr>) -> Result<Expr, Error> {
+    let mut args = strip_st(args);
     let FnCall { scope: _, object, function, specs } = call;
     // First, check arity
     if args.len() < specs.min_arity() as usize {
@@ -97,11 +109,13 @@ impl CallMagic for DefaultCall {
 }
 
 impl CallMagic for CompileToBinOp {
-  fn compile(&self,
-             _call: FnCall,
-             _builder: &mut StmtBuilder,
-             _table: &mut SymbolTable,
-             args: Vec<Expr>) -> Result<Expr, Error> {
+  fn compile<'a>(&self,
+                 _call: FnCall,
+                 _compiler: &mut Compiler<'a>,
+                 _builder: &mut StmtBuilder,
+                 _table: &mut SymbolTable,
+                 args: Vec<StExpr>) -> Result<Expr, Error> {
+    let args = strip_st(args);
     if args.is_empty() {
       Ok(self.zero.clone())
     } else {
@@ -118,11 +132,13 @@ impl CallMagic for CompileToBinOp {
 }
 
 impl CallMagic for MinusOperation {
-  fn compile(&self,
-             call: FnCall,
-             _builder: &mut StmtBuilder,
-             _table: &mut SymbolTable,
-             args: Vec<Expr>) -> Result<Expr, Error> {
+  fn compile<'a>(&self,
+                 call: FnCall,
+                 _compiler: &mut Compiler<'a>,
+                 _builder: &mut StmtBuilder,
+                 _table: &mut SymbolTable,
+                 args: Vec<StExpr>) -> Result<Expr, Error> {
+    let args = strip_st(args);
     match args.len() {
       0 => Err(Error::TooFewArgs(call.function, args.len())),
       1 => Ok(Expr::Unary(op::UnaryOp::Negate, Box::new(args[0].clone()))),
@@ -136,11 +152,13 @@ impl CallMagic for MinusOperation {
 }
 
 impl CallMagic for DivOperation {
-  fn compile(&self,
-             call: FnCall,
-             _builder: &mut StmtBuilder,
-             _table: &mut SymbolTable,
-             args: Vec<Expr>) -> Result<Expr, Error> {
+  fn compile<'a>(&self,
+                 call: FnCall,
+                 _compiler: &mut Compiler<'a>,
+                 _builder: &mut StmtBuilder,
+                 _table: &mut SymbolTable,
+                 args: Vec<StExpr>) -> Result<Expr, Error> {
+    let args = strip_st(args);
     match args.len() {
       0 => Err(Error::TooFewArgs(call.function, args.len())),
       1 => Ok(Expr::Binary(Box::new(Expr::from(1)),
@@ -157,11 +175,13 @@ impl CallMagic for DivOperation {
 }
 
 impl CallMagic for IntDivOperation {
-  fn compile(&self,
-             call: FnCall,
-             _builder: &mut StmtBuilder,
-             _table: &mut SymbolTable,
-             args: Vec<Expr>) -> Result<Expr, Error> {
+  fn compile<'a>(&self,
+                 call: FnCall,
+                 _compiler: &mut Compiler<'a>,
+                 _builder: &mut StmtBuilder,
+                 _table: &mut SymbolTable,
+                 args: Vec<StExpr>) -> Result<Expr, Error> {
+    let args = strip_st(args);
     match args.len() {
       0 => Err(Error::TooFewArgs(call.function, args.len())),
       1 => Ok(Expr::Binary(Box::new(Expr::from(1)),
