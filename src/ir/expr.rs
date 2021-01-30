@@ -19,6 +19,7 @@ pub enum Expr {
   WhileStmt(Box<Expr>, Box<Expr>),
   Call(String, Vec<Expr>),
   Let(Vec<(String, Expr)>, Box<Expr>),
+  FLet(Vec<(String, ArgList, Expr)>, Box<Expr>),
   Lambda(ArgList, Box<Expr>),
   FuncRef(FuncRefTarget),
   Assign(String, Box<Expr>),
@@ -88,6 +89,21 @@ impl Expr {
         for var in local_scope.names() {
           if !vars.contains(var) {
             acc_vars.visited(var, local_scope.get(var));
+          }
+        }
+      }
+      Expr::FLet(clauses, body) => {
+        let mut fns = HashSet::new();
+        for clause in clauses {
+          let (name, args, fbody) = clause;
+          fns.insert(name.to_owned());
+          Expr::Lambda(args.to_owned(), Box::new(fbody.to_owned())).walk_locals(acc_vars, acc_fns);
+        }
+        let mut local_scope = Functions::new();
+        body.walk_locals(acc_vars, &mut local_scope);
+        for func in local_scope.names() {
+          if !fns.contains(func) {
+            acc_fns.visited(func);
           }
         }
       }

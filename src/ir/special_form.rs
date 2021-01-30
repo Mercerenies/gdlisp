@@ -17,6 +17,7 @@ pub fn dispatch_form(head: &str,
     "cond" => cond_form(tail).map(Some),
     "while" => while_form(tail).map(Some),
     "let" => let_form(tail).map(Some),
+    "flet" => flet_form(tail).map(Some),
     "lambda" => lambda_form(tail).map(Some),
     "function" => function_form(tail).map(Some),
     "setq" => assign_form(tail).map(Some),
@@ -142,4 +143,28 @@ pub fn assign_form(tail: &[&AST])
   };
   let value = compile_expr(tail[1])?;
   Ok(Expr::Assign(var_name.clone(), Box::new(value)))
+}
+
+pub fn flet_form(tail: &[&AST])
+                 -> Result<Expr, Error> {
+  if tail.len() < 1 {
+    return Err(Error::TooFewArgs(String::from("flet"), tail.len()));
+  }
+  let fns: Vec<_> = DottedExpr::new(tail[0]).try_into()?;
+  let fn_clauses = fns.into_iter().map(|clause| {
+    let func: Vec<_> = DottedExpr::new(clause).try_into()?;
+    if func.len() < 2 {
+      return Err(Error::InvalidArg(String::from("flet"), clause.clone(), String::from("function declaration")));
+    }
+    let name = match func[0] {
+      AST::Symbol(s) => Ok(s.clone()),
+      _ => Err(Error::InvalidArg(String::from("flet"), (*clause).clone(), String::from("function declaration"))),
+    }?;
+    let args: Vec<_> = DottedExpr::new(func[1]).try_into()?;
+    let args = ArgList::parse(args)?;
+    let body = func[2..].into_iter().map(|expr| compile_expr(expr)).collect::<Result<Vec<_>, _>>()?;
+    Ok((name, args, Expr::Progn(body)))
+  }).collect::<Result<Vec<_>, _>>()?;
+  let body = tail[1..].into_iter().map(|expr| compile_expr(expr)).collect::<Result<Vec<_>, _>>()?;
+  Ok(Expr::FLet(fn_clauses, Box::new(Expr::Progn(body))))
 }

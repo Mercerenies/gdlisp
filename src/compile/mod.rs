@@ -138,6 +138,9 @@ impl<'a> Compiler<'a> {
           self.compile_expr(builder, table, body, needs_result)
         })
       }
+      IRExpr::FLet(clauses, body) => {
+        panic!("TBA") /////
+      }
       IRExpr::Lambda(args, body) => {
         lambda::compile_lambda_stmt(self, builder, table, args, body)
       }
