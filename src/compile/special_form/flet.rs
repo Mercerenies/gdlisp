@@ -1,12 +1,14 @@
 
 use crate::ir;
-use crate::compile::{Compiler, StExpr};
+use crate::compile::Compiler;
 use crate::compile::body::builder::StmtBuilder;
 use crate::compile::symbol_table::{HasSymbolTable, SymbolTable};
 use crate::compile::symbol_table::function_call::{FnCall, FnSpecs, FnScope};
 use crate::compile::error::Error;
-use crate::compile::stateful::NeedsResult;
+use crate::compile::stateful::{StExpr, NeedsResult};
 use crate::gdscript::decl::{self, Decl};
+use crate::gdscript::expr::Expr;
+use super::lambda;
 
 use std::convert::AsRef;
 
@@ -37,7 +39,16 @@ pub fn compile_flet<'a>(compiler: &mut Compiler<'a>,
       Ok((name.to_owned(), call))
     } else {
       // Have to make a full closure object.
-      panic!("Not yet implemented") ////
+      let StExpr(stmt, _) = lambda::compile_lambda_stmt(compiler, builder, table, args, fbody)?;
+      let local_name = compiler.declare_var(builder, "_flet", Some(stmt));
+      let specs = FnSpecs::from(args.to_owned());
+      let call = FnCall {
+        scope: FnScope::Local,
+        object: Some(Box::new(Expr::Var(local_name))),
+        function: "call_func".to_owned(),
+        specs
+      };
+      Ok((name.to_owned(), call))
     }
   }).collect::<Result<Vec<_>, Error>>()?;
   table.with_local_fns(&mut local_fns.into_iter(), |table| {
