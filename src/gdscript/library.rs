@@ -59,65 +59,73 @@ pub fn bind_builtins(table: &mut SymbolTable) {
   table.set_fn("+".to_owned(),
                FnCall::qualified(FnSpecs::new(0, 0, true), FnScope::Global, gdlisp_root(), "plus".to_owned()));
   table.set_magic_fn("+".to_owned(),
-                     call_magic::CompileToBinOp {
-                       zero: Expr::from(0),
-                       bin: op::BinaryOp::Add,
-                       assoc: call_magic::Assoc::Left,
-                     });
+                     Box::new(
+                       call_magic::CompileToBinOp {
+                         zero: Expr::from(0),
+                         bin: op::BinaryOp::Add,
+                         assoc: call_magic::Assoc::Left,
+                       }));
 
   // * (Multiplication)
   table.set_fn("*".to_owned(),
                FnCall::qualified(FnSpecs::new(0, 0, true), FnScope::Global, gdlisp_root(), "times".to_owned()));
   table.set_magic_fn("*".to_owned(),
-                     call_magic::CompileToBinOp {
-                       zero: Expr::from(1),
-                       bin: op::BinaryOp::Times,
-                       assoc: call_magic::Assoc::Left,
-                     });
+                     Box::new(
+                       call_magic::CompileToBinOp {
+                         zero: Expr::from(1),
+                         bin: op::BinaryOp::Times,
+                         assoc: call_magic::Assoc::Left,
+                       }));
 
   // - (Subtraction)
   table.set_fn("-".to_owned(),
                FnCall::qualified(FnSpecs::new(1, 0, true), FnScope::Global, gdlisp_root(), "minus".to_owned()));
-  table.set_magic_fn("-".to_owned(), call_magic::MinusOperation);
+  table.set_magic_fn("-".to_owned(), Box::new(call_magic::MinusOperation));
 
   // / (Division)
   table.set_fn("/".to_owned(),
                FnCall::qualified(FnSpecs::new(1, 0, true), FnScope::Global, gdlisp_root(), "div".to_owned()));
-  table.set_magic_fn("/".to_owned(), call_magic::DivOperation);
+  table.set_magic_fn("/".to_owned(), Box::new(call_magic::DivOperation));
 
   // div (Integer Division)
   table.set_fn("div".to_owned(),
                FnCall::qualified(FnSpecs::new(1, 0, true), FnScope::Global, gdlisp_root(), "intdiv".to_owned()));
-  table.set_magic_fn("div".to_owned(), call_magic::IntDivOperation);
+  table.set_magic_fn("div".to_owned(), Box::new(call_magic::IntDivOperation));
 
   // = (Equality)
   table.set_fn("=".to_owned(),
                FnCall::qualified(FnSpecs::new(1, 0, true), FnScope::Global, gdlisp_root(), "eq".to_owned()));
-  table.set_magic_fn("=".to_owned(), call_magic::CompileToTransCmp { bin: op::BinaryOp::Eq });
+  table.set_magic_fn("=".to_owned(),
+                     Box::new(call_magic::CompileToTransCmp { bin: op::BinaryOp::Eq }));
 
   // < (Less Than)
   table.set_fn("<".to_owned(),
                FnCall::qualified(FnSpecs::new(1, 0, true), FnScope::Global, gdlisp_root(), "lt".to_owned()));
-  table.set_magic_fn("<".to_owned(), call_magic::CompileToTransCmp { bin: op::BinaryOp::LT });
+  table.set_magic_fn("<".to_owned(),
+                     Box::new(call_magic::CompileToTransCmp { bin: op::BinaryOp::LT }));
 
   // > (Greater Than)
   table.set_fn(">".to_owned(),
                FnCall::qualified(FnSpecs::new(1, 0, true), FnScope::Global, gdlisp_root(), "gt".to_owned()));
-  table.set_magic_fn(">".to_owned(), call_magic::CompileToTransCmp { bin: op::BinaryOp::GT });
+  table.set_magic_fn(">".to_owned(),
+                     Box::new(call_magic::CompileToTransCmp { bin: op::BinaryOp::GT }));
 
   // <= (Less Than or Equal)
   table.set_fn("<=".to_owned(),
                FnCall::qualified(FnSpecs::new(1, 0, true), FnScope::Global, gdlisp_root(), "le".to_owned()));
-  table.set_magic_fn("<=".to_owned(), call_magic::CompileToTransCmp { bin: op::BinaryOp::LE });
+  table.set_magic_fn("<=".to_owned(),
+                     Box::new(call_magic::CompileToTransCmp { bin: op::BinaryOp::LE }));
 
   // >= (Greater Than or Equal)
   table.set_fn(">=".to_owned(),
                FnCall::qualified(FnSpecs::new(1, 0, true), FnScope::Global, gdlisp_root(), "ge".to_owned()));
-  table.set_magic_fn(">=".to_owned(), call_magic::CompileToTransCmp { bin: op::BinaryOp::GE });
+  table.set_magic_fn(">=".to_owned(),
+                     Box::new(call_magic::CompileToTransCmp { bin: op::BinaryOp::GE }));
 
   // /= (Not Equal)
   table.set_fn("/=".to_owned(),
                FnCall::qualified(FnSpecs::new(1, 0, true), FnScope::Global, gdlisp_root(), "ne".to_owned()));
-  table.set_magic_fn("/=".to_owned(), call_magic::NEqOperation { fallback: Box::new(call_magic::DefaultCall) });
+  table.set_magic_fn("/=".to_owned(),
+                     Box::new(call_magic::NEqOperation { fallback: Box::new(call_magic::DefaultCall) }));
 
 }

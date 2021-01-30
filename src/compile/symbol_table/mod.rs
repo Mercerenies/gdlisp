@@ -59,9 +59,9 @@ impl SymbolTable {
     self.magic_functions.get(name).map(|x| x.0.borrow())
   }
 
-  pub fn set_magic_fn(&mut self, name: String, value: impl CallMagic + 'static)
+  pub fn set_magic_fn(&mut self, name: String, value: Box<dyn CallMagic + 'static>)
                       -> Option<Box<dyn CallMagic + 'static>> {
-    self.magic_functions.insert(name, DebugWrapper(Box::new(value))).map(|x| x.0)
+    self.magic_functions.insert(name, DebugWrapper(value)).map(|x| x.0)
   }
 
   pub fn del_magic_fn(&mut self, name: &str) {
