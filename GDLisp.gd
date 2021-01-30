@@ -96,3 +96,11 @@ func intdiv(x, args):
             result /= int(args.car)
             args = args.cdr
         return result
+
+func eq(x, args):
+    while args is Cons:
+        if x != args.car:
+            return false
+        x = args.car
+        args = args.cdr
+    return true

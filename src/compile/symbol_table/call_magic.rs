@@ -30,6 +30,7 @@ use crate::compile::Compiler;
 use crate::compile::error::Error;
 use crate::compile::body::builder::StmtBuilder;
 use crate::compile::stateful::StExpr;
+use crate::compile::stmt_wrapper::{self, StmtWrapper};
 use crate::util;
 use super::function_call::FnCall;
 use super::SymbolTable;
@@ -60,6 +61,14 @@ pub struct CompileToBinOp {
   pub zero: Expr,
   pub bin: op::BinaryOp,
   pub assoc: Assoc,
+}
+
+// Covers most comparison operators like = and < (excludes /=, as that
+// operator's behavior is different in complex ways not captured by
+// this CallMagic)
+#[derive(Clone)]
+pub struct CompileToTransCmp {
+  pub bin: op::BinaryOp,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd)]
@@ -127,6 +136,47 @@ impl CallMagic for CompileToBinOp {
           util::fold1(args.into_iter().rev(), |x, y| Expr::Binary(Box::new(y), self.bin, Box::new(x)))
         }
       }.unwrap())
+    }
+  }
+}
+
+impl CallMagic for CompileToTransCmp {
+  fn compile<'a>(&self,
+                 call: FnCall,
+                 compiler: &mut Compiler<'a>,
+                 builder: &mut StmtBuilder,
+                 _table: &mut SymbolTable,
+                 args: Vec<StExpr>) -> Result<Expr, Error> {
+    if args.is_empty() {
+      Err(Error::TooFewArgs(call.function, args.len()))
+    } else if args.len() == 1 {
+      // Dump to the builder as a simple statement if it's stateful.
+      (&stmt_wrapper::Vacuous).wrap_to_builder(builder, args[0].clone());
+      Ok(Expr::from(true))
+    } else {
+      // We need to use several of the arguments twice, so any
+      // arguments (such as function calls) which are potentially
+      // stateful need to be stored in temporaries. Note that simply
+      // accessing variables, even variables which may change, is
+      // fine, since we're doing it twice in a row, and nothing
+      // happens in between. (TODO Minor optimization: no need to do
+      // this for the first or last argument, as those are only
+      // evaluated once anyway)
+      let args = args.into_iter().map(|x| {
+        let StExpr(expr, stateful) = x;
+        if stateful.modifies_state() {
+          let var_name = compiler.declare_var(builder, "_cmp", Some(expr));
+          Expr::Var(var_name)
+        } else {
+          expr
+        }
+      });
+      let comparisons = util::each_pair(args).map(|(x, y)| {
+        Expr::Binary(Box::new(x), self.bin, Box::new(y))
+      });
+      Ok(
+        util::fold1(comparisons, |x, y| Expr::Binary(Box::new(x), op::BinaryOp::And, Box::new(y))).unwrap()
+      )
     }
   }
 }

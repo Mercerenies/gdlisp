@@ -90,4 +90,9 @@ pub fn bind_builtins(table: &mut SymbolTable) {
                FnCall::qualified(FnSpecs::new(1, 0, true), FnScope::Global, gdlisp_root(), "intdiv".to_owned()));
   table.set_magic_fn("div".to_owned(), call_magic::IntDivOperation);
 
+  // = (Equality)
+  table.set_fn("=".to_owned(),
+               FnCall::qualified(FnSpecs::new(1, 0, true), FnScope::Global, gdlisp_root(), "eq".to_owned()));
+  table.set_magic_fn("=".to_owned(), call_magic::CompileToTransCmp { bin: op::BinaryOp::Eq });
+
 }
