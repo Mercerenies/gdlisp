@@ -22,6 +22,7 @@ use symbol_table::call_magic::{CallMagic, DefaultCall};
 use crate::ir;
 use crate::ir::expr::FuncRefTarget;
 use special_form::lambda;
+use special_form::flet;
 use stateful::{StExpr, NeedsResult, SideEffects};
 
 use dyn_clone;
@@ -140,7 +141,7 @@ impl<'a> Compiler<'a> {
         })
       }
       IRExpr::FLet(clauses, body) => {
-        panic!("TBA") /////
+        flet::compile_flet(self, builder, table, clauses, body, needs_result)
       }
       IRExpr::Lambda(args, body) => {
         lambda::compile_lambda_stmt(self, builder, table, args, body)

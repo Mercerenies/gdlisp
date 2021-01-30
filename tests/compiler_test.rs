@@ -312,3 +312,12 @@ pub fn ne_compile_test() {
 pub fn simple_length_test() {
   assert_eq!(parse_compile_and_output("(length ())"), "return GDLisp.length(GDLisp.Nil)\n");
 }
+
+#[test]
+pub fn semiglobal_flet_test() {
+
+  let result0 = parse_compile_and_output_h("(flet ((f (x) (+ x 1))) (f 10))");
+  assert_eq!(result0.0, "return _flet_0(10)\n");
+  assert_eq!(result0.1, "static func _flet_0(x_1):\n    return x_1 + 1\n");
+
+}
