@@ -15,12 +15,7 @@ pub struct FnCall {
   pub specs: FnSpecs,
 }
 
-// The ordering is defined by requirements. It is much easier to call
-// a Global function (as it requires no closure) and much harder to
-// call a Local function, so Local > Global. SemiGlobal has some
-// properties of both and requires a bit of care but generally does
-// not necessitate a closure.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum FnScope {
   // A global function is defined at the global scope and will be
   // compiled to a globally-scoped function.
@@ -32,8 +27,9 @@ pub enum FnScope {
   SemiGlobal,
   // A local function is a closure which exists as a local variable on
   // the GDScript side, very similar to a lambda but with different
-  // name resolution rules.
-  Local,
+  // name resolution rules. The string parameter is the name of the
+  // (GDScript) local variable referring to the function.
+  Local(String),
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -92,6 +88,18 @@ impl FnSpecs {
     // TODO Is u32.MAX correct here? If we put an upper limit on
     // function arity, use that instead.
     if self.rest { u32::MAX } else { self.required + self.optional }
+  }
+
+}
+
+impl FnScope {
+
+  pub fn is_local(&self) -> bool {
+    if let FnScope::Local(_) = self {
+      true
+    } else {
+      false
+    }
   }
 
 }

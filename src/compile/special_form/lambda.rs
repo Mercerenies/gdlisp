@@ -176,7 +176,7 @@ pub fn compile_lambda_stmt<'a>(compiler: &mut Compiler<'a>,
       None => { return Err(Error::NoSuchFn(func.to_owned())) }
       Some(call) => {
         match call.scope {
-          FnScope::Local => { panic!("Not yet supported!"); } ////
+          FnScope::Local(_) => { panic!("Not yet supported!"); } ////
           FnScope::SemiGlobal => { lambda_table.set_fn(func.to_owned(), call.clone()); }
           FnScope::Global => { lambda_table.set_fn(func.to_owned(), call.clone()); }
         }
@@ -220,22 +220,23 @@ pub fn compile_function_ref<'a>(compiler: &mut Compiler<'a>,
                                 _table: &mut SymbolTable,
                                 func: FnCall)
                                 -> Result<StExpr, Error> {
-  if func.scope == FnScope::Local {
-    panic!("Local function refs not implemented yet!"); // TODO This
-  }
-  let specs = func.specs;
-  let arg_count = func.specs.runtime_arity();
-  let arg_names: Vec<_> = (0..arg_count).map(|i| format!("arg{}", i)).collect();
-  let arglist = ArgList::required(arg_names.clone());
+  if let FnScope::Local(name) = func.scope {
+    Ok(StExpr(Expr::Var(name.to_owned()), SideEffects::None))
+  } else {
+    let specs = func.specs;
+    let arg_count = func.specs.runtime_arity();
+    let arg_names: Vec<_> = (0..arg_count).map(|i| format!("arg{}", i)).collect();
+    let arglist = ArgList::required(arg_names.clone());
 
-  let body = Stmt::ReturnStmt(
-    Expr::Call(func.object, func.function, arg_names.into_iter().map(Expr::Var).collect())
-  );
-  let class = generate_lambda_class(compiler, specs, arglist.clone(), &vec!(), vec!(body), "_FunctionRefBlock");
-  let class_name = class.name.clone();
-  builder.add_helper(Decl::ClassDecl(class));
-  let expr = Expr::Call(Some(Box::new(Expr::Var(class_name))), String::from("new"), vec!());
-  Ok(StExpr(expr, SideEffects::None))
+    let body = Stmt::ReturnStmt(
+      Expr::Call(func.object, func.function, arg_names.into_iter().map(Expr::Var).collect())
+    );
+    let class = generate_lambda_class(compiler, specs, arglist.clone(), &vec!(), vec!(body), "_FunctionRefBlock");
+    let class_name = class.name.clone();
+    builder.add_helper(Decl::ClassDecl(class));
+    let expr = Expr::Call(Some(Box::new(Expr::Var(class_name))), String::from("new"), vec!());
+    Ok(StExpr(expr, SideEffects::None))
+  }
 }
 
 #[cfg(test)]

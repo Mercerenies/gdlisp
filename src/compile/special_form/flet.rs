@@ -43,7 +43,7 @@ pub fn compile_flet<'a>(compiler: &mut Compiler<'a>,
       let local_name = compiler.declare_var(builder, "_flet", Some(stmt));
       let specs = FnSpecs::from(args.to_owned());
       let call = FnCall {
-        scope: FnScope::Local,
+        scope: FnScope::Local(local_name.clone()),
         object: Some(Box::new(Expr::Var(local_name))),
         function: "call_func".to_owned(),
         specs
@@ -71,6 +71,6 @@ fn all_names_are_nonlocal<I, T>(mut names: I, table: &SymbolTable)
   where I : Iterator<Item=T>,
         T : AsRef<str> {
   names.all(|name| {
-    table.get_fn(name.as_ref()).map_or(false, |call| call.scope <= FnScope::SemiGlobal)
+    table.get_fn(name.as_ref()).map_or(false, |call| !call.scope.is_local())
   })
 }

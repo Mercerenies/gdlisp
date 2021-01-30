@@ -379,3 +379,30 @@ pub fn local_flet_test() {
 "#);
 
 }
+
+#[test]
+pub fn local_flet_test_indirect() {
+
+  let result0 = parse_compile_and_output_h(r#"
+    (let ((x 1))
+      (flet ((f () (+ x 1)))
+        (funcall (function f))))
+  "#);
+  assert_eq!(result0.0, "var x_0 = 1\nvar _flet_2 = _LambdaBlock_1.new(x_0)\nreturn GDLisp.funcall(_flet_2, GDLisp.Nil)\n");
+  assert_eq!(result0.1, r#"class _LambdaBlock_1 extends GDLisp.Function:
+    var x_0
+    func _init(x_0):
+        self.x_0 = x_0
+        self.__gdlisp_required = 0
+        self.__gdlisp_optional = 0
+        self.__gdlisp_rest = false
+    func call_func():
+        return x_0 + 1
+    func call_funcv(args):
+        if args is GDLisp.NilClass:
+            return call_func()
+        else:
+            push_error("Too many arguments")
+"#);
+
+}
