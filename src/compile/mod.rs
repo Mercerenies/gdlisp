@@ -28,6 +28,7 @@ use dyn_clone;
 
 type IRDecl = ir::decl::Decl;
 type IRExpr = ir::expr::Expr;
+type IRArgList = ir::arglist::ArgList;
 type IRLiteral = ir::literal::Literal;
 
 pub struct Compiler<'a> {
@@ -194,30 +195,40 @@ impl<'a> Compiler<'a> {
                       -> Result<(), Error> {
     match decl {
       IRDecl::FnDecl(ir::decl::FnDecl { name, args, body }) => {
-        let local_vars = body.get_locals();
         let gd_name = names::lisp_to_gd(&name);
-        let (arglist, gd_args) = args.clone().into_gd_arglist(&mut self.gen);
-        let mut stmt_builder = StmtBuilder::new();
-        for arg in &gd_args {
-          if local_vars.get(&arg.0).requires_cell() {
-            // Special behavior to wrap the argument in a cell.
-            stmt_builder.append(Stmt::Assign(Box::new(Expr::var(&arg.1)),
-                                             op::AssignOp::Eq,
-                                             Box::new(library::construct_cell(Expr::var(&arg.1)))));
-          }
-        }
-        table.with_local_vars(&mut gd_args.clone().into_iter().map(|x| (x.0.to_owned(), LocalVar::new(x.1, local_vars.get(&x.0)))), |table| {
-          self.compile_stmt(&mut stmt_builder, table, &stmt_wrapper::Return, body)
-        })?;
-        let gd_body = stmt_builder.build_into(builder);
-        builder.add_decl(Decl::FnDecl(decl::Static::IsStatic, decl::FnDecl {
-          name: gd_name,
-          args: arglist,
-          body: gd_body,
-        }));
+        let function = self.declare_function(builder, table, gd_name, args.clone(), body)?;
+        builder.add_decl(Decl::FnDecl(decl::Static::IsStatic, function));
         Ok(())
       }
     }
+  }
+
+  pub fn declare_function(&mut self,
+                          builder: &mut impl HasDecls,
+                          table: &mut SymbolTable,
+                          gd_name: String,
+                          args: IRArgList,
+                          body: &IRExpr)
+                          -> Result<decl::FnDecl, Error> {
+    let local_vars = body.get_locals();
+    let (arglist, gd_args) = args.into_gd_arglist(&mut self.gen);
+    let mut stmt_builder = StmtBuilder::new();
+    for arg in &gd_args {
+      if local_vars.get(&arg.0).requires_cell() {
+            // Special behavior to wrap the argument in a cell.
+        stmt_builder.append(Stmt::Assign(Box::new(Expr::var(&arg.1)),
+                                         op::AssignOp::Eq,
+                                         Box::new(library::construct_cell(Expr::var(&arg.1)))));
+      }
+    }
+    table.with_local_vars(&mut gd_args.clone().into_iter().map(|x| (x.0.to_owned(), LocalVar::new(x.1, local_vars.get(&x.0)))), |table| {
+      self.compile_stmt(&mut stmt_builder, table, &stmt_wrapper::Return, body)
+    })?;
+    Ok(decl::FnDecl {
+      name: gd_name,
+      args: arglist,
+      body: stmt_builder.build_into(builder),
+    })
   }
 
   fn bind_decl(table: &mut SymbolTable,
