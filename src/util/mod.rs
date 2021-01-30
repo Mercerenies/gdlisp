@@ -26,4 +26,35 @@ impl<T, I> Iterator for PairIter<T, I> where I : Iterator<Item=T>, T : Clone {
 
 }
 
-// TODO Tests (Especially for each_pair)
+#[cfg(test)]
+mod tests {
+  use super::*;
+
+  #[test]
+  fn test_fold1() {
+    let vec1: Vec<i32> = vec!(1, 2, 3, 4);
+    assert_eq!(fold1(vec1.into_iter(), |x, y| x + y), Some(10));
+
+    let vec2: Vec<i32> = vec!();
+    assert_eq!(fold1(vec2.into_iter(), |x, y| x + y), None);
+
+    let vec3: Vec<i32> = vec!(1, 2, 3, 4);
+    assert_eq!(fold1(vec3.into_iter(), |x, y| x - y), Some(-8));
+  }
+
+  #[test]
+  fn test_each_pair() {
+    let vec1: Vec<i32> = vec!();
+    assert_eq!(each_pair(vec1.into_iter()).collect::<Vec<_>>(), vec!());
+
+    let vec2: Vec<i32> = vec!(10);
+    assert_eq!(each_pair(vec2.into_iter()).collect::<Vec<_>>(), vec!());
+
+    let vec3: Vec<i32> = vec!(10, 20);
+    assert_eq!(each_pair(vec3.into_iter()).collect::<Vec<_>>(), vec!((10, 20)));
+
+    let vec4: Vec<i32> = vec!(10, 20, 30);
+    assert_eq!(each_pair(vec4.into_iter()).collect::<Vec<_>>(), vec!((10, 20), (20, 30)));
+  }
+
+}
