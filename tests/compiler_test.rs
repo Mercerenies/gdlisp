@@ -406,3 +406,14 @@ pub fn local_flet_test_indirect() {
 "#);
 
 }
+
+#[test]
+pub fn local_flet_closure_test() {
+  let result0 = parse_compile_and_output_h(r#"
+    (let ((x 1))
+      (flet ((f () x))
+        (let ((g (lambda () (f))))
+          (funcall g))))
+  "#);
+  assert_eq!(result0.0, "var x_0 = 1\nvar _flet_2 = _LambdaBlock_1.new(x_0)\nvar g_4 = _LambdaBlock_3.new(_flet_2)\nreturn GDLisp.funcall(g_4, GDLisp.Nil)\n");
+}

@@ -1,5 +1,6 @@
 
 use crate::ir;
+use crate::ir::locals::AccessType;
 use crate::compile::{Compiler, StExpr};
 use crate::compile::body::builder::StmtBuilder;
 use crate::compile::symbol_table::{SymbolTable, LocalVar};
@@ -176,26 +177,45 @@ pub fn compile_lambda_stmt<'a>(compiler: &mut Compiler<'a>,
       None => { return Err(Error::NoSuchFn(func.to_owned())) }
       Some(call) => {
         match call.scope {
-          FnScope::Local(_) => { panic!("Not yet supported!"); } ////
-          FnScope::SemiGlobal => { lambda_table.set_fn(func.to_owned(), call.clone()); }
-          FnScope::Global => { lambda_table.set_fn(func.to_owned(), call.clone()); }
+          FnScope::Local(_) | FnScope::SemiGlobal | FnScope::Global => {
+            lambda_table.set_fn(func.to_owned(), call.clone());
+          }
         }
       }
     };
     // And copy magic
     match table.get_magic_fn(func) {
-      None => { return Err(Error::NoSuchFn(func.to_owned())) }
+      None => {} // No magic, so nothing to copy
       Some(magic) => {
         lambda_table.set_magic_fn(func.to_owned(), dyn_clone::clone_box(magic));
       }
     }
   }
 
-  let gd_closure_vars = closure_vars_vec.iter().map(|ast_name| {
-    lambda_table.get_var(&ast_name).unwrap_or_else(|| {
+  let mut gd_closure_vars = Vec::new();
+  for ast_name in closure_vars_vec {
+    let var = lambda_table.get_var(&ast_name).unwrap_or_else(|| {
       panic!("Internal error compiling lambda variable {}", ast_name)
-    }).to_owned()
-  }).collect();
+    }).to_owned();
+    gd_closure_vars.push(var);
+  }
+  for func in closure_fns.names() {
+    match table.get_fn(func) {
+      None => { return Err(Error::NoSuchFn(func.to_owned())) }
+      Some(call) => {
+        if let FnScope::Local(name) = &call.scope {
+          // ClosedRead *might* be more conservative than necessary
+          // here (it's possible we can get away with Read in some
+          // situations), but I don't think it changes anything, so we
+          // may as well play it safe.
+          gd_closure_vars.push(LocalVar {
+            name: name.to_owned(),
+            access_type: AccessType::ClosedRead,
+          });
+        }
+      }
+    }
+  }
 
   for arg in &gd_args {
     if all_vars.get(&arg.0).requires_cell() {

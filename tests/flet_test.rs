@@ -27,3 +27,30 @@ fn closed_flet_test_1() {
          (print (f)))))"#);
   assert_eq!(output, "\n1\n2\n");
 }
+
+#[test]
+#[ignore]
+fn closed_flet_test_2() {
+  let output = parse_and_run(r#"
+    ((let ((g (let ((x 0))
+                (flet ((f () (setq x (+ x 1))))
+                  (lambda () (f))))))
+       (print (funcall g))
+       (print (funcall g))))
+  "#);
+  assert_eq!(output, "\n1\n2\n");
+}
+
+#[test]
+#[ignore]
+fn nested_flet_test() {
+  let output = parse_and_run(r#"
+    ((let ((g (let ((x 0))
+                (flet ((f () (setq x (+ x 1))))
+                  (flet ((g () (f)))
+                    (function g))))))
+       (print (funcall g))
+       (print (funcall g))))
+  "#);
+  assert_eq!(output, "\n1\n2\n");
+}
