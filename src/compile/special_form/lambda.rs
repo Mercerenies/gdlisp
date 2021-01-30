@@ -83,7 +83,6 @@ fn generate_lambda_vararg<'a>(specs: FnSpecs) -> decl::FnDecl {
   }
 }
 
-// ///// (function ...) and #'... syntax
 fn generate_lambda_class<'a, 'b>(compiler: &mut Compiler<'a>,
                                  specs: FnSpecs,
                                  args: ArgList,
@@ -178,7 +177,7 @@ pub fn compile_lambda_stmt<'a>(compiler: &mut Compiler<'a>,
       Some(call) => {
         match call.scope {
           FnScope::Local => { panic!("Not yet supported!"); } ////
-          FnScope::SemiGlobal => { panic!("Not yet supported!"); } ////
+          FnScope::SemiGlobal => { lambda_table.set_fn(func.to_owned(), call.clone()); }
           FnScope::Global => { lambda_table.set_fn(func.to_owned(), call.clone()); }
         }
       }
@@ -214,7 +213,7 @@ pub fn compile_function_ref<'a>(compiler: &mut Compiler<'a>,
                                 _table: &mut SymbolTable,
                                 func: FnCall)
                                 -> Result<StExpr, Error> {
-  if func.scope != FnScope::Global {
+  if func.scope == FnScope::Local {
     panic!("Local function refs not implemented yet!"); // TODO This
   }
   let specs = func.specs;
