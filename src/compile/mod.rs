@@ -176,7 +176,8 @@ impl<'a> Compiler<'a> {
     &mut self.gen
   }
 
-  fn declare_var(&mut self, builder: &mut StmtBuilder, prefix: &str, value: Option<Expr>) -> String {
+  pub fn declare_var(&mut self, builder: &mut StmtBuilder, prefix: &str, value: Option<Expr>)
+                     -> String {
     let var_name = self.gen.generate_with(prefix);
     let value = value.unwrap_or(Compiler::nil_expr().0);
     builder.append(Stmt::VarDecl(var_name.clone(), value));
