@@ -12,7 +12,7 @@ use crate::util::debug_wrapper::DebugWrapper;
 use std::collections::HashMap;
 use std::borrow::Borrow;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Default)]
 pub struct SymbolTable {
   locals: HashMap<String, LocalVar>,
   functions: HashMap<String, FnCall>,
@@ -28,7 +28,7 @@ pub struct LocalVar {
 impl SymbolTable {
 
   pub fn new() -> SymbolTable {
-    SymbolTable { locals: HashMap::new(), functions: HashMap::new(), magic_functions: HashMap::new() }
+    SymbolTable::default()
   }
 
   pub fn get_var(&self, name: &str) -> Option<&LocalVar> {
@@ -68,15 +68,15 @@ impl SymbolTable {
     self.magic_functions.remove(name);
   }
 
-  pub fn vars<'a>(&'a self) -> impl Iterator<Item=(&'a str, &'a LocalVar)> {
+  pub fn vars(&self) -> impl Iterator<Item=(&str, &LocalVar)> {
     return self.locals.iter().map(|x| (x.0.borrow(), x.1));
   }
 
-  pub fn fns<'a>(&'a self) -> impl Iterator<Item=(&'a str, &'a FnCall)> {
+  pub fn fns(&self) -> impl Iterator<Item=(&str, &FnCall)> {
     return self.functions.iter().map(|x| (x.0.borrow(), x.1));
   }
 
-  pub fn magic_fns<'a>(&'a self) -> impl Iterator<Item=(&'a str, &'a (dyn CallMagic + 'static))> {
+  pub fn magic_fns(&self) -> impl Iterator<Item=(&str, &(dyn CallMagic + 'static))> {
     return self.magic_functions.iter().map(|x| (x.0.borrow(), (x.1).0.borrow()));
   }
 

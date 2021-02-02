@@ -56,12 +56,9 @@ impl AST {
   where F: FnMut(&'b AST) -> Result<(), E>,
         'a: 'b {
     func(self)?;
-    match self {
-      AST::Cons(car, cdr) => {
-        car._walk_preorder(func)?;
-        cdr._walk_preorder(func)?;
-      }
-      _ => {}
+    if let AST::Cons(car, cdr) = self {
+      car._walk_preorder(func)?;
+      cdr._walk_preorder(func)?;
     }
     Ok(())
   }
@@ -83,12 +80,9 @@ impl AST {
   fn _walk_postorder<'a, 'b, F, E>(&'a self, func: &mut F) -> Result<(), E>
   where F: FnMut(&'b AST) -> Result<(), E>,
         'a: 'b {
-    match self {
-      AST::Cons(car, cdr) => {
-        car._walk_postorder(func)?;
-        cdr._walk_postorder(func)?;
-      }
-      _ => {}
+    if let AST::Cons(car, cdr) = self {
+      car._walk_postorder(func)?;
+      cdr._walk_postorder(func)?;
     }
     func(self)?;
     Ok(())

@@ -26,7 +26,7 @@ use crate::compile::error::Error;
 use std::convert::TryInto;
 use std::borrow::Borrow;
 
-pub const MAIN_BODY_NAME: &'static str = "run";
+pub const MAIN_BODY_NAME: &str = "run";
 
 pub fn compile_expr(expr: &AST)
                     -> Result<Expr, Error> {

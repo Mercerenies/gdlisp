@@ -20,7 +20,7 @@ use std::convert::TryInto;
 type IRExpr = ir::expr::Expr;
 type IRArgList = ir::arglist::ArgList;
 
-fn generate_lambda_vararg<'a>(specs: FnSpecs) -> decl::FnDecl {
+fn generate_lambda_vararg(specs: FnSpecs) -> decl::FnDecl {
   let mut stmts = Vec::new();
 
   let args = String::from("args");
@@ -58,7 +58,7 @@ fn generate_lambda_vararg<'a>(specs: FnSpecs) -> decl::FnDecl {
   let mut all_args: Vec<_> =
     required.into_iter()
     .chain(optional.into_iter())
-    .map(|x| Expr::Var(x))
+    .map(Expr::Var)
     .collect();
   if specs.rest {
     all_args.push(Expr::Var(args));

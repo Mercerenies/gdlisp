@@ -7,9 +7,9 @@ use crate::compile::symbol_table::SymbolTable;
 use crate::compile::symbol_table::function_call::{FnCall, FnScope, FnSpecs};
 use crate::compile::symbol_table::call_magic;
 
-pub const GDLISP_NAME: &'static str = "GDLisp";
+pub const GDLISP_NAME: &str = "GDLisp";
 
-pub const CELL_CONTENTS: &'static str = "contents";
+pub const CELL_CONTENTS: &str = "contents";
 
 pub fn gdlisp_root() -> Expr {
   Expr::Var(String::from(GDLISP_NAME))

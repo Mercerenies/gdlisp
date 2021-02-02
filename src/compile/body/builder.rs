@@ -7,7 +7,7 @@ pub struct CodeBuilder {
   toplevel: decl::TopLevelClass,
 }
 
-#[derive(Clone)]
+#[derive(Clone, Default)]
 pub struct StmtBuilder {
   body: Vec<Stmt>,
   helpers: Vec<Decl>,
@@ -48,10 +48,7 @@ impl HasDecls for CodeBuilder {
 impl StmtBuilder {
 
   pub fn new() -> StmtBuilder {
-    StmtBuilder {
-      body: vec!(),
-      helpers: vec!(),
-    }
+    StmtBuilder::default()
   }
 
   pub fn append(&mut self, stmt: Stmt) {

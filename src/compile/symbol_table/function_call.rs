@@ -95,11 +95,7 @@ impl FnSpecs {
 impl FnScope {
 
   pub fn is_local(&self) -> bool {
-    if let FnScope::Local(_) = self {
-      true
-    } else {
-      false
-    }
+    matches!(self, FnScope::Local(_))
   }
 
 }

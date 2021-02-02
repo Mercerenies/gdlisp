@@ -25,8 +25,6 @@ use special_form::lambda;
 use special_form::flet;
 use stateful::{StExpr, NeedsResult, SideEffects};
 
-use dyn_clone;
-
 type IRDecl = ir::decl::Decl;
 type IRExpr = ir::expr::Expr;
 type IRArgList = ir::arglist::ArgList;
