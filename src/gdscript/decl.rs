@@ -64,22 +64,22 @@ impl Decl {
       Decl::VarDecl(name, value) => {
         write!(w, "var {}", name)?;
         match value {
-          None => write!(w, "\n"),
-          Some(value) => write!(w, " = {}\n", value.to_gd()),
+          None => writeln!(w),
+          Some(value) => writeln!(w, " = {}", value.to_gd()),
         }
       }
       Decl::ConstDecl(name, value) => {
-        write!(w, "const {} = {}\n", name, value.to_gd())
+        writeln!(w, "const {} = {}", name, value.to_gd())
       }
       Decl::ClassDecl(ClassDecl { name, extends, body }) => {
-        write!(w, "class {} extends {}:\n", name, extends.to_gd())?;
+        writeln!(w, "class {} extends {}:", name, extends.to_gd())?;
         Decl::write_gd_decls(body, &empty_class_body(), w, ind + 4)
       }
       Decl::FnDecl(stat, FnDecl { name, args, body }) => {
         if *stat == Static::IsStatic {
           write!(w, "static ")?;
         }
-        write!(w, "func {}({}):\n", name, args.to_gd())?;
+        writeln!(w, "func {}({}):", name, args.to_gd())?;
         Stmt::write_gd_stmts(body, w, ind + 4)
       }
     }
@@ -123,9 +123,9 @@ impl TopLevelClass {
   pub fn to_gd(&self) -> String {
     let mut string = String::new();
     if let Some(name) = &self.name {
-      write!(string, "class_name {}\n", name).expect("Could not write to string in TopLevelClass::to_gd");
+      writeln!(string, "class_name {}", name).expect("Could not write to string in TopLevelClass::to_gd");
     }
-    write!(string, "extends {}\n", self.extends.to_gd()).expect("Could not write to string in TopLevelClass::to_gd");
+    writeln!(string, "extends {}", self.extends.to_gd()).expect("Could not write to string in TopLevelClass::to_gd");
     Decl::write_gd_decls(self.body.iter().map(|x| x), &empty_class_body(), &mut string, 0)
       .expect("Could not write to string in TopLevelClass::to_gd");
     string

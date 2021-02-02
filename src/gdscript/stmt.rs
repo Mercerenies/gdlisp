@@ -79,66 +79,66 @@ impl Stmt {
     indent(w, ind)?;
     match self {
       Stmt::Expr(expr) => {
-        write!(w, "{}\n", expr.to_gd())
+        writeln!(w, "{}", expr.to_gd())
       }
       Stmt::IfStmt(IfStmt { if_clause, elif_clauses, else_clause }) => {
-        write!(w, "if {}:\n", if_clause.0.to_gd())?;
+        writeln!(w, "if {}:", if_clause.0.to_gd())?;
         Stmt::write_gd_stmts(&if_clause.1, w, ind + 4)?;
         for clause in elif_clauses {
           indent(w, ind)?;
-          write!(w, "elif {}:\n", clause.0.to_gd())?;
+          writeln!(w, "elif {}:", clause.0.to_gd())?;
           Stmt::write_gd_stmts(&clause.1, w, ind + 4)?;
         }
         if let Some(else_clause) = else_clause {
           indent(w, ind)?;
-          write!(w, "else:\n")?;
+          writeln!(w, "else:")?;
           Stmt::write_gd_stmts(else_clause, w, ind + 4)?;
         }
         Ok(())
       }
-      Stmt::PassStmt => write!(w, "pass\n"),
-      Stmt::BreakStmt => write!(w, "break\n"),
-      Stmt::ContinueStmt => write!(w, "continue\n"),
+      Stmt::PassStmt => writeln!(w, "pass"),
+      Stmt::BreakStmt => writeln!(w, "break"),
+      Stmt::ContinueStmt => writeln!(w, "continue"),
       Stmt::ForLoop(ForLoop { iter_var, collection, body }) => {
-        write!(w, "for {} in {}:\n", iter_var, collection.to_gd())?;
+        writeln!(w, "for {} in {}:", iter_var, collection.to_gd())?;
         Stmt::write_gd_stmts(body, w, ind + 4)
       }
       Stmt::WhileLoop(WhileLoop { condition, body }) => {
-        write!(w, "while {}:\n", condition.to_gd())?;
+        writeln!(w, "while {}:", condition.to_gd())?;
         Stmt::write_gd_stmts(body, w, ind + 4)
       }
       Stmt::MatchStmt(expr, clauses) => {
-        write!(w, "match {}:\n", expr.to_gd())?;
+        writeln!(w, "match {}:", expr.to_gd())?;
         if clauses.is_empty() {
           // If you try to have an empty match body, you kinda deserve
           // the program to crash. But hey, I'm in a good mood, so
           // I'll handle the wonky corner case. :)
           indent(w, ind + 4)?;
-          write!(w, "{}:\n", Pattern::Wildcard.to_gd())?;
+          writeln!(w, "{}:", Pattern::Wildcard.to_gd())?;
           Stmt::write_gd_stmts(vec!(), w, ind + 8)
         } else {
           for (ptn, body) in clauses {
             indent(w, ind + 4)?;
-            write!(w, "{}:\n", ptn.to_gd())?;
+            writeln!(w, "{}:", ptn.to_gd())?;
             Stmt::write_gd_stmts(body, w, ind + 8)?;
           }
           Ok(())
         }
       }
       Stmt::VarDecl(name, expr) => {
-        write!(w, "var {} = {}\n", name, expr.to_gd())
+        writeln!(w, "var {} = {}", name, expr.to_gd())
       }
       Stmt::ReturnStmt(expr) => {
-        write!(w, "return {}\n", expr.to_gd())
+        writeln!(w, "return {}", expr.to_gd())
       }
       Stmt::Assign(lhs, op, rhs) => {
         let info = op.op_info();
         let lhs = lhs.to_gd();
         let rhs = rhs.to_gd();
         if info.padding == op::Padding::NotRequired {
-          write!(w, "{}{}{}\n", lhs, info.name, rhs)
+          writeln!(w, "{}{}{}", lhs, info.name, rhs)
         } else {
-          write!(w, "{} {} {}\n", lhs, info.name, rhs)
+          writeln!(w, "{} {} {}", lhs, info.name, rhs)
         }
       },
     }
