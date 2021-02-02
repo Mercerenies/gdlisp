@@ -6,6 +6,7 @@ pub mod compile;
 pub mod ir;
 pub mod gdscript;
 pub mod runner;
+pub mod graph;
 pub mod util;
 mod parser_test;
 
