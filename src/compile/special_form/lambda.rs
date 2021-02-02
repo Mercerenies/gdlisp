@@ -87,7 +87,7 @@ fn generate_lambda_vararg(specs: FnSpecs) -> decl::FnDecl {
 fn generate_lambda_class<'a, 'b>(compiler: &mut Compiler<'a>,
                                  specs: FnSpecs,
                                  args: ArgList,
-                                 closed_vars: &Vec<LocalVar>,
+                                 closed_vars: &[LocalVar],
                                  lambda_body: Vec<Stmt>,
                                  block_prefix: &'b str)
                                  -> decl::ClassDecl {
@@ -230,7 +230,7 @@ pub fn compile_lambda_stmt<'a>(compiler: &mut Compiler<'a>,
   let class = generate_lambda_class(compiler, args.clone().into(), arglist, &gd_closure_vars, lambda_body, "_LambdaBlock");
   let class_name = class.name.clone();
   builder.add_helper(Decl::ClassDecl(class));
-  let constructor_args = gd_closure_vars.into_iter().map(|s| Expr::Var(s.name.to_owned())).collect();
+  let constructor_args = gd_closure_vars.into_iter().map(|s| Expr::Var(s.name)).collect();
   let expr = Expr::Call(Some(Box::new(Expr::Var(class_name))), String::from("new"), constructor_args);
   Ok(StExpr(expr, SideEffects::None))
 }
@@ -241,7 +241,7 @@ pub fn compile_function_ref<'a>(compiler: &mut Compiler<'a>,
                                 func: FnCall)
                                 -> Result<StExpr, Error> {
   if let FnScope::Local(name) = func.scope {
-    Ok(StExpr(Expr::Var(name.to_owned()), SideEffects::None))
+    Ok(StExpr(Expr::Var(name), SideEffects::None))
   } else {
     let specs = func.specs;
     let arg_count = func.specs.runtime_arity();
@@ -251,7 +251,7 @@ pub fn compile_function_ref<'a>(compiler: &mut Compiler<'a>,
     let body = Stmt::ReturnStmt(
       Expr::Call(func.object, func.function, arg_names.into_iter().map(Expr::Var).collect())
     );
-    let class = generate_lambda_class(compiler, specs, arglist.clone(), &vec!(), vec!(body), "_FunctionRefBlock");
+    let class = generate_lambda_class(compiler, specs, arglist, &[], vec!(body), "_FunctionRefBlock");
     let class_name = class.name.clone();
     builder.add_helper(Decl::ClassDecl(class));
     let expr = Expr::Call(Some(Box::new(Expr::Var(class_name))), String::from("new"), vec!());

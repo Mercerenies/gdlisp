@@ -16,13 +16,13 @@ impl<'a, T> Graph<'a, T> where T : Eq + Hash {
         U : 'a {
     let mut edges = HashMap::new();
     for (x, y) in iter {
-      let vec = edges.entry(x).or_insert_with(|| Vec::new());
+      let vec = edges.entry(x).or_insert_with(Vec::new);
       vec.push(y.borrow());
     }
     Graph { edges }
   }
 
-  pub fn nodes<'b>(&'b self) -> impl Iterator<Item=&'b T> {
+  pub fn nodes(&self) -> impl Iterator<Item=&T> {
     self.edges.keys()
   }
 
@@ -31,7 +31,7 @@ impl<'a, T> Graph<'a, T> where T : Eq + Hash {
   }
 
   pub fn add_node(&mut self, node: T) {
-    self.edges.entry(node).or_insert_with(|| Vec::new());
+    self.edges.entry(node).or_insert_with(Vec::new);
   }
 
   pub fn add_edge<'b, U, V>(&'b mut self, x: &'a U, y: &'a V) where U : Borrow<T>, V : Borrow<T> {

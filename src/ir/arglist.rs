@@ -54,7 +54,7 @@ impl ArgList {
     let mut rest = None;
     for arg in args {
       if let AST::Symbol(arg) = arg {
-        if arg.starts_with("&") {
+        if arg.starts_with('&') {
           match arg.borrow() {
             "&opt" => {
               if state < ParseState::Optional {

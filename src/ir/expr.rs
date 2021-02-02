@@ -7,7 +7,6 @@ use super::functions::Functions;
 
 use std::collections::HashSet;
 use std::collections::hash_map::RandomState;
-use std::iter::FromIterator;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Expr {
@@ -108,7 +107,7 @@ impl Expr {
         }
       }
       Expr::Lambda(args, body) => {
-        let vars: HashSet<_, RandomState> = HashSet::from_iter(args.iter_vars().map(|x| x.to_owned()));
+        let vars: HashSet<_, RandomState> = args.iter_vars().map(|x| x.to_owned()).collect();
         let mut local_scope = Locals::new();
         body.walk_locals(&mut local_scope, acc_fns);
         for var in local_scope.names() {

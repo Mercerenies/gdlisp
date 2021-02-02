@@ -8,13 +8,13 @@
 
 use std::collections::HashSet;
 
-#[derive(PartialEq, Eq, Debug, Clone)]
+#[derive(PartialEq, Eq, Debug, Clone, Default)]
 pub struct Functions(HashSet<String>);
 
 impl Functions {
 
   pub fn new() -> Functions {
-    Functions(HashSet::new())
+    Functions::default()
   }
 
   pub fn from_hashset(map: HashSet<String>) -> Functions {

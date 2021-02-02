@@ -18,7 +18,7 @@ type IRArgList = ir::arglist::ArgList;
 pub fn compile_flet<'a>(compiler: &mut Compiler<'a>,
                         builder: &mut StmtBuilder,
                         table: &mut SymbolTable,
-                        clauses: &Vec<(String, IRArgList, IRExpr)>,
+                        clauses: &[(String, IRArgList, IRExpr)],
                         body: &IRExpr,
                         needs_result: NeedsResult)
                         -> Result<StExpr, Error> {

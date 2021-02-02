@@ -27,7 +27,7 @@ pub fn dispatch_form(head: &str,
 
 pub fn progn_form(tail: &[&AST])
                   -> Result<Expr, Error> {
-  let body = tail.into_iter().map(|expr| compile_expr(expr)).collect::<Result<Vec<_>, _>>()?;
+  let body = tail.iter().map(|expr| compile_expr(expr)).collect::<Result<Vec<_>, _>>()?;
   Ok(Expr::Progn(body))
 }
 
@@ -59,7 +59,7 @@ pub fn cond_form(tail: &[&AST])
       }
       _ => {
         let cond = compile_expr(vec[0])?;
-        let inner = vec[1..].into_iter().map(|expr| compile_expr(expr)).collect::<Result<Vec<_>, _>>()?;
+        let inner = vec[1..].iter().map(|expr| compile_expr(expr)).collect::<Result<Vec<_>, _>>()?;
         Ok((cond, Some(Expr::Progn(inner))))
       }
     }
@@ -69,7 +69,7 @@ pub fn cond_form(tail: &[&AST])
 
 pub fn while_form(tail: &[&AST])
                -> Result<Expr, Error> {
-  if tail.len() < 1 {
+  if tail.is_empty() {
     return Err(Error::TooFewArgs(String::from("while"), tail.len()));
   }
   let cond = compile_expr(tail[0])?;
@@ -79,41 +79,41 @@ pub fn while_form(tail: &[&AST])
 
 pub fn let_form(tail: &[&AST])
                 -> Result<Expr, Error> {
-  if tail.len() < 1 {
+  if tail.is_empty() {
     return Err(Error::TooFewArgs(String::from("let"), tail.len()));
   }
   let vars: Vec<_> = DottedExpr::new(tail[0]).try_into()?;
   let var_clauses = vars.into_iter().map(|clause| {
     let var: Vec<_> = match DottedExpr::new(clause) {
-      DottedExpr { elements, terminal: AST::Nil } if elements.len() > 0 => elements,
-      DottedExpr { elements, terminal: tail@AST::Symbol(_) } if elements.len() == 0 => vec!(tail),
+      DottedExpr { elements, terminal: AST::Nil } if !elements.is_empty() => elements,
+      DottedExpr { elements, terminal: tail@AST::Symbol(_) } if elements.is_empty() => vec!(tail),
       _ => return Err(Error::InvalidArg(String::from("let"), (*clause).clone(), String::from("variable declaration")))
     };
-    let result_value = var[1..].into_iter().map(|e| compile_expr(e)).collect::<Result<Vec<_>, _>>()?;
+    let result_value = var[1..].iter().map(|e| compile_expr(e)).collect::<Result<Vec<_>, _>>()?;
     let name = match var[0] {
       AST::Symbol(s) => Ok(s.clone()),
       _ => Err(Error::InvalidArg(String::from("let"), (*clause).clone(), String::from("variable declaration"))),
     }?;
     Ok((name, Expr::Progn(result_value)))
   }).collect::<Result<Vec<_>, _>>()?;
-  let body = tail[1..].into_iter().map(|expr| compile_expr(expr)).collect::<Result<Vec<_>, _>>()?;
+  let body = tail[1..].iter().map(|expr| compile_expr(expr)).collect::<Result<Vec<_>, _>>()?;
   Ok(Expr::Let(var_clauses, Box::new(Expr::Progn(body))))
 }
 
 pub fn lambda_form(tail: &[&AST])
                    -> Result<Expr, Error> {
-  if tail.len() <= 0 {
+  if tail.is_empty() {
     return Err(Error::TooFewArgs(String::from("lambda"), 1));
   }
   let args: Vec<_> = DottedExpr::new(tail[0]).try_into()?;
   let args = ArgList::parse(args)?;
-  let body = tail[1..].into_iter().map(|expr| compile_expr(expr)).collect::<Result<Vec<_>, _>>()?;
+  let body = tail[1..].iter().map(|expr| compile_expr(expr)).collect::<Result<Vec<_>, _>>()?;
   Ok(Expr::Lambda(args, Box::new(Expr::Progn(body))))
 }
 
 pub fn function_form(tail: &[&AST])
                      -> Result<Expr, Error> {
-  if tail.len() < 1 {
+  if tail.is_empty() {
     return Err(Error::TooFewArgs(String::from("function"), 1));
   }
   if tail.len() > 1 {
@@ -147,7 +147,7 @@ pub fn assign_form(tail: &[&AST])
 
 pub fn flet_form(tail: &[&AST])
                  -> Result<Expr, Error> {
-  if tail.len() < 1 {
+  if tail.is_empty() {
     return Err(Error::TooFewArgs(String::from("flet"), tail.len()));
   }
   let fns: Vec<_> = DottedExpr::new(tail[0]).try_into()?;
@@ -162,9 +162,9 @@ pub fn flet_form(tail: &[&AST])
     }?;
     let args: Vec<_> = DottedExpr::new(func[1]).try_into()?;
     let args = ArgList::parse(args)?;
-    let body = func[2..].into_iter().map(|expr| compile_expr(expr)).collect::<Result<Vec<_>, _>>()?;
+    let body = func[2..].iter().map(|expr| compile_expr(expr)).collect::<Result<Vec<_>, _>>()?;
     Ok((name, args, Expr::Progn(body)))
   }).collect::<Result<Vec<_>, _>>()?;
-  let body = tail[1..].into_iter().map(|expr| compile_expr(expr)).collect::<Result<Vec<_>, _>>()?;
+  let body = tail[1..].iter().map(|expr| compile_expr(expr)).collect::<Result<Vec<_>, _>>()?;
   Ok(Expr::FLet(fn_clauses, Box::new(Expr::Progn(body))))
 }

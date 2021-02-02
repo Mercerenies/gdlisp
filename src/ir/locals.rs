@@ -4,7 +4,7 @@
 
 use std::collections::HashMap;
 
-#[derive(PartialEq, Eq, Debug, Clone)]
+#[derive(PartialEq, Eq, Debug, Clone, Default)]
 pub struct Locals(HashMap<String, AccessType>);
 
 /*
@@ -32,7 +32,7 @@ pub enum AccessType { None, Read, RW, ClosedRead, ClosedRW }
 impl Locals {
 
   pub fn new() -> Locals {
-    Locals(HashMap::new())
+    Locals::default()
   }
 
   pub fn from_hashmap(map: HashMap<String, AccessType>) -> Locals {
@@ -102,7 +102,7 @@ impl AccessType {
     if a == b {
       return a;
     }
-    return AccessType::ClosedRW;
+    AccessType::ClosedRW
   }
 
 }

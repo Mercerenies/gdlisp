@@ -42,7 +42,7 @@ fn main() {
           Err(err) => println!("Error: {:?}", err),
           Ok(value) => {
             let mut tmp = CodeBuilder::new(decl::ClassExtends::Named("Node".to_owned()));
-            match compiler.compile_decls(&mut tmp, &mut table, &value) {
+            match compiler.compile_decls(&mut tmp, &table, &value) {
               Err(err) => println!("Error: {:?}", err),
               Ok(()) => {
                 let result = tmp.build();

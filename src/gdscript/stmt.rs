@@ -62,7 +62,7 @@ pub fn if_branches(cases: Vec<(Expr, Vec<Stmt>)>, default: Vec<Stmt>) -> Vec<Stm
     default
   } else {
     let if_clause = cases[0].clone();
-    let elif_clauses = cases[1..].into_iter().map(|x| x.clone()).collect();
+    let elif_clauses = cases[1..].to_vec();
     vec!(
       Stmt::IfStmt(IfStmt {
         if_clause,

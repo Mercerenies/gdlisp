@@ -41,7 +41,7 @@ pub fn compile_expr(expr: &AST)
         if let Some(sf) = resolve_special_form(head, tail)? {
           Ok(sf)
         } else {
-          let args = tail.into_iter().map(|x| compile_expr(x)).collect::<Result<Vec<_>, _>>()?;
+          let args = tail.iter().map(|x| compile_expr(x)).collect::<Result<Vec<_>, _>>()?;
           Ok(Expr::Call(head.to_owned(), args))
         }
       }
@@ -64,7 +64,7 @@ pub fn compile_expr(expr: &AST)
 pub fn compile_decl(decl: &AST)
                     -> Result<Decl, Error> {
   let vec: Vec<&AST> = DottedExpr::new(decl).try_into()?;
-  if vec.len() == 0 {
+  if vec.is_empty() {
     return Err(Error::InvalidDecl(decl.clone()));
   }
   match vec[0] {
@@ -80,7 +80,7 @@ pub fn compile_decl(decl: &AST)
           };
           let args: Vec<_> = DottedExpr::new(vec[2]).try_into()?;
           let args = ArgList::parse(args)?;
-          let body = vec[3..].into_iter().map(|expr| compile_expr(expr)).collect::<Result<Vec<_>, _>>()?;
+          let body = vec[3..].iter().map(|expr| compile_expr(expr)).collect::<Result<Vec<_>, _>>()?;
           Ok(Decl::FnDecl(decl::FnDecl {
             name: name.to_owned(),
             args: args,
@@ -88,12 +88,12 @@ pub fn compile_decl(decl: &AST)
           }))
         }
         _ => {
-          return Err(Error::UnknownDecl(s.clone()));
+          Err(Error::UnknownDecl(s.clone()))
         }
       }
     }
     _ => {
-      return Err(Error::InvalidDecl(decl.clone()));
+      Err(Error::InvalidDecl(decl.clone()))
     }
   }
 }
@@ -121,7 +121,7 @@ pub fn compile_toplevel(body: &AST)
 
 // TODO For now, we can only call symbols. We'll need to extend this
 // eventually to support attributed calls (foo.bar(), etc).
-fn resolve_call_name<'c>(ast: &'c AST) -> Result<&'c str, Error> {
+fn resolve_call_name(ast: &AST) -> Result<&str, Error> {
   match ast {
     AST::Symbol(s) => Ok(&*s),
     _ => Err(Error::CannotCall(ast.clone())),

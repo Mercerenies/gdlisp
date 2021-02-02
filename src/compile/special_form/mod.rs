@@ -38,7 +38,7 @@ pub fn compile_if_stmt<'a>(compiler: &mut Compiler<'a>,
 pub fn compile_cond_stmt<'a>(compiler: &mut Compiler<'a>,
                              builder: &mut StmtBuilder,
                              table: &mut SymbolTable,
-                             clauses: &Vec<(IRExpr, Option<IRExpr>)>,
+                             clauses: &[(IRExpr, Option<IRExpr>)],
                              needs_result: NeedsResult)
                              -> Result<StExpr, Error> {
   let (destination, result) = needs_result.into_destination(compiler, builder, "_cond");
@@ -54,7 +54,7 @@ pub fn compile_cond_stmt<'a>(compiler: &mut Compiler<'a>,
         let var_name = compiler.declare_var(&mut outer_builder, "_cond", Some(cond));
         destination.wrap_to_builder(&mut inner_builder, StExpr(Expr::Var(var_name.clone()), SideEffects::None));
         let if_branch = inner_builder.build_into(builder);
-        outer_builder.append(stmt::if_else(Expr::Var(var_name.clone()), if_branch, acc));
+        outer_builder.append(stmt::if_else(Expr::Var(var_name), if_branch, acc));
         Ok(outer_builder.build_into(builder))
       }
       Some(body) => {

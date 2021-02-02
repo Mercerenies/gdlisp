@@ -126,7 +126,7 @@ impl TopLevelClass {
       writeln!(string, "class_name {}", name).expect("Could not write to string in TopLevelClass::to_gd");
     }
     writeln!(string, "extends {}", self.extends.to_gd()).expect("Could not write to string in TopLevelClass::to_gd");
-    Decl::write_gd_decls(self.body.iter().map(|x| x), &empty_class_body(), &mut string, 0)
+    Decl::write_gd_decls(self.body.iter(), &empty_class_body(), &mut string, 0)
       .expect("Could not write to string in TopLevelClass::to_gd");
     string
   }

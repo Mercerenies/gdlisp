@@ -52,7 +52,7 @@ impl<'a> Compiler<'a> {
       let prefix = &stmts[..stmts.len()-1];
       let end = &stmts[stmts.len()-1];
       for x in prefix {
-        self.compile_stmt(builder, table, &mut stmt_wrapper::Vacuous, x)?;
+        self.compile_stmt(builder, table, &stmt_wrapper::Vacuous, x)?;
       }
       self.compile_expr(builder, table, end, needs_result)
     }
@@ -91,7 +91,7 @@ impl<'a> Compiler<'a> {
         }
       }
       IRExpr::Progn(body) => {
-        let body: Vec<_> = body.iter().map(|x| x).collect();
+        let body: Vec<_> = body.iter().collect();
         self.compile_stmts(builder, table, &body[..], needs_result)
       }
       IRExpr::IfStmt(c, t, f) => {
@@ -114,7 +114,7 @@ impl<'a> Compiler<'a> {
           None => Box::new(DefaultCall),
           Some(x) => dyn_clone::clone_box(x),
         };
-        let args = args.into_iter()
+        let args = args.iter()
                        .map(|x| self.compile_expr(builder, table, x, NeedsResult::Yes))
                        .collect::<Result<Vec<_>, _>>()?;
         Ok(StExpr(fcall.into_expr_with_magic(&*call_magic, self, builder, table, args)?, SideEffects::ModifiesState))
@@ -220,7 +220,7 @@ impl<'a> Compiler<'a> {
                                          Box::new(library::construct_cell(Expr::var(&arg.1)))));
       }
     }
-    table.with_local_vars(&mut gd_args.clone().into_iter().map(|x| (x.0.to_owned(), LocalVar::new(x.1, local_vars.get(&x.0)))), |table| {
+    table.with_local_vars(&mut gd_args.into_iter().map(|x| (x.0.to_owned(), LocalVar::new(x.1, local_vars.get(&x.0)))), |table| {
       self.compile_stmt(&mut stmt_builder, table, &stmt_wrapper::Return, body)
     })?;
     Ok(decl::FnDecl {
@@ -249,7 +249,7 @@ impl<'a> Compiler<'a> {
   pub fn compile_decls(&mut self,
                        builder: &mut CodeBuilder,
                        table: &SymbolTable,
-                       decls: &Vec<IRDecl>)
+                       decls: &[IRDecl])
                        -> Result<(), Error> {
     // Since we're going to be altering it a lot (and this function
     // should be getting called infrequently), it's going to be easier
