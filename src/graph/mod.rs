@@ -1,4 +1,6 @@
 
+pub mod top_sort;
+
 use std::collections::HashMap;
 use std::borrow::Borrow;
 use std::hash::Hash;
@@ -13,13 +15,22 @@ impl<'a, T> Graph<'a, T> where T : Eq + Hash {
   pub fn from_edges<I, U>(iter: I) -> Graph<'a, T>
   where I : Iterator<Item=(T, &'a U)>,
         U : Borrow<T>,
-        U : 'a {
+        U : 'a,
+        T : Clone {
     let mut edges = HashMap::new();
     for (x, y) in iter {
       let vec = edges.entry(x).or_insert_with(Vec::new);
       vec.push(y.borrow());
+      // Make sure the other node is present too.
+      if !edges.contains_key(y.borrow()) {
+        edges.insert((*y.borrow()).clone(), Vec::new());
+      }
     }
     Graph { edges }
+  }
+
+  pub fn new() -> Graph<'a, T> {
+    Graph::default()
   }
 
   pub fn nodes(&self) -> impl Iterator<Item=&T> {
@@ -51,6 +62,14 @@ impl<'a, T> Graph<'a, T> where T : Eq + Hash {
 
   pub fn node_count(&self) -> usize {
     self.edges.len()
+  }
+
+}
+
+impl<'a, T> Default for Graph<'a, T> {
+
+  fn default() -> Self {
+    Graph { edges: Default::default() }
   }
 
 }
