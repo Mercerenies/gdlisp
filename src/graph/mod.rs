@@ -1,5 +1,6 @@
 
 pub mod top_sort;
+pub mod tarjan;
 
 use std::collections::HashMap;
 use std::borrow::Borrow;
@@ -27,6 +28,11 @@ impl<'a, T> Graph<'a, T> where T : Eq + Hash {
       }
     }
     Graph { edges }
+  }
+
+  pub fn from_nodes<I>(iter: I) -> Graph<'a, T>
+  where I : Iterator<Item=T> {
+    Graph { edges: iter.map(|x| (x, Vec::new())).collect() }
   }
 
   pub fn new() -> Graph<'a, T> {
