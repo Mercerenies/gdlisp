@@ -13,6 +13,12 @@ use std::mem::swap;
 #[derive(Clone, Debug)]
 pub struct SCC<'a, T>(pub HashSet<&'a T>);
 
+#[derive(Clone, Debug)]
+pub struct SCCSummary<'a, T> {
+  sccs: Vec<SCC<'a, T>>,
+  scc_lookup: HashMap<&'a T, usize>,
+}
+
 struct Algorithm<'a, 'b, T> {
   graph: &'b Graph<'a, T>,
   sccs: Vec<SCC<'a, T>>,
@@ -33,6 +39,26 @@ impl<'a, T> Default for SCC<'a, T> {
   fn default() -> Self {
     SCC(HashSet::new())
   }
+}
+
+impl<'a, T> SCCSummary<'a, T>
+where T : Eq + Hash {
+
+  pub fn get_scc(&self, node: &'a T) -> Option<&SCC<'a, T>> {
+    self.scc_lookup.get(node).map(|idx| &self.sccs[*idx])
+  }
+
+  pub fn is_in_same(&self, a: &'a T, b: &'a T) -> bool {
+    match self.get_scc(a) {
+      None => false,
+      Some(SCC(nodes)) => nodes.contains(b),
+    }
+  }
+
+  pub fn count(&self) -> usize {
+    self.sccs.len()
+  }
+
 }
 
 impl<'a, 'b, T> Algorithm<'a, 'b, T>
@@ -81,7 +107,23 @@ where T : Eq + Hash {
 
 }
 
-pub fn find_scc<'a, 'b, T>(graph: &'b Graph<'a, T>) -> Vec<SCC<'a, T>>
+impl<'a, 'b, T> From<Algorithm<'a, 'b, T>> for SCCSummary<'a, T>
+where T : Eq + Hash {
+
+  fn from(alg: Algorithm<'a, 'b, T>) -> SCCSummary<'a, T> {
+    let sccs = alg.sccs;
+    let mut scc_lookup = HashMap::new();
+    for (idx, SCC(nodes)) in sccs.iter().enumerate() {
+      for node in nodes {
+        scc_lookup.insert(*node, idx);
+      }
+    }
+    SCCSummary { sccs, scc_lookup }
+  }
+
+}
+
+pub fn find_scc<'a, 'b, T>(graph: &'b Graph<'a, T>) -> SCCSummary<'a, T>
 where T : Eq + Hash, 'b : 'a {
   let mut alg = Algorithm::new(graph);
   for v in graph.nodes() {
@@ -89,11 +131,73 @@ where T : Eq + Hash, 'b : 'a {
       alg.strongconnect(v);
     }
   }
-  alg.sccs
+  alg.into()
 }
 
 #[cfg(test)]
 mod tests {
-  //use super::*;
+  use super::*;
+
+  #[test]
+  fn scc_test_isolated() {
+    let graph = Graph::from_nodes(vec!(1, 2, 4, 3).into_iter());
+    let result = find_scc(&graph);
+    assert_eq!(result.count(), 4);
+    assert!(!result.is_in_same(&1, &2));
+    assert!(!result.is_in_same(&1, &3));
+    assert!(!result.is_in_same(&1, &4));
+    assert!(!result.is_in_same(&2, &3));
+    assert!(!result.is_in_same(&2, &4));
+  }
+
+  #[test]
+  fn scc_test_path() {
+    let graph = Graph::from_edges(vec!((1, &2), (2, &3), (3, &4)).into_iter());
+    let result = find_scc(&graph);
+    assert_eq!(result.count(), 4);
+    assert!(!result.is_in_same(&1, &2));
+    assert!(!result.is_in_same(&1, &3));
+    assert!(!result.is_in_same(&1, &4));
+    assert!(!result.is_in_same(&2, &3));
+    assert!(!result.is_in_same(&2, &4));
+  }
+
+  #[test]
+  fn scc_test_cycle_rhs() {
+    let graph = Graph::from_edges(vec!((1, &2), (2, &3), (3, &4), (4, &2)).into_iter());
+    let result = find_scc(&graph);
+    assert_eq!(result.count(), 2);
+    assert!(!result.is_in_same(&1, &2));
+    assert!(!result.is_in_same(&1, &3));
+    assert!(!result.is_in_same(&1, &4));
+    assert!(result.is_in_same(&2, &3));
+    assert!(result.is_in_same(&2, &4));
+  }
+
+  #[test]
+  fn scc_test_cycle_lhs() {
+    let graph = Graph::from_edges(vec!((1, &2), (2, &3), (3, &4), (3, &1)).into_iter());
+    let result = find_scc(&graph);
+    assert_eq!(result.count(), 2);
+    assert!(result.is_in_same(&1, &2));
+    assert!(result.is_in_same(&1, &3));
+    assert!(!result.is_in_same(&1, &4));
+    assert!(result.is_in_same(&2, &3));
+    assert!(!result.is_in_same(&2, &4));
+  }
+
+  #[test]
+  fn scc_test_one_big_cycle() {
+    let graph = Graph::from_edges(vec!((1, &2), (2, &3), (3, &4), (4, &1)).into_iter());
+    let result = find_scc(&graph);
+    assert_eq!(result.count(), 1);
+  }
+
+  #[test]
+  fn scc_test_two_connected_cycles() {
+    let graph = Graph::from_edges(vec!((1, &2), (2, &3), (3, &4), (4, &5), (3, &1), (5, &3)).into_iter());
+    let result = find_scc(&graph);
+    assert_eq!(result.count(), 1);
+  }
 
 }
