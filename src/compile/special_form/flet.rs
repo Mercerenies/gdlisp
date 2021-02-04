@@ -87,31 +87,48 @@ pub fn compile_labels<'a>(compiler: &mut Compiler<'a>,
   }
   let sccs = tarjan::find_scc(&dependencies);
   let collated_graph = tarjan::build_scc_graph(&dependencies, &sccs);
-  let ordering = top_sort(&collated_graph).expect("SCC detection failed (cycle in resulting graph)");
-  //compile_labels_rec(compiler, builder, table, clauses, &sccs, &collated_graph, &ordering, 0);
-  panic!("")
+  let ordering: Vec<_> = top_sort(&collated_graph)
+    .expect("SCC detection failed (cycle in resulting graph)")
+    .into_iter().copied().collect();
+  compile_labels_rec(compiler, builder, table, body, needs_result, clauses, &dependencies, &sccs, &collated_graph, &ordering[..], 0)
 }
 
-/*
 fn compile_labels_rec<'a, 'b>(compiler: &mut Compiler<'a>,
                               builder: &mut StmtBuilder,
                               table: &mut SymbolTable,
+                              body: &IRExpr,
+                              needs_result: NeedsResult,
                               clauses: &[(String, IRArgList, IRExpr)],
+                              full_graph: &Graph<String>,
                               sccs: &tarjan::SCCSummary<'b, String>,
-                              graph: &'b Graph<usize>,
+                              graph: &Graph<usize>,
                               ordering: &[usize],
-                              ordering_idx: usize) {
+                              ordering_idx: usize)
+                              -> Result<StExpr, Error> {
   if ordering_idx < ordering.len() {
     let current_scc_idx = ordering[ordering_idx];
     let tarjan::SCC(current_scc) = sccs.get_scc_by_id(current_scc_idx).expect("SCC detection failed (invalid ID)");
-    match current_scc.len() {
-      0 => {
-        // That's weird. But whatever. No action needed.
+    if current_scc.is_empty() {
+      // That's weird. But whatever. No action needed.
+      compile_labels_rec(compiler, builder, table, body, needs_result, clauses, full_graph, sccs, graph, ordering, ordering_idx + 1)
+    } else {
+      let name = current_scc.iter().next().expect("Internal error in SCC detection (no first element?)");
+      if current_scc.len() == 1 && !full_graph.has_edge(name, name) {
+        // Simple FLet-like case.
+        let name = current_scc.iter().next().expect("Internal error in SCC detection (no first element?)");
+        let (_, args, expr) = clauses.iter().find(|(n, _, _)| &n == name).expect("Internal error in SCC detection (no function found?)");
+        let call = compile_flet_call(compiler, builder, table, args.to_owned(), expr)?;
+        table.with_local_fn((*name).to_owned(), call, |table| {
+          compile_labels_rec(compiler, builder, table, body, needs_result, clauses, full_graph, sccs, graph, ordering, ordering_idx + 1)
+        })
+      } else {
+        panic!("Not implemented")
       }
     }
+  } else {
+    compiler.compile_expr(builder, table, body, needs_result)
   }
 }
-*/
 
 fn is_declaration_semiglobal(args: &IRArgList, body: &IRExpr, table: &SymbolTable) -> bool {
   let (closure_vars, closure_fns) = body.get_names();

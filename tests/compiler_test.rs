@@ -417,3 +417,41 @@ pub fn local_flet_closure_test() {
   "#);
   assert_eq!(result0.0, "var x_0 = 1\nvar _flet_2 = _LambdaBlock_1.new(x_0)\nvar g_4 = _LambdaBlock_3.new(_flet_2)\nreturn GDLisp.funcall(g_4, GDLisp.Nil)\n");
 }
+
+#[test]
+pub fn semiglobal_labels_test() {
+
+  let result0 = parse_compile_and_output_h("(labels ((f (x) (+ x 1))) (f 10))");
+  assert_eq!(result0.0, "return _flet_0(10)\n");
+  assert_eq!(result0.1, "static func _flet_0(x_1):\n    return x_1 + 1\n");
+
+}
+
+#[test]
+pub fn semiglobal_labels_test_indirect() {
+
+  let result0 = parse_compile_and_output_h("(labels ((f (x) (+ x 1))) (funcall (function f) 10))");
+  assert_eq!(result0.0, "return GDLisp.funcall(_FunctionRefBlock_2.new(), GDLisp.Cons.new(10, GDLisp.Nil))\n");
+  assert_eq!(result0.1, r#"static func _flet_0(x_1):
+    return x_1 + 1
+class _FunctionRefBlock_2 extends GDLisp.Function:
+    func _init():
+        self.__gdlisp_required = 1
+        self.__gdlisp_optional = 0
+        self.__gdlisp_rest = false
+    func call_func(arg0):
+        return _flet_0(arg0)
+    func call_funcv(args):
+        var required_0 = null
+        if args is GDLisp.NilClass:
+            push_error("Not enough arguments")
+        else:
+            required_0 = args.car
+            args = args.cdr
+        if args is GDLisp.NilClass:
+            return call_func(required_0)
+        else:
+            push_error("Too many arguments")
+"#);
+
+}
