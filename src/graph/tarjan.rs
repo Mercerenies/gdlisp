@@ -141,20 +141,20 @@ where T : Eq + Hash {
   }
   alg.into()
 }
-/*
-pub fn build_scc_graph<'a, T>(graph: &Graph<'a, T>, summary: &SCCSummary<'a, T>) -> Graph<'a, usize>
+
+pub fn build_scc_graph<'a, 'b, T>(graph: &'a Graph<T>, summary: &'b SCCSummary<'a, T>) -> Graph<usize>
 where T : Eq + Hash {
   let mut new_graph = Graph::from_nodes(0..summary.count());
   for (x, y) in graph.all_edges() {
-    let xscc = summary.get_scc_id(x).as_ref().and_then(|xscc| new_graph.get_node(xscc)).expect("Node not found in SCCSummary");
-    let yscc = summary.get_scc_id(y).as_ref().and_then(|yscc| new_graph.get_node(yscc)).expect("Node not found in SCCSummary");
-    if *xscc != *yscc {
+    let xscc = summary.get_scc_id(x).expect("Node not found in SCCSummary");
+    let yscc = summary.get_scc_id(y).expect("Node not found in SCCSummary");
+    if xscc != yscc {
       new_graph.add_edge_no_dup(xscc, yscc);
     }
   }
   new_graph
 }
-*/
+
 #[cfg(test)]
 mod tests {
   use super::*;
