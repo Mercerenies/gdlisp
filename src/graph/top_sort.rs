@@ -6,16 +6,15 @@ use std::collections::HashSet;
 #[derive(Clone, Copy, Eq, PartialEq, Debug)]
 pub struct CycleInTopSortError {}
 
-pub fn top_sort<'a, 'b, T>(graph: &'b Graph<'a, T>) -> Result<Vec<&'a T>, CycleInTopSortError>
-where T : Eq + Hash,
-      'b : 'a {
+pub fn top_sort<T>(graph: &Graph<T>) -> Result<Vec<&T>, CycleInTopSortError>
+where T : Eq + Hash {
   let nodes: HashSet<_> = graph.nodes().collect();
-  let mut visited: HashSet<_> = HashSet::new();
+  let mut visited: HashSet<&T> = HashSet::new();
   let mut result = Vec::new();
   while visited.len() < nodes.len() {
     match nodes.iter().find(|node| {
       // To be a valid candidate, every outgoing node must be in visited.
-      !visited.contains(node) &&
+      !visited.contains(*node) &&
         graph.outgoing_edges(**node).expect("Node not found").iter().all(|out| {
           visited.contains(out)
         })
@@ -38,7 +37,7 @@ mod tests {
   #[test]
   fn test_top_sort_1() {
     // There's only one topological sort possible.
-    let graph = Graph::from_edges(vec!((0, &1), (1, &2), (2, &3)).into_iter());
+    let graph = Graph::from_edges(vec!((0, 1), (1, 2), (2, 3)).into_iter());
     let result = top_sort(&graph);
     assert_eq!(result, Ok(vec!(&0, &1, &2, &3)));
   }
@@ -46,7 +45,7 @@ mod tests {
   #[test]
   fn test_top_sort_2() {
     // There's only one topological sort possible.
-    let graph = Graph::from_edges(vec!((0, &1), (1, &2), (0, &2)).into_iter());
+    let graph = Graph::from_edges(vec!((0, 1), (1, 2), (0, 2)).into_iter());
     let result = top_sort(&graph);
     assert_eq!(result, Ok(vec!(&0, &1, &2)));
   }
@@ -54,7 +53,7 @@ mod tests {
   #[test]
   fn test_top_sort_3() {
     // Two options; as long as it's one of them, we're happy.
-    let graph = Graph::from_edges(vec!((0, &1), (1, &2), (0, &3), (3, &2)).into_iter());
+    let graph = Graph::from_edges(vec!((0, 1), (1, 2), (0, 3), (3, 2)).into_iter());
     let result = top_sort(&graph).expect("No topological sort found");
     assert_eq!(result[0], &0);
     assert_eq!(result[3], &2);
@@ -63,7 +62,7 @@ mod tests {
   #[test]
   fn test_top_sort_4() {
     // No topological sort.
-    let graph = Graph::from_edges(vec!((0, &1), (1, &2), (2, &3), (3, &1)).into_iter());
+    let graph = Graph::from_edges(vec!((0, 1), (1, 2), (2, 3), (3, 1)).into_iter());
     let result = top_sort(&graph);
     assert_eq!(result, Err(CycleInTopSortError {}));
   }

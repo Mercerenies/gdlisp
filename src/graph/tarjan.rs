@@ -19,8 +19,8 @@ pub struct SCCSummary<'a, T> {
   scc_lookup: HashMap<&'a T, usize>,
 }
 
-struct Algorithm<'a, 'b, T> {
-  graph: &'b Graph<'a, T>,
+struct Algorithm<'a, T> {
+  graph: &'a Graph<T>,
   sccs: Vec<SCC<'a, T>>,
   indices: HashMap<&'a T, usize>,
   lowlinks: HashMap<&'a T, usize>,
@@ -44,6 +44,14 @@ impl<'a, T> Default for SCC<'a, T> {
 impl<'a, T> SCCSummary<'a, T>
 where T : Eq + Hash {
 
+  pub fn get_scc_by_id(&self, id: usize) -> Option<&SCC<'a, T>> {
+    self.sccs.get(id)
+  }
+
+  pub fn get_scc_id(&self, node: &'a T) -> Option<usize> {
+    self.scc_lookup.get(node).map(|x| *x)
+  }
+
   pub fn get_scc(&self, node: &'a T) -> Option<&SCC<'a, T>> {
     self.scc_lookup.get(node).map(|idx| &self.sccs[*idx])
   }
@@ -61,10 +69,10 @@ where T : Eq + Hash {
 
 }
 
-impl<'a, 'b, T> Algorithm<'a, 'b, T>
+impl<'a, T> Algorithm<'a, T>
 where T : Eq + Hash {
 
-  fn new(graph: &'b Graph<'a, T>) -> Algorithm<'a, 'b, T> {
+  fn new(graph: &'a Graph<T>) -> Algorithm<'a, T> {
     Algorithm {
       graph: graph,
       sccs: Vec::new(),
@@ -87,7 +95,7 @@ where T : Eq + Hash {
         let a = *self.lowlinks.get(w).expect("No lowlink for w");
         let b = *self.lowlinks.get(v).expect("No lowlink for v");
         self.lowlinks.insert(v, min(a, b));
-      } else if self.stack.iter().find(|x| *x == w).is_some() {
+      } else if self.stack.iter().find(|x| *x == &w).is_some() {
         let a = *self.indices.get(w).expect("No index for w");
         let b = *self.lowlinks.get(v).expect("No lowlink for v");
         self.lowlinks.insert(v, min(a, b));
@@ -107,10 +115,10 @@ where T : Eq + Hash {
 
 }
 
-impl<'a, 'b, T> From<Algorithm<'a, 'b, T>> for SCCSummary<'a, T>
+impl<'a, T> From<Algorithm<'a, T>> for SCCSummary<'a, T>
 where T : Eq + Hash {
 
-  fn from(alg: Algorithm<'a, 'b, T>) -> SCCSummary<'a, T> {
+  fn from(alg: Algorithm<'a, T>) -> SCCSummary<'a, T> {
     let sccs = alg.sccs;
     let mut scc_lookup = HashMap::new();
     for (idx, SCC(nodes)) in sccs.iter().enumerate() {
@@ -123,8 +131,8 @@ where T : Eq + Hash {
 
 }
 
-pub fn find_scc<'a, 'b, T>(graph: &'b Graph<'a, T>) -> SCCSummary<'a, T>
-where T : Eq + Hash, 'b : 'a {
+pub fn find_scc<'a, T>(graph: &'a Graph<T>) -> SCCSummary<'a, T>
+where T : Eq + Hash {
   let mut alg = Algorithm::new(graph);
   for v in graph.nodes() {
     if !alg.indices.contains_key(v) {
@@ -133,7 +141,20 @@ where T : Eq + Hash, 'b : 'a {
   }
   alg.into()
 }
-
+/*
+pub fn build_scc_graph<'a, T>(graph: &Graph<'a, T>, summary: &SCCSummary<'a, T>) -> Graph<'a, usize>
+where T : Eq + Hash {
+  let mut new_graph = Graph::from_nodes(0..summary.count());
+  for (x, y) in graph.all_edges() {
+    let xscc = summary.get_scc_id(x).as_ref().and_then(|xscc| new_graph.get_node(xscc)).expect("Node not found in SCCSummary");
+    let yscc = summary.get_scc_id(y).as_ref().and_then(|yscc| new_graph.get_node(yscc)).expect("Node not found in SCCSummary");
+    if *xscc != *yscc {
+      new_graph.add_edge_no_dup(xscc, yscc);
+    }
+  }
+  new_graph
+}
+*/
 #[cfg(test)]
 mod tests {
   use super::*;
@@ -152,7 +173,7 @@ mod tests {
 
   #[test]
   fn scc_test_path() {
-    let graph = Graph::from_edges(vec!((1, &2), (2, &3), (3, &4)).into_iter());
+    let graph = Graph::from_edges(vec!((1, 2), (2, 3), (3, 4)).into_iter());
     let result = find_scc(&graph);
     assert_eq!(result.count(), 4);
     assert!(!result.is_in_same(&1, &2));
@@ -164,7 +185,7 @@ mod tests {
 
   #[test]
   fn scc_test_cycle_rhs() {
-    let graph = Graph::from_edges(vec!((1, &2), (2, &3), (3, &4), (4, &2)).into_iter());
+    let graph = Graph::from_edges(vec!((1, 2), (2, 3), (3, 4), (4, 2)).into_iter());
     let result = find_scc(&graph);
     assert_eq!(result.count(), 2);
     assert!(!result.is_in_same(&1, &2));
@@ -176,7 +197,7 @@ mod tests {
 
   #[test]
   fn scc_test_cycle_lhs() {
-    let graph = Graph::from_edges(vec!((1, &2), (2, &3), (3, &4), (3, &1)).into_iter());
+    let graph = Graph::from_edges(vec!((1, 2), (2, 3), (3, 4), (3, 1)).into_iter());
     let result = find_scc(&graph);
     assert_eq!(result.count(), 2);
     assert!(result.is_in_same(&1, &2));
@@ -188,14 +209,14 @@ mod tests {
 
   #[test]
   fn scc_test_one_big_cycle() {
-    let graph = Graph::from_edges(vec!((1, &2), (2, &3), (3, &4), (4, &1)).into_iter());
+    let graph = Graph::from_edges(vec!((1, 2), (2, 3), (3, 4), (4, 1)).into_iter());
     let result = find_scc(&graph);
     assert_eq!(result.count(), 1);
   }
 
   #[test]
   fn scc_test_two_connected_cycles() {
-    let graph = Graph::from_edges(vec!((1, &2), (2, &3), (3, &4), (4, &5), (3, &1), (5, &3)).into_iter());
+    let graph = Graph::from_edges(vec!((1, 2), (2, 3), (3, 4), (4, 5), (3, 1), (5, 3)).into_iter());
     let result = find_scc(&graph);
     assert_eq!(result.count(), 1);
   }
