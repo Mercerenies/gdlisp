@@ -49,6 +49,10 @@ impl<T> Graph<T> where T : Eq + Hash {
     self.edges.get_key_value(x.borrow()).map(|(k, _)| k)
   }
 
+  pub fn has_node<U>(&self, x: &U) -> bool where U : Borrow<T> {
+    self.get_node(x).is_some()
+  }
+
   pub fn all_edges(&self) -> impl Iterator<Item=(&T, &T)> {
     self.edges.iter().flat_map(|(x, ys)| ys.iter().map(move |y| (x, y)))
   }
