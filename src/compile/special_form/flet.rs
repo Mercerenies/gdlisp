@@ -26,7 +26,8 @@ pub fn compile_flet<'a>(compiler: &mut Compiler<'a>,
                         needs_result: NeedsResult)
                         -> Result<StExpr, Error> {
   let local_fns = clauses.iter().map(|(name, args, fbody)| {
-    compile_flet_call(compiler, builder, table, name.to_owned(), args.to_owned(), fbody)
+    let call = compile_flet_call(compiler, builder, table, args.to_owned(), fbody)?;
+    Ok((name.to_owned(), call))
   }).collect::<Result<Vec<_>, Error>>()?;
   table.with_local_fns(&mut local_fns.into_iter(), |table| {
     compiler.compile_expr(builder, table, body, needs_result)
@@ -36,10 +37,9 @@ pub fn compile_flet<'a>(compiler: &mut Compiler<'a>,
 fn compile_flet_call<'a>(compiler: &mut Compiler<'a>,
                          builder: &mut StmtBuilder,
                          table: &mut SymbolTable,
-                         name: String,
                          args: IRArgList,
                          body: &IRExpr)
-                         -> Result<(String, FnCall), Error> {
+                         -> Result<FnCall, Error> {
   if is_declaration_semiglobal(&args, body, table) {
     // No closure vars and any closure fns (if there are any) are
     // free of closures, so we can compile to SemiGlobal.
@@ -47,25 +47,23 @@ fn compile_flet_call<'a>(compiler: &mut Compiler<'a>,
     let func = compiler.declare_function(builder, table, gd_name.clone(), args.clone(), body)?;
     builder.add_helper(Decl::FnDecl(decl::Static::IsStatic, func));
     let specs = FnSpecs::from(args);
-    let call = FnCall {
+    Ok(FnCall {
       scope: FnScope::SemiGlobal,
       object: None,
       function: gd_name,
       specs
-    };
-    Ok((name, call))
+    })
   } else {
     // Have to make a full closure object.
     let StExpr(stmt, _) = lambda::compile_lambda_stmt(compiler, builder, table, &args, body)?;
     let local_name = compiler.declare_var(builder, "_flet", Some(stmt));
     let specs = FnSpecs::from(args);
-    let call = FnCall {
+    Ok(FnCall {
       scope: FnScope::Local(local_name.clone()),
       object: Some(Box::new(Expr::Var(local_name))),
       function: "call_func".to_owned(),
       specs
-    };
-    Ok((name, call))
+    })
   }
 }
 
