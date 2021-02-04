@@ -17,7 +17,8 @@ pub fn dispatch_form(head: &str,
     "cond" => cond_form(tail).map(Some),
     "while" => while_form(tail).map(Some),
     "let" => let_form(tail).map(Some),
-    "flet" => flet_form(tail).map(Some),
+    "flet" => flet_form(tail, Expr::FLet).map(Some),
+    "labels" => flet_form(tail, Expr::Labels).map(Some),
     "lambda" => lambda_form(tail).map(Some),
     "function" => function_form(tail).map(Some),
     "setq" => assign_form(tail).map(Some),
@@ -145,7 +146,7 @@ pub fn assign_form(tail: &[&AST])
   Ok(Expr::Assign(var_name.clone(), Box::new(value)))
 }
 
-pub fn flet_form(tail: &[&AST])
+pub fn flet_form(tail: &[&AST], container: impl FnOnce(Vec<(String, ArgList, Expr)>, Box<Expr>) -> Expr)
                  -> Result<Expr, Error> {
   if tail.is_empty() {
     return Err(Error::TooFewArgs(String::from("flet"), tail.len()));
@@ -166,5 +167,5 @@ pub fn flet_form(tail: &[&AST])
     Ok((name, args, Expr::Progn(body)))
   }).collect::<Result<Vec<_>, _>>()?;
   let body = tail[1..].iter().map(|expr| compile_expr(expr)).collect::<Result<Vec<_>, _>>()?;
-  Ok(Expr::FLet(fn_clauses, Box::new(Expr::Progn(body))))
+  Ok(container(fn_clauses, Box::new(Expr::Progn(body))))
 }

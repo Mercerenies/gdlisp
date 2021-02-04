@@ -56,6 +56,16 @@ pub fn compile_flet<'a>(compiler: &mut Compiler<'a>,
   })
 }
 
+pub fn compile_labels<'a>(_compiler: &mut Compiler<'a>,
+                          _builder: &mut StmtBuilder,
+                          _table: &mut SymbolTable,
+                          _clauses: &[(String, IRArgList, IRExpr)],
+                          _body: &IRExpr,
+                          _needs_result: NeedsResult)
+                          -> Result<StExpr, Error> {
+  panic!("Not yet implemented") ////
+}
+
 fn is_declaration_semiglobal(args: &IRArgList, body: &IRExpr, table: &SymbolTable) -> bool {
   let (closure_vars, closure_fns) = body.get_names();
   let arg_var_names: Vec<_> = args.iter_vars().collect();

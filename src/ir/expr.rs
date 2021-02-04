@@ -19,6 +19,7 @@ pub enum Expr {
   Call(String, Vec<Expr>),
   Let(Vec<(String, Expr)>, Box<Expr>),
   FLet(Vec<(String, ArgList, Expr)>, Box<Expr>),
+  Labels(Vec<(String, ArgList, Expr)>, Box<Expr>),
   Lambda(ArgList, Box<Expr>),
   FuncRef(FuncRefTarget),
   Assign(String, Box<Expr>),
@@ -99,6 +100,28 @@ impl Expr {
           Expr::Lambda(args.to_owned(), Box::new(fbody.to_owned())).walk_locals(acc_vars, acc_fns);
         }
         let mut local_scope = Functions::new();
+        body.walk_locals(acc_vars, &mut local_scope);
+        for func in local_scope.names() {
+          if !fns.contains(func) {
+            acc_fns.visited(func);
+          }
+        }
+      }
+      Expr::Labels(clauses, body) => {
+        let mut fns = HashSet::new();
+        for clause in clauses {
+          let (name, _, _) = clause;
+          fns.insert(name.to_owned());
+        }
+        // Note that we consider the bodies of the local functions to
+        // be part of the local scope. This is in contrast to the
+        // (simpler) FLet case, where only the body of the FLet itself
+        // is localized.
+        let mut local_scope = Functions::new();
+        for clause in clauses {
+          let (_, args, fbody) = clause;
+          Expr::Lambda(args.to_owned(), Box::new(fbody.to_owned())).walk_locals(acc_vars, &mut local_scope);
+        }
         body.walk_locals(acc_vars, &mut local_scope);
         for func in local_scope.names() {
           if !fns.contains(func) {

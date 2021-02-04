@@ -141,6 +141,9 @@ impl<'a> Compiler<'a> {
       IRExpr::FLet(clauses, body) => {
         flet::compile_flet(self, builder, table, clauses, body, needs_result)
       }
+      IRExpr::Labels(clauses, body) => {
+        flet::compile_labels(self, builder, table, clauses, body, needs_result)
+      }
       IRExpr::Lambda(args, body) => {
         lambda::compile_lambda_stmt(self, builder, table, args, body)
       }
