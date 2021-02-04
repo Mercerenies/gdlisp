@@ -30,6 +30,13 @@ pub enum FnScope {
   // name resolution rules. The string parameter is the name of the
   // (GDScript) local variable referring to the function.
   Local(String),
+  // A special local function is like a local function in that it
+  // needs a closure. But a special local function is potentially
+  // constructed with several other functions like it, so it will
+  // still need an explicit closure if referred to via a funcref. This
+  // is the worst case scenario, as we can make no assumptions about
+  // the scoping of this function.
+  SpecialLocal(String),
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

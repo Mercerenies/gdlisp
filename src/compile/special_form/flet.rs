@@ -122,7 +122,8 @@ fn compile_labels_rec<'a, 'b>(compiler: &mut Compiler<'a>,
           compile_labels_rec(compiler, builder, table, body, needs_result, clauses, full_graph, sccs, graph, ordering, ordering_idx + 1)
         })
       } else {
-        panic!("Not implemented")
+        // Complicated mutual recursion case.
+        panic!("") /////
       }
     }
   } else {

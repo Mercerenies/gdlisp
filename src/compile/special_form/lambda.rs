@@ -177,7 +177,7 @@ pub fn compile_lambda_stmt<'a>(compiler: &mut Compiler<'a>,
       None => { return Err(Error::NoSuchFn(func.to_owned())) }
       Some(call) => {
         match call.scope {
-          FnScope::Local(_) | FnScope::SemiGlobal | FnScope::Global => {
+          FnScope::SpecialLocal(_) | FnScope::Local(_) | FnScope::SemiGlobal | FnScope::Global => {
             lambda_table.set_fn(func.to_owned(), call.clone());
           }
         }
@@ -203,15 +203,24 @@ pub fn compile_lambda_stmt<'a>(compiler: &mut Compiler<'a>,
     match table.get_fn(func) {
       None => { return Err(Error::NoSuchFn(func.to_owned())) }
       Some(call) => {
-        if let FnScope::Local(name) = &call.scope {
-          // ClosedRead *might* be more conservative than necessary
-          // here (it's possible we can get away with Read in some
-          // situations), but I don't think it changes anything, so we
-          // may as well play it safe.
-          gd_closure_vars.push(LocalVar {
-            name: name.to_owned(),
-            access_type: AccessType::ClosedRead,
-          });
+        match &call.scope {
+          FnScope::Local(name) => {
+            // ClosedRead *might* be more conservative than necessary
+            // here (it's possible we can get away with Read in some
+            // situations), but I don't think it changes anything, so we
+            // may as well play it safe.
+            gd_closure_vars.push(LocalVar {
+              name: name.to_owned(),
+              access_type: AccessType::ClosedRead,
+            });
+          }
+          FnScope::SpecialLocal(name) => {
+            gd_closure_vars.push(LocalVar {
+              name: name.to_owned(),
+              access_type: AccessType::ClosedRead,
+            });
+          }
+          FnScope::SemiGlobal | FnScope::Global => {} // No special behavior.
         }
       }
     }
