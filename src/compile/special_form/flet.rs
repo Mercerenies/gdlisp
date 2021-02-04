@@ -8,6 +8,9 @@ use crate::compile::error::Error;
 use crate::compile::stateful::{StExpr, NeedsResult};
 use crate::gdscript::decl::{self, Decl};
 use crate::gdscript::expr::Expr;
+use crate::graph::Graph;
+use crate::graph::top_sort::top_sort;
+use crate::graph::tarjan;
 use super::lambda;
 
 use std::convert::AsRef;
@@ -23,48 +26,94 @@ pub fn compile_flet<'a>(compiler: &mut Compiler<'a>,
                         needs_result: NeedsResult)
                         -> Result<StExpr, Error> {
   let local_fns = clauses.iter().map(|(name, args, fbody)| {
-    if is_declaration_semiglobal(args, fbody, table) {
-      // No closure vars and any closure fns (if there are any) are
-      // free of closures, so we can compile to SemiGlobal.
-      let gd_name = compiler.name_generator().generate_with("_flet");
-      let func = compiler.declare_function(builder, table, gd_name.clone(), args.clone(), fbody)?;
-      builder.add_helper(Decl::FnDecl(decl::Static::IsStatic, func));
-      let specs = FnSpecs::from(args.to_owned());
-      let call = FnCall {
-        scope: FnScope::SemiGlobal,
-        object: None,
-        function: gd_name,
-        specs
-      };
-      Ok((name.to_owned(), call))
-    } else {
-      // Have to make a full closure object.
-      let StExpr(stmt, _) = lambda::compile_lambda_stmt(compiler, builder, table, args, fbody)?;
-      let local_name = compiler.declare_var(builder, "_flet", Some(stmt));
-      let specs = FnSpecs::from(args.to_owned());
-      let call = FnCall {
-        scope: FnScope::Local(local_name.clone()),
-        object: Some(Box::new(Expr::Var(local_name))),
-        function: "call_func".to_owned(),
-        specs
-      };
-      Ok((name.to_owned(), call))
-    }
+    compile_flet_call(compiler, builder, table, name.to_owned(), args.to_owned(), fbody)
   }).collect::<Result<Vec<_>, Error>>()?;
   table.with_local_fns(&mut local_fns.into_iter(), |table| {
     compiler.compile_expr(builder, table, body, needs_result)
   })
 }
 
-pub fn compile_labels<'a>(_compiler: &mut Compiler<'a>,
-                          _builder: &mut StmtBuilder,
-                          _table: &mut SymbolTable,
-                          _clauses: &[(String, IRArgList, IRExpr)],
-                          _body: &IRExpr,
-                          _needs_result: NeedsResult)
-                          -> Result<StExpr, Error> {
-  panic!("Not yet implemented") ////
+fn compile_flet_call<'a>(compiler: &mut Compiler<'a>,
+                         builder: &mut StmtBuilder,
+                         table: &mut SymbolTable,
+                         name: String,
+                         args: IRArgList,
+                         body: &IRExpr)
+                         -> Result<(String, FnCall), Error> {
+  if is_declaration_semiglobal(&args, body, table) {
+    // No closure vars and any closure fns (if there are any) are
+    // free of closures, so we can compile to SemiGlobal.
+    let gd_name = compiler.name_generator().generate_with("_flet");
+    let func = compiler.declare_function(builder, table, gd_name.clone(), args.clone(), body)?;
+    builder.add_helper(Decl::FnDecl(decl::Static::IsStatic, func));
+    let specs = FnSpecs::from(args);
+    let call = FnCall {
+      scope: FnScope::SemiGlobal,
+      object: None,
+      function: gd_name,
+      specs
+    };
+    Ok((name, call))
+  } else {
+    // Have to make a full closure object.
+    let StExpr(stmt, _) = lambda::compile_lambda_stmt(compiler, builder, table, &args, body)?;
+    let local_name = compiler.declare_var(builder, "_flet", Some(stmt));
+    let specs = FnSpecs::from(args);
+    let call = FnCall {
+      scope: FnScope::Local(local_name.clone()),
+      object: Some(Box::new(Expr::Var(local_name))),
+      function: "call_func".to_owned(),
+      specs
+    };
+    Ok((name, call))
+  }
 }
+
+pub fn compile_labels<'a>(compiler: &mut Compiler<'a>,
+                          builder: &mut StmtBuilder,
+                          table: &mut SymbolTable,
+                          clauses: &[(String, IRArgList, IRExpr)],
+                          body: &IRExpr,
+                          needs_result: NeedsResult)
+                          -> Result<StExpr, Error> {
+  // TODO This is rife with string cloning, because of the sloppy way
+  // Graph is implemented. Once we fix Graph, we can eliminate some
+  // clones here.
+  let mut dependencies = Graph::from_nodes(clauses.iter().map(|(name, _, _)| name.clone()));
+  for (name, _, fbody) in clauses {
+    for ref_name in fbody.get_functions().into_names() {
+      if dependencies.has_node(&ref_name) {
+        dependencies.add_edge_no_dup(name.clone(), ref_name);
+      }
+    }
+  }
+  let sccs = tarjan::find_scc(&dependencies);
+  let collated_graph = tarjan::build_scc_graph(&dependencies, &sccs);
+  let ordering = top_sort(&collated_graph).expect("SCC detection failed (cycle in resulting graph)");
+  //compile_labels_rec(compiler, builder, table, clauses, &sccs, &collated_graph, &ordering, 0);
+  panic!("")
+}
+
+/*
+fn compile_labels_rec<'a, 'b>(compiler: &mut Compiler<'a>,
+                              builder: &mut StmtBuilder,
+                              table: &mut SymbolTable,
+                              clauses: &[(String, IRArgList, IRExpr)],
+                              sccs: &tarjan::SCCSummary<'b, String>,
+                              graph: &'b Graph<usize>,
+                              ordering: &[usize],
+                              ordering_idx: usize) {
+  if ordering_idx < ordering.len() {
+    let current_scc_idx = ordering[ordering_idx];
+    let tarjan::SCC(current_scc) = sccs.get_scc_by_id(current_scc_idx).expect("SCC detection failed (invalid ID)");
+    match current_scc.len() {
+      0 => {
+        // That's weird. But whatever. No action needed.
+      }
+    }
+  }
+}
+*/
 
 fn is_declaration_semiglobal(args: &IRArgList, body: &IRExpr, table: &SymbolTable) -> bool {
   let (closure_vars, closure_fns) = body.get_names();
