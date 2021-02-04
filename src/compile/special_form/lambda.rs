@@ -131,6 +131,19 @@ fn generate_lambda_class<'a, 'b>(compiler: &mut Compiler<'a>,
   }
 }
 
+pub fn compile_labels_scc<'a>(compiler: &mut Compiler<'a>,
+                              builder: &mut StmtBuilder,
+                              table: &mut SymbolTable,
+                              clauses: &[&(String, IRArgList, IRExpr)])
+                              -> Result<Vec<(String, FnCall)>, Error> {
+  let class_name = compiler.name_generator().generate_with("_Labels");
+  ///// We need to factor out any pieces of the other lambda functions
+  ///// that we can reuse here, and generalize it all so it can be
+  ///// used here. The idea is to compile to a single class with a
+  ///// bunch of functions.
+  panic!("")
+}
+
 fn assign_to_compiler(inst_var: String, local_var: String) -> Stmt {
   assign_expr_to_compiler(inst_var, Expr::Var(local_var))
 }
