@@ -49,6 +49,9 @@ pub fn compile_expr(expr: &AST)
     AST::Int(n) => {
       Ok(Expr::Literal(Literal::Int(*n)))
     }
+    AST::Bool(b) => {
+      Ok(Expr::Literal(Literal::Bool(*b)))
+    }
     AST::Float(_) => {
       panic!("Not implemented yet!") ////
     }

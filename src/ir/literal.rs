@@ -3,4 +3,5 @@
 pub enum Literal {
   Nil,
   Int(i32),
+  Bool(bool),
 }

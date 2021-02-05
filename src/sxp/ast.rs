@@ -9,6 +9,7 @@ pub enum AST {
   Nil,
   Cons(Box<AST>, Box<AST>),
   Int(i32),
+  Bool(bool),
   Float(OrderedFloat<f32>),
   String(String),
   Symbol(String),
@@ -133,6 +134,8 @@ impl fmt::Display for AST {
     match self {
       AST::Nil => write!(f, "()"),
       AST::Int(n) => write!(f, "{}", n),
+      AST::Bool(true) => write!(f, "#t"),
+      AST::Bool(false) => write!(f, "#f"),
       AST::Float(x) => write!(f, "{}", x),
       AST::String(s) => write!(f, "{:?}", s), // TODO Proper string escaping here
       AST::Symbol(s) => write!(f, "{}", s), // TODO Proper escaping here too

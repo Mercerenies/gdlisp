@@ -17,6 +17,7 @@ Symbol: String = <s:SYMBOL> => String::from(s);
 // TODO I want to be able to recognize symbols like 1b or a.b. I think
 // I'll have to write my own custom lexer to do so.
 match {
+  "#t", "#f",
   r"[+-]?[0-9]+" => INT,
   r"[+-]?[0-9]+((\.[0-9]+)([eE][+-]?[0-9]+)?|(\.[0-9]+)?([eE][+-]?[0-9]+))" => FLOAT,
   r#""([^\\"]|\\[\\"])*""# => STRING,
@@ -27,6 +28,8 @@ match {
 }
 
 pub AST: AST = {
+  "#t" => AST::Bool(true),
+  "#f" => AST::Bool(false),
   <i: Int> => AST::Int(i),
   <f: Float> => AST::Float(f.into()),
   <s: String> => AST::String(s),

@@ -88,6 +88,7 @@ impl<'a> Compiler<'a> {
         match lit {
           IRLiteral::Nil => Ok(Compiler::nil_expr()),
           IRLiteral::Int(n) => Ok(StExpr(Expr::from(*n), SideEffects::None)),
+          IRLiteral::Bool(b) => Ok(StExpr(Expr::from(*b), SideEffects::None)),
         }
       }
       IRExpr::Progn(body) => {
@@ -322,6 +323,24 @@ mod tests {
   fn compile_int() {
     let ast = AST::Int(99);
     let expected = Stmt::ReturnStmt(Expr::from(99));
+    let actual = compile_stmt(&ast).unwrap();
+    assert_eq!(actual.0, vec!(expected));
+    assert_eq!(actual.1, vec!());
+  }
+
+  #[test]
+  fn compile_bool_t() {
+    let ast = AST::Bool(true);
+    let expected = Stmt::ReturnStmt(Expr::from(true));
+    let actual = compile_stmt(&ast).unwrap();
+    assert_eq!(actual.0, vec!(expected));
+    assert_eq!(actual.1, vec!());
+  }
+
+  #[test]
+  fn compile_bool_f() {
+    let ast = AST::Bool(false);
+    let expected = Stmt::ReturnStmt(Expr::from(false));
     let actual = compile_stmt(&ast).unwrap();
     assert_eq!(actual.0, vec!(expected));
     assert_eq!(actual.1, vec!());
