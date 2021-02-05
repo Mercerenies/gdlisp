@@ -189,7 +189,7 @@ pub fn compile_labels_scc<'a>(compiler: &mut Compiler<'a>,
   let function_names: Vec<String> = clauses.iter().map(|(name, args, _)| {
     let name_prefix = format!("_fn_{}", names::lisp_to_gd(name));
     let func_name = compiler.name_generator().generate_with(&name_prefix);
-    lambda_table.set_fn(func_name.clone(), FnCall {
+    lambda_table.set_fn(name.to_owned(), FnCall {
       scope: FnScope::SpecialLocal(local_var_name.clone()),
       object: None,
       function: func_name.clone(),
@@ -406,13 +406,24 @@ pub fn compile_function_ref<'a>(compiler: &mut Compiler<'a>,
     let arg_names: Vec<_> = (0..arg_count).map(|i| format!("arg{}", i)).collect();
     let arglist = ArgList::required(arg_names.clone());
 
+    let mut closure_vars = Vec::new();
+    if let FnScope::SpecialLocal(name) = func.scope {
+      closure_vars.push(LocalVar {
+        name: name.clone(),
+        access_type: AccessType::ClosedRead, // May be overly conservative but definitely safe.
+      });
+    }
+    let closure_var_ctor_args: Vec<_> = closure_vars.iter().map(|x| {
+      Expr::var(&x.name)
+    }).collect();
+
     let body = Stmt::ReturnStmt(
       Expr::Call(func.object, func.function, arg_names.into_iter().map(Expr::Var).collect())
     );
-    let class = generate_lambda_class(compiler, specs, arglist, &[], vec!(body), "_FunctionRefBlock");
+    let class = generate_lambda_class(compiler, specs, arglist, &closure_vars[..], vec!(body), "_FunctionRefBlock");
     let class_name = class.name.clone();
     builder.add_helper(Decl::ClassDecl(class));
-    let expr = Expr::Call(Some(Box::new(Expr::Var(class_name))), String::from("new"), vec!());
+    let expr = Expr::Call(Some(Box::new(Expr::Var(class_name))), String::from("new"), closure_var_ctor_args);
     Ok(StExpr(expr, SideEffects::None))
   }
 }
