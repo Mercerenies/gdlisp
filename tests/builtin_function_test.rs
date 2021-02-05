@@ -272,3 +272,15 @@ fn ne_test_2() {
 fn ne_test_3() {
   assert_eq!(parse_and_run("((print (/= 1 2 1)))"), "\nFalse\n");
 }
+
+#[test]
+#[ignore]
+fn not_test_1() {
+  assert_eq!(parse_and_run("((print (not #t)))"), "\nFalse\n");
+}
+
+#[test]
+#[ignore]
+fn not_test_2() {
+  assert_eq!(parse_and_run("((print (not #f)))"), "\nTrue\n");
+}

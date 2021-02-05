@@ -128,4 +128,10 @@ pub fn bind_builtins(table: &mut SymbolTable) {
   table.set_magic_fn("/=".to_owned(),
                      Box::new(call_magic::NEqOperation { fallback: Box::new(call_magic::DefaultCall) }));
 
+  // not (Not)
+  table.set_fn("not".to_owned(),
+               FnCall::qualified(FnSpecs::new(1, 0, false), FnScope::Global, gdlisp_root(), "not_".to_owned()));
+  table.set_magic_fn("not".to_owned(),
+                     Box::new(call_magic::BooleanNotOperation));
+
 }

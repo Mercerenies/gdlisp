@@ -56,6 +56,8 @@ pub struct DivOperation;
 pub struct IntDivOperation;
 #[derive(Clone)]
 pub struct NEqOperation { pub fallback: Box<dyn CallMagic> }
+#[derive(Clone)]
+pub struct BooleanNotOperation;
 
 // Covers addition and multiplication, for instance
 #[derive(Clone)]
@@ -275,6 +277,23 @@ impl CallMagic for NEqOperation {
       _ => {
         self.fallback.compile(call, compiler, builder, table, args)
       }
+    }
+  }
+}
+
+impl CallMagic for BooleanNotOperation {
+  fn compile<'a>(&self,
+                 call: FnCall,
+                 compiler: &mut Compiler<'a>,
+                 builder: &mut StmtBuilder,
+                 table: &mut SymbolTable,
+                 args: Vec<StExpr>) -> Result<Expr, Error> {
+    let args = strip_st(args);
+    match args.len() {
+      0 => Err(Error::TooFewArgs(call.function, args.len())),
+      1 => Ok(Expr::Unary(op::UnaryOp::Not,
+                          Box::new(args[0].clone()))),
+      _ => Err(Error::TooManyArgs(call.function, args.len())),
     }
   }
 }

@@ -150,3 +150,6 @@ func ne(x, args):
             inner = inner.cdr
         outer = outer.cdr
     return true
+
+func not_(x):
+    return not x
