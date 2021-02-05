@@ -95,6 +95,15 @@ impl<T> Graph<T> where T : Eq + Hash {
     self.edges.len()
   }
 
+  pub fn transpose(&self) -> Graph<T>
+  where T : Clone {
+    let mut graph = Graph::from_nodes(self.nodes().cloned());
+    for (x, y) in self.all_edges() {
+      graph.add_edge(y.clone(), x.clone());
+    }
+    graph
+  }
+
 }
 
 impl<T> Default for Graph<T> {
