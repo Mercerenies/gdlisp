@@ -102,7 +102,10 @@ impl FnSpecs {
 impl FnScope {
 
   pub fn is_local(&self) -> bool {
-    matches!(self, FnScope::Local(_))
+    match *self {
+      FnScope::Local(_) | FnScope::SpecialLocal(_) => true,
+      FnScope::Global | FnScope::SemiGlobal => false,
+    }
   }
 
 }
