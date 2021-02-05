@@ -9,6 +9,7 @@ use crate::compile::symbol_table::function_call::{FnCall, FnSpecs, FnScope};
 use crate::compile::stmt_wrapper;
 use crate::compile::error::Error;
 use crate::compile::stateful::SideEffects;
+use crate::compile::names;
 use crate::gdscript::stmt::{self, Stmt};
 use crate::gdscript::expr::Expr;
 use crate::gdscript::decl::{self, Decl};
@@ -133,17 +134,126 @@ fn generate_lambda_class<'a, 'b>(compiler: &mut Compiler<'a>,
   }
 }
 
+///// This is hilariously untested. Good luck :)
 pub fn compile_labels_scc<'a>(compiler: &mut Compiler<'a>,
                               builder: &mut StmtBuilder,
                               table: &mut SymbolTable,
                               clauses: &[&(String, IRArgList, IRExpr)])
                               -> Result<Vec<(String, FnCall)>, Error> {
   let class_name = compiler.name_generator().generate_with("_Labels");
-  ///// We need to factor out any pieces of the other lambda functions
-  ///// that we can reuse here, and generalize it all so it can be
-  ///// used here. The idea is to compile to a single class with a
-  ///// bunch of functions.
-  panic!("")
+
+  let mut closure_vars = Locals::new();
+  let mut closure_fns = Functions::new();
+  let mut all_vars = Locals::new();
+
+  for (_, args, body) in clauses {
+    let (mut inner_vars, inner_fns) = body.get_names();
+    all_vars.merge_with(inner_vars.clone());
+    for arg in args.iter_vars() {
+      inner_vars.remove(arg);
+    }
+    closure_vars.merge_with(inner_vars);
+    closure_fns.merge_with(inner_fns);
+  }
+
+  // Function names are in scope for the duration of their own bodies
+  for (name, _, _) in clauses {
+    closure_fns.remove(&name);
+  }
+
+  let mut lambda_table = SymbolTable::new();
+  locally_bind_vars(table, &mut lambda_table, closure_vars.names())?;
+  locally_bind_fns(table, &mut lambda_table, closure_fns.names())?;
+
+  let mut gd_closure_vars = Vec::new();
+  for ast_name in closure_vars.names() {
+    let var = lambda_table.get_var(&ast_name).unwrap_or_else(|| {
+      panic!("Internal error compiling lambda variable {}", ast_name)
+    }).to_owned();
+    gd_closure_vars.push(var);
+  }
+  for func in closure_fns.names() {
+    match table.get_fn(func) {
+      None => { return Err(Error::NoSuchFn(func.to_owned())) }
+      Some(call) => {
+        if let Some(var) = closure_fn_to_gd_var(call) {
+          gd_closure_vars.push(var);
+        }
+      }
+    }
+  }
+
+  let local_var_name = compiler.name_generator().generate_with("_locals");
+
+  // Bind the functions themselves
+  let function_names: Vec<String> = clauses.iter().map(|(name, args, _)| {
+    let name_prefix = format!("_fn_{}", names::lisp_to_gd(name));
+    let func_name = compiler.name_generator().generate_with(&name_prefix);
+    lambda_table.set_fn(func_name.clone(), FnCall {
+      scope: FnScope::SpecialLocal(local_var_name.clone()),
+      object: None,
+      function: func_name.clone(),
+      specs: FnSpecs::from(args.to_owned()),
+    });
+    func_name
+  }).collect();
+
+  let mut functions: Vec<decl::FnDecl> = Vec::new();
+
+  let bound_calls: Vec<(String, FnCall)> = clauses.iter().enumerate().map(|(idx, (name, args, body))| {
+    let mut lambda_table = lambda_table.clone(); // New table for this particular function
+    let mut lambda_builder = StmtBuilder::new();
+    let (arglist, gd_args) = args.clone().into_gd_arglist(&mut compiler.name_generator());
+    for (arg, gd_arg) in &gd_args {
+      lambda_table.set_var(arg.to_owned(), LocalVar::new(gd_arg.to_owned(), all_vars.get(&arg)));
+      wrap_in_cell_if_needed(arg, gd_arg, &all_vars, &mut lambda_builder);
+    }
+    compiler.compile_stmt(&mut lambda_builder, &mut lambda_table, &stmt_wrapper::Return, body)?;
+    let lambda_body = lambda_builder.build_into(builder);
+    let func_name = function_names[idx].to_owned();
+    let func = decl::FnDecl {
+      name: func_name.clone(),
+      args: arglist,
+      body: lambda_body,
+    };
+    let call = FnCall {
+      scope: FnScope::SpecialLocal(local_var_name.clone()),
+      object: Some(Box::new(Expr::Var(local_var_name.clone()))),
+      function: func_name,
+      specs: FnSpecs::from(args.to_owned()),
+    };
+    functions.push(func);
+    Ok((name.to_owned(), call))
+  }).collect::<Result<_, Error>>()?;
+
+  let mut constructor_body = Vec::new();
+  for var in &gd_closure_vars {
+    constructor_body.push(assign_to_compiler(var.name.to_string(), var.name.to_string()));
+  }
+  let constructor = decl::FnDecl {
+    name: String::from("_init"),
+    args: ArgList::required(gd_closure_vars.iter().map(|x| x.name.to_owned()).collect()),
+    body: constructor_body,
+  };
+  let mut class_body = vec!();
+  for var in &gd_closure_vars {
+    class_body.push(Decl::VarDecl(var.name.clone(), None));
+  }
+  class_body.push(Decl::FnDecl(decl::Static::NonStatic, constructor));
+  for func in functions {
+    class_body.push(Decl::FnDecl(decl::Static::NonStatic, func));
+  }
+  let class = decl::ClassDecl {
+    name: class_name.clone(),
+    extends: decl::ClassExtends::Named(String::from("Reference")),
+    body: class_body,
+  };
+  builder.add_helper(Decl::ClassDecl(class));
+  let constructor_args: Vec<_> = gd_closure_vars.into_iter().map(|s| Expr::Var(s.name)).collect();
+  let expr = Expr::Call(Some(Box::new(Expr::Var(class_name))), String::from("new"), constructor_args);
+  builder.append(Stmt::VarDecl(local_var_name, expr));
+
+  Ok(bound_calls)
 }
 
 fn assign_to_compiler(inst_var: String, local_var: String) -> Stmt {
