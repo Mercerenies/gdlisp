@@ -87,6 +87,7 @@ pub fn compile_labels<'a>(compiler: &mut Compiler<'a>,
   }
   let sccs = tarjan::find_scc(&dependencies);
   let collated_graph = tarjan::build_scc_graph(&dependencies, &sccs);
+  let collated_graph = collated_graph.transpose(); // We need the arrows pointing in load order, not dependency order
   let ordering: Vec<_> = top_sort(&collated_graph)
     .expect("SCC detection failed (cycle in resulting graph)")
     .into_iter().copied().collect();
