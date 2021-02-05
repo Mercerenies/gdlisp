@@ -49,7 +49,7 @@ where T : Eq + Hash {
   }
 
   pub fn get_scc_id(&self, node: &'a T) -> Option<usize> {
-    self.scc_lookup.get(node).map(|x| *x)
+    self.scc_lookup.get(node).copied()
   }
 
   pub fn get_scc(&self, node: &'a T) -> Option<&SCC<'a, T>> {
@@ -95,7 +95,7 @@ where T : Eq + Hash {
         let a = *self.lowlinks.get(w).expect("No lowlink for w");
         let b = *self.lowlinks.get(v).expect("No lowlink for v");
         self.lowlinks.insert(v, min(a, b));
-      } else if self.stack.iter().find(|x| *x == &w).is_some() {
+      } else if self.stack.iter().any(|x| x == &w) {
         let a = *self.indices.get(w).expect("No index for w");
         let b = *self.lowlinks.get(v).expect("No lowlink for v");
         self.lowlinks.insert(v, min(a, b));
@@ -131,7 +131,7 @@ where T : Eq + Hash {
 
 }
 
-pub fn find_scc<'a, T>(graph: &'a Graph<T>) -> SCCSummary<'a, T>
+pub fn find_scc<T>(graph: &Graph<T>) -> SCCSummary<'_, T>
 where T : Eq + Hash {
   let mut alg = Algorithm::new(graph);
   for v in graph.nodes() {

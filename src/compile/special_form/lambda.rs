@@ -409,7 +409,7 @@ pub fn compile_function_ref<'a>(compiler: &mut Compiler<'a>,
     let mut closure_vars = Vec::new();
     if let FnScope::SpecialLocal(name) = func.scope {
       closure_vars.push(LocalVar {
-        name: name.clone(),
+        name: name,
         access_type: AccessType::ClosedRead, // May be overly conservative but definitely safe.
       });
     }

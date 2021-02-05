@@ -79,7 +79,7 @@ impl<T> Graph<T> where T : Eq + Hash {
   pub fn has_edge<U, V>(&self, x: &U, y: &V) -> bool where U : Borrow<T>, V : Borrow<T> {
     match self.outgoing_edges(x.borrow()) {
       None => false,
-      Some(vec) => vec.iter().find(|node| *node == y.borrow()).is_some(),
+      Some(vec) => vec.iter().any(|node| node == y.borrow()),
     }
   }
 

@@ -284,9 +284,9 @@ impl CallMagic for NEqOperation {
 impl CallMagic for BooleanNotOperation {
   fn compile<'a>(&self,
                  call: FnCall,
-                 compiler: &mut Compiler<'a>,
-                 builder: &mut StmtBuilder,
-                 table: &mut SymbolTable,
+                 _compiler: &mut Compiler<'a>,
+                 _builder: &mut StmtBuilder,
+                 _table: &mut SymbolTable,
                  args: Vec<StExpr>) -> Result<Expr, Error> {
     let args = strip_st(args);
     match args.len() {

@@ -94,6 +94,7 @@ pub fn compile_labels<'a>(compiler: &mut Compiler<'a>,
   compile_labels_rec(compiler, builder, table, body, needs_result, clauses, &dependencies, &sccs, &collated_graph, &ordering[..], 0)
 }
 
+// TODO Really...? An eleven argument recursive function? Really...? Do better.
 fn compile_labels_rec<'a, 'b>(compiler: &mut Compiler<'a>,
                               builder: &mut StmtBuilder,
                               table: &mut SymbolTable,
