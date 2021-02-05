@@ -1,6 +1,7 @@
 
 use crate::ir;
-use crate::ir::locals::AccessType;
+use crate::ir::locals::{Locals, AccessType};
+use crate::ir::functions::Functions;
 use crate::compile::{Compiler, StExpr};
 use crate::compile::body::builder::StmtBuilder;
 use crate::compile::symbol_table::{SymbolTable, LocalVar};
@@ -16,6 +17,7 @@ use crate::gdscript::arglist::ArgList;
 use crate::gdscript::library;
 
 use std::convert::TryInto;
+use std::borrow::Borrow;
 
 type IRExpr = ir::expr::Expr;
 type IRArgList = ir::arglist::ArgList;
@@ -154,6 +156,79 @@ fn assign_expr_to_compiler(inst_var: String, expr: Expr) -> Stmt {
   Stmt::Assign(self_target, op::AssignOp::Eq, value)
 }
 
+fn locally_bind_vars<'a, I, U>(table: &SymbolTable,
+                               lambda_table: &mut SymbolTable,
+                               closure_vars: I)
+                               -> Result<(), Error>
+where I : Iterator<Item=&'a U>,
+      U : Borrow<str>,
+      U : 'a {
+  for var in closure_vars {
+    // Ensure the variable actually exists
+    match table.get_var(var.borrow()) {
+      None => return Err(Error::NoSuchVar(var.borrow().to_owned())),
+      Some(gdvar) => lambda_table.set_var(var.borrow().to_owned(), gdvar.to_owned()), // TODO Generate new names here
+    };
+  }
+  Ok(())
+}
+
+fn locally_bind_fns<'a, I, U>(table: &SymbolTable,
+                              lambda_table: &mut SymbolTable,
+                              closure_fns: I)
+                              -> Result<(), Error>
+where I : Iterator<Item=&'a U>,
+      U : Borrow<str>,
+      U : 'a {
+  for func in closure_fns {
+    // Ensure the function actually exists
+    match table.get_fn(func.borrow()) {
+      None => { return Err(Error::NoSuchFn(func.borrow().to_owned())) }
+      Some(call) => {
+        match call.scope {
+          FnScope::SpecialLocal(_) | FnScope::Local(_) | FnScope::SemiGlobal | FnScope::Global => {
+            lambda_table.set_fn(func.borrow().to_owned(), call.clone());
+          }
+        }
+      }
+    };
+    // And copy magic
+    match table.get_magic_fn(func.borrow()) {
+      None => {} // No magic, so nothing to copy
+      Some(magic) => {
+        lambda_table.set_magic_fn(func.borrow().to_owned(), dyn_clone::clone_box(magic));
+      }
+    }
+  }
+  Ok(())
+}
+
+fn closure_fn_to_gd_var(call: &FnCall) -> Option<LocalVar> {
+  match &call.scope {
+    FnScope::Local(name) | FnScope::SpecialLocal(name) => {
+      // ClosedRead *might* be more conservative than necessary
+      // here (it's possible we can get away with Read in some
+      // situations), but I don't think it changes anything, so we
+      // may as well play it safe.
+      Some(LocalVar {
+        name: name.to_owned(),
+        access_type: AccessType::ClosedRead,
+      })
+    }
+    FnScope::SemiGlobal | FnScope::Global => {
+      None
+    }
+  }
+}
+
+fn wrap_in_cell_if_needed(name: &str, gd_name: &str, all_vars: &Locals, lambda_builder: &mut StmtBuilder) {
+  if all_vars.get(name).requires_cell() {
+    lambda_builder.append(Stmt::Assign(Box::new(Expr::var(gd_name)),
+                                       op::AssignOp::Eq,
+                                       Box::new(library::construct_cell(Expr::var(gd_name)))));
+  }
+}
+
 pub fn compile_lambda_stmt<'a>(compiler: &mut Compiler<'a>,
                                builder: &mut StmtBuilder,
                                table: &mut SymbolTable,
@@ -168,45 +243,17 @@ pub fn compile_lambda_stmt<'a>(compiler: &mut Compiler<'a>,
   for arg in &gd_args {
     closure_vars.remove(&arg.0);
   }
-  // I want them in a consistent order for the constructor
-  // function. I don't care which order, but I need an order, so
-  // let's make a Vec now.
-  let closure_vars_vec: Vec<_> = closure_vars.names().collect();
 
   let mut lambda_table = SymbolTable::new();
   for arg in &gd_args {
     lambda_table.set_var(arg.0.to_owned(), LocalVar::new(arg.1.to_owned(), all_vars.get(&arg.0)));
   }
-  for var in &closure_vars_vec {
-    // Ensure the variable actually exists
-    match table.get_var(var) {
-      None => return Err(Error::NoSuchVar((*var).to_owned())),
-      Some(gdvar) => lambda_table.set_var((*var).to_owned(), gdvar.to_owned()), // TODO Generate new names here
-    };
-  }
-  for func in closure_fns.names() {
-    // Ensure the function actually exists
-    match table.get_fn(func) {
-      None => { return Err(Error::NoSuchFn(func.to_owned())) }
-      Some(call) => {
-        match call.scope {
-          FnScope::SpecialLocal(_) | FnScope::Local(_) | FnScope::SemiGlobal | FnScope::Global => {
-            lambda_table.set_fn(func.to_owned(), call.clone());
-          }
-        }
-      }
-    };
-    // And copy magic
-    match table.get_magic_fn(func) {
-      None => {} // No magic, so nothing to copy
-      Some(magic) => {
-        lambda_table.set_magic_fn(func.to_owned(), dyn_clone::clone_box(magic));
-      }
-    }
-  }
+
+  locally_bind_vars(table, &mut lambda_table, closure_vars.names())?;
+  locally_bind_fns(table, &mut lambda_table, closure_fns.names())?;
 
   let mut gd_closure_vars = Vec::new();
-  for ast_name in closure_vars_vec {
+  for ast_name in closure_vars.names() {
     let var = lambda_table.get_var(&ast_name).unwrap_or_else(|| {
       panic!("Internal error compiling lambda variable {}", ast_name)
     }).to_owned();
@@ -216,36 +263,15 @@ pub fn compile_lambda_stmt<'a>(compiler: &mut Compiler<'a>,
     match table.get_fn(func) {
       None => { return Err(Error::NoSuchFn(func.to_owned())) }
       Some(call) => {
-        match &call.scope {
-          FnScope::Local(name) => {
-            // ClosedRead *might* be more conservative than necessary
-            // here (it's possible we can get away with Read in some
-            // situations), but I don't think it changes anything, so we
-            // may as well play it safe.
-            gd_closure_vars.push(LocalVar {
-              name: name.to_owned(),
-              access_type: AccessType::ClosedRead,
-            });
-          }
-          FnScope::SpecialLocal(name) => {
-            gd_closure_vars.push(LocalVar {
-              name: name.to_owned(),
-              access_type: AccessType::ClosedRead,
-            });
-          }
-          FnScope::SemiGlobal | FnScope::Global => {} // No special behavior.
+        if let Some(var) = closure_fn_to_gd_var(call) {
+          gd_closure_vars.push(var);
         }
       }
     }
   }
 
-  for arg in &gd_args {
-    if all_vars.get(&arg.0).requires_cell() {
-      // Special behavior to wrap the argument in a cell.
-      lambda_builder.append(Stmt::Assign(Box::new(Expr::var(&arg.1)),
-                                         op::AssignOp::Eq,
-                                         Box::new(library::construct_cell(Expr::var(&arg.1)))));
-    }
+  for (arg, gd_arg) in &gd_args {
+    wrap_in_cell_if_needed(arg, gd_arg, &all_vars, &mut lambda_builder);
   }
   compiler.compile_stmt(&mut lambda_builder, &mut lambda_table, &stmt_wrapper::Return, body)?;
   let lambda_body = lambda_builder.build_into(builder);
