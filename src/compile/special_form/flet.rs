@@ -129,6 +129,8 @@ fn compile_labels_rec<'a, 'b>(compiler: &mut Compiler<'a>,
           let clause = clauses.iter().find(|(n, _, _)| &n == name).expect("Internal error in SCC detection (no function found?)");
           relevant_clauses.push(clause);
         }
+        // Go ahead and sort them just so we guarantee a consistent order for testing purposes.
+        relevant_clauses.sort_by_key(|(name, _, _)| name);
         let calls = lambda::compile_labels_scc(compiler, builder, table, &relevant_clauses[..])?;
         table.with_local_fns(&mut calls.into_iter(), |table| {
           compile_labels_rec(compiler, builder, table, body, needs_result, clauses, full_graph, sccs, graph, ordering, ordering_idx + 1)
