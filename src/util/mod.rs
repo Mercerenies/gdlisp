@@ -1,6 +1,9 @@
 
 pub mod debug_wrapper;
 
+use std::collections::HashMap;
+use std::hash::Hash;
+
 pub fn fold1<I : Iterator, F : FnMut(I::Item, I::Item) -> I::Item>(iter: I, mut f: F) -> Option<I::Item> {
   iter.fold(None, |x, y| match x {
     None => Some(y),
@@ -24,6 +27,17 @@ impl<T, I> Iterator for PairIter<T, I> where I : Iterator<Item=T>, T : Clone {
     fst.and_then(|fst| snd.map(|snd| (fst, snd)))
   }
 
+}
+
+pub fn merge_hashmap_inplace<K : Eq + Hash, V>(a: &mut HashMap<K, V>,
+                                               b: HashMap<K, V>,
+                                               mut merge_fn: impl FnMut(V, V) -> V) {
+  for (k, v) in b {
+    match a.remove(&k) {
+      None => a.insert(k, v),
+      Some(v1) => a.insert(k, merge_fn(v, v1)),
+    };
+  }
 }
 
 #[cfg(test)]

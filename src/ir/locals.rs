@@ -2,6 +2,8 @@
 // Helper for storing collections of local variables that need to be
 // closed over.
 
+use crate::util;
+
 use std::collections::HashMap;
 
 #[derive(PartialEq, Eq, Debug, Clone, Default)]
@@ -61,6 +63,10 @@ impl Locals {
 
   pub fn is_empty(&self) -> bool {
     self.0.is_empty()
+  }
+
+  pub fn merge_with(&mut self, b: Locals) {
+    util::merge_hashmap_inplace(&mut self.0, b.0, AccessType::max);
   }
 
 }

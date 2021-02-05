@@ -45,4 +45,8 @@ impl Functions {
     self.0.is_empty()
   }
 
+  pub fn merge_with(&mut self, b: Functions) {
+    self.0.extend(b.into_names());
+  }
+
 }
