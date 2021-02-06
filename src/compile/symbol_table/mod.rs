@@ -3,7 +3,7 @@ pub mod function_call;
 pub mod call_magic;
 
 use function_call::FnCall;
-use call_magic::CallMagic;
+use call_magic::{CallMagic, DefaultCall};
 use crate::ir::locals::AccessType;
 use crate::gdscript::expr::Expr;
 use crate::gdscript::library::CELL_CONTENTS;
@@ -24,6 +24,8 @@ pub struct LocalVar {
   pub name: String,
   pub access_type: AccessType,
 }
+
+static DEFAULT_CALL_MAGIC: DefaultCall = DefaultCall;
 
 impl SymbolTable {
 
@@ -55,8 +57,8 @@ impl SymbolTable {
     self.functions.remove(name);
   }
 
-  pub fn get_magic_fn(&self, name: &str) -> Option<&(dyn CallMagic + 'static)> {
-    self.magic_functions.get(name).map(|x| x.0.borrow())
+  pub fn get_magic_fn(&self, name: &str) -> &(dyn CallMagic + 'static) {
+    self.magic_functions.get(name).map_or(&DEFAULT_CALL_MAGIC, |x| x.0.borrow())
   }
 
   pub fn set_magic_fn(&mut self, name: String, value: Box<dyn CallMagic + 'static>)

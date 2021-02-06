@@ -303,12 +303,8 @@ where I : Iterator<Item=&'a U>,
       }
     };
     // And copy magic
-    match table.get_magic_fn(func.borrow()) {
-      None => {} // No magic, so nothing to copy
-      Some(magic) => {
-        lambda_table.set_magic_fn(func.borrow().to_owned(), dyn_clone::clone_box(magic));
-      }
-    }
+    let magic = table.get_magic_fn(func.borrow());
+    lambda_table.set_magic_fn(func.borrow().to_owned(), dyn_clone::clone_box(magic));
   }
   Ok(())
 }

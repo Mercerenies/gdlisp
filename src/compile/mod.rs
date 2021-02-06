@@ -18,7 +18,7 @@ use error::Error;
 use stmt_wrapper::StmtWrapper;
 use symbol_table::{HasSymbolTable, SymbolTable, LocalVar};
 use symbol_table::function_call;
-use symbol_table::call_magic::{CallMagic, DefaultCall};
+use symbol_table::call_magic::CallMagic;
 use crate::ir;
 use crate::ir::expr::FuncRefTarget;
 use special_form::lambda;
@@ -111,10 +111,7 @@ impl<'a> Compiler<'a> {
         };
         // Call magic is used to implement some commonly used wrappers
         // for simple GDScript operations.
-        let call_magic: Box<dyn CallMagic> = match table.get_magic_fn(f) {
-          None => Box::new(DefaultCall),
-          Some(x) => dyn_clone::clone_box(x),
-        };
+        let call_magic: Box<dyn CallMagic> = dyn_clone::clone_box(table.get_magic_fn(f));
         let args = args.iter()
                        .map(|x| self.compile_expr(builder, table, x, NeedsResult::Yes))
                        .collect::<Result<Vec<_>, _>>()?;
