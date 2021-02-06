@@ -323,6 +323,13 @@ pub fn list_test() {
 }
 
 #[test]
+pub fn yield_test() {
+  assert_eq!(parse_compile_and_output("(yield)"), "return yield()\n");
+  assert_eq!(parse_compile_and_output("(yield 1)"), "return yield(1, GDLisp.Nil)\n");
+  assert_eq!(parse_compile_and_output("(yield 1 2)"), "return yield(1, 2)\n");
+}
+
+#[test]
 pub fn semiglobal_flet_test() {
 
   let result0 = parse_compile_and_output_h("(flet ((f (x) (+ x 1))) (f 10))");

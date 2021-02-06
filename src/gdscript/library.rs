@@ -133,4 +133,9 @@ pub fn bind_builtins(table: &mut SymbolTable) {
                FnCall::qualified(FnSpecs::new(0, 0, true), FnScope::Global, gdlisp_root(), "list".to_owned()),
                Box::new(call_magic::ListOperation));
 
+  // yield
+  table.set_fn("yield".to_owned(),
+               FnCall::qualified(FnSpecs::new(0, 2, true), FnScope::Global, gdlisp_root(), "yield_".to_owned()),
+               Box::new(call_magic::YieldOperation));
+
 }

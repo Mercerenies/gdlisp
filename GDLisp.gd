@@ -156,3 +156,9 @@ func not_(x):
 
 func list(args):
     return args
+
+func yield_(x, y):
+    if x is GDLisp.NilClass:
+        return yield()
+    else:
+        return yield(x, y)

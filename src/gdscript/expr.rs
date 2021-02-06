@@ -45,6 +45,14 @@ impl Expr {
     Expr::Var(a.to_owned())
   }
 
+  pub fn yield_expr(args: Option<(Expr, Expr)>) -> Expr {
+    let args = match args {
+      None => vec!(),
+      Some((x, y)) => vec!(x, y),
+    };
+    Expr::Call(None, String::from("yield"), args)
+  }
+
   pub fn to_gd_prec(&self, prec: i32) -> String {
     match self {
       Expr::Var(s) => s.clone(),
