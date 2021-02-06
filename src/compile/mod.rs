@@ -108,7 +108,7 @@ impl<'a> Compiler<'a> {
       IRExpr::Call(f, args) => {
         let (fcall, call_magic) = match table.get_fn(f) {
           None => return Err(Error::NoSuchFn(f.clone())),
-          Some((p, m)) => (p.clone(), dyn_clone::clone_box(m.clone()))
+          Some((p, m)) => (p.clone(), dyn_clone::clone_box(m))
         };
         // Call magic is used to implement some commonly used wrappers
         // for simple GDScript operations.
