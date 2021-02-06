@@ -62,14 +62,6 @@ impl SymbolTable {
     self.magic_functions.remove(name);
   }
 
-  pub fn set_fn_base(&mut self, name: String, value: FnCall) -> Option<FnCall> {
-    self.functions.insert(name, value)
-  }
-
-  pub fn set_magic_fn(&mut self, name: String, value: Box<dyn CallMagic + 'static>) {
-    self.magic_functions.insert(name, DebugWrapper(value));
-  }
-
   pub fn vars(&self) -> impl Iterator<Item=(&str, &LocalVar)> {
     return self.locals.iter().map(|x| (x.0.borrow(), x.1));
   }
@@ -228,9 +220,9 @@ mod tests {
   fn test_fns() {
     let mut table = SymbolTable::new();
     assert_eq!(table.get_fn("foo").map(|x| x.0), None);
-    assert_eq!(table.set_fn_base("foo".to_owned(), sample_fn()), None);
+    table.set_fn("foo".to_owned(), sample_fn(), Box::new(DefaultCall));
     assert_eq!(table.get_fn("foo").map(|x| x.0), Some(&sample_fn()));
-    assert_eq!(table.set_fn_base("foo".to_owned(), sample_fn()), Some(sample_fn()));
+    table.set_fn("foo".to_owned(), sample_fn(), Box::new(DefaultCall));
     table.del_fn("foo");
     assert_eq!(table.get_fn("foo").map(|x| x.0), None);
   }
@@ -238,9 +230,9 @@ mod tests {
   #[test]
   fn test_iter_fns() {
     let mut table = SymbolTable::new();
-    table.set_fn_base("foo".to_owned(), sample_fn());
-    table.set_fn_base("foo1".to_owned(), sample_fn());
-    table.set_fn_base("foo2".to_owned(), sample_fn());
+    table.set_fn("foo".to_owned(), sample_fn(), Box::new(DefaultCall));
+    table.set_fn("foo1".to_owned(), sample_fn(), Box::new(DefaultCall));
+    table.set_fn("foo2".to_owned(), sample_fn(), Box::new(DefaultCall));
     let mut vec: Vec<_> = table.fns().map(|(x, y, _)| (x, y)).collect();
     vec.sort_unstable_by(|a, b| a.0.cmp(b.0));
     let tmp = sample_fn();

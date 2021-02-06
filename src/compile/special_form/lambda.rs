@@ -6,6 +6,7 @@ use crate::compile::{Compiler, StExpr};
 use crate::compile::body::builder::StmtBuilder;
 use crate::compile::symbol_table::{SymbolTable, LocalVar};
 use crate::compile::symbol_table::function_call::{FnCall, FnSpecs, FnScope};
+use crate::compile::symbol_table::call_magic::DefaultCall;
 use crate::compile::stmt_wrapper;
 use crate::compile::error::Error;
 use crate::compile::stateful::SideEffects;
@@ -189,12 +190,12 @@ pub fn compile_labels_scc<'a>(compiler: &mut Compiler<'a>,
   let function_names: Vec<String> = clauses.iter().map(|(name, args, _)| {
     let name_prefix = format!("_fn_{}", names::lisp_to_gd(name));
     let func_name = compiler.name_generator().generate_with(&name_prefix);
-    lambda_table.set_fn_base(name.to_owned(), FnCall {
+    lambda_table.set_fn(name.to_owned(), FnCall {
       scope: FnScope::SpecialLocal(local_var_name.clone()),
       object: None,
       function: func_name.clone(),
       specs: FnSpecs::from(args.to_owned()),
-    });
+    }, Box::new(DefaultCall));
     func_name
   }).collect();
 
@@ -297,8 +298,7 @@ where I : Iterator<Item=&'a U>,
       Some((call, magic)) => {
         match call.scope {
           FnScope::SpecialLocal(_) | FnScope::Local(_) | FnScope::SemiGlobal | FnScope::Global => {
-            lambda_table.set_fn_base(func.borrow().to_owned(), call.clone());
-            lambda_table.set_magic_fn(func.borrow().to_owned(), dyn_clone::clone_box(magic));
+            lambda_table.set_fn(func.borrow().to_owned(), call.clone(), dyn_clone::clone_box(magic));
           }
         }
       }
