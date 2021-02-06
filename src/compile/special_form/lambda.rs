@@ -173,9 +173,9 @@ pub fn compile_labels_scc<'a>(compiler: &mut Compiler<'a>,
     gd_closure_vars.push(var);
   }
   for func in closure_fns.names() {
-    match table.get_fn_base(func) {
+    match table.get_fn(func) {
       None => { return Err(Error::NoSuchFn(func.to_owned())) }
-      Some(call) => {
+      Some((call, _)) => {
         if let Some(var) = closure_fn_to_gd_var(call) {
           gd_closure_vars.push(var);
         }
@@ -292,19 +292,17 @@ where I : Iterator<Item=&'a U>,
       U : 'a {
   for func in closure_fns {
     // Ensure the function actually exists
-    match table.get_fn_base(func.borrow()) {
+    match table.get_fn(func.borrow()) {
       None => { return Err(Error::NoSuchFn(func.borrow().to_owned())) }
-      Some(call) => {
+      Some((call, magic)) => {
         match call.scope {
           FnScope::SpecialLocal(_) | FnScope::Local(_) | FnScope::SemiGlobal | FnScope::Global => {
             lambda_table.set_fn_base(func.borrow().to_owned(), call.clone());
+            lambda_table.set_magic_fn(func.borrow().to_owned(), dyn_clone::clone_box(magic));
           }
         }
       }
     };
-    // And copy magic
-    let magic = table.get_magic_fn(func.borrow());
-    lambda_table.set_magic_fn(func.borrow().to_owned(), dyn_clone::clone_box(magic));
   }
   Ok(())
 }
@@ -366,9 +364,9 @@ pub fn compile_lambda_stmt<'a>(compiler: &mut Compiler<'a>,
     gd_closure_vars.push(var);
   }
   for func in closure_fns.names() {
-    match table.get_fn_base(func) {
+    match table.get_fn(func) {
       None => { return Err(Error::NoSuchFn(func.to_owned())) }
-      Some(call) => {
+      Some((call, _)) => {
         if let Some(var) = closure_fn_to_gd_var(call) {
           gd_closure_vars.push(var);
         }

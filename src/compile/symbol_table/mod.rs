@@ -62,16 +62,8 @@ impl SymbolTable {
     self.magic_functions.remove(name);
   }
 
-  pub fn get_fn_base(&self, name: &str) -> Option<&FnCall> {
-    self.get_fn(name).map(|x| x.0)
-  }
-
   pub fn set_fn_base(&mut self, name: String, value: FnCall) -> Option<FnCall> {
     self.functions.insert(name, value)
-  }
-
-  pub fn get_magic_fn(&self, name: &str) -> &(dyn CallMagic + 'static) {
-    self.get_fn(name).map_or(&DEFAULT_CALL_MAGIC, |x| x.1)
   }
 
   pub fn set_magic_fn(&mut self, name: String, value: Box<dyn CallMagic + 'static>) {
@@ -235,12 +227,12 @@ mod tests {
   #[test]
   fn test_fns() {
     let mut table = SymbolTable::new();
-    assert_eq!(table.get_fn_base("foo"), None);
+    assert_eq!(table.get_fn("foo").map(|x| x.0), None);
     assert_eq!(table.set_fn_base("foo".to_owned(), sample_fn()), None);
-    assert_eq!(table.get_fn_base("foo"), Some(&sample_fn()));
+    assert_eq!(table.get_fn("foo").map(|x| x.0), Some(&sample_fn()));
     assert_eq!(table.set_fn_base("foo".to_owned(), sample_fn()), Some(sample_fn()));
     table.del_fn("foo");
-    assert_eq!(table.get_fn_base("foo"), None);
+    assert_eq!(table.get_fn("foo").map(|x| x.0), None);
   }
 
   #[test]
