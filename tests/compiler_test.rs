@@ -317,6 +317,11 @@ pub fn simple_length_test() {
 }
 
 #[test]
+pub fn list_test() {
+  assert_eq!(parse_compile_and_output("(list 1 2 3)"), "return GDLisp.Cons.new(1, GDLisp.Cons.new(2, GDLisp.Cons.new(3, GDLisp.Nil)))\n");
+}
+
+#[test]
 pub fn semiglobal_flet_test() {
 
   let result0 = parse_compile_and_output_h("(flet ((f (x) (+ x 1))) (f 10))");

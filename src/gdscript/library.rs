@@ -123,9 +123,14 @@ pub fn bind_builtins(table: &mut SymbolTable) {
                FnCall::qualified(FnSpecs::new(1, 0, true), FnScope::Global, gdlisp_root(), "ne".to_owned()),
                Box::new(call_magic::NEqOperation { fallback: Box::new(call_magic::DefaultCall) }));
 
-  // not (Not)
+  // not
   table.set_fn("not".to_owned(),
                FnCall::qualified(FnSpecs::new(1, 0, false), FnScope::Global, gdlisp_root(), "not_".to_owned()),
                Box::new(call_magic::BooleanNotOperation));
+
+  // list
+  table.set_fn("list".to_owned(),
+               FnCall::qualified(FnSpecs::new(0, 0, true), FnScope::Global, gdlisp_root(), "list".to_owned()),
+               Box::new(call_magic::ListOperation));
 
 }

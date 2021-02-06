@@ -153,3 +153,6 @@ func ne(x, args):
 
 func not_(x):
     return not x
+
+func list(args):
+    return args

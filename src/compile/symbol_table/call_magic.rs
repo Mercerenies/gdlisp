@@ -58,6 +58,8 @@ pub struct IntDivOperation;
 pub struct NEqOperation { pub fallback: Box<dyn CallMagic> }
 #[derive(Clone)]
 pub struct BooleanNotOperation;
+#[derive(Clone)]
+pub struct ListOperation;
 
 // Covers addition and multiplication, for instance
 #[derive(Clone)]
@@ -295,5 +297,17 @@ impl CallMagic for BooleanNotOperation {
                           Box::new(args[0].clone()))),
       _ => Err(Error::TooManyArgs(call.function, args.len())),
     }
+  }
+}
+
+impl CallMagic for ListOperation {
+  fn compile<'a>(&self,
+                 _call: FnCall,
+                 _compiler: &mut Compiler<'a>,
+                 _builder: &mut StmtBuilder,
+                 _table: &mut SymbolTable,
+                 args: Vec<StExpr>) -> Result<Expr, Error> {
+    let args = strip_st(args);
+    Ok(library::construct_list(args))
   }
 }
