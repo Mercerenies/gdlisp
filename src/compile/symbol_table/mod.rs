@@ -70,20 +70,12 @@ impl SymbolTable {
     self.functions.insert(name, value)
   }
 
-  pub fn del_fn_base(&mut self, name: &str) {
-    self.functions.remove(name);
-  }
-
   pub fn get_magic_fn(&self, name: &str) -> &(dyn CallMagic + 'static) {
     self.get_fn(name).map_or(&DEFAULT_CALL_MAGIC, |x| x.1)
   }
 
   pub fn set_magic_fn(&mut self, name: String, value: Box<dyn CallMagic + 'static>) {
     self.magic_functions.insert(name, DebugWrapper(value));
-  }
-
-  pub fn del_magic_fn(&mut self, name: &str) {
-    self.magic_functions.remove(name);
   }
 
   pub fn vars(&self) -> impl Iterator<Item=(&str, &LocalVar)> {
