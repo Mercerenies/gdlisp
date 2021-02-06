@@ -82,12 +82,10 @@ impl SymbolTable {
     return self.locals.iter().map(|x| (x.0.borrow(), x.1));
   }
 
-  pub fn fns(&self) -> impl Iterator<Item=(&str, &FnCall)> {
-    return self.functions.iter().map(|x| (x.0.borrow(), x.1));
-  }
-
-  pub fn magic_fns(&self) -> impl Iterator<Item=(&str, &(dyn CallMagic + 'static))> {
-    return self.magic_functions.iter().map(|x| (x.0.borrow(), (x.1).0.borrow()));
+  pub fn fns(&self) -> impl Iterator<Item=(&str, &FnCall, &(dyn CallMagic + 'static))> {
+    self.functions.iter().map(move |(name, value)| {
+      (name.borrow(), value, self.get_fn(name).map_or(&DEFAULT_CALL_MAGIC as &(dyn CallMagic + 'static), |x| x.1))
+    })
   }
 
 }
@@ -251,7 +249,7 @@ mod tests {
     table.set_fn_base("foo".to_owned(), sample_fn());
     table.set_fn_base("foo1".to_owned(), sample_fn());
     table.set_fn_base("foo2".to_owned(), sample_fn());
-    let mut vec: Vec<_> = table.fns().collect();
+    let mut vec: Vec<_> = table.fns().map(|(x, y, _)| (x, y)).collect();
     vec.sort_unstable_by(|a, b| a.0.cmp(b.0));
     let tmp = sample_fn();
     assert_eq!(vec, vec!(("foo", &tmp), ("foo1", &tmp), ("foo2", &tmp)));
