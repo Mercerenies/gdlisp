@@ -11,12 +11,24 @@ const TRANSLATIONS: phf::Map<char, &'static str> = phf_map! {
   '=' => "_EQ_",
 };
 
+const KNOWN_GDSCRIPT_KEYWORDS: &[&str] = &[
+  "if", "elif", "else", "for", "while", "match", "break",
+  "continue", "pass", "return", "class", "class_name", "extends",
+  "is", "as", "self", "tool", "signal", "func", "static", "const",
+  "enum", "var", "onready", "export", "setget", "breakpoint", "preload",
+  "yield", "assert", "remote", "master", "puppet", "remotesync", "mastersync",
+  "puppetsync", "PI", "TAU", "INF", "NAN"
+];
+
 pub fn is_valid_gd_char(ch: char) -> bool {
   ch.is_digit(36) || ch == '_'
 }
 
 pub fn lisp_to_gd(name: &str) -> String {
-  // TODO Escape known GDScript keywords
+  // Escape known GDScript keywords
+  if KNOWN_GDSCRIPT_KEYWORDS.iter().any(|kw| *kw == name) {
+    return format!("_{}", name);
+  }
   let length = name.chars().count();
   let mut result = String::with_capacity(2 * length);
   let mut iter = name.chars().peekable();
@@ -89,6 +101,14 @@ mod tests {
   fn general_codepoints() {
     assert_eq!(lisp_to_gd("w~~w"), "w_u007E_u007Ew");
     assert_eq!(lisp_to_gd("α"), "_u03B1");
+  }
+
+  #[test]
+  fn keywords() {
+    assert_eq!(lisp_to_gd("if"), "_if");
+    assert_eq!(lisp_to_gd("while"), "_while");
+    assert_eq!(lisp_to_gd("While"), "While"); // No translation necessary
+    assert_eq!(lisp_to_gd("PI"), "_PI");
   }
 
 }
