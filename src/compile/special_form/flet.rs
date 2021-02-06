@@ -158,6 +158,6 @@ fn all_names_are_nonlocal<I, T>(mut names: I, table: &SymbolTable)
   where I : Iterator<Item=T>,
         T : AsRef<str> {
   names.all(|name| {
-    table.get_fn(name.as_ref()).map_or(false, |call| !call.scope.is_local())
+    table.get_fn_base(name.as_ref()).map_or(false, |call| !call.scope.is_local())
   })
 }

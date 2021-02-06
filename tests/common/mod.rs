@@ -56,7 +56,7 @@ fn bind_helper_symbols(table: &mut SymbolTable) {
   // TODO This is just a single-argument shim which calls print. It
   // will be obsolete once we have an actual print function in the
   // language.
-  table.set_fn(String::from("print"), FnCall::unqualified(FnSpecs::new(1, 0, false), FnScope::Global, String::from("print")));
+  table.set_fn_base(String::from("print"), FnCall::unqualified(FnSpecs::new(1, 0, false), FnScope::Global, String::from("print")));
 }
 
 pub fn dump_files<T>(dir: &mut TempDir, data: &T) -> io::Result<()>

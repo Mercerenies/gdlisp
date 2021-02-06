@@ -43,15 +43,15 @@ impl SymbolTable {
     self.locals.remove(name);
   }
 
-  pub fn get_fn(&self, name: &str) -> Option<&FnCall> {
+  pub fn get_fn_base(&self, name: &str) -> Option<&FnCall> {
     self.functions.get(name)
   }
 
-  pub fn set_fn(&mut self, name: String, value: FnCall) -> Option<FnCall> {
+  pub fn set_fn_base(&mut self, name: String, value: FnCall) -> Option<FnCall> {
     self.functions.insert(name, value)
   }
 
-  pub fn del_fn(&mut self, name: &str) {
+  pub fn del_fn_base(&mut self, name: &str) {
     self.functions.remove(name);
   }
 
@@ -153,12 +153,12 @@ pub trait HasSymbolTable {
                       name: String,
                       value: FnCall,
                       block: impl FnOnce(&mut Self) -> B) -> B {
-    let previous = self.get_symbol_table_mut().set_fn(name.clone(), value);
+    let previous = self.get_symbol_table_mut().set_fn_base(name.clone(), value);
     let result = block(self);
     if let Some(previous) = previous {
-      self.get_symbol_table_mut().set_fn(name, previous);
+      self.get_symbol_table_mut().set_fn_base(name, previous);
     } else {
-      self.get_symbol_table_mut().del_fn(&name);
+      self.get_symbol_table_mut().del_fn_base(&name);
     };
     result
   }
@@ -224,20 +224,20 @@ mod tests {
   #[test]
   fn test_fns() {
     let mut table = SymbolTable::new();
-    assert_eq!(table.get_fn("foo"), None);
-    assert_eq!(table.set_fn("foo".to_owned(), sample_fn()), None);
-    assert_eq!(table.get_fn("foo"), Some(&sample_fn()));
-    assert_eq!(table.set_fn("foo".to_owned(), sample_fn()), Some(sample_fn()));
-    table.del_fn("foo");
-    assert_eq!(table.get_fn("foo"), None);
+    assert_eq!(table.get_fn_base("foo"), None);
+    assert_eq!(table.set_fn_base("foo".to_owned(), sample_fn()), None);
+    assert_eq!(table.get_fn_base("foo"), Some(&sample_fn()));
+    assert_eq!(table.set_fn_base("foo".to_owned(), sample_fn()), Some(sample_fn()));
+    table.del_fn_base("foo");
+    assert_eq!(table.get_fn_base("foo"), None);
   }
 
   #[test]
   fn test_iter_fns() {
     let mut table = SymbolTable::new();
-    table.set_fn("foo".to_owned(), sample_fn());
-    table.set_fn("foo1".to_owned(), sample_fn());
-    table.set_fn("foo2".to_owned(), sample_fn());
+    table.set_fn_base("foo".to_owned(), sample_fn());
+    table.set_fn_base("foo1".to_owned(), sample_fn());
+    table.set_fn_base("foo2".to_owned(), sample_fn());
     let mut vec: Vec<_> = table.fns().collect();
     vec.sort_unstable_by(|a, b| a.0.cmp(b.0));
     let tmp = sample_fn();

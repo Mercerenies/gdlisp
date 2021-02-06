@@ -173,7 +173,7 @@ pub fn compile_labels_scc<'a>(compiler: &mut Compiler<'a>,
     gd_closure_vars.push(var);
   }
   for func in closure_fns.names() {
-    match table.get_fn(func) {
+    match table.get_fn_base(func) {
       None => { return Err(Error::NoSuchFn(func.to_owned())) }
       Some(call) => {
         if let Some(var) = closure_fn_to_gd_var(call) {
@@ -189,7 +189,7 @@ pub fn compile_labels_scc<'a>(compiler: &mut Compiler<'a>,
   let function_names: Vec<String> = clauses.iter().map(|(name, args, _)| {
     let name_prefix = format!("_fn_{}", names::lisp_to_gd(name));
     let func_name = compiler.name_generator().generate_with(&name_prefix);
-    lambda_table.set_fn(name.to_owned(), FnCall {
+    lambda_table.set_fn_base(name.to_owned(), FnCall {
       scope: FnScope::SpecialLocal(local_var_name.clone()),
       object: None,
       function: func_name.clone(),
@@ -292,12 +292,12 @@ where I : Iterator<Item=&'a U>,
       U : 'a {
   for func in closure_fns {
     // Ensure the function actually exists
-    match table.get_fn(func.borrow()) {
+    match table.get_fn_base(func.borrow()) {
       None => { return Err(Error::NoSuchFn(func.borrow().to_owned())) }
       Some(call) => {
         match call.scope {
           FnScope::SpecialLocal(_) | FnScope::Local(_) | FnScope::SemiGlobal | FnScope::Global => {
-            lambda_table.set_fn(func.borrow().to_owned(), call.clone());
+            lambda_table.set_fn_base(func.borrow().to_owned(), call.clone());
           }
         }
       }
@@ -370,7 +370,7 @@ pub fn compile_lambda_stmt<'a>(compiler: &mut Compiler<'a>,
     gd_closure_vars.push(var);
   }
   for func in closure_fns.names() {
-    match table.get_fn(func) {
+    match table.get_fn_base(func) {
       None => { return Err(Error::NoSuchFn(func.to_owned())) }
       Some(call) => {
         if let Some(var) = closure_fn_to_gd_var(call) {

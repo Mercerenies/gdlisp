@@ -105,7 +105,7 @@ impl<'a> Compiler<'a> {
         special_form::compile_while_stmt(self, builder, table, cond, body, needs_result)
       }
       IRExpr::Call(f, args) => {
-        let fcall = match table.get_fn(f) {
+        let fcall = match table.get_fn_base(f) {
           None => return Err(Error::NoSuchFn(f.clone())),
           Some(x) => x.clone(),
         };
@@ -151,7 +151,7 @@ impl<'a> Compiler<'a> {
       IRExpr::FuncRef(name) => {
         match name {
           FuncRefTarget::SimpleName(name) => {
-            let func = table.get_fn(name).ok_or_else(|| Error::NoSuchFn(name.clone()))?.clone();
+            let func = table.get_fn_base(name).ok_or_else(|| Error::NoSuchFn(name.clone()))?.clone();
             lambda::compile_function_ref(self, builder, table, func)
           }
         }
@@ -244,7 +244,7 @@ impl<'a> Compiler<'a> {
           function_call::FnScope::Global,
           names::lisp_to_gd(name)
         );
-        table.set_fn(name.clone(), func);
+        table.set_fn_base(name.clone(), func);
       }
     };
     Ok(())
@@ -283,9 +283,9 @@ mod tests {
   fn bind_helper_symbols(table: &mut SymbolTable) {
     // Binds a few helper names to the symbol table for the sake of
     // debugging.
-    table.set_fn(String::from("foo1"), FnCall::unqualified(FnSpecs::new(1, 0, false), FnScope::Global, String::from("foo1")));
-    table.set_fn(String::from("foo"), FnCall::unqualified(FnSpecs::new(0, 0, false), FnScope::Global, String::from("foo")));
-    table.set_fn(String::from("bar"), FnCall::unqualified(FnSpecs::new(0, 0, false), FnScope::Global, String::from("bar")));
+    table.set_fn_base(String::from("foo1"), FnCall::unqualified(FnSpecs::new(1, 0, false), FnScope::Global, String::from("foo1")));
+    table.set_fn_base(String::from("foo"), FnCall::unqualified(FnSpecs::new(0, 0, false), FnScope::Global, String::from("foo")));
+    table.set_fn_base(String::from("bar"), FnCall::unqualified(FnSpecs::new(0, 0, false), FnScope::Global, String::from("bar")));
     table.set_var(String::from("foobar"), LocalVar::read(String::from("foobar")));
   }
 
