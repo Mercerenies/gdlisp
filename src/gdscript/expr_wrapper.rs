@@ -11,8 +11,11 @@ pub fn int(expr: Expr) -> Expr {
 }
 
 pub fn float(expr: Expr) -> Expr {
-  // TODO Don't wrap floats if it's already a literal float.
-  Expr::Call(None, "float".to_owned(), vec!(expr))
+  if let Expr::Literal(Literal::Float(_)) = &expr {
+    expr
+  } else {
+    Expr::Call(None, "float".to_owned(), vec!(expr))
+  }
 }
 
 #[cfg(test)]

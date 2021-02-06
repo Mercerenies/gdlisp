@@ -263,6 +263,7 @@ pub fn division_compile_test() {
   assert_eq!(parse_compile_and_output("(/ 2)"), "return 1 / float(2)\n");
   assert_eq!(parse_compile_and_output("(/ 2 3)"), "return float(2) / float(3)\n");
   assert_eq!(parse_compile_and_output("(/ 2 3 4)"), "return float(2) / float(3) / float(4)\n");
+  assert_eq!(parse_compile_and_output("(/ 2.0 3 4.0)"), "return 2e0 / float(3) / 4e0\n");
 }
 
 #[test]
