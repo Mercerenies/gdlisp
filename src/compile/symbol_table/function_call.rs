@@ -109,5 +109,3 @@ impl FnScope {
   }
 
 }
-
-// TODO Tests
