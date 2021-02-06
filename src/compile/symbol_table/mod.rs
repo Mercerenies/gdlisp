@@ -45,8 +45,25 @@ impl SymbolTable {
     self.locals.remove(name);
   }
 
+  pub fn get_fn(&self, name: &str) -> Option<(&FnCall, &(dyn CallMagic + 'static))> {
+    self.functions.get(name).map(|func| {
+      let magic: &(dyn CallMagic + 'static) = self.magic_functions.get(name).map_or(&DEFAULT_CALL_MAGIC, |x| x.0.borrow());
+      (func, magic)
+    })
+  }
+
+  pub fn set_fn(&mut self, name: String, value: FnCall, magic: Box<dyn CallMagic + 'static>) {
+    self.functions.insert(name.clone(), value);
+    self.magic_functions.insert(name, DebugWrapper(magic));
+  }
+
+  pub fn del_fn(&mut self, name: &str) {
+    self.functions.remove(name);
+    self.magic_functions.remove(name);
+  }
+
   pub fn get_fn_base(&self, name: &str) -> Option<&FnCall> {
-    self.functions.get(name)
+    self.get_fn(name).map(|x| x.0)
   }
 
   pub fn set_fn_base(&mut self, name: String, value: FnCall) -> Option<FnCall> {
@@ -58,12 +75,11 @@ impl SymbolTable {
   }
 
   pub fn get_magic_fn(&self, name: &str) -> &(dyn CallMagic + 'static) {
-    self.magic_functions.get(name).map_or(&DEFAULT_CALL_MAGIC, |x| x.0.borrow())
+    self.get_fn(name).map_or(&DEFAULT_CALL_MAGIC, |x| x.1)
   }
 
-  pub fn set_magic_fn(&mut self, name: String, value: Box<dyn CallMagic + 'static>)
-                      -> Option<Box<dyn CallMagic + 'static>> {
-    self.magic_functions.insert(name, DebugWrapper(value)).map(|x| x.0)
+  pub fn set_magic_fn(&mut self, name: String, value: Box<dyn CallMagic + 'static>) {
+    self.magic_functions.insert(name, DebugWrapper(value));
   }
 
   pub fn del_magic_fn(&mut self, name: &str) {
@@ -155,12 +171,13 @@ pub trait HasSymbolTable {
                       name: String,
                       value: FnCall,
                       block: impl FnOnce(&mut Self) -> B) -> B {
-    let previous = self.get_symbol_table_mut().set_fn_base(name.clone(), value);
+    let previous = self.get_symbol_table_mut().get_fn(&name).map(|(p, m)| (p.clone(), dyn_clone::clone_box(m)));
+    self.get_symbol_table_mut().set_fn(name.clone(), value, Box::new(DefaultCall));
     let result = block(self);
-    if let Some(previous) = previous {
-      self.get_symbol_table_mut().set_fn_base(name, previous);
+    if let Some((p, m)) = previous {
+      self.get_symbol_table_mut().set_fn(name, p, m);
     } else {
-      self.get_symbol_table_mut().del_fn_base(&name);
+      self.get_symbol_table_mut().del_fn(&name);
     };
     result
   }
@@ -190,6 +207,8 @@ impl HasSymbolTable for SymbolTable {
   }
 
 }
+
+// TODO Test magic here as well.
 
 #[cfg(test)]
 mod tests {
@@ -230,7 +249,7 @@ mod tests {
     assert_eq!(table.set_fn_base("foo".to_owned(), sample_fn()), None);
     assert_eq!(table.get_fn_base("foo"), Some(&sample_fn()));
     assert_eq!(table.set_fn_base("foo".to_owned(), sample_fn()), Some(sample_fn()));
-    table.del_fn_base("foo");
+    table.del_fn("foo");
     assert_eq!(table.get_fn_base("foo"), None);
   }
 
