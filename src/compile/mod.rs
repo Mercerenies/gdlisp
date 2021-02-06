@@ -88,6 +88,7 @@ impl<'a> Compiler<'a> {
         match lit {
           IRLiteral::Nil => Ok(Compiler::nil_expr()),
           IRLiteral::Int(n) => Ok(StExpr(Expr::from(*n), SideEffects::None)),
+          IRLiteral::Float(f) => Ok(StExpr(Expr::from(*f), SideEffects::None)),
           IRLiteral::Bool(b) => Ok(StExpr(Expr::from(*b), SideEffects::None)),
         }
       }

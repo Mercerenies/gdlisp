@@ -52,8 +52,8 @@ pub fn compile_expr(expr: &AST)
     AST::Bool(b) => {
       Ok(Expr::Literal(Literal::Bool(*b)))
     }
-    AST::Float(_) => {
-      panic!("Not implemented yet!") ////
+    AST::Float(f) => {
+      Ok(Expr::Literal(Literal::Float(*f)))
     }
     AST::String(_) => {
       panic!("Not implemented yet!") ////

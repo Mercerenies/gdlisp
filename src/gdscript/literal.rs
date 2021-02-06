@@ -2,9 +2,12 @@
 // TODO Just a basic stub right now; we'll support all Godot literal
 // types soon.
 
+use ordered_float::OrderedFloat;
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Literal {
   Int(i32),
+  Float(OrderedFloat<f32>),
   String(String),
   Null,
   Bool(bool),
@@ -18,6 +21,7 @@ impl Literal {
       Literal::String(s) => format!("\"{}\"", s), // TODO Proper escaping
       Literal::Null => String::from("null"),
       Literal::Bool(b) => if *b { String::from("true") } else { String::from("false") },
+      Literal::Float(f) => format!("{:e}", **f),
     }
   }
 
@@ -26,6 +30,12 @@ impl Literal {
 impl From<i32> for Literal {
   fn from(x: i32) -> Literal {
     Literal::Int(x)
+  }
+}
+
+impl From<OrderedFloat<f32>> for Literal {
+  fn from(x: OrderedFloat<f32>) -> Literal {
+    Literal::Float(x)
   }
 }
 
