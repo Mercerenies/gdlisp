@@ -107,6 +107,9 @@ impl<'a> Compiler<'a> {
       IRExpr::WhileStmt(cond, body) => {
         special_form::compile_while_stmt(self, builder, table, cond, body, needs_result)
       }
+      IRExpr::ForStmt(name, iter, body) => {
+        special_form::compile_for_stmt(self, builder, table, &*name, iter, body, needs_result)
+      }
       IRExpr::Call(f, args) => {
         let (fcall, call_magic) = match table.get_fn(f) {
           None => return Err(Error::NoSuchFn(f.clone())),

@@ -16,6 +16,7 @@ pub fn dispatch_form(head: &str,
     "if" => if_form(tail).map(Some),
     "cond" => cond_form(tail).map(Some),
     "while" => while_form(tail).map(Some),
+    "for" => for_form(tail).map(Some),
     "let" => let_form(tail).map(Some),
     "flet" => flet_form(tail, Expr::FLet).map(Some),
     "labels" => flet_form(tail, Expr::Labels).map(Some),
@@ -76,6 +77,20 @@ pub fn while_form(tail: &[&AST])
   let cond = compile_expr(tail[0])?;
   let body = tail[1..].iter().map(|x| compile_expr(x)).collect::<Result<Vec<_>, _>>()?;
   Ok(Expr::while_stmt(cond, Expr::Progn(body)))
+}
+
+pub fn for_form(tail: &[&AST])
+               -> Result<Expr, Error> {
+  if tail.len() < 2 {
+    return Err(Error::TooFewArgs(String::from("for"), tail.len()));
+  }
+  let name = match tail[0] {
+    AST::Symbol(s) => s.to_owned(),
+    _ => return Err(Error::InvalidArg(String::from("for"), (*tail[0]).clone(), String::from("variable name"))),
+  };
+  let iter = compile_expr(tail[1])?;
+  let body = tail[2..].iter().map(|x| compile_expr(x)).collect::<Result<Vec<_>, _>>()?;
+  Ok(Expr::for_stmt(name, iter, Expr::Progn(body)))
 }
 
 pub fn let_form(tail: &[&AST])

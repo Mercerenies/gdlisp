@@ -5,10 +5,11 @@ pub mod flet;
 use crate::ir;
 use crate::compile::{Compiler, StExpr, NeedsResult};
 use crate::compile::body::builder::StmtBuilder;
-use crate::compile::symbol_table::SymbolTable;
+use crate::compile::symbol_table::{SymbolTable, HasSymbolTable, LocalVar};
 use crate::compile::stmt_wrapper;
 use crate::compile::error::Error;
 use crate::compile::stateful::SideEffects;
+use crate::compile::names;
 use crate::gdscript::stmt::{self, Stmt};
 use crate::gdscript::expr::Expr;
 use crate::gdscript::literal::Literal;
@@ -99,5 +100,26 @@ pub fn compile_while_stmt<'a>(compiler: &mut Compiler<'a>,
   compiler.compile_stmt(&mut body_builder, table, &stmt_wrapper::Vacuous, body)?;
   let body = body_builder.build_into(builder);
   builder.append(Stmt::WhileLoop(stmt::WhileLoop { condition: cond_expr, body: body }));
+  Ok(Compiler::nil_expr())
+}
+
+pub fn compile_for_stmt<'a>(compiler: &mut Compiler<'a>,
+                            builder: &mut StmtBuilder,
+                            table: &mut SymbolTable,
+                            name: &str,
+                            iter: &IRExpr,
+                            body: &IRExpr,
+                            _needs_result: NeedsResult)
+                            -> Result<StExpr, Error> {
+  let closure_vars = body.get_locals();
+  let citer = compiler.compile_expr(builder, table, iter, NeedsResult::Yes)?.0;
+  let var_name = compiler.name_generator().generate_with(&names::lisp_to_gd(name));
+  let mut inner_builder = StmtBuilder::new();
+  let local_var = LocalVar { name: var_name.to_owned(), access_type: closure_vars.get(&name) };
+  table.with_local_var(name.to_owned(), local_var, |table| {
+    compiler.compile_stmt(&mut inner_builder, table, &stmt_wrapper::Vacuous, body)
+  })?;
+  let body = inner_builder.build_into(builder);
+  builder.append(Stmt::ForLoop(stmt::ForLoop { iter_var: var_name, collection: citer, body: body }));
   Ok(Compiler::nil_expr())
 }
