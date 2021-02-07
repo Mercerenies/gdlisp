@@ -1,2 +1,4 @@
 /target
 *~
+# Generated file that is always identical to /GDLisp.gd
+/MacroServer/GDLisp.gd

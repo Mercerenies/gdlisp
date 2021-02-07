@@ -1,13 +1,14 @@
 
 pub mod named_file;
 pub mod into_gd_file;
+pub mod macro_server;
 pub mod temporary_copy;
 
 use into_gd_file::IntoGDFile;
 
 use tempfile::{Builder, NamedTempFile};
 
-use std::process::{Command, Stdio};
+use std::process::{Command, Stdio, Child};
 use std::path::Path;
 use std::io::{self, Write};
 
@@ -22,6 +23,15 @@ pub fn run_with_file<P : AsRef<Path>>(path: P) -> io::Result<String> {
     .output()?;
   let text = String::from_utf8_lossy(&out.stdout);
   Ok(text.into())
+}
+
+pub fn run_project_process<P : AsRef<Path>>(path: P) -> io::Result<Child> {
+  Command::new("godot")
+    .arg("--path")
+    .arg(path.as_ref().as_os_str())
+    .stderr(Stdio::inherit())
+    .stdout(Stdio::null())
+    .spawn()
 }
 
 pub fn run_project<P : AsRef<Path>>(path: P) -> io::Result<String> {

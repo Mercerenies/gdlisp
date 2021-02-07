@@ -1,0 +1,9 @@
+config_version=4
+
+[application]
+
+run/main_scene="res://main.tscn"
+
+[autoload]
+
+GDLisp="*res://GDLisp.gd"
