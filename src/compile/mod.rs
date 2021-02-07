@@ -123,7 +123,7 @@ impl<'a> Compiler<'a> {
         let closure_vars = body.get_locals();
         let var_names = clauses.iter().map::<Result<(String, String), Error>, _>(|clause| {
           let (ast_name, expr) = clause;
-          let ast_name = ast_name.to_owned();
+          let ast_name = names::lisp_to_gd(ast_name);
           let result_value = self.compile_expr(builder, table, &expr, NeedsResult::Yes)?.0;
           let result_value =
             if closure_vars.get(&ast_name).requires_cell() {
