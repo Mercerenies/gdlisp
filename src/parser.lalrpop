@@ -1,7 +1,7 @@
 // -*- Rust -*-
 
 use std::str::FromStr;
-use crate::sxp::ast::AST;
+use crate::sxp::ast::{self, AST};
 use crate::sxp::string;
 
 grammar;
@@ -21,9 +21,9 @@ match {
   r"[+-]?[0-9]+" => INT,
   r"[+-]?[0-9]+((\.[0-9]+)([eE][+-]?[0-9]+)?|(\.[0-9]+)?([eE][+-]?[0-9]+))" => FLOAT,
   r#""([^\\"]|\\[\\"])*""# => STRING,
-  "(", ")", ".", "[", "]"
+  "(", ")", ".", "[", "]", "'"
 } else {
-  // Currently reserved but unused: {}`,';:.
+  // Currently reserved but unused: {}`,;:.
   r"[A-Za-z_~+=\-\\!@$%^&*<>/][A-Za-z0-9_~+=\-\\!@$%^&*<>/]*" => SYMBOL,
 }
 
@@ -37,6 +37,7 @@ pub AST: AST = {
   "(" ")" => AST::Nil,
   "(" <car: AST> <cdr: Cdr> ")" => AST::Cons(Box::new(car), Box::new(cdr)),
   "[" <contents: ArrayContents> "]" => AST::Array(contents),
+  "'" <body: AST> => ast::list(vec!(AST::Symbol(String::from("quote")), body)),
 }
 
 Cdr: AST = {

@@ -350,6 +350,13 @@ pub fn quote_test() {
 }
 
 #[test]
+pub fn quote_syntax_test() {
+  assert_eq!(parse_compile_and_output("'10"), "return 10\n");
+  assert_eq!(parse_compile_and_output("'(1 2)"), "return GDLisp.Cons.new(1, GDLisp.Cons.new(2, GDLisp.Nil))\n");
+  assert_eq!(parse_compile_and_output("'[1 2]"), "return [1, 2]\n");
+}
+
+#[test]
 pub fn array_test() {
   assert_eq!(parse_compile_and_output("[]"), "return []\n");
   assert_eq!(parse_compile_and_output("[1 2 3]"), "return [1, 2, 3]\n");
