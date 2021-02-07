@@ -128,6 +128,11 @@ pub fn let_tests() {
 }
 
 #[test]
+pub fn let_name_trans_tests() {
+  assert_eq!(parse_compile_and_output("(let ((a-b 1)) a-b)"), "var a_b_0 = 1\nreturn a_b_0\n");
+}
+
+#[test]
 pub fn var_shadowing() {
   assert_eq!(parse_compile_and_output("(let ((a)) (let ((a a)) a))"), "var a_0 = GDLisp.Nil\nvar a_1 = a_0\nreturn a_1\n");
 }
