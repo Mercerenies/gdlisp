@@ -225,22 +225,27 @@ impl CallMagic for DivOperation {
                  _builder: &mut StmtBuilder,
                  _table: &mut SymbolTable,
                  args: Vec<StExpr>) -> Result<Expr, Error> {
-    let args = strip_st(args);
+    let mut args = strip_st(args);
     match args.len() {
       0 => Err(Error::TooFewArgs(call.function, args.len())),
       1 => Ok(Expr::Binary(Box::new(Expr::from(1)),
                            op::BinaryOp::Div,
                            Box::new(expr_wrapper::float(args[0].clone())))),
       _ => {
-        let result = util::fold1(args.into_iter().map(|x| Box::new(expr_wrapper::float(x))), |x, y| {
-          Box::new(Expr::Binary(x, op::BinaryOp::Div, y))
+        let first = Box::new(args.remove(0));
+        let result = args.into_iter().fold(first, |x, y| {
+          Box::new(Expr::Binary(x, op::BinaryOp::Div, Box::new(expr_wrapper::float(y))))
         });
-        Ok(*result.unwrap())
+        Ok(*result)
       }
     }
   }
 }
 
+// TODO Integer division (both the regular function and the call
+// magic) still does floating-point division if the first argument is
+// a vector. I want to do integer division to each component of the
+// vector, which GDScript has no built-in way to do.
 impl CallMagic for IntDivOperation {
   fn compile<'a>(&self,
                  call: FnCall,
@@ -248,17 +253,18 @@ impl CallMagic for IntDivOperation {
                  _builder: &mut StmtBuilder,
                  _table: &mut SymbolTable,
                  args: Vec<StExpr>) -> Result<Expr, Error> {
-    let args = strip_st(args);
+    let mut args = strip_st(args);
     match args.len() {
       0 => Err(Error::TooFewArgs(call.function, args.len())),
       1 => Ok(Expr::Binary(Box::new(Expr::from(1)),
                            op::BinaryOp::Div,
                            Box::new(expr_wrapper::int(args[0].clone())))),
       _ => {
-        let result = util::fold1(args.into_iter().map(|x| Box::new(expr_wrapper::int(x))), |x, y| {
-          Box::new(Expr::Binary(x, op::BinaryOp::Div, y))
+        let first = Box::new(args.remove(0));
+        let result = args.into_iter().fold(first, |x, y| {
+          Box::new(Expr::Binary(x, op::BinaryOp::Div, Box::new(expr_wrapper::int(y))))
         });
-        Ok(*result.unwrap())
+        Ok(*result)
       }
     }
   }

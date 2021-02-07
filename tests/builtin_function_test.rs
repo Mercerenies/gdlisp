@@ -35,6 +35,18 @@ fn addition_test_5() {
 
 #[test]
 #[ignore]
+fn addition_test_6() {
+  assert_eq!(parse_and_run("((print (+ (vector 1 1) (vector 2 3))))"), "\n(3, 4)\n");
+}
+
+#[test]
+#[ignore]
+fn addition_test_7() {
+  assert_eq!(parse_and_run("((print (+ (vector 1 1))))"), "\n(1, 1)\n");
+}
+
+#[test]
+#[ignore]
 fn addition_test_indirect_1() {
   assert_eq!(parse_and_run("((print (funcall (function +) 1 5 2 -4)))"), "\n4\n");
 }
@@ -73,6 +85,12 @@ fn multiplication_test_3() {
 #[ignore]
 fn multiplication_test_4() {
   assert_eq!(parse_and_run("((print (* 4 3 2)))"), "\n24\n");
+}
+
+#[test]
+#[ignore]
+fn multiplication_test_5() {
+  assert_eq!(parse_and_run("((print (* 4 (vector 1 2) 2 (vector 2 3))))"), "\n(16, 48)\n");
 }
 
 #[test]
@@ -139,6 +157,12 @@ fn division_test_2() {
 #[ignore]
 fn division_test_3() {
   assert_eq!(parse_and_run("((print (/ 4 2 2)))"), "\n1\n");
+}
+
+#[test]
+#[ignore]
+fn division_test_4() {
+  assert_eq!(parse_and_run("((print (/ (vector 4 2 4) 2 2)))"), "\n(1, 0.5, 1)\n");
 }
 
 #[test]

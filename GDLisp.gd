@@ -53,13 +53,16 @@ func funcall(f, args):
         push_error("Attempt to call non-function")
     return f.call_funcv(args)
 
-# TODO This behavior is problematic if we pass in vectors (this is true of a few of these)
 func plus(args):
-    var result = 0
-    while args is Cons:
-        result += args.car
+    if args is Cons:
+        var result = args.car
         args = args.cdr
-    return result
+        while args is Cons:
+            result += args.car
+            args = args.cdr
+        return result
+    else:
+        return 0
 
 func times(args):
     var result = 1
@@ -82,7 +85,7 @@ func div(x, args):
     if not (args is Cons):
         return 1.0 / float(x)
     else:
-        var result = float(x)
+        var result = x
         while args is Cons:
             result /= float(args.car)
             args = args.cdr
@@ -92,7 +95,7 @@ func intdiv(x, args):
     if not (args is Cons):
         return 1 / int(x)
     else:
-        var result = int(x)
+        var result = x
         while args is Cons:
             result /= int(args.car)
             args = args.cdr
