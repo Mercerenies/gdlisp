@@ -53,6 +53,7 @@ func funcall(f, args):
         push_error("Attempt to call non-function")
     return f.call_funcv(args)
 
+# TODO This behavior is problematic if we pass in vectors (this is true of a few of these)
 func plus(args):
     var result = 0
     while args is Cons:
