@@ -135,7 +135,12 @@ pub fn bind_builtins(table: &mut SymbolTable) {
 
   // yield
   table.set_fn("yield".to_owned(),
-               FnCall::qualified(FnSpecs::new(0, 2, true), FnScope::Global, gdlisp_root(), "yield_".to_owned()),
+               FnCall::qualified(FnSpecs::new(0, 2, false), FnScope::Global, gdlisp_root(), "yield_".to_owned()),
                Box::new(call_magic::YieldOperation));
+
+  // vector
+  table.set_fn("vector".to_owned(),
+               FnCall::qualified(FnSpecs::new(1, 1, false), FnScope::Global, gdlisp_root(), "vector".to_owned()),
+               Box::new(call_magic::VectorOperation));
 
 }

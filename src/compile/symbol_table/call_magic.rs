@@ -62,6 +62,8 @@ pub struct BooleanNotOperation;
 pub struct ListOperation;
 #[derive(Clone)]
 pub struct YieldOperation;
+#[derive(Clone)]
+pub struct VectorOperation;
 
 // Covers addition and multiplication, for instance
 #[derive(Clone)]
@@ -344,6 +346,36 @@ impl CallMagic for YieldOperation {
         let y = args.pop().expect("Internal error in YieldOperation");
         let x = args.pop().expect("Internal error in YieldOperation");
         Ok(Expr::yield_expr(Some((x, y))))
+      }
+      _ => {
+        Err(Error::TooManyArgs(call.function, args.len()))
+      }
+    }
+  }
+}
+
+impl CallMagic for VectorOperation {
+  fn compile<'a>(&self,
+                 call: FnCall,
+                 _compiler: &mut Compiler<'a>,
+                 _builder: &mut StmtBuilder,
+                 _table: &mut SymbolTable,
+                 args: Vec<StExpr>) -> Result<Expr, Error> {
+    let mut args = strip_st(args);
+    match args.len() {
+      0 | 1 => {
+        Err(Error::TooFewArgs(call.function, args.len()))
+      }
+      2 => {
+        let y = args.pop().expect("Internal error in VectorOperation");
+        let x = args.pop().expect("Internal error in VectorOperation");
+        Ok(Expr::Call(None, String::from("Vector2"), vec!(x, y)))
+      }
+      3 => {
+        let z = args.pop().expect("Internal error in VectorOperation");
+        let y = args.pop().expect("Internal error in VectorOperation");
+        let x = args.pop().expect("Internal error in VectorOperation");
+        Ok(Expr::Call(None, String::from("Vector3"), vec!(x, y, z)))
       }
       _ => {
         Err(Error::TooManyArgs(call.function, args.len()))

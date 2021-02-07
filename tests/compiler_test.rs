@@ -336,6 +336,12 @@ pub fn list_test() {
 }
 
 #[test]
+pub fn vector_test() {
+  assert_eq!(parse_compile_and_output("(vector 9 10)"), "return Vector2(9, 10)\n");
+  assert_eq!(parse_compile_and_output("(vector 9 10 11)"), "return Vector3(9, 10, 11)\n");
+}
+
+#[test]
 pub fn array_test() {
   assert_eq!(parse_compile_and_output("[]"), "return []\n");
   assert_eq!(parse_compile_and_output("[1 2 3]"), "return [1, 2, 3]\n");

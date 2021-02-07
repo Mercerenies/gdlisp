@@ -163,3 +163,9 @@ func yield_(x, y):
         return yield()
     else:
         return yield(x, y)
+
+func vector(x, y, z):
+    if z is GDLisp.NilClass:
+        return Vector2(x, y)
+    else:
+        return Vector3(x, y, z)
