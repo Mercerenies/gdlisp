@@ -1,5 +1,9 @@
 
+pub mod command;
+
 use super::run_project_process;
+
+use command::{ServerCommand, IsServerCommand};
 
 use std::io::{self, Write, Read};
 use std::path::PathBuf;
@@ -9,6 +13,8 @@ use std::convert::TryInto;
 use std::fs;
 
 pub const PORT_NUMBER: u16 = 61992;
+
+///// Use this for things less trivial than ping-pong
 
 pub struct MacroServer {
   tcp_server: TcpStream,
@@ -47,13 +53,15 @@ impl MacroServer {
     String::from_utf8(buf).map_err(|_| io::Error::new(io::ErrorKind::InvalidData, "Error in UTF8 conversion"))
   }
 
-  pub fn issue_command(&mut self, command: &str) -> io::Result<String> {
-    self.send_string(command)?;
+  pub fn issue_command(&mut self, command: impl IsServerCommand) -> io::Result<String> {
+    for s in command.to_command() {
+      self.send_string(&s)?;
+    }
     self.receive_string()
   }
 
   pub fn shutdown(mut self) -> io::Result<ExitStatus> {
-    self.issue_command("quit")?;
+    self.issue_command(&ServerCommand::Quit)?;
     self.godot_server.wait()
   }
 
@@ -68,10 +76,16 @@ mod tests {
   fn spawn_server_test() {
     MacroServer::new().unwrap().shutdown().unwrap();
 
-    let mut server = MacroServer::new().unwrap();
-    let response = server.issue_command("ping").unwrap();
-    assert_eq!(response, "pong");
-    server.shutdown().unwrap();
+    let mut server1 = MacroServer::new().unwrap();
+    let response1 = server1.issue_command(&vec!(String::from("ping"))).unwrap();
+    assert_eq!(response1, "pong");
+    server1.shutdown().unwrap();
+
+    let mut server2 = MacroServer::new().unwrap();
+    let response2 = server2.issue_command(&ServerCommand::Ping).unwrap();
+    assert_eq!(response2, "pong");
+    server2.shutdown().unwrap();
+
   }
 
 }
