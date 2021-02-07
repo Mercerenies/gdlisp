@@ -1,6 +1,7 @@
 
 pub mod named_file;
 pub mod into_gd_file;
+pub mod temporary_copy;
 
 use into_gd_file::IntoGDFile;
 
