@@ -39,6 +39,14 @@ class Cell:
     func _init(contents):
         self.contents = contents
 
+class Symbol:
+    # Note: This will be obsolete once we have StringName in GDScript,
+    # which seems to be coming in Godot 4. For now, this manual
+    # wrapper stores symbols in the least efficient way possible.
+    var contents
+    func _init(contents):
+        self.contents = contents
+
 onready var Nil = NilClass.new()
 
 func length(x):

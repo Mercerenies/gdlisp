@@ -27,6 +27,10 @@ pub fn cons_class() -> Expr {
   on_gdlisp_root(String::from("Cons"))
 }
 
+pub fn symbol_class() -> Expr {
+  on_gdlisp_root(String::from("Symbol"))
+}
+
 pub fn cell_class() -> Expr {
   on_gdlisp_root(String::from("Cell"))
 }
@@ -46,6 +50,11 @@ pub fn bind_builtins(table: &mut SymbolTable) {
   // Cons
   table.set_fn("cons".to_owned(),
                FnCall::qualified(FnSpecs::new(2, 0, false), FnScope::Global, cons_class(), "new".to_owned()),
+               Box::new(call_magic::DefaultCall));
+
+  // intern
+  table.set_fn("intern".to_owned(),
+               FnCall::qualified(FnSpecs::new(1, 0, false), FnScope::Global, symbol_class(), "new".to_owned()),
                Box::new(call_magic::DefaultCall));
 
   // Length
