@@ -28,6 +28,15 @@ impl From<bool> for NeedsResult {
 }
 
 impl NeedsResult {
+
+  pub fn or(self, other: NeedsResult) -> NeedsResult {
+    NeedsResult::from(self == NeedsResult::Yes || other == NeedsResult::Yes)
+  }
+
+  pub fn and(self, other: NeedsResult) -> NeedsResult {
+    NeedsResult::from(self == NeedsResult::Yes && other == NeedsResult::Yes)
+  }
+
   pub fn into_destination<'a>(self,
                               compiler: &mut Compiler<'a>,
                               builder: &mut StmtBuilder,
@@ -42,6 +51,7 @@ impl NeedsResult {
       (destination, library::nil())
     }
   }
+
 }
 
 impl SideEffects {
