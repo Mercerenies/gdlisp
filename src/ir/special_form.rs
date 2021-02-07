@@ -23,6 +23,7 @@ pub fn dispatch_form(head: &str,
     "lambda" => lambda_form(tail).map(Some),
     "function" => function_form(tail).map(Some),
     "setq" => assign_form(tail).map(Some),
+    "quote" => quote_form(tail).map(Some),
     _ => Ok(None),
   }
 }
@@ -183,4 +184,14 @@ pub fn flet_form(tail: &[&AST], container: impl FnOnce(Vec<(String, ArgList, Exp
   }).collect::<Result<Vec<_>, _>>()?;
   let body = tail[1..].iter().map(|expr| compile_expr(expr)).collect::<Result<Vec<_>, _>>()?;
   Ok(container(fn_clauses, Box::new(Expr::Progn(body))))
+}
+
+pub fn quote_form(tail: &[&AST]) -> Result<Expr, Error> {
+  if tail.len() < 1 {
+    return Err(Error::TooFewArgs(String::from("quote"), 1))
+  }
+  if tail.len() > 1 {
+    return Err(Error::TooManyArgs(String::from("quote"), 1))
+  }
+  Ok(Expr::Quote(tail[0].clone()))
 }

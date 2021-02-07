@@ -4,6 +4,7 @@ use super::arglist::ArgList;
 //use crate::gdscript::op::{self, UnaryOp, BinaryOp, OperatorHasInfo};
 use super::locals::{Locals, AccessType};
 use super::functions::Functions;
+use crate::sxp::ast::AST;
 
 use std::collections::HashSet;
 use std::collections::hash_map::RandomState;
@@ -25,6 +26,7 @@ pub enum Expr {
   FuncRef(FuncRefTarget),
   Assign(String, Box<Expr>),
   Array(Vec<Expr>),
+  Quote(AST),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -166,6 +168,7 @@ impl Expr {
           x.walk_locals(acc_vars, acc_fns);
         }
       }
+      Expr::Quote(_) => {}
     };
   }
 

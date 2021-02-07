@@ -9,6 +9,7 @@ pub mod stateful;
 
 use body::builder::{CodeBuilder, StmtBuilder, HasDecls};
 use names::fresh::FreshNameGenerator;
+use crate::sxp::reify::Reify;
 use crate::gdscript::expr::Expr;
 use crate::gdscript::stmt::Stmt;
 use crate::gdscript::decl::{self, Decl};
@@ -171,6 +172,9 @@ impl<'a> Compiler<'a> {
           Ok(cexpr)
         }).collect::<Result<Vec<_>, Error>>()?;
         Ok(StExpr(Expr::ArrayLit(vec), side_effects))
+      }
+      IRExpr::Quote(ast) => {
+        Ok(StExpr(ast.reify(), SideEffects::None))
       }
       /* // This will eventually be an optimization.
       IRExpr::Funcall(f, args) => {
