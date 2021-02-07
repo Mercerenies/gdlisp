@@ -21,9 +21,9 @@ match {
   r"[+-]?[0-9]+" => INT,
   r"[+-]?[0-9]+((\.[0-9]+)([eE][+-]?[0-9]+)?|(\.[0-9]+)?([eE][+-]?[0-9]+))" => FLOAT,
   r#""([^\\"]|\\[\\"])*""# => STRING,
-  "(", ")", ".",
+  "(", ")", ".", "[", "]"
 } else {
-  // Currently reserved but unused: []{}`,'#;:.
+  // Currently reserved but unused: {}`,';:.
   r"[A-Za-z_~+=\-\\!@$%^&*<>/][A-Za-z0-9_~+=\-\\!@$%^&*<>/]*" => SYMBOL,
 }
 
@@ -36,6 +36,7 @@ pub AST: AST = {
   <s: Symbol> => AST::Symbol(s),
   "(" ")" => AST::Nil,
   "(" <car: AST> <cdr: Cdr> ")" => AST::Cons(Box::new(car), Box::new(cdr)),
+  "[" <contents: ArrayContents> "]" => AST::Array(contents),
 }
 
 Cdr: AST = {
@@ -44,3 +45,10 @@ Cdr: AST = {
   <cadr: AST> <cddr: Cdr> => AST::Cons(Box::new(cadr), Box::new(cddr)),
 }
 
+ArrayContents: Vec<AST> = {
+  => vec!(),
+  <mut init: ArrayContents> <last: AST> => {
+    init.push(last);
+    init
+  }
+}

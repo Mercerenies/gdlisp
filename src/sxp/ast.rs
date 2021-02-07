@@ -8,6 +8,7 @@ use std::convert::Infallible;
 pub enum AST {
   Nil,
   Cons(Box<AST>, Box<AST>),
+  Array(Vec<AST>),
   Int(i32),
   Bool(bool),
   Float(OrderedFloat<f32>),
@@ -144,6 +145,18 @@ impl fmt::Display for AST {
         fmt_list(a, b, f)?;
         write!(f, ")")
       }
+      AST::Array(vec) => {
+        write!(f, "[")?;
+        let mut first = true;
+        for x in vec {
+          if !first {
+            write!(f, " ")?;
+          }
+          write!(f, "{}", x)?;
+          first = false;
+        }
+        write!(f, "]")
+      }
     }
   }
 
@@ -201,6 +214,12 @@ mod tests {
   fn runtime_repr_list() {
     assert_eq!(list(vec!(AST::Int(1), AST::Int(2), AST::Int(3))).to_string(), "(1 2 3)");
     assert_eq!(dotted_list(vec!(AST::Int(1), AST::Int(2), AST::Int(3)), AST::Int(4)).to_string(), "(1 2 3 . 4)");
+  }
+
+  #[test]
+  fn runtime_repr_vec() {
+    assert_eq!(AST::Array(vec!()).to_string(), "[]");
+    assert_eq!(AST::Array(vec!(AST::Int(1), AST::Int(2), AST::Int(3))).to_string(), "[1 2 3]");
   }
 
   #[test]

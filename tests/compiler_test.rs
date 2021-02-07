@@ -323,6 +323,17 @@ pub fn list_test() {
 }
 
 #[test]
+pub fn array_test() {
+  assert_eq!(parse_compile_and_output("[]"), "return []\n");
+  assert_eq!(parse_compile_and_output("[1 2 3]"), "return [1, 2, 3]\n");
+  assert_eq!(parse_compile_and_output("[2]"), "return [2]\n");
+  assert_eq!(parse_compile_and_output("[(foo)]"), "return [foo()]\n");
+  assert_eq!(parse_compile_and_output("(progn [1] [2])"), "return [2]\n");
+  assert_eq!(parse_compile_and_output("(progn [(foo)] [2])"), "[foo()]\nreturn [2]\n");
+  assert_eq!(parse_compile_and_output("[(if 1 2 3)]"), "var _if_0 = GDLisp.Nil\nif 1:\n    _if_0 = 2\nelse:\n    _if_0 = 3\nreturn [_if_0]\n");
+}
+
+#[test]
 pub fn yield_test() {
   assert_eq!(parse_compile_and_output("(yield)"), "return yield()\n");
   assert_eq!(parse_compile_and_output("(yield 1)"), "return yield(1, GDLisp.Nil)\n");

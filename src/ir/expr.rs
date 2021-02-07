@@ -23,6 +23,7 @@ pub enum Expr {
   Lambda(ArgList, Box<Expr>),
   FuncRef(FuncRefTarget),
   Assign(String, Box<Expr>),
+  Array(Vec<Expr>),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -146,6 +147,11 @@ impl Expr {
       Expr::FuncRef(target) => {
         match target {
           FuncRefTarget::SimpleName(name) => acc_fns.visited(name),
+        }
+      }
+      Expr::Array(vec) => {
+        for x in vec {
+          x.walk_locals(acc_vars, acc_fns);
         }
       }
     };

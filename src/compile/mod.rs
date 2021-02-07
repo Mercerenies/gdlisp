@@ -25,6 +25,8 @@ use special_form::lambda;
 use special_form::flet;
 use stateful::{StExpr, NeedsResult, SideEffects};
 
+use std::cmp::max;
+
 type IRDecl = ir::decl::Decl;
 type IRExpr = ir::expr::Expr;
 type IRArgList = ir::arglist::ArgList;
@@ -157,6 +159,15 @@ impl<'a> Compiler<'a> {
         let var = table.get_var(name).ok_or_else(|| Error::NoSuchVar(name.clone()))?.to_owned();
         self.compile_stmt(builder, table, &stmt_wrapper::AssignToExpr(var.expr()), expr)?;
         Ok(StExpr(var.expr(), SideEffects::from(var.access_type)))
+      }
+      IRExpr::Array(vec) => {
+        let mut side_effects = SideEffects::None;
+        let vec = vec.iter().map(|expr| {
+          let StExpr(cexpr, state) = self.compile_expr(builder, table, expr, NeedsResult::Yes)?;
+          side_effects = max(side_effects, state);
+          Ok(cexpr)
+        }).collect::<Result<Vec<_>, Error>>()?;
+        Ok(StExpr(Expr::ArrayLit(vec), side_effects))
       }
       /* // This will eventually be an optimization.
       IRExpr::Funcall(f, args) => {

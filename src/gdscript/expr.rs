@@ -21,6 +21,7 @@ pub enum Expr {
   SuperCall(String, Vec<Expr>),
   Unary(UnaryOp, Box<Expr>),
   Binary(Box<Expr>, BinaryOp, Box<Expr>),
+  ArrayLit(Vec<Expr>),
 }
 
 fn maybe_parens(cond: bool, inner: String) -> String {
@@ -95,6 +96,19 @@ impl Expr {
         };
         maybe_parens(prec > info.precedence, inner)
       },
+      Expr::ArrayLit(vec) => {
+        let mut first = true;
+        let mut result = String::from("[");
+        for x in vec {
+          if !first {
+            result.push_str(", ");
+          }
+          result.push_str(&x.to_gd_prec(PRECEDENCE_LOWEST));
+          first = false;
+        }
+        result.push_str("]");
+        result
+      }
     }
   }
 

@@ -46,6 +46,10 @@ pub fn compile_expr(expr: &AST)
         }
       }
     }
+    AST::Array(vec) => {
+      let vec = vec.iter().map(compile_expr).collect::<Result<Vec<_>, _>>()?;
+      Ok(Expr::Array(vec))
+    }
     AST::Int(n) => {
       Ok(Expr::Literal(Literal::Int(*n)))
     }
