@@ -70,6 +70,15 @@ impl MacroServer {
 #[cfg(test)]
 mod tests {
   use super::*;
+  use crate::sxp::reify::Reify;
+  use crate::parser;
+
+  fn roundtrip_value(server: &mut MacroServer, value: &str) {
+    let parser = parser::ASTParser::new();
+    let ast = parser.parse(value).unwrap();
+    let result = server.issue_command(&ServerCommand::Eval(ast.reify().to_gd())).unwrap();
+    assert_eq!(value, &result);
+  }
 
   #[test]
   #[ignore]
@@ -86,6 +95,13 @@ mod tests {
     assert_eq!(response2_1, "pong");
     let response2_2 = server2.issue_command(&ServerCommand::Eval(String::from("1 + 1"))).unwrap();
     assert_eq!(response2_2, "2");
+
+    roundtrip_value(&mut server2, "(1 . ())");
+    roundtrip_value(&mut server2, "[#t #f abc def]");
+    roundtrip_value(&mut server2, "[10 20 (30 . (40 . ())) \"ABC\"]");
+    // TODO Test roundtrip on string escaping (once we support parsing
+    // escape sequence)
+
     server2.shutdown().unwrap();
 
   }
