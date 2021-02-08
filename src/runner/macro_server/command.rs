@@ -7,6 +7,7 @@ use std::vec;
 pub enum ServerCommand {
   Quit,
   Ping,
+  Eval(String),
 }
 
 impl ServerCommand {
@@ -15,6 +16,7 @@ impl ServerCommand {
     match self {
       ServerCommand::Quit => vec!(String::from("quit")),
       ServerCommand::Ping => vec!(String::from("ping")),
+      ServerCommand::Eval(s) => vec!(String::from("eval"), String::from(s)),
     }
   }
 

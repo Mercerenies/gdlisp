@@ -82,8 +82,10 @@ mod tests {
     server1.shutdown().unwrap();
 
     let mut server2 = MacroServer::new().unwrap();
-    let response2 = server2.issue_command(&ServerCommand::Ping).unwrap();
-    assert_eq!(response2, "pong");
+    let response2_1 = server2.issue_command(&ServerCommand::Ping).unwrap();
+    assert_eq!(response2_1, "pong");
+    let response2_2 = server2.issue_command(&ServerCommand::Eval(String::from("1 + 1"))).unwrap();
+    assert_eq!(response2_2, "2");
     server2.shutdown().unwrap();
 
   }
