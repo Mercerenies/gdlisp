@@ -59,8 +59,8 @@ pub fn compile_expr(expr: &AST)
     AST::Float(f) => {
       Ok(Expr::Literal(Literal::Float(*f)))
     }
-    AST::String(_) => {
-      panic!("Not implemented yet!") ////
+    AST::String(s) => {
+      Ok(Expr::Literal(Literal::String(s.to_owned())))
     }
     AST::Symbol(s) => {
       Ok(Expr::LocalVar(s.to_string()))

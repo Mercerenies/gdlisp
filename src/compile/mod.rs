@@ -93,6 +93,7 @@ impl<'a> Compiler<'a> {
           IRLiteral::Int(n) => Ok(StExpr(Expr::from(*n), SideEffects::None)),
           IRLiteral::Float(f) => Ok(StExpr(Expr::from(*f), SideEffects::None)),
           IRLiteral::Bool(b) => Ok(StExpr(Expr::from(*b), SideEffects::None)),
+          IRLiteral::String(s) => Ok(StExpr(Expr::from(s.to_owned()), SideEffects::None)),
         }
       }
       IRExpr::Progn(body) => {
@@ -356,6 +357,15 @@ mod tests {
   fn compile_bool_f() {
     let ast = AST::Bool(false);
     let expected = Stmt::ReturnStmt(Expr::from(false));
+    let actual = compile_stmt(&ast).unwrap();
+    assert_eq!(actual.0, vec!(expected));
+    assert_eq!(actual.1, vec!());
+  }
+
+  #[test]
+  fn compile_string() {
+    let ast = AST::String(String::from("foobar"));
+    let expected = Stmt::ReturnStmt(Expr::from("foobar".to_owned()));
     let actual = compile_stmt(&ast).unwrap();
     assert_eq!(actual.0, vec!(expected));
     assert_eq!(actual.1, vec!());
