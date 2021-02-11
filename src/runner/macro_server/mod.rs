@@ -1,5 +1,6 @@
 
 pub mod command;
+pub mod lazy;
 
 use super::run_project_process;
 
@@ -12,9 +13,8 @@ use std::net::{TcpListener, TcpStream};
 use std::convert::TryInto;
 use std::fs;
 
+// TODO Make port number configurable
 pub const PORT_NUMBER: u16 = 61992;
-
-///// Use this for things less trivial than ping-pong
 
 pub struct MacroServer {
   tcp_server: TcpStream,
