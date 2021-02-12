@@ -14,6 +14,8 @@ pub mod decl;
 pub mod arglist;
 pub mod literal;
 pub mod special_form;
+pub mod symbol_table;
+pub mod incremental;
 
 use expr::Expr;
 use decl::Decl;
