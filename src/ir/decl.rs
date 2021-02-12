@@ -21,3 +21,14 @@ pub struct MacroDecl {
   pub args: ArgList,
   pub body: Expr,
 }
+
+impl Decl {
+
+  pub fn name(&self) -> &str {
+    match self {
+      Decl::FnDecl(decl) => &decl.name,
+      Decl::MacroDecl(decl) => &decl.name,
+    }
+  }
+
+}
