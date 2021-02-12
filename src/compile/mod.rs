@@ -219,6 +219,15 @@ impl<'a> Compiler<'a> {
         builder.add_decl(Decl::FnDecl(decl::Static::IsStatic, function));
         Ok(())
       }
+      IRDecl::MacroDecl(ir::decl::MacroDecl { name, args, body }) => {
+        // Note: Macros compile identically to functions, as far as
+        // this stage of compilation is concerned. They'll be resolved
+        // and then purged during the IR phase.
+        let gd_name = names::lisp_to_gd(&name);
+        let function = self.declare_function(builder, table, gd_name, args.clone(), body)?;
+        builder.add_decl(Decl::FnDecl(decl::Static::IsStatic, function));
+        Ok(())
+      }
     }
   }
 
@@ -255,6 +264,17 @@ impl<'a> Compiler<'a> {
                -> Result<(), Error> {
     match decl {
       IRDecl::FnDecl(ir::decl::FnDecl { name, args, body: _ }) => {
+        let func = function_call::FnCall::unqualified(
+          function_call::FnSpecs::from(args.to_owned()),
+          function_call::FnScope::Global,
+          names::lisp_to_gd(name)
+        );
+        table.set_fn(name.clone(), func, Box::new(DefaultCall));
+      }
+      IRDecl::MacroDecl(ir::decl::MacroDecl { name, args, body: _ }) => {
+        // As above, macros compile basically the same as functions in
+        // terms of call semantics and should be resolved during the
+        // IR stage.
         let func = function_call::FnCall::unqualified(
           function_call::FnSpecs::from(args.to_owned()),
           function_call::FnScope::Global,

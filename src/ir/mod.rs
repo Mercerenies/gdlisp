@@ -96,6 +96,23 @@ pub fn compile_decl(decl: &AST)
             body: Expr::Progn(body),
           }))
         }
+        "defmacro" => {
+          if vec.len() < 3 {
+            return Err(Error::InvalidDecl(decl.clone()));
+          }
+          let name = match vec[1] {
+            AST::Symbol(s) => s,
+            _ => return Err(Error::InvalidDecl(decl.clone())),
+          };
+          let args: Vec<_> = DottedExpr::new(vec[2]).try_into()?;
+          let args = ArgList::parse(args)?;
+          let body = vec[3..].iter().map(|expr| compile_expr(expr)).collect::<Result<Vec<_>, _>>()?;
+          Ok(Decl::MacroDecl(decl::MacroDecl {
+            name: name.to_owned(),
+            args: args,
+            body: Expr::Progn(body),
+          }))
+        }
         _ => {
           Err(Error::UnknownDecl(s.clone()))
         }
@@ -195,6 +212,20 @@ mod tests {
                                                            AST::Symbol("b".to_owned()))),
                                             AST::Int(20)))).unwrap(),
                Decl::FnDecl(decl::FnDecl {
+                 name: "foobar".to_owned(),
+                 args: ArgList::required(vec!("a".to_owned(), "b".to_owned())),
+                 body: Expr::Progn(vec!(Expr::Literal(Literal::Int(20)))),
+               }));
+  }
+
+  #[test]
+  fn compile_defmacro() {
+    assert_eq!(compile_decl(&ast::list(vec!(AST::Symbol("defmacro".to_owned()),
+                                            AST::Symbol("foobar".to_owned()),
+                                            ast::list(vec!(AST::Symbol("a".to_owned()),
+                                                           AST::Symbol("b".to_owned()))),
+                                            AST::Int(20)))).unwrap(),
+               Decl::MacroDecl(decl::MacroDecl {
                  name: "foobar".to_owned(),
                  args: ArgList::required(vec!("a".to_owned(), "b".to_owned())),
                  body: Expr::Progn(vec!(Expr::Literal(Literal::Int(20)))),
