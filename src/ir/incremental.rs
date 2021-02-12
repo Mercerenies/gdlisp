@@ -2,10 +2,11 @@
 // Incremental compilation (supplies backbone for macro resolution)
 
 use super::symbol_table::SymbolTable;
-use super::{MAIN_BODY_NAME, resolve_call_name, resolve_special_form};
+use super::{MAIN_BODY_NAME, resolve_call_name};
 use super::arglist::ArgList;
 use super::literal::Literal;
 use super::expr::Expr;
+use super::special_form;
 use super::decl::{self, Decl};
 use crate::sxp::dotted::DottedExpr;
 use crate::sxp::ast::AST;
@@ -24,6 +25,15 @@ impl IncCompiler {
     IncCompiler { symbols: SymbolTable::new() }
   }
 
+  pub fn resolve_simple_call(&self, head: &str, tail: &[&AST]) -> Result<Expr, Error> {
+    if let Some(sf) = special_form::dispatch_form(head, tail)? {
+      Ok(sf)
+    } else {
+      let args = tail.iter().map(|x| self.compile_expr(x)).collect::<Result<Vec<_>, _>>()?;
+      Ok(Expr::Call(head.to_owned(), args))
+    }
+  }
+
   pub fn compile_expr(&self, expr: &AST) -> Result<Expr, Error> {
     match expr {
       AST::Nil | AST::Cons(_, _) => {
@@ -33,12 +43,7 @@ impl IncCompiler {
         } else {
           let head = resolve_call_name(vec[0])?;
           let tail = &vec[1..];
-          if let Some(sf) = resolve_special_form(head, tail)? {
-            Ok(sf)
-          } else {
-            let args = tail.iter().map(|x| self.compile_expr(x)).collect::<Result<Vec<_>, _>>()?;
-            Ok(Expr::Call(head.to_owned(), args))
-          }
+          self.resolve_simple_call(head, tail)
         }
       }
       AST::Array(vec) => {

@@ -49,12 +49,6 @@ fn resolve_call_name(ast: &AST) -> Result<&str, Error> {
   }
 }
 
-fn resolve_special_form(head: &str,
-                        tail: &[&AST])
-                        -> Result<Option<Expr>, Error> {
-  special_form::dispatch_form(head, tail)
-}
-
 #[cfg(test)]
 mod tests {
   use super::*;
