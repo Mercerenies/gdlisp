@@ -5,6 +5,10 @@ use std::io;
 
 pub struct LazyServer(Option<MacroServer>);
 
+// Default doesn't make as much sense for this type, as it's meant to
+// behave like a server, not a simple datatype. The fact that it *can*
+// be default-allocated is an implementation detail.
+#[allow(clippy::new_without_default)]
 impl LazyServer {
 
   pub fn new() -> LazyServer {

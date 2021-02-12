@@ -39,17 +39,16 @@ impl MacroServer {
     let len: u32 = string.len().try_into().expect("String too long to send to Godot TCP server");
     buf.extend(&len.to_be_bytes());
     buf.extend(string.bytes());
-    self.tcp_server.write(&buf)?;
+    self.tcp_server.write_all(&buf)?;
     Ok(())
   }
 
   fn receive_string(&mut self) -> io::Result<String> {
     let mut len_buf = [0; 4];
-    self.tcp_server.read(&mut len_buf)?;
+    self.tcp_server.read_exact(&mut len_buf)?;
     let len: usize = u32::from_be_bytes(len_buf).try_into().expect("String too long to receive from Godot TCP server");
-    let mut buf = Vec::with_capacity(len);
-    buf.resize(len, 0);
-    self.tcp_server.read(&mut buf)?;
+    let mut buf = vec![0; len];
+    self.tcp_server.read_exact(&mut buf)?;
     String::from_utf8(buf).map_err(|_| io::Error::new(io::ErrorKind::InvalidData, "Error in UTF8 conversion"))
   }
 

@@ -187,7 +187,7 @@ pub fn flet_form(tail: &[&AST], container: impl FnOnce(Vec<(String, ArgList, Exp
 }
 
 pub fn quote_form(tail: &[&AST]) -> Result<Expr, Error> {
-  if tail.len() < 1 {
+  if tail.is_empty() {
     return Err(Error::TooFewArgs(String::from("quote"), 1))
   }
   if tail.len() > 1 {

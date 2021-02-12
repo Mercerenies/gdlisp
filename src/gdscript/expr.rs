@@ -106,7 +106,7 @@ impl Expr {
           result.push_str(&x.to_gd_prec(PRECEDENCE_LOWEST));
           first = false;
         }
-        result.push_str("]");
+        result.push(']');
         result
       }
     }
