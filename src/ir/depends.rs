@@ -1,12 +1,19 @@
 
 use super::symbol_table::SymbolTable;
+use crate::compile::error::Error;
 
 use std::collections::HashSet;
+use std::borrow::Borrow;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct Dependencies {
   pub known: HashSet<String>,
   pub unknown: HashSet<String>,
+}
+
+#[derive(Debug)]
+pub enum DependencyError {
+  UnknownName(String),
 }
 
 impl Dependencies {
@@ -46,4 +53,28 @@ impl Dependencies {
     }
   }
 
+  pub fn purge_unknowns<T, I>(&mut self, purge: I)
+  where T : Borrow<str>,
+        I : Iterator<Item=T> {
+    for s in purge {
+      self.unknown.remove(s.borrow());
+    }
+  }
+
+  pub fn try_into_knowns(self) -> Result<HashSet<String>, DependencyError> {
+    if let Some(unknown) = self.unknown.into_iter().next() {
+      Err(DependencyError::UnknownName(unknown))
+    } else {
+      Ok(self.known)
+    }
+  }
+
+}
+
+impl From<DependencyError> for Error {
+  fn from(e: DependencyError) -> Error {
+    match e {
+      DependencyError::UnknownName(x) => Error::NoSuchFn(x)
+    }
+  }
 }
