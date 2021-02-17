@@ -162,7 +162,8 @@ impl IncCompiler {
       body: Expr::Progn(main),
     });
     self.symbols.set(MAIN_BODY_NAME.to_owned(), main_decl);
-    Ok(self.into())
+    self.server.shutdown().expect("IO Error"); // TODO Should we suppress this error? It is only a shutdown
+    Ok(self.symbols.into())
   }
 
 }

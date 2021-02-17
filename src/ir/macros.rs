@@ -6,12 +6,25 @@ use crate::compile::body::builder::CodeBuilder;
 use crate::compile::symbol_table::SymbolTable;
 use crate::gdscript::decl;
 use crate::gdscript::library;
+use crate::runner::into_gd_file::IntoGDFile;
+
+use tempfile::{NamedTempFile, Builder};
+
+use std::io::{self, Write};
 
 type IRSymbolTable = super::symbol_table::SymbolTable;
 
 use std::collections::HashSet;
 
-pub fn create_macro_file(src_table: &IRSymbolTable, names: HashSet<String>) -> Result<(), Error> {
+fn make_tmp() -> io::Result<NamedTempFile> {
+  Builder::new()
+    .prefix("__gdlisp_macro")
+    .suffix(".gd")
+    .rand_bytes(5)
+    .tempfile()
+}
+
+pub fn create_macro_file(src_table: &IRSymbolTable, names: HashSet<String>) -> Result<NamedTempFile, Error> {
   let mut table = SymbolTable::new();
   library::bind_builtins(&mut table);
 
@@ -20,7 +33,12 @@ pub fn create_macro_file(src_table: &IRSymbolTable, names: HashSet<String>) -> R
 
   let mut builder = CodeBuilder::new(decl::ClassExtends::Named("Node".to_owned()));
   compiler.compile_decls(&mut builder, &table, &decls)?;
-  let _result = builder.build(); /////
-  //println!("{}", result.to_gd());
-  Ok(())
+  let result = builder.build();
+
+  // TODO Handle the error correctly
+  let mut tmp_file = make_tmp().expect("IO Error");
+  result.write_to_gd(&mut tmp_file).expect("IO Error");
+  tmp_file.flush().expect("IO Error");
+  Ok(tmp_file)
+
 }
