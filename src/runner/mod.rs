@@ -11,6 +11,7 @@ use tempfile::{Builder, NamedTempFile};
 use std::process::{Command, Stdio, Child};
 use std::path::Path;
 use std::io::{self, Write};
+use std::ffi::OsStr;
 
 pub fn run_with_file<P : AsRef<Path>>(path: P) -> io::Result<String> {
   let out =
@@ -25,10 +26,15 @@ pub fn run_with_file<P : AsRef<Path>>(path: P) -> io::Result<String> {
   Ok(text.into())
 }
 
-pub fn run_project_process<P : AsRef<Path>>(path: P) -> io::Result<Child> {
+pub fn run_project_process<P, I, K, V>(path: P, env: I) -> io::Result<Child>
+where P : AsRef<Path>,
+      I : Iterator<Item=(K, V)>,
+      K : AsRef<OsStr>,
+      V : AsRef<OsStr> {
   Command::new("godot")
     .arg("--path")
     .arg(path.as_ref().as_os_str())
+    .envs(env)
     .stderr(Stdio::inherit())
     .stdout(Stdio::null())
     .spawn()

@@ -6,7 +6,7 @@ use super::run_project_process;
 
 use command::{ServerCommand, IsServerCommand};
 
-use std::io::{self, Write, Read};
+use std::io::{self, Write, Read, ErrorKind};
 use std::path::PathBuf;
 use std::process::{Child, ExitStatus};
 use std::net::{TcpListener, TcpStream};
@@ -25,13 +25,32 @@ impl MacroServer {
 
   pub fn new() -> io::Result<MacroServer> {
     fs::copy(PathBuf::from("GDLisp.gd"), PathBuf::from("MacroServer/GDLisp.gd"))?;
-    let tcp_listener = TcpListener::bind(("127.0.0.1", PORT_NUMBER))?;
-    let gd_server = run_project_process(PathBuf::from("MacroServer/"))?;
+    let (tcp_listener, port) = MacroServer::try_to_bind_port(PORT_NUMBER, u16::MAX)?;
+    let env = vec!(("GDLISP_PORT_NUMBER", port.to_string()));
+    let gd_server = run_project_process(PathBuf::from("MacroServer/"), env.into_iter())?;
     let (tcp_server, _) = tcp_listener.accept()?;
     Ok(MacroServer {
       tcp_server: tcp_server,
       godot_server: gd_server,
     })
+  }
+
+  fn try_to_bind_port(start: u16, end: u16) -> io::Result<(TcpListener, u16)> {
+    for port in start..=end {
+      match TcpListener::bind(("127.0.0.1", port)) {
+        Ok(listener) => {
+          return Ok((listener, port));
+        }
+        Err(err) if err.kind() == ErrorKind::AddrInUse => {
+          // Continue.
+        }
+        Err(err) => {
+          // Unhandled error
+          return Err(err);
+        }
+      }
+    }
+    Err(io::Error::new(ErrorKind::AddrInUse, "Could not find TCP port to bind"))
   }
 
   fn send_string(&mut self, string: &str) -> io::Result<()> {
@@ -81,14 +100,22 @@ mod tests {
 
   #[test]
   #[ignore]
-  fn spawn_server_test() {
+  fn spawn_server_simple_test() {
     MacroServer::new().unwrap().shutdown().unwrap();
+  }
 
+  #[test]
+  #[ignore]
+  fn spawn_server_ping_pong_test() {
     let mut server1 = MacroServer::new().unwrap();
     let response1 = server1.issue_command(&vec!(String::from("ping"))).unwrap();
     assert_eq!(response1, "pong");
     server1.shutdown().unwrap();
+  }
 
+  #[test]
+  #[ignore]
+  fn spawn_server_test() {
     let mut server2 = MacroServer::new().unwrap();
     let response2_1 = server2.issue_command(&ServerCommand::Ping).unwrap();
     assert_eq!(response2_1, "pong");

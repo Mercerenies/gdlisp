@@ -6,9 +6,11 @@ var loaded_files = null
 func _ready():
     loaded_files = []
 
+    var port_number = int(OS.get_environment("GDLISP_PORT_NUMBER"))
+
     peer = StreamPeerTCP.new()
     peer.big_endian = true
-    peer.connect_to_host("127.0.0.1", 61992)
+    peer.connect_to_host("127.0.0.1", port_number)
 
 func _process(_delta):
     if peer.get_available_bytes() > 0:
