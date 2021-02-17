@@ -1,23 +1,45 @@
 
 use super::symbol_table::SymbolTable;
-use crate::compile::error::Error;
 
 use std::collections::HashSet;
 
-pub fn transitive_dependencies(table: &SymbolTable, name: &str) -> Result<HashSet<String>, Error> {
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct Dependencies {
+  pub known: HashSet<String>,
+  pub unknown: HashSet<String>,
+}
+
+pub fn transitive_dependencies(table: &SymbolTable, name: &str) -> Dependencies {
   let mut visited = HashSet::new();
-  let initial = table.get(name).ok_or_else(|| Error::NoSuchFn(name.to_owned()))?;
-  let mut frontier = vec!(initial);
-  while let Some(current) = frontier.pop() {
-    if visited.contains(current.name()) {
-      continue;
+  let mut unknown = HashSet::new();
+  match table.get(name) {
+    None => {
+      // No traversal necessary.
+      unknown.insert(name.to_owned());
     }
-    let deps = current.dependencies();
-    for dep in deps {
-      let next = table.get(&dep).ok_or_else(|| Error::NoSuchFn(dep.to_owned()))?;
-      frontier.push(next);
+    Some(initial) => {
+      let mut frontier = vec!(initial);
+      while let Some(current) = frontier.pop() {
+        if visited.contains(current.name()) {
+          continue;
+        }
+        let deps = current.dependencies();
+        for dep in deps {
+          match table.get(&dep) {
+            None => {
+              unknown.insert(dep);
+            }
+            Some(next) => {
+              frontier.push(next);
+            }
+          }
+        }
+        visited.insert(current.name().to_owned());
+      }
     }
-    visited.insert(current.name().to_owned());
   }
-  Ok(visited)
+  Dependencies {
+    known: visited,
+    unknown: unknown,
+  }
 }
