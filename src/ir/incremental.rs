@@ -13,16 +13,35 @@ use super::macros;
 use crate::sxp::dotted::DottedExpr;
 use crate::sxp::ast::AST;
 use crate::compile::error::Error;
+use crate::compile::names;
 use crate::gdscript::library;
 use crate::runner::macro_server::lazy::LazyServer;
+use crate::runner::macro_server::command::ServerCommand;
 
+use tempfile::NamedTempFile;
+
+use std::io;
+use std::path::Path;
 use std::convert::TryInto;
 use std::borrow::Borrow;
+use std::collections::HashMap;
 
 pub struct IncCompiler {
   symbols: SymbolTable,
   server: LazyServer,
+  #[allow(dead_code)] // Need to keep these so the files stay alive until compilation is done
+  temporary_files: Vec<NamedTempFile>,
+  macro_files: HashMap<String, MacroCall>
 }
+
+#[derive(Clone, Debug)]
+pub struct MacroCall {
+  pub index: u32,
+  pub name: String,
+}
+
+// TODO Move server, temporary_files, macro_files into something that provides a
+// nice Rust-side interface to the server.
 
 #[allow(clippy::new_without_default)]
 impl IncCompiler {
@@ -31,6 +50,8 @@ impl IncCompiler {
     IncCompiler {
       symbols: SymbolTable::new(),
       server: LazyServer::new(),
+      temporary_files: vec!(),
+      macro_files: HashMap::new(),
     }
   }
 
@@ -144,14 +165,8 @@ impl IncCompiler {
           let name = d.name().to_owned();
           self.symbols.set(name.clone(), d);
           if is_macro {
-            // Now we need to find the dependencies and spawn up the
-            // server for the macro itself.
-            let mut deps = Dependencies::identify(&self.symbols, &name);
-            deps.purge_unknowns(library::all_builtin_names().into_iter());
-            // Aside from built-in functions, it must be the case that
-            // all referenced functions are already defined.
-            let names = deps.try_into_knowns()?;
-            macros::create_macro_file(&self.symbols, names)?;
+            // TODO Handle error correctly
+            self.bind_macro(&name)?;
           }
         }
       }
@@ -164,6 +179,29 @@ impl IncCompiler {
     self.symbols.set(MAIN_BODY_NAME.to_owned(), main_decl);
     self.server.shutdown().expect("IO Error"); // TODO Should we suppress this error? It is only a shutdown
     Ok(self.symbols.into())
+  }
+
+  pub fn bind_macro(&mut self, name: &str) -> Result<(), Error> {
+    // Now we need to find the dependencies and spawn up the
+    // server for the macro itself.
+    let mut deps = Dependencies::identify(&self.symbols, &name);
+    deps.purge_unknowns(library::all_builtin_names().into_iter());
+    // Aside from built-in functions, it must be the case that
+    // all referenced functions are already defined.
+    let names = deps.try_into_knowns()?;
+    let tmpfile = macros::create_macro_file(&self.symbols, names)?;
+    let idx = self.load_file_on_server(tmpfile.path()).expect("IO Error"); // TODO Get rid of .expect(...)
+    self.temporary_files.push(tmpfile);
+    self.macro_files.insert(name.to_owned(), MacroCall { index: idx, name: names::lisp_to_gd(name) });
+    Ok(())
+  }
+
+  fn load_file_on_server(&mut self, path: &Path) -> io::Result<u32> {
+    // TODO Can we get these two .expect() calls to return something in io::Result?
+    let server = self.server.get_mut()?;
+    let cmd = ServerCommand::Load((*path.to_string_lossy()).to_owned());
+    let result = server.issue_command(&cmd)?;
+    Ok(result.parse().expect("Invalid response from server on load file"))
   }
 
 }
