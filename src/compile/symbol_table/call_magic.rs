@@ -91,6 +91,36 @@ fn strip_st(x: Vec<StExpr>) -> Vec<Expr> {
   x.into_iter().map(|x| x.0).collect()
 }
 
+// This function is useful independent of the CallMagic interface (for
+// instance, in the incremental compiler when calling macros), and
+// DefaultCall::compile doesn't actually use all of the arguments
+// supplied in the CallMagic contract, so this is the DefaultCall case
+// of CallMagic, refined down only to the arguments it actually uses.
+pub fn compile_default_call(call: FnCall, mut args: Vec<Expr>) -> Result<Expr, Error> {
+  let FnCall { scope: _, object, function, specs } = call;
+  // First, check arity
+  if args.len() < specs.min_arity() as usize {
+    return Err(Error::TooFewArgs(function, args.len()));
+  }
+  if args.len() > specs.max_arity() as usize {
+    return Err(Error::TooManyArgs(function, args.len()));
+  }
+  let rest = if args.len() < (specs.required + specs.optional) as usize {
+    vec!()
+  } else {
+    args.split_off((specs.required + specs.optional) as usize)
+  };
+  let rest = library::construct_list(rest);
+  // Extend with nulls
+  while args.len() < (specs.required + specs.optional) as usize {
+    args.push(Expr::null());
+  }
+  if specs.rest {
+    args.push(rest);
+  }
+  Ok(Expr::Call(object, function, args))
+}
+
 impl CallMagic for DefaultCall {
   // TODO Currently, this uses the GD name in error messages, which is
   // super wonky, especially for stdlib calls. Store the Lisp name and
@@ -101,29 +131,8 @@ impl CallMagic for DefaultCall {
                  _builder: &mut StmtBuilder,
                  _table: &mut SymbolTable,
                  args: Vec<StExpr>) -> Result<Expr, Error> {
-    let mut args = strip_st(args);
-    let FnCall { scope: _, object, function, specs } = call;
-    // First, check arity
-    if args.len() < specs.min_arity() as usize {
-      return Err(Error::TooFewArgs(function, args.len()));
-    }
-    if args.len() > specs.max_arity() as usize {
-      return Err(Error::TooManyArgs(function, args.len()));
-    }
-    let rest = if args.len() < (specs.required + specs.optional) as usize {
-      vec!()
-    } else {
-      args.split_off((specs.required + specs.optional) as usize)
-    };
-    let rest = library::construct_list(rest);
-    // Extend with nulls
-    while args.len() < (specs.required + specs.optional) as usize {
-      args.push(Expr::null());
-    }
-    if specs.rest {
-      args.push(rest);
-    }
-    Ok(Expr::Call(object, function, args))
+    let args = strip_st(args);
+    compile_default_call(call, args)
   }
 }
 
