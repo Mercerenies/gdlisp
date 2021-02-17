@@ -1,8 +1,11 @@
 extends Node
 
 var peer = null
+var loaded_files = null
 
 func _ready():
+    loaded_files = []
+
     peer = StreamPeerTCP.new()
     peer.big_endian = true
     peer.connect_to_host("127.0.0.1", 61992)
@@ -23,19 +26,24 @@ func run_command(cmd):
             var input = peer.get_string()
             var result = eval(input)
             peer.put_string(pretty(result))
+        "load":
+            var input = peer.get_string()
+            var idx = len(loaded_files)
+            loaded_files.push_back(load(input))
+            peer.put_string(pretty(idx))
 
 # Funny hack, thanks Godot Q&A! :)
 #
 # https://godotengine.org/qa/339/does-gdscript-have-method-to-execute-string-code-exec-python?show=362#a362
 func eval(input):
     var script = GDScript.new()
-    script.set_source_code("func eval():\n    return " + input)
+    script.set_source_code("func eval(MAIN):\n    return " + input)
     script.reload()
 
     var obj = Reference.new()
     obj.set_script(script)
 
-    return obj.eval()
+    return obj.eval(self)
 
 # I'll probably end up migrating this to GDLisp.gd proper at some
 # point, but for now, here it is.
