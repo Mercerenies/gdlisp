@@ -7,6 +7,8 @@ use crate::compile::symbol_table::SymbolTable;
 use crate::compile::symbol_table::function_call::{FnCall, FnScope, FnSpecs};
 use crate::compile::symbol_table::call_magic;
 
+use std::collections::HashSet;
+
 pub const GDLISP_NAME: &str = "GDLisp";
 
 pub const CELL_CONTENTS: &str = "contents";
@@ -152,4 +154,13 @@ pub fn bind_builtins(table: &mut SymbolTable) {
                FnCall::qualified(FnSpecs::new(1, 1, false), FnScope::Global, gdlisp_root(), "vector".to_owned()),
                Box::new(call_magic::VectorOperation));
 
+}
+
+pub fn all_builtin_names() -> HashSet<String> {
+  // This is a *really* roundabout way of doing this, but whatever.
+  // The canonical list is given in bind_builtins, so for the sake of
+  // DRY we'll delegate to that function.
+  let mut table = SymbolTable::new();
+  bind_builtins(&mut table);
+  table.fns().map(|(x, _, _)| x.to_owned()).collect()
 }
