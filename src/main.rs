@@ -36,8 +36,14 @@ fn main() {
       Err(err) => println!("Error: {}", err),
       Ok(value) => {
         println!("{}", value);
-        // Make it a singleton list so we can compile decls globally.
-        let value = ast::cons(value, ast::AST::Nil);
+        // If it doesn't already look like a list of declarations,
+        // make it a singleton list. (We're trying to guess what the
+        // user wants here, so it won't be perfect)
+        let value =
+          match value {
+            ast::AST::Cons(ref a, _) if matches!(**a, ast::AST::Cons(_, _)) => value,
+            _ => ast::cons(value, ast::AST::Nil),
+          };
         match ir::compile_toplevel(&value) {
           Err(err) => println!("Error: {:?}", err),
           Ok(value) => {
