@@ -99,7 +99,12 @@ mod tests {
     roundtrip_value(&mut server2, "[#t #f abc def]");
     roundtrip_value(&mut server2, "[10 20 (30 . (40 . ())) \"ABC\"]");
     // TODO Test roundtrip on string escaping (once we support parsing
-    // escape sequence)
+    // escape sequences)
+
+    let response2_3 = server2.issue_command(&ServerCommand::Load(String::from("res://TestLoadedFile.gd"))).unwrap();
+    assert_eq!(response2_3, "0");
+    let response2_4 = server2.issue_command(&ServerCommand::Eval(String::from(r#"MAIN.loaded_files[0].example()"#))).unwrap();
+    assert_eq!(response2_4, "\"Test succeeded\"");
 
     server2.shutdown().unwrap();
 
