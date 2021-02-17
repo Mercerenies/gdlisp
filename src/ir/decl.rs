@@ -41,4 +41,8 @@ impl Decl {
     }
   }
 
+  pub fn is_macro(&self) -> bool {
+    matches!(self, Decl::MacroDecl(_))
+  }
+
 }
