@@ -2,6 +2,7 @@
 use super::MacroServer;
 
 use std::io;
+use std::process::ExitStatus;
 
 pub struct LazyServer(Option<MacroServer>);
 
@@ -20,6 +21,13 @@ impl LazyServer {
       self.0 = Some(MacroServer::new()?);
     }
     Ok(self.0.as_mut().unwrap())
+  }
+
+  pub fn shutdown(self) -> io::Result<Option<ExitStatus>> {
+    match self.0 {
+      None => Ok(None),
+      Some(x) => x.shutdown().map(Some),
+    }
   }
 
 }
