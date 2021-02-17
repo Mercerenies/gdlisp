@@ -111,9 +111,9 @@ pub fn compile_default_call(call: FnCall, mut args: Vec<Expr>) -> Result<Expr, E
     args.split_off((specs.required + specs.optional) as usize)
   };
   let rest = library::construct_list(rest);
-  // Extend with nulls
+  // Extend with nil
   while args.len() < (specs.required + specs.optional) as usize {
-    args.push(Expr::null());
+    args.push(library::nil());
   }
   if specs.rest {
     args.push(rest);
