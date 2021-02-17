@@ -12,11 +12,13 @@ use super::decl::{self, Decl};
 use super::macros;
 use crate::sxp::dotted::DottedExpr;
 use crate::sxp::ast::AST;
+use crate::sxp::reify::Reify;
 use crate::compile::error::Error;
 use crate::compile::names;
 use crate::gdscript::library;
 use crate::runner::macro_server::lazy::LazyServer;
 use crate::runner::macro_server::command::ServerCommand;
+use crate::parser;
 
 use tempfile::NamedTempFile;
 
@@ -55,16 +57,26 @@ impl IncCompiler {
     }
   }
 
-  pub fn resolve_simple_call(&self, head: &str, tail: &[&AST]) -> Result<Expr, Error> {
+  ///// TODO Test a lot
+
+  pub fn resolve_simple_call(&mut self, head: &str, tail: &[&AST]) -> Result<Expr, Error> {
     if let Some(sf) = special_form::dispatch_form(head, tail)? {
       Ok(sf)
+    } else if let Some(call) = self.macro_files.get(head) {
+      let args: Vec<_> = tail.iter().map(|x| x.reify().to_gd()).collect();
+      let server = self.server.get_mut().expect("IO Error on server"); // TODO Fix Expect
+      let eval_str = format!("MAIN.loaded_files[{}].{}({})", call.index, call.name, args.join(", "));
+      let result = server.issue_command(&ServerCommand::Eval(eval_str)).expect("IO Error on server"); // TODO Fix Expect
+      let parser = parser::ASTParser::new();
+      let result = parser.parse(&result).expect("Malformed input returned from macro server"); // TODO Fix Expect
+      self.compile_expr(&result)
     } else {
       let args = tail.iter().map(|x| self.compile_expr(x)).collect::<Result<Vec<_>, _>>()?;
       Ok(Expr::Call(head.to_owned(), args))
     }
   }
 
-  pub fn compile_expr(&self, expr: &AST) -> Result<Expr, Error> {
+  pub fn compile_expr(&mut self, expr: &AST) -> Result<Expr, Error> {
     match expr {
       AST::Nil | AST::Cons(_, _) => {
         let vec: Vec<&AST> = DottedExpr::new(expr).try_into()?;
