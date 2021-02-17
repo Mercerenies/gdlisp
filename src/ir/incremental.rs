@@ -7,22 +7,31 @@ use super::arglist::ArgList;
 use super::literal::Literal;
 use super::expr::Expr;
 use super::special_form;
+use super::depends::Dependencies;
 use super::decl::{self, Decl};
+use super::macros;
 use crate::sxp::dotted::DottedExpr;
 use crate::sxp::ast::AST;
 use crate::compile::error::Error;
+use crate::gdscript::library;
+use crate::runner::macro_server::lazy::LazyServer;
 
 use std::convert::TryInto;
 use std::borrow::Borrow;
 
 pub struct IncCompiler {
   symbols: SymbolTable,
+  server: LazyServer,
 }
 
+#[allow(clippy::new_without_default)]
 impl IncCompiler {
 
   pub fn new() -> IncCompiler {
-    IncCompiler { symbols: SymbolTable::new() }
+    IncCompiler {
+      symbols: SymbolTable::new(),
+      server: LazyServer::new(),
+    }
   }
 
   pub fn resolve_simple_call(&self, head: &str, tail: &[&AST]) -> Result<Expr, Error> {
@@ -68,7 +77,7 @@ impl IncCompiler {
     }
   }
 
-  pub fn compile_decl(&self, decl: &AST)
+  pub fn compile_decl(&mut self, decl: &AST)
                       -> Result<Decl, Error> {
     let vec: Vec<&AST> = DottedExpr::new(decl).try_into()?;
     if vec.is_empty() {
@@ -128,9 +137,23 @@ impl IncCompiler {
     let mut main: Vec<Expr> = Vec::new();
     for curr in body {
       match self.compile_decl(curr) {
-        Ok(d) => self.symbols.set(d.name().to_owned(), d),
         Err(Error::UnknownDecl(_)) => main.push(self.compile_expr(curr)?),
         Err(e) => return Err(e),
+        Ok(d) => {
+          let is_macro = d.is_macro();
+          let name = d.name().to_owned();
+          self.symbols.set(name.clone(), d);
+          if is_macro {
+            // Now we need to find the dependencies and spawn up the
+            // server for the macro itself.
+            let mut deps = Dependencies::identify(&self.symbols, &name);
+            deps.purge_unknowns(library::all_builtin_names().into_iter());
+            // Aside from built-in functions, it must be the case that
+            // all referenced functions are already defined.
+            let names = deps.try_into_knowns()?;
+            macros::create_macro_file(&self.symbols, names)?;
+          }
+        }
       }
     }
     let main_decl = Decl::FnDecl(decl::FnDecl {
