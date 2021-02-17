@@ -1,10 +1,13 @@
 
+#![allow(dead_code)]
+
 extern crate gdlisp;
 
 use gdlisp::compile::Compiler;
+use gdlisp::compile::stmt_wrapper;
 use gdlisp::compile::names::fresh::FreshNameGenerator;
-use gdlisp::compile::body::builder::CodeBuilder;
-use gdlisp::compile::symbol_table::SymbolTable;
+use gdlisp::compile::body::builder::{CodeBuilder, StmtBuilder};
+use gdlisp::compile::symbol_table::{LocalVar, SymbolTable};
 use gdlisp::compile::symbol_table::function_call::{FnCall, FnScope, FnSpecs};
 use gdlisp::compile::symbol_table::call_magic::DefaultCall;
 use gdlisp::runner;
@@ -137,5 +140,60 @@ pub fn parse_and_run(input: &str) -> String {
     None => result,
     Some(idx) => result[idx + BEGIN_GDLISP_TESTS.bytes().count()..].to_owned(),
   }
+
+}
+
+fn bind_helper_symbols_comp(table: &mut SymbolTable) {
+  // Binds a few helper names to the symbol table for the sake of
+  // debugging.
+  table.set_fn(String::from("foo"), FnCall::unqualified(FnSpecs::new(0, 0, false), FnScope::Global, String::from("foo")), Box::new(DefaultCall));
+  table.set_fn(String::from("foo1"), FnCall::unqualified(FnSpecs::new(1, 0, false), FnScope::Global, String::from("foo1")), Box::new(DefaultCall));
+  table.set_fn(String::from("foo2"), FnCall::unqualified(FnSpecs::new(2, 0, false), FnScope::Global, String::from("foo2")), Box::new(DefaultCall));
+  table.set_fn(String::from("bar"), FnCall::unqualified(FnSpecs::new(0, 0, false), FnScope::Global, String::from("bar")), Box::new(DefaultCall));
+  table.set_var(String::from("foobar"), LocalVar::read(String::from("foobar")));
+}
+
+// TODO Currently, this panics if it fails. This is okay-ish, since
+// it's only being used for tests. But once we unify all of our errors
+// (so we can represent parse errors and compile errors with one
+// common type), we should return a Result<...> here.
+pub fn parse_compile_and_output(input: &str) -> String {
+  parse_compile_and_output_h(input).0
+}
+
+pub fn parse_compile_and_output_h(input: &str) -> (String, String) {
+  let parser = parser::ASTParser::new();
+  let value = parser.parse(input).unwrap();
+  let used_names = value.all_symbols();
+  let mut compiler = Compiler::new(FreshNameGenerator::new(used_names));
+  let mut table = SymbolTable::new();
+  bind_helper_symbols_comp(&mut table);
+  library::bind_builtins(&mut table);
+
+  let mut builder = StmtBuilder::new();
+  let value = ir::compile_expr(&value).unwrap();
+  let () = compiler.compile_stmt(&mut builder, &mut table, &mut stmt_wrapper::Return, &value).unwrap();
+  let (stmts, helpers) = builder.build();
+  let a = stmts.into_iter().map(|stmt| stmt.to_gd(0)).collect::<String>();
+  let b = helpers.into_iter().map(|decl| decl.to_gd(0)).collect::<String>();
+  (a, b)
+}
+
+
+// TODO Make this return a Result<...> as well.
+pub fn parse_compile_decl(input: &str) -> String {
+  let parser = parser::ASTParser::new();
+  let value = parser.parse(input).unwrap();
+  let used_names = value.all_symbols();
+  let mut compiler = Compiler::new(FreshNameGenerator::new(used_names));
+  let mut table = SymbolTable::new();
+  library::bind_builtins(&mut table);
+
+  let mut builder = CodeBuilder::new(decl::ClassExtends::Named("Reference".to_owned()));
+  let decls = ir::compile_toplevel(&value).unwrap();
+  compiler.compile_decls(&mut builder, &mut table, &decls).unwrap();
+  let class = builder.build();
+
+  class.to_gd()
 
 }
