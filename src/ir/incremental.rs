@@ -60,38 +60,41 @@ impl IncCompiler {
     }
   }
 
-  ///// TODO Test a lot
+  fn resolve_macro_call(&mut self, call: &MacroCall, head: &str, tail: &[&AST]) -> Result<AST, Error> {
+    match self.symbols.get(head) {
+      Some(Decl::MacroDecl(mdecl)) => {
+        let specs = FnSpecs::from(mdecl.args.clone());
+        let call_object =
+          GDExpr::Subscript(
+            Box::new(GDExpr::Attribute(Box::new(GDExpr::var("MAIN")), String::from("loaded_files"))),
+            Box::new(GDExpr::from(call.index as i32))
+          );
+        let call = FnCall {
+          scope: FnScope::Global,
+          object: Some(Box::new(call_object)),
+          function: call.name.to_owned(),
+          specs: specs,
+        };
+        let args: Vec<_> = tail.iter().map(|x| x.reify()).collect();
+        let server = self.server.get_mut().expect("IO Error on server"); // TODO Fix Expect
+        let eval_str = compile_default_call(call, args)?.to_gd();
+        let result = server.issue_command(&ServerCommand::Eval(eval_str)).expect("IO Error on server"); // TODO Fix Expect
+        let parser = parser::ASTParser::new();
+        Ok(parser.parse(&result).expect("Malformed input returned from macro server")) // TODO Fix Expect
+      }
+      _ => {
+        Err(Error::NoSuchFn(head.to_owned()))
+      }
+    }
+  }
 
   pub fn resolve_simple_call(&mut self, head: &str, tail: &[&AST]) -> Result<Expr, Error> {
     if let Some(sf) = special_form::dispatch_form(head, tail)? {
       Ok(sf)
     } else if let Some(call) = self.macro_files.get(head) {
-      match self.symbols.get(head) {
-        Some(Decl::MacroDecl(mdecl)) => {
-          let specs = FnSpecs::from(mdecl.args.clone());
-          let call_object =
-            GDExpr::Subscript(
-              Box::new(GDExpr::Attribute(Box::new(GDExpr::var("MAIN")), String::from("loaded_files"))),
-              Box::new(GDExpr::from(call.index as i32))
-            );
-          let call = FnCall {
-            scope: FnScope::Global,
-            object: Some(Box::new(call_object)),
-            function: call.name.to_owned(),
-            specs: specs,
-          };
-          let args: Vec<_> = tail.iter().map(|x| x.reify()).collect();
-          let server = self.server.get_mut().expect("IO Error on server"); // TODO Fix Expect
-          let eval_str = compile_default_call(call, args)?.to_gd();
-          let result = server.issue_command(&ServerCommand::Eval(eval_str)).expect("IO Error on server"); // TODO Fix Expect
-          let parser = parser::ASTParser::new();
-          let result = parser.parse(&result).expect("Malformed input returned from macro server"); // TODO Fix Expect
-          self.compile_expr(&result)
-        }
-        _ => {
-          Err(Error::NoSuchFn(head.to_owned()))
-        }
-      }
+      let call = call.clone(); // Can't borrow self mutably below, so let's get rid of the immutable borrow above.
+      let result = self.resolve_macro_call(&call, head, tail)?;
+      self.compile_expr(&result)
     } else {
       let args = tail.iter().map(|x| self.compile_expr(x)).collect::<Result<Vec<_>, _>>()?;
       Ok(Expr::Call(head.to_owned(), args))
