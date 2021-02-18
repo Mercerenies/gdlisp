@@ -12,6 +12,7 @@ use std::process::{Child, ExitStatus};
 use std::net::{TcpListener, TcpStream};
 use std::convert::TryInto;
 use std::fs;
+use std::mem::ManuallyDrop;
 
 // TODO Make port number configurable
 pub const PORT_NUMBER: u16 = 61992;
@@ -78,9 +79,24 @@ impl MacroServer {
     self.receive_string()
   }
 
-  pub fn shutdown(mut self) -> io::Result<ExitStatus> {
+  // Unsafe to use the server afterward, so we only expose a public
+  // version that takes ownership.
+  fn _shutdown(&mut self) -> io::Result<ExitStatus> {
     self.issue_command(&ServerCommand::Quit)?;
     self.godot_server.wait()
+  }
+
+  pub fn shutdown(self) -> io::Result<ExitStatus> {
+    let mut server = ManuallyDrop::new(self);
+    server._shutdown()
+  }
+
+}
+
+impl Drop for MacroServer {
+
+  fn drop(&mut self) {
+    let _r = self._shutdown(); // Ignore io::Result (we're in Drop so we can't handle it)
   }
 
 }
