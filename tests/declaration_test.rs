@@ -83,3 +83,15 @@ static func run():
 pub fn nonexistent_function_test() {
   parse_compile_decl("((defn foo () (bar)))");
 }
+
+#[test]
+pub fn progn_decl_test() {
+  assert_eq!(parse_compile_decl("((progn (progn (defn foo () ()) (defn bar () ()))))"), r#"extends Reference
+static func foo():
+    return GDLisp.Nil
+static func bar():
+    return GDLisp.Nil
+static func run():
+    return GDLisp.Nil
+"#);
+}

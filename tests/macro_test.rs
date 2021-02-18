@@ -3,11 +3,9 @@ mod common;
 
 extern crate gdlisp;
 
-use common::parse_compile_decl;
+use common::{parse_compile_decl, parse_and_run};
 
-// TODO Top-level macros assume expression context but might produce declarations
-
-// TODO progn at top-level should use top-level context in its body
+///// Quasiquoting :)
 
 #[test]
 #[ignore]
@@ -74,4 +72,10 @@ pub fn optional_args_macro_test_2() {
 #[ignore]
 pub fn to_decl_macro_test() {
   assert_eq!(parse_compile_decl("((defmacro foo () '(defn bar () ())) (foo))"), "extends Reference\nstatic func foo():\n    return GDLisp.Cons.new(GDLisp.Symbol.new(\"defn\"), GDLisp.Cons.new(GDLisp.Symbol.new(\"bar\"), GDLisp.Cons.new(GDLisp.Nil, GDLisp.Cons.new(GDLisp.Nil, GDLisp.Nil))))\nstatic func bar():\n    return GDLisp.Nil\nstatic func run():\n    return GDLisp.Nil\n");
+}
+
+#[test]
+#[ignore]
+pub fn to_progn_macro_test() {
+  assert_eq!(parse_and_run(r#"((defmacro foo () '(progn (defmacro bar (x) x) (print (bar 3)))) (foo))"#), "\n3\n");
 }

@@ -27,7 +27,7 @@ use tempfile::NamedTempFile;
 
 use std::io;
 use std::path::Path;
-use std::convert::TryInto;
+use std::convert::{TryFrom, TryInto};
 use std::borrow::Borrow;
 use std::collections::HashMap;
 
@@ -215,6 +215,15 @@ impl IncCompiler {
     while let Some(ast) = self.try_resolve_macro_call(curr)? {
       candidate = Some(ast);
       curr = &candidate.as_ref().unwrap();
+    }
+    // Check if we're looking at a top-level progn.
+    if let Ok(vec) = Vec::try_from(DottedExpr::new(curr)) {
+      if !vec.is_empty() && matches!(vec[0], AST::Symbol(progn) if progn == "progn") {
+        for inner in &vec[1..] {
+          self.compile_decl_or_expr(main, inner)?;
+        }
+        return Ok(());
+      }
     }
     // TODO The intention of catching DottedListError here is to
     // catch the initial dotted list check. If we encounter
