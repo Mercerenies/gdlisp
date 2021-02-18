@@ -108,7 +108,7 @@ impl IncCompiler {
   }
 
   pub fn resolve_simple_call(&mut self, head: &str, tail: &[&AST]) -> Result<Expr, Error> {
-    if let Some(sf) = special_form::dispatch_form(head, tail)? {
+    if let Some(sf) = special_form::dispatch_form(self, head, tail)? {
       Ok(sf)
     } else if let Some(call) = self.macro_files.get(head) {
       let call = call.clone(); // Can't borrow self mutably below, so let's get rid of the immutable borrow above.
