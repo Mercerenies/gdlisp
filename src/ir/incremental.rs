@@ -208,33 +208,40 @@ impl IncCompiler {
     }
   }
 
+  fn compile_decl_or_expr(&mut self, main: &mut Vec<Expr>, curr: &AST)
+                          -> Result<(), Error> {
+    let mut candidate: Option<AST>; // Just need somewhere to store the intermediate.
+    let mut curr = curr; // Change lifetime :)
+    while let Some(ast) = self.try_resolve_macro_call(curr)? {
+      candidate = Some(ast);
+      curr = &candidate.as_ref().unwrap();
+    }
+    // TODO The intention of catching DottedListError here is to
+    // catch the initial dotted list check. If we encounter
+    // DottedListError somewhere else in the computation, it's
+    // possible it's an error we need to propagate. Consider this.
+    match self.compile_decl(curr) {
+      Err(Error::UnknownDecl(_)) | Err(Error::DottedListError) => main.push(self.compile_expr(curr)?),
+      Err(e) => return Err(e),
+      Ok(d) => {
+        let is_macro = d.is_macro();
+        let name = d.name().to_owned();
+        self.symbols.set(name.clone(), d);
+        if is_macro {
+          // TODO Handle error correctly
+          self.bind_macro(&name)?;
+        }
+      }
+    };
+    Ok(())
+  }
+
   pub fn compile_toplevel(mut self, body: &AST)
                           -> Result<Vec<Decl>, Error> {
     let body: Vec<_> = DottedExpr::new(body).try_into()?;
     let mut main: Vec<Expr> = Vec::new();
-    for mut curr in body {
-      let mut candidate: Option<AST>; // Just need somewhere to store the intermediate.
-      while let Some(ast) = self.try_resolve_macro_call(curr)? {
-        candidate = Some(ast);
-        curr = &candidate.as_ref().unwrap();
-      }
-      // TODO The intention of catching DottedListError here is to
-      // catch the initial dotted list check. If we encounter
-      // DottedListError somewhere else in the computation, it's
-      // possible it's an error we need to propagate. Consider this.
-      match self.compile_decl(curr) {
-        Err(Error::UnknownDecl(_)) | Err(Error::DottedListError) => main.push(self.compile_expr(curr)?),
-        Err(e) => return Err(e),
-        Ok(d) => {
-          let is_macro = d.is_macro();
-          let name = d.name().to_owned();
-          self.symbols.set(name.clone(), d);
-          if is_macro {
-            // TODO Handle error correctly
-            self.bind_macro(&name)?;
-          }
-        }
-      }
+    for curr in body {
+      self.compile_decl_or_expr(&mut main, curr)?;
     }
     let main_decl = Decl::FnDecl(decl::FnDecl {
       name: MAIN_BODY_NAME.to_owned(),
