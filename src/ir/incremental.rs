@@ -10,7 +10,7 @@ use super::special_form;
 use super::depends::Dependencies;
 use super::decl::{self, Decl};
 use super::macros;
-use crate::sxp::dotted::DottedExpr;
+use crate::sxp::dotted::{DottedExpr, TryFromDottedExprError};
 use crate::sxp::ast::AST;
 use crate::sxp::reify::Reify;
 use crate::compile::error::Error;
@@ -88,6 +88,25 @@ impl IncCompiler {
     }
   }
 
+  fn try_resolve_macro_call(&mut self, ast: &AST) -> Result<Option<AST>, Error> {
+    let vec: Vec<&AST> = match DottedExpr::new(ast).try_into() {
+      Err(TryFromDottedExprError {}) => return Ok(None),
+      Ok(v) => v,
+    };
+    if vec.is_empty() {
+      Ok(None) // Nil is not a macro call.
+    } else {
+      let head = resolve_call_name(vec[0])?;
+      let tail = &vec[1..];
+      if let Some(call) = self.macro_files.get(head) {
+        let call = call.clone(); // Can't borrow self mutably below, so let's get rid of the immutable borrow above.
+        self.resolve_macro_call(&call, head, tail).map(Some)
+      } else {
+        Ok(None)
+      }
+    }
+  }
+
   pub fn resolve_simple_call(&mut self, head: &str, tail: &[&AST]) -> Result<Expr, Error> {
     if let Some(sf) = special_form::dispatch_form(head, tail)? {
       Ok(sf)
@@ -139,7 +158,7 @@ impl IncCompiler {
                       -> Result<Decl, Error> {
     let vec: Vec<&AST> = DottedExpr::new(decl).try_into()?;
     if vec.is_empty() {
-      return Err(Error::InvalidDecl(decl.clone()));
+      return Err(Error::UnknownDecl(decl.clone()));
     }
     match vec[0] {
       AST::Symbol(s) => {
@@ -179,7 +198,7 @@ impl IncCompiler {
             }))
           }
           _ => {
-            Err(Error::UnknownDecl(s.clone()))
+            Err(Error::UnknownDecl(decl.clone()))
           }
         }
       }
@@ -193,9 +212,18 @@ impl IncCompiler {
                           -> Result<Vec<Decl>, Error> {
     let body: Vec<_> = DottedExpr::new(body).try_into()?;
     let mut main: Vec<Expr> = Vec::new();
-    for curr in body {
+    for mut curr in body {
+      let mut candidate: Option<AST>; // Just need somewhere to store the intermediate.
+      while let Some(ast) = self.try_resolve_macro_call(curr)? {
+        candidate = Some(ast);
+        curr = &candidate.as_ref().unwrap();
+      }
+      // TODO The intention of catching DottedListError here is to
+      // catch the initial dotted list check. If we encounter
+      // DottedListError somewhere else in the computation, it's
+      // possible it's an error we need to propagate. Consider this.
       match self.compile_decl(curr) {
-        Err(Error::UnknownDecl(_)) => main.push(self.compile_expr(curr)?),
+        Err(Error::UnknownDecl(_)) | Err(Error::DottedListError) => main.push(self.compile_expr(curr)?),
         Err(e) => return Err(e),
         Ok(d) => {
           let is_macro = d.is_macro();

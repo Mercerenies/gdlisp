@@ -13,7 +13,7 @@ pub enum Error {
   InvalidArg(String, AST, String), // Function, argument, expected
   NoSuchVar(String),
   NoSuchFn(String),
-  UnknownDecl(String),
+  UnknownDecl(AST),
   InvalidDecl(AST),
 }
 
