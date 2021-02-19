@@ -7,5 +7,6 @@ pub enum Literal {
   Int(i32),
   Float(OrderedFloat<f32>),
   String(String),
+  Symbol(String),
   Bool(bool),
 }

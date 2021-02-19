@@ -94,6 +94,9 @@ impl<'a> Compiler<'a> {
           IRLiteral::Float(f) => Ok(StExpr(Expr::from(*f), SideEffects::None)),
           IRLiteral::Bool(b) => Ok(StExpr(Expr::from(*b), SideEffects::None)),
           IRLiteral::String(s) => Ok(StExpr(Expr::from(s.to_owned()), SideEffects::None)),
+          IRLiteral::Symbol(s) =>
+            Ok(StExpr(Expr::Call(Some(Box::new(library::symbol_class())), String::from("new"), vec!(s.reify())),
+                      SideEffects::None)),
         }
       }
       IRExpr::Progn(body) => {
