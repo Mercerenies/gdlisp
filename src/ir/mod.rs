@@ -18,6 +18,7 @@ pub mod symbol_table;
 pub mod incremental;
 pub mod depends;
 pub mod macros;
+pub mod quasiquote;
 
 use expr::Expr;
 use decl::Decl;

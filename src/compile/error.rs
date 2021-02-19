@@ -15,6 +15,7 @@ pub enum Error {
   NoSuchFn(String),
   UnknownDecl(AST),
   InvalidDecl(AST),
+  UnquoteOutsideQuasiquote,
 }
 
 impl From<sxp::dotted::TryFromDottedExprError> for Error {

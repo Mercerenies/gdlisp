@@ -3,6 +3,7 @@ use crate::sxp::ast::AST;
 use crate::sxp::dotted::DottedExpr;
 use super::expr::{Expr, FuncRefTarget};
 use super::arglist::ArgList;
+use super::quasiquote::quasiquote;
 use crate::compile::error::Error;
 use crate::ir::incremental::IncCompiler;
 
@@ -25,6 +26,8 @@ pub fn dispatch_form(icompiler: &mut IncCompiler,
     "function" => function_form(tail).map(Some),
     "setq" => assign_form(icompiler, tail).map(Some),
     "quote" => quote_form(tail).map(Some),
+    "quasiquote" => quasiquote_form(icompiler, tail).map(Some),
+    "unquote" => Err(Error::UnquoteOutsideQuasiquote),
     _ => Ok(None),
   }
 }
@@ -205,4 +208,14 @@ pub fn quote_form(tail: &[&AST]) -> Result<Expr, Error> {
     return Err(Error::TooManyArgs(String::from("quote"), 1))
   }
   Ok(Expr::Quote(tail[0].clone()))
+}
+
+pub fn quasiquote_form(icompiler: &mut IncCompiler, tail: &[&AST]) -> Result<Expr, Error> {
+  if tail.is_empty() {
+    return Err(Error::TooFewArgs(String::from("quasiquote"), 1))
+  }
+  if tail.len() > 1 {
+    return Err(Error::TooManyArgs(String::from("quasiquote"), 1))
+  }
+  quasiquote(icompiler, tail[0])
 }
