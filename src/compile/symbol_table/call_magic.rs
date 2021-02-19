@@ -31,6 +31,7 @@ use crate::compile::error::Error;
 use crate::compile::body::builder::StmtBuilder;
 use crate::compile::stateful::StExpr;
 use crate::compile::stmt_wrapper::{self, StmtWrapper};
+use crate::ir::arglist::VarArg;
 use crate::util;
 use super::function_call::FnCall;
 use super::SymbolTable;
@@ -112,13 +113,20 @@ pub fn compile_default_call(call: FnCall, mut args: Vec<Expr>) -> Result<Expr, E
   } else {
     args.split_off((specs.required + specs.optional) as usize)
   };
-  let rest = library::construct_list(rest);
   // Extend with nil
   while args.len() < (specs.required + specs.optional) as usize {
     args.push(library::nil());
   }
-  if specs.rest {
-    args.push(rest);
+  match specs.rest {
+    None => {
+      assert!(rest.is_empty());
+    }
+    Some(VarArg::RestArg) => {
+      args.push(library::construct_list(rest));
+    }
+    Some(VarArg::ArrArg) => {
+      args.push(Expr::ArrayLit(rest));
+    }
   }
   Ok(Expr::Call(object, function, args))
 }

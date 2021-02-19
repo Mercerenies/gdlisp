@@ -6,13 +6,17 @@ use crate::sxp::ast::AST;
 
 use std::convert::TryInto;
 use std::borrow::Borrow;
+use std::cmp::Ordering;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct ArgList {
   pub required_args: Vec<String>,
   pub optional_args: Vec<String>,
-  pub rest_arg: Option<String>,
+  pub rest_arg: Option<(String, VarArg)>,
 }
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum VarArg { RestArg, ArrArg }
 
 #[derive(Debug, Clone)]
 pub enum ArgListParseError {
@@ -21,12 +25,41 @@ pub enum ArgListParseError {
   DirectiveOutOfOrder(String),
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Ord, PartialOrd)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum ParseState {
-  Required, Optional, Rest, RestInvalid
+  Required, Optional, Rest, Arr, RestInvalid
 }
 
-// TODO Support default arguments
+impl PartialOrd for ParseState {
+  // There are two chains in this ordering.
+  // Required < Optional < Rest < RestInvalid
+  // Required < Optional < Arr  < RestInvalid
+  // Rest and Arr are incomparable
+  fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+    if *self == *other {
+      return Some(Ordering::Equal);
+    }
+    if *self == ParseState::Required {
+      return Some(Ordering::Less);
+    }
+    if *other == ParseState::Required {
+      return Some(Ordering::Greater);
+    }
+    if *self == ParseState::Optional {
+      return Some(Ordering::Less);
+    }
+    if *other == ParseState::Optional {
+      return Some(Ordering::Greater);
+    }
+    if *self == ParseState::RestInvalid {
+      return Some(Ordering::Greater);
+    }
+    if *other == ParseState::RestInvalid {
+      return Some(Ordering::Less);
+    }
+    None
+  }
+}
 
 impl ArgList {
 
@@ -70,6 +103,13 @@ impl ArgList {
                 return Err(ArgListParseError::DirectiveOutOfOrder(arg.to_owned()));
               }
             }
+            "&arr" => {
+              if state < ParseState::Arr {
+                state = ParseState::Arr;
+              } else {
+                return Err(ArgListParseError::DirectiveOutOfOrder(arg.to_owned()));
+              }
+            }
             _ => {
               return Err(ArgListParseError::UnknownDirective(arg.to_owned()));
             }
@@ -93,7 +133,16 @@ impl ArgList {
         ParseState::Rest => {
           match arg {
             AST::Symbol(s) => {
-              rest = Some(s.to_owned());
+              rest = Some((s.to_owned(), VarArg::RestArg));
+              state = ParseState::RestInvalid;
+            },
+            _ => return Err(ArgListParseError::InvalidArgument(arg.clone())),
+          }
+        }
+        ParseState::Arr => {
+          match arg {
+            AST::Symbol(s) => {
+              rest = Some((s.to_owned(), VarArg::ArrArg));
               state = ParseState::RestInvalid;
             },
             _ => return Err(ArgListParseError::InvalidArgument(arg.clone())),
@@ -125,7 +174,7 @@ impl ArgList {
       name_translations.push((arg, gd.clone()));
       args.push(gd);
     }
-    if let Some(arg) = self.rest_arg {
+    if let Some((arg, _)) = self.rest_arg {
       let gd = gen.generate_with(&arg);
       name_translations.push((arg, gd.clone()));
       args.push(gd);
@@ -136,7 +185,7 @@ impl ArgList {
   pub fn iter_vars(&self) -> impl Iterator<Item = &str> {
     self.required_args.iter()
       .chain(self.optional_args.iter())
-      .chain(self.rest_arg.iter())
+      .chain(self.rest_arg.iter().map(|x| &x.0))
       .map(|x| x.borrow())
   }
 
@@ -150,7 +199,7 @@ impl From<ArgList> for FnSpecs {
     FnSpecs::new(
       arglist.required_args.len().try_into().unwrap(),
       arglist.optional_args.len().try_into().unwrap(),
-      arglist.rest_arg.is_some(),
+      arglist.rest_arg.map(|x| x.1),
     )
   }
 
@@ -173,11 +222,11 @@ mod tests {
     ArgList::parse(dotted)
   }
 
-  fn arglist(req: Vec<&str>, opt: Vec<&str>, rest: Option<&str>) -> ArgList {
+  fn arglist(req: Vec<&str>, opt: Vec<&str>, rest: Option<(&str, VarArg)>) -> ArgList {
     ArgList {
       required_args: req.into_iter().map(|x| x.to_owned()).collect(),
       optional_args: opt.into_iter().map(|x| x.to_owned()).collect(),
-      rest_arg: rest.map(|x| x.to_owned()),
+      rest_arg: rest.map(|(x, y)| (x.to_owned(), y)),
     }
   }
 
@@ -196,9 +245,10 @@ mod tests {
     assert_eq!(parse_arglist("(a)").unwrap(), arglist(vec!("a"), vec!(), None));
     assert_eq!(parse_arglist("(a b)").unwrap(), arglist(vec!("a", "b"), vec!(), None));
     assert_eq!(parse_arglist("(a b &opt c)").unwrap(), arglist(vec!("a", "b"), vec!("c"), None));
-    assert_eq!(parse_arglist("(a &rest rest)").unwrap(), arglist(vec!("a"), vec!(), Some("rest")));
-    assert_eq!(parse_arglist("(a b c &opt d &rest e)").unwrap(), arglist(vec!("a", "b", "c"), vec!("d"), Some("e")));
-    assert_eq!(parse_arglist("(a b c &opt d e &rest f)").unwrap(), arglist(vec!("a", "b", "c"), vec!("d", "e"), Some("f")));
+    assert_eq!(parse_arglist("(a &rest rest)").unwrap(), arglist(vec!("a"), vec!(), Some(("rest", VarArg::RestArg))));
+    assert_eq!(parse_arglist("(a b c &opt d &rest e)").unwrap(), arglist(vec!("a", "b", "c"), vec!("d"), Some(("e", VarArg::RestArg))));
+    assert_eq!(parse_arglist("(a b c &opt d e &rest f)").unwrap(), arglist(vec!("a", "b", "c"), vec!("d", "e"), Some(("f", VarArg::RestArg))));
+    assert_eq!(parse_arglist("(a b c &opt d e &arr f)").unwrap(), arglist(vec!("a", "b", "c"), vec!("d", "e"), Some(("f", VarArg::ArrArg))));
     assert_eq!(parse_arglist("(a b c &opt d e)").unwrap(), arglist(vec!("a", "b", "c"), vec!("d", "e"), None));
   }
 
@@ -207,8 +257,11 @@ mod tests {
     assert!(parse_arglist("(&silly-name)").is_err());
     assert!(parse_arglist("(&opt a &opt b)").is_err());
     assert!(parse_arglist("(&rest a &opt b)").is_err());
+    assert!(parse_arglist("(&arr a &opt b)").is_err());
     assert!(parse_arglist("(&rest a &rest b)").is_err());
     assert!(parse_arglist("(&rest a b)").is_err());
+    assert!(parse_arglist("(&rest a &arr b)").is_err());
+    assert!(parse_arglist("(&arr a &rest b)").is_err());
   }
 
   #[test]
@@ -217,7 +270,8 @@ mod tests {
     assert_eq!(into_gd(arglist(vec!("a"), vec!(), None)).0, gdarglist(vec!("a_0")));
     assert_eq!(into_gd(arglist(vec!("a", "b"), vec!(), None)).0, gdarglist(vec!("a_0", "b_1")));
     assert_eq!(into_gd(arglist(vec!("a"), vec!("b"), None)).0, gdarglist(vec!("a_0", "b_1")));
-    assert_eq!(into_gd(arglist(vec!("a"), vec!("b"), Some("r"))).0, gdarglist(vec!("a_0", "b_1", "r_2")));
+    assert_eq!(into_gd(arglist(vec!("a"), vec!("b"), Some(("r", VarArg::RestArg)))).0, gdarglist(vec!("a_0", "b_1", "r_2")));
+    assert_eq!(into_gd(arglist(vec!("a"), vec!("b"), Some(("r", VarArg::ArrArg)))).0, gdarglist(vec!("a_0", "b_1", "r_2")));
   }
 
 }

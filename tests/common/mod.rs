@@ -60,7 +60,7 @@ fn bind_helper_symbols(table: &mut SymbolTable) {
   // TODO This is just a single-argument shim which calls print. It
   // will be obsolete once we have an actual print function in the
   // language.
-  table.set_fn(String::from("print"), FnCall::unqualified(FnSpecs::new(1, 0, false), FnScope::Global, String::from("print")), Box::new(DefaultCall));
+  table.set_fn(String::from("print"), FnCall::unqualified(FnSpecs::new(1, 0, None), FnScope::Global, String::from("print")), Box::new(DefaultCall));
 }
 
 pub fn dump_files<T>(dir: &mut TempDir, data: &T) -> io::Result<()>
@@ -146,10 +146,10 @@ pub fn parse_and_run(input: &str) -> String {
 fn bind_helper_symbols_comp(table: &mut SymbolTable) {
   // Binds a few helper names to the symbol table for the sake of
   // debugging.
-  table.set_fn(String::from("foo"), FnCall::unqualified(FnSpecs::new(0, 0, false), FnScope::Global, String::from("foo")), Box::new(DefaultCall));
-  table.set_fn(String::from("foo1"), FnCall::unqualified(FnSpecs::new(1, 0, false), FnScope::Global, String::from("foo1")), Box::new(DefaultCall));
-  table.set_fn(String::from("foo2"), FnCall::unqualified(FnSpecs::new(2, 0, false), FnScope::Global, String::from("foo2")), Box::new(DefaultCall));
-  table.set_fn(String::from("bar"), FnCall::unqualified(FnSpecs::new(0, 0, false), FnScope::Global, String::from("bar")), Box::new(DefaultCall));
+  table.set_fn(String::from("foo"), FnCall::unqualified(FnSpecs::new(0, 0, None), FnScope::Global, String::from("foo")), Box::new(DefaultCall));
+  table.set_fn(String::from("foo1"), FnCall::unqualified(FnSpecs::new(1, 0, None), FnScope::Global, String::from("foo1")), Box::new(DefaultCall));
+  table.set_fn(String::from("foo2"), FnCall::unqualified(FnSpecs::new(2, 0, None), FnScope::Global, String::from("foo2")), Box::new(DefaultCall));
+  table.set_fn(String::from("bar"), FnCall::unqualified(FnSpecs::new(0, 0, None), FnScope::Global, String::from("bar")), Box::new(DefaultCall));
   table.set_var(String::from("foobar"), LocalVar::read(String::from("foobar")));
 }
 

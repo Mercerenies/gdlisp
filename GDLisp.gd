@@ -30,7 +30,7 @@ class Function:
     var __is_gdlisp_function = true
     var __gdlisp_required = 0
     var __gdlisp_optional = 0
-    var __gdlisp_rest = true
+    var __gdlisp_rest = 1
     func _init():
         pass
 

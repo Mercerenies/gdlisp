@@ -322,9 +322,9 @@ mod tests {
   fn bind_helper_symbols(table: &mut SymbolTable) {
     // Binds a few helper names to the symbol table for the sake of
     // debugging.
-    table.set_fn(String::from("foo1"), FnCall::unqualified(FnSpecs::new(1, 0, false), FnScope::Global, String::from("foo1")), Box::new(DefaultCall));
-    table.set_fn(String::from("foo"), FnCall::unqualified(FnSpecs::new(0, 0, false), FnScope::Global, String::from("foo")), Box::new(DefaultCall));
-    table.set_fn(String::from("bar"), FnCall::unqualified(FnSpecs::new(0, 0, false), FnScope::Global, String::from("bar")), Box::new(DefaultCall));
+    table.set_fn(String::from("foo1"), FnCall::unqualified(FnSpecs::new(1, 0, None), FnScope::Global, String::from("foo1")), Box::new(DefaultCall));
+    table.set_fn(String::from("foo"), FnCall::unqualified(FnSpecs::new(0, 0, None), FnScope::Global, String::from("foo")), Box::new(DefaultCall));
+    table.set_fn(String::from("bar"), FnCall::unqualified(FnSpecs::new(0, 0, None), FnScope::Global, String::from("bar")), Box::new(DefaultCall));
     table.set_var(String::from("foobar"), LocalVar::read(String::from("foobar")));
   }
 

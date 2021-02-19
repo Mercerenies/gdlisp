@@ -1,5 +1,6 @@
 
 use crate::gdscript::expr::Expr;
+use crate::ir::arglist::VarArg;
 use crate::compile::Compiler;
 use crate::compile::error::Error;
 use crate::compile::body::builder::StmtBuilder;
@@ -43,7 +44,7 @@ pub enum FnScope {
 pub struct FnSpecs {
   pub required: u32,
   pub optional: u32,
-  pub rest: bool,
+  pub rest: Option<VarArg>,
 }
 
 impl FnCall {
@@ -79,12 +80,16 @@ impl FnCall {
 
 impl FnSpecs {
 
-  pub fn new(required: u32, optional: u32, rest: bool) -> FnSpecs {
+  pub fn new(required: u32, optional: u32, rest: Option<VarArg>) -> FnSpecs {
     FnSpecs { required, optional, rest }
   }
 
+  pub fn has_rest(&self) -> bool {
+    self.rest.is_some()
+  }
+
   pub fn runtime_arity(&self) -> u32 {
-    self.required + self.optional + if self.rest { 1 } else { 0 }
+    self.required + self.optional + if self.has_rest() { 1 } else { 0 }
   }
 
   pub fn min_arity(&self) -> u32 {
@@ -94,7 +99,7 @@ impl FnSpecs {
   pub fn max_arity(&self) -> u32 {
     // TODO Is u32.MAX correct here? If we put an upper limit on
     // function arity, use that instead.
-    if self.rest { u32::MAX } else { self.required + self.optional }
+    if self.has_rest() { u32::MAX } else { self.required + self.optional }
   }
 
 }

@@ -25,7 +25,7 @@ class _LambdaBlock_1 extends GDLisp.Function:
         self.x_0 = x_0
         self.__gdlisp_required = 0
         self.__gdlisp_optional = 0
-        self.__gdlisp_rest = false
+        self.__gdlisp_rest = 0
     func call_func():
         return x_0
     func call_funcv(args):
@@ -49,7 +49,7 @@ class _LambdaBlock_1 extends GDLisp.Function:
         self.x_0 = x_0
         self.__gdlisp_required = 0
         self.__gdlisp_optional = 0
-        self.__gdlisp_rest = false
+        self.__gdlisp_rest = 0
     func call_func():
         x_0.contents = 1
         return x_0.contents

@@ -112,15 +112,15 @@ pub fn basic_lambda_test() {
 
   let result0 = parse_compile_and_output_h("(lambda ())");
   assert_eq!(result0.0, "return _LambdaBlock_0.new()\n");
-  assert_eq!(result0.1, "class _LambdaBlock_0 extends GDLisp.Function:\n    func _init():\n        self.__gdlisp_required = 0\n        self.__gdlisp_optional = 0\n        self.__gdlisp_rest = false\n    func call_func():\n        return GDLisp.Nil\n    func call_funcv(args):\n        if args is GDLisp.NilClass:\n            return call_func()\n        else:\n            push_error(\"Too many arguments\")\n");
+  assert_eq!(result0.1, "class _LambdaBlock_0 extends GDLisp.Function:\n    func _init():\n        self.__gdlisp_required = 0\n        self.__gdlisp_optional = 0\n        self.__gdlisp_rest = 0\n    func call_func():\n        return GDLisp.Nil\n    func call_funcv(args):\n        if args is GDLisp.NilClass:\n            return call_func()\n        else:\n            push_error(\"Too many arguments\")\n");
 
   let result1 = parse_compile_and_output_h("(lambda (a) a)");
   assert_eq!(result1.0, "return _LambdaBlock_1.new()\n");
-  assert_eq!(result1.1, "class _LambdaBlock_1 extends GDLisp.Function:\n    func _init():\n        self.__gdlisp_required = 1\n        self.__gdlisp_optional = 0\n        self.__gdlisp_rest = false\n    func call_func(a_0):\n        return a_0\n    func call_funcv(args):\n        var required_0 = null\n        if args is GDLisp.NilClass:\n            push_error(\"Not enough arguments\")\n        else:\n            required_0 = args.car\n            args = args.cdr\n        if args is GDLisp.NilClass:\n            return call_func(required_0)\n        else:\n            push_error(\"Too many arguments\")\n");
+  assert_eq!(result1.1, "class _LambdaBlock_1 extends GDLisp.Function:\n    func _init():\n        self.__gdlisp_required = 1\n        self.__gdlisp_optional = 0\n        self.__gdlisp_rest = 0\n    func call_func(a_0):\n        return a_0\n    func call_funcv(args):\n        var required_0 = null\n        if args is GDLisp.NilClass:\n            push_error(\"Not enough arguments\")\n        else:\n            required_0 = args.car\n            args = args.cdr\n        if args is GDLisp.NilClass:\n            return call_func(required_0)\n        else:\n            push_error(\"Too many arguments\")\n");
 
   let result2 = parse_compile_and_output_h("(progn (lambda (a) a) 1)");
   assert_eq!(result2.0, "return 1\n");
-  assert_eq!(result2.1, "class _LambdaBlock_1 extends GDLisp.Function:\n    func _init():\n        self.__gdlisp_required = 1\n        self.__gdlisp_optional = 0\n        self.__gdlisp_rest = false\n    func call_func(a_0):\n        return a_0\n    func call_funcv(args):\n        var required_0 = null\n        if args is GDLisp.NilClass:\n            push_error(\"Not enough arguments\")\n        else:\n            required_0 = args.car\n            args = args.cdr\n        if args is GDLisp.NilClass:\n            return call_func(required_0)\n        else:\n            push_error(\"Too many arguments\")\n");
+  assert_eq!(result2.1, "class _LambdaBlock_1 extends GDLisp.Function:\n    func _init():\n        self.__gdlisp_required = 1\n        self.__gdlisp_optional = 0\n        self.__gdlisp_rest = 0\n    func call_func(a_0):\n        return a_0\n    func call_funcv(args):\n        var required_0 = null\n        if args is GDLisp.NilClass:\n            push_error(\"Not enough arguments\")\n        else:\n            required_0 = args.car\n            args = args.cdr\n        if args is GDLisp.NilClass:\n            return call_func(required_0)\n        else:\n            push_error(\"Too many arguments\")\n");
 
 }
 
@@ -129,7 +129,7 @@ pub fn closure_lambda_test() {
 
   let result0 = parse_compile_and_output_h("(let (a) (lambda () a))");
   assert_eq!(result0.0, "var a_0 = GDLisp.Nil\nreturn _LambdaBlock_1.new(a_0)\n");
-  assert_eq!(result0.1, "class _LambdaBlock_1 extends GDLisp.Function:\n    var a_0\n    func _init(a_0):\n        self.a_0 = a_0\n        self.__gdlisp_required = 0\n        self.__gdlisp_optional = 0\n        self.__gdlisp_rest = false\n    func call_func():\n        return a_0\n    func call_funcv(args):\n        if args is GDLisp.NilClass:\n            return call_func()\n        else:\n            push_error(\"Too many arguments\")\n");
+  assert_eq!(result0.1, "class _LambdaBlock_1 extends GDLisp.Function:\n    var a_0\n    func _init(a_0):\n        self.a_0 = a_0\n        self.__gdlisp_required = 0\n        self.__gdlisp_optional = 0\n        self.__gdlisp_rest = 0\n    func call_func():\n        return a_0\n    func call_funcv(args):\n        if args is GDLisp.NilClass:\n            return call_func()\n        else:\n            push_error(\"Too many arguments\")\n");
 
 }
 
@@ -138,7 +138,7 @@ pub fn non_closure_lambda_test() {
 
   let result0 = parse_compile_and_output_h("(let (a) (lambda () (let (a) a)))");
   assert_eq!(result0.0, "var a_0 = GDLisp.Nil\nreturn _LambdaBlock_2.new()\n");
-  assert_eq!(result0.1, "class _LambdaBlock_2 extends GDLisp.Function:\n    func _init():\n        self.__gdlisp_required = 0\n        self.__gdlisp_optional = 0\n        self.__gdlisp_rest = false\n    func call_func():\n        var a_1 = GDLisp.Nil\n        return a_1\n    func call_funcv(args):\n        if args is GDLisp.NilClass:\n            return call_func()\n        else:\n            push_error(\"Too many arguments\")\n");
+  assert_eq!(result0.1, "class _LambdaBlock_2 extends GDLisp.Function:\n    func _init():\n        self.__gdlisp_required = 0\n        self.__gdlisp_optional = 0\n        self.__gdlisp_rest = 0\n    func call_func():\n        var a_1 = GDLisp.Nil\n        return a_1\n    func call_funcv(args):\n        if args is GDLisp.NilClass:\n            return call_func()\n        else:\n            push_error(\"Too many arguments\")\n");
 
 }
 
@@ -154,7 +154,7 @@ pub fn funcall_lambda_test() {
 
   let result0 = parse_compile_and_output_h("(let ((f (lambda (a) a))) (funcall f 100))");
   assert_eq!(result0.0, "var f_2 = _LambdaBlock_1.new()\nreturn GDLisp.funcall(f_2, GDLisp.Cons.new(100, GDLisp.Nil))\n");
-  assert_eq!(result0.1, "class _LambdaBlock_1 extends GDLisp.Function:\n    func _init():\n        self.__gdlisp_required = 1\n        self.__gdlisp_optional = 0\n        self.__gdlisp_rest = false\n    func call_func(a_0):\n        return a_0\n    func call_funcv(args):\n        var required_0 = null\n        if args is GDLisp.NilClass:\n            push_error(\"Not enough arguments\")\n        else:\n            required_0 = args.car\n            args = args.cdr\n        if args is GDLisp.NilClass:\n            return call_func(required_0)\n        else:\n            push_error(\"Too many arguments\")\n");
+  assert_eq!(result0.1, "class _LambdaBlock_1 extends GDLisp.Function:\n    func _init():\n        self.__gdlisp_required = 1\n        self.__gdlisp_optional = 0\n        self.__gdlisp_rest = 0\n    func call_func(a_0):\n        return a_0\n    func call_funcv(args):\n        var required_0 = null\n        if args is GDLisp.NilClass:\n            push_error(\"Not enough arguments\")\n        else:\n            required_0 = args.car\n            args = args.cdr\n        if args is GDLisp.NilClass:\n            return call_func(required_0)\n        else:\n            push_error(\"Too many arguments\")\n");
 }
 
 #[test]
@@ -168,11 +168,11 @@ pub fn simple_builtin_test() {
 pub fn function_ref_test() {
   let result0 = parse_compile_and_output_h("(function foo1)");
   assert_eq!(result0.0, "return _FunctionRefBlock_0.new()\n");
-  assert_eq!(result0.1, "class _FunctionRefBlock_0 extends GDLisp.Function:\n    func _init():\n        self.__gdlisp_required = 1\n        self.__gdlisp_optional = 0\n        self.__gdlisp_rest = false\n    func call_func(arg0):\n        return foo1(arg0)\n    func call_funcv(args):\n        var required_0 = null\n        if args is GDLisp.NilClass:\n            push_error(\"Not enough arguments\")\n        else:\n            required_0 = args.car\n            args = args.cdr\n        if args is GDLisp.NilClass:\n            return call_func(required_0)\n        else:\n            push_error(\"Too many arguments\")\n");
+  assert_eq!(result0.1, "class _FunctionRefBlock_0 extends GDLisp.Function:\n    func _init():\n        self.__gdlisp_required = 1\n        self.__gdlisp_optional = 0\n        self.__gdlisp_rest = 0\n    func call_func(arg0):\n        return foo1(arg0)\n    func call_funcv(args):\n        var required_0 = null\n        if args is GDLisp.NilClass:\n            push_error(\"Not enough arguments\")\n        else:\n            required_0 = args.car\n            args = args.cdr\n        if args is GDLisp.NilClass:\n            return call_func(required_0)\n        else:\n            push_error(\"Too many arguments\")\n");
 
   let result1 = parse_compile_and_output_h("#'foo1");
   assert_eq!(result1.0, "return _FunctionRefBlock_0.new()\n");
-  assert_eq!(result1.1, "class _FunctionRefBlock_0 extends GDLisp.Function:\n    func _init():\n        self.__gdlisp_required = 1\n        self.__gdlisp_optional = 0\n        self.__gdlisp_rest = false\n    func call_func(arg0):\n        return foo1(arg0)\n    func call_funcv(args):\n        var required_0 = null\n        if args is GDLisp.NilClass:\n            push_error(\"Not enough arguments\")\n        else:\n            required_0 = args.car\n            args = args.cdr\n        if args is GDLisp.NilClass:\n            return call_func(required_0)\n        else:\n            push_error(\"Too many arguments\")\n");
+  assert_eq!(result1.1, "class _FunctionRefBlock_0 extends GDLisp.Function:\n    func _init():\n        self.__gdlisp_required = 1\n        self.__gdlisp_optional = 0\n        self.__gdlisp_rest = 0\n    func call_func(arg0):\n        return foo1(arg0)\n    func call_funcv(args):\n        var required_0 = null\n        if args is GDLisp.NilClass:\n            push_error(\"Not enough arguments\")\n        else:\n            required_0 = args.car\n            args = args.cdr\n        if args is GDLisp.NilClass:\n            return call_func(required_0)\n        else:\n            push_error(\"Too many arguments\")\n");
 }
 
 #[test]
@@ -341,7 +341,7 @@ class _FunctionRefBlock_2 extends GDLisp.Function:
     func _init():
         self.__gdlisp_required = 1
         self.__gdlisp_optional = 0
-        self.__gdlisp_rest = false
+        self.__gdlisp_rest = 0
     func call_func(arg0):
         return _flet_0(arg0)
     func call_funcv(args):
@@ -374,7 +374,7 @@ pub fn local_flet_test() {
         self.x_0 = x_0
         self.__gdlisp_required = 0
         self.__gdlisp_optional = 0
-        self.__gdlisp_rest = false
+        self.__gdlisp_rest = 0
     func call_func():
         return x_0 + 1
     func call_funcv(args):
@@ -401,7 +401,7 @@ pub fn local_flet_test_indirect() {
         self.x_0 = x_0
         self.__gdlisp_required = 0
         self.__gdlisp_optional = 0
-        self.__gdlisp_rest = false
+        self.__gdlisp_rest = 0
     func call_func():
         return x_0 + 1
     func call_funcv(args):
@@ -444,7 +444,7 @@ class _FunctionRefBlock_2 extends GDLisp.Function:
     func _init():
         self.__gdlisp_required = 1
         self.__gdlisp_optional = 0
-        self.__gdlisp_rest = false
+        self.__gdlisp_rest = 0
     func call_func(arg0):
         return _flet_0(arg0)
     func call_funcv(args):
@@ -517,7 +517,7 @@ class _LambdaBlock_5 extends GDLisp.Function:
         self._locals_1 = _locals_1
         self.__gdlisp_required = 1
         self.__gdlisp_optional = 0
-        self.__gdlisp_rest = false
+        self.__gdlisp_rest = 0
     func call_func(x_4):
         return _locals_1._fn_f_2(x_4)
     func call_funcv(args):
@@ -549,7 +549,7 @@ class _FunctionRefBlock_4 extends GDLisp.Function:
         self._locals_1 = _locals_1
         self.__gdlisp_required = 1
         self.__gdlisp_optional = 0
-        self.__gdlisp_rest = false
+        self.__gdlisp_rest = 0
     func call_func(arg0):
         return _locals_1._fn_f_2(arg0)
     func call_funcv(args):
