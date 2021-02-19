@@ -33,6 +33,14 @@ mod tests {
   }
 
   #[test]
+  fn parser_quoting() {
+    let p = ASTParser::new();
+    assert_eq!(p.parse("'a").unwrap(), ast::list(vec!(ast::symbol("quote"), ast::symbol("a"))));
+    assert_eq!(p.parse("`a").unwrap(), ast::list(vec!(ast::symbol("quasiquote"), ast::symbol("a"))));
+    assert_eq!(p.parse(",a").unwrap(), ast::list(vec!(ast::symbol("unquote"), ast::symbol("a"))));
+  }
+
+  #[test]
   fn parser_failures() {
     let p = ASTParser::new();
     assert!(p.parse("(").is_err());

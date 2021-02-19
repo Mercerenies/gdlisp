@@ -21,9 +21,9 @@ match {
   r"[+-]?[0-9]+" => INT,
   r"[+-]?[0-9]+((\.[0-9]+)([eE][+-]?[0-9]+)?|(\.[0-9]+)?([eE][+-]?[0-9]+))" => FLOAT,
   r#""([^\\"]|\\[\\"])*""# => STRING,
-  "(", ")", ".", "[", "]", "'", "#'"
+  "(", ")", ".", "[", "]", "'", "#'", "`", ","
 } else {
-  // Currently reserved but unused: {}`,;:.
+  // Currently reserved but unused: {};:.
   r"[A-Za-z_~+=\-\\!@$%^&*<>/][A-Za-z0-9_~+=\-\\!@$%^&*<>/]*" => SYMBOL,
 }
 
@@ -39,6 +39,8 @@ pub AST: AST = {
   "[" <contents: ArrayContents> "]" => AST::Array(contents),
   "'" <body: AST> => ast::list(vec!(AST::Symbol(String::from("quote")), body)),
   "#'" <body: AST> => ast::list(vec!(AST::Symbol(String::from("function")), body)),
+  "`" <body: AST> => ast::list(vec!(AST::Symbol(String::from("quasiquote")), body)),
+  "," <body: AST> => ast::list(vec!(AST::Symbol(String::from("unquote")), body)),
 }
 
 Cdr: AST = {
