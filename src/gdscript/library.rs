@@ -154,6 +154,21 @@ pub fn bind_builtins(table: &mut SymbolTable) {
                FnCall::qualified(FnSpecs::new(1, 1, false), FnScope::Global, gdlisp_root(), "vector".to_owned()),
                Box::new(call_magic::VectorOperation));
 
+  // list->array
+  table.set_fn("list->array".to_owned(),
+               FnCall::qualified(FnSpecs::new(1, 0, false), FnScope::Global, gdlisp_root(), "list_to_array".to_owned()),
+               Box::new(call_magic::DefaultCall));
+
+  // array->list
+  table.set_fn("array->list".to_owned(),
+               FnCall::qualified(FnSpecs::new(1, 0, false), FnScope::Global, gdlisp_root(), "array_to_list".to_owned()),
+               Box::new(call_magic::DefaultCall));
+
+  // elt (Array element)
+  table.set_fn("elt".to_owned(),
+               FnCall::qualified(FnSpecs::new(2, 0, false), FnScope::Global, gdlisp_root(), "elt".to_owned()),
+               Box::new(call_magic::ArraySubscript));
+
 }
 
 pub fn all_builtin_names() -> HashSet<String> {

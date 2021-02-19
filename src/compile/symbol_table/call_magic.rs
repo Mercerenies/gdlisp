@@ -64,6 +64,8 @@ pub struct ListOperation;
 pub struct YieldOperation;
 #[derive(Clone)]
 pub struct VectorOperation;
+#[derive(Clone)]
+pub struct ArraySubscript;
 
 // Covers addition and multiplication, for instance
 #[derive(Clone)]
@@ -391,6 +393,30 @@ impl CallMagic for VectorOperation {
         let y = args.pop().expect("Internal error in VectorOperation");
         let x = args.pop().expect("Internal error in VectorOperation");
         Ok(Expr::Call(None, String::from("Vector3"), vec!(x, y, z)))
+      }
+      _ => {
+        Err(Error::TooManyArgs(call.function, args.len()))
+      }
+    }
+  }
+}
+
+impl CallMagic for ArraySubscript {
+  fn compile<'a>(&self,
+                 call: FnCall,
+                 _compiler: &mut Compiler<'a>,
+                 _builder: &mut StmtBuilder,
+                 _table: &mut SymbolTable,
+                 args: Vec<StExpr>) -> Result<Expr, Error> {
+    let mut args = strip_st(args);
+    match args.len() {
+      0 | 1 => {
+        Err(Error::TooFewArgs(call.function, args.len()))
+      }
+      2 => {
+        let n = args.pop().expect("Internal error in ArraySubscript");
+        let arr = args.pop().expect("Internal error in ArraySubscript");
+        Ok(Expr::Subscript(Box::new(arr), Box::new(n)))
       }
       _ => {
         Err(Error::TooManyArgs(call.function, args.len()))

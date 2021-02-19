@@ -565,3 +565,8 @@ class _FunctionRefBlock_4 extends GDLisp.Function:
             push_error("Too many arguments")
 "#);
 }
+
+#[test]
+pub fn array_subscript_test() {
+  assert_eq!(parse_compile_and_output("(elt 1 2)"), "return 1[2]\n");
+}

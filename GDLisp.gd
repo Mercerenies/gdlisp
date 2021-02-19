@@ -170,13 +170,31 @@ func list(args):
     return args
 
 func yield_(x, y):
-    if x is GDLisp.NilClass:
+    if x is NilClass:
         return yield()
     else:
         return yield(x, y)
 
 func vector(x, y, z):
-    if z is GDLisp.NilClass:
+    if z is NilClass:
         return Vector2(x, y)
     else:
         return Vector3(x, y, z)
+
+func list_to_array(list):
+    var arr = []
+    while list is Cons:
+        arr.push_back(list.car)
+        list = list.cdr
+    return arr
+
+func array_to_list(arr):
+    var outer = Cons.new(Nil, Nil)
+    var curr = outer
+    for elem in arr:
+        curr.cdr = Cons.new(elem, Nil)
+        curr = curr.cdr
+    return outer.cdr
+
+func elt(arr, n):
+    return arr[n]
