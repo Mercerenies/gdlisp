@@ -69,6 +69,10 @@ impl Locals {
     util::merge_hashmap_inplace(&mut self.0, b.0, AccessType::max);
   }
 
+  pub fn filter(&mut self, mut f: impl FnMut(&str, AccessType) -> bool) {
+    self.0.retain(|k, v| f(k, *v));
+  }
+
 }
 
 impl AccessType {

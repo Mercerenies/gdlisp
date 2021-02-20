@@ -49,4 +49,8 @@ impl Functions {
     self.0.extend(b.into_names());
   }
 
+  pub fn filter(&mut self, mut f: impl FnMut(&str) -> bool) {
+    self.0.retain(|k| f(k));
+  }
+
 }
