@@ -1,5 +1,5 @@
 
-use super::common::parse_and_run;
+use super::common::{parse_compile_and_output, parse_and_run};
 
 #[test]
 #[ignore]
@@ -305,4 +305,139 @@ fn not_test_1() {
 #[ignore]
 fn not_test_2() {
   assert_eq!(parse_and_run("((print (not #f)))"), "\nTrue\n");
+}
+
+#[test]
+pub fn addition_compile_test() {
+  assert_eq!(parse_compile_and_output("(+)"), "return 0\n");
+  assert_eq!(parse_compile_and_output("(+ 1)"), "return 1\n");
+  assert_eq!(parse_compile_and_output("(+ 1 2)"), "return 1 + 2\n");
+  assert_eq!(parse_compile_and_output("(+ 1 2 3)"), "return 1 + 2 + 3\n");
+}
+
+#[test]
+pub fn multiplication_compile_test() {
+  assert_eq!(parse_compile_and_output("(*)"), "return 1\n");
+  assert_eq!(parse_compile_and_output("(* 2)"), "return 2\n");
+  assert_eq!(parse_compile_and_output("(* 2 3)"), "return 2 * 3\n");
+  assert_eq!(parse_compile_and_output("(* 2 3 4)"), "return 2 * 3 * 4\n");
+}
+
+#[test]
+pub fn subtraction_compile_test() {
+  assert_eq!(parse_compile_and_output("(- 2)"), "return -2\n");
+  assert_eq!(parse_compile_and_output("(- 2 3)"), "return 2 - 3\n");
+  assert_eq!(parse_compile_and_output("(- 2 3 4)"), "return 2 - 3 - 4\n");
+}
+
+#[test]
+pub fn division_compile_test() {
+  assert_eq!(parse_compile_and_output("(/ 2)"), "return 1 / float(2)\n");
+  assert_eq!(parse_compile_and_output("(/ 2 3)"), "return 2 / float(3)\n");
+  assert_eq!(parse_compile_and_output("(/ 2 3 4)"), "return 2 / float(3) / float(4)\n");
+  assert_eq!(parse_compile_and_output("(/ 2.0 3 4.0)"), "return 2e0 / float(3) / 4e0\n");
+}
+
+#[test]
+pub fn int_division_compile_test() {
+  assert_eq!(parse_compile_and_output("(div 2)"), "return 1 / 2\n");
+  assert_eq!(parse_compile_and_output("(div 2 3)"), "return 2 / 3\n");
+  assert_eq!(parse_compile_and_output("(div 2 3 4)"), "return 2 / 3 / 4\n");
+  assert_eq!(parse_compile_and_output("(div foobar 3 4)"), "return foobar / 3 / 4\n");
+}
+
+#[test]
+pub fn eq_compile_test() {
+  assert_eq!(parse_compile_and_output("(= 1)"), "return true\n");
+  assert_eq!(parse_compile_and_output("(= 1 2)"), "return 1 == 2\n");
+  assert_eq!(parse_compile_and_output("(= 1 2 3)"), "return 1 == 2 && 2 == 3\n");
+}
+
+#[test]
+pub fn eq_compile_test_stateful() {
+  assert_eq!(parse_compile_and_output("(= (foo))"), "foo()\nreturn true\n");
+  assert_eq!(parse_compile_and_output("(= (foo) (foo))"), "return foo() == foo()\n");
+  assert_eq!(parse_compile_and_output("(= (foo) (foo) (foo))"), "var _cmp_0 = foo()\nvar _cmp_1 = foo()\nvar _cmp_2 = foo()\nreturn _cmp_0 == _cmp_1 && _cmp_1 == _cmp_2\n");
+}
+
+#[test]
+pub fn cmp_compile_test() {
+  assert_eq!(parse_compile_and_output("(< 1 2)"), "return 1 < 2\n");
+  assert_eq!(parse_compile_and_output("(> 1 2 3)"), "return 1 > 2 && 2 > 3\n");
+  assert_eq!(parse_compile_and_output("(<= 1 2)"), "return 1 <= 2\n");
+  assert_eq!(parse_compile_and_output("(>= 1 2 3)"), "return 1 >= 2 && 2 >= 3\n");
+}
+
+#[test]
+pub fn cmp_compile_test_stateful() {
+  assert_eq!(parse_compile_and_output("(< (foo))"), "foo()\nreturn true\n");
+  assert_eq!(parse_compile_and_output("(<= (foo) (foo))"), "return foo() <= foo()\n");
+  assert_eq!(parse_compile_and_output("(> (foo) (foo) (foo))"), "var _cmp_0 = foo()\nvar _cmp_1 = foo()\nvar _cmp_2 = foo()\nreturn _cmp_0 > _cmp_1 && _cmp_1 > _cmp_2\n");
+  assert_eq!(parse_compile_and_output("(>= (foo) (foo))"), "return foo() >= foo()\n");
+}
+
+#[test]
+pub fn ne_compile_test() {
+  assert_eq!(parse_compile_and_output("(/= 1)"), "return true\n");
+  assert_eq!(parse_compile_and_output("(/= (foo))"), "foo()\nreturn true\n");
+  assert_eq!(parse_compile_and_output("(/= 1 2)"), "return 1 != 2\n");
+  assert_eq!(parse_compile_and_output("(/= 1 2 3)"), "return GDLisp.ne(1, GDLisp.Cons.new(2, GDLisp.Cons.new(3, GDLisp.Nil)))\n");
+}
+
+#[test]
+pub fn simple_length_test() {
+  assert_eq!(parse_compile_and_output("(length ())"), "return GDLisp.length(GDLisp.Nil)\n");
+}
+
+#[test]
+pub fn list_test() {
+  assert_eq!(parse_compile_and_output("(list 1 2 3)"), "return GDLisp.Cons.new(1, GDLisp.Cons.new(2, GDLisp.Cons.new(3, GDLisp.Nil)))\n");
+}
+
+#[test]
+pub fn vector_test() {
+  assert_eq!(parse_compile_and_output("(vector 9 10)"), "return Vector2(9, 10)\n");
+  assert_eq!(parse_compile_and_output("(vector 9 10 11)"), "return Vector3(9, 10, 11)\n");
+}
+
+#[test]
+pub fn array_test() {
+  assert_eq!(parse_compile_and_output("[]"), "return []\n");
+  assert_eq!(parse_compile_and_output("[1 2 3]"), "return [1, 2, 3]\n");
+  assert_eq!(parse_compile_and_output("[2]"), "return [2]\n");
+  assert_eq!(parse_compile_and_output("[(foo)]"), "return [foo()]\n");
+  assert_eq!(parse_compile_and_output("(progn [1] [2])"), "return [2]\n");
+  assert_eq!(parse_compile_and_output("(progn [(foo)] [2])"), "[foo()]\nreturn [2]\n");
+  assert_eq!(parse_compile_and_output("[(if 1 2 3)]"), "var _if_0 = GDLisp.Nil\nif 1:\n    _if_0 = 2\nelse:\n    _if_0 = 3\nreturn [_if_0]\n");
+}
+
+#[test]
+pub fn yield_test() {
+  assert_eq!(parse_compile_and_output("(yield)"), "return yield()\n");
+  assert_eq!(parse_compile_and_output("(yield 1)"), "return yield(1, GDLisp.Nil)\n");
+  assert_eq!(parse_compile_and_output("(yield 1 2)"), "return yield(1, 2)\n");
+}
+
+#[test]
+pub fn array_subscript_test() {
+  assert_eq!(parse_compile_and_output("(elt 1 2)"), "return 1[2]\n");
+}
+
+#[test]
+pub fn attribute_test() {
+  assert_eq!(parse_compile_and_output("(let ((foo 1)) foo:bar)"), "var foo_0 = 1\nreturn foo_0.bar\n");
+  assert_eq!(parse_compile_and_output("(let ((foo 1)) foo:bar 2)"), "var foo_0 = 1\nreturn 2\n");
+}
+
+#[test]
+pub fn method_test() {
+  assert_eq!(parse_compile_and_output("(let ((foo 1)) (foo:bar))"), "var foo_0 = 1\nreturn foo_0.bar()\n");
+  assert_eq!(parse_compile_and_output("(let ((foo 1)) (foo:bar 100) 2)"), "var foo_0 = 1\nfoo_0.bar(100)\nreturn 2\n");
+}
+
+#[test]
+pub fn simple_builtin_test() {
+  assert_eq!(parse_compile_and_output("(cons 1 2)"), "return GDLisp.Cons.new(1, 2)\n");
+  assert_eq!(parse_compile_and_output("(cons 1 (cons 2 3))"), "return GDLisp.Cons.new(1, GDLisp.Cons.new(2, 3))\n");
+  assert_eq!(parse_compile_and_output("(intern 10)"), "return GDLisp.Symbol.new(10)\n");
 }
