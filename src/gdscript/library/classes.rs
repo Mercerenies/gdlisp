@@ -7,6 +7,11 @@
 // Also note: @GlobalScope and @GDScript are not included here, as we
 // cannot access them directly from GDScript anyway.
 
+// This list is not perfect. There are some things here that are not
+// first-class objects on the Godot side. I already removed a few
+// (int, float, Vector2, Vector3, etc.), but I'm sure there are more
+// that need to be dealt with.
+
 pub static GDSCRIPT_CLASS_NAMES: [&str; 646] = [
   "AABB",
   "AcceptDialog",

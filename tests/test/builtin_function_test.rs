@@ -441,3 +441,15 @@ pub fn simple_builtin_test() {
   assert_eq!(parse_compile_and_output("(cons 1 (cons 2 3))"), "return GDLisp.Cons.new(1, GDLisp.Cons.new(2, 3))\n");
   assert_eq!(parse_compile_and_output("(intern 10)"), "return GDLisp.Symbol.new(10)\n");
 }
+
+#[test]
+pub fn known_gdscript_classes_test() {
+  // Note: They all get checked, but all except the last is elided by the statefulness rules.
+  assert_eq!(parse_compile_and_output("(progn Sprite Node Node2D GDScript Object)"), "return Object\n");
+}
+
+#[test]
+#[should_panic]
+pub fn unknown_gdscript_classes_test() {
+  parse_compile_and_output("(progn NotARealClass Node2D GDScript Object)");
+}
