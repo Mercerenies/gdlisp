@@ -1,9 +1,7 @@
 
-mod common;
-
 extern crate gdlisp;
 
-use common::{parse_compile_and_output, parse_compile_and_output_h};
+use super::common::{parse_compile_and_output, parse_compile_and_output_h};
 
 // TODO For the love of all that is good, split this into several files.
 

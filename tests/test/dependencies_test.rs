@@ -1,6 +1,4 @@
 
-extern crate gdlisp;
-
 use gdlisp::ir;
 use gdlisp::ir::symbol_table::SymbolTable;
 use gdlisp::ir::depends::Dependencies;

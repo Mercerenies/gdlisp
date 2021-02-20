@@ -1,7 +1,5 @@
 
-pub mod common;
-
-use common::parse_compile_and_output;
+use super::common::parse_compile_and_output;
 
 #[test]
 pub fn quote_test() {

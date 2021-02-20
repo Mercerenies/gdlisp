@@ -1,9 +1,7 @@
 
-mod common;
-
 extern crate gdlisp;
 
-use common::parse_compile_decl;
+use super::common::parse_compile_decl;
 
 #[test]
 pub fn empty_class_test() {

@@ -1,9 +1,7 @@
 
-mod common;
-
 extern crate gdlisp;
 
-use common::{parse_compile_decl, parse_and_run};
+use super::common::{parse_compile_decl, parse_and_run};
 
 ///// Quasiquoting :)
 

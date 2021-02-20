@@ -1,7 +1,5 @@
 
-mod common;
-
-use common::parse_and_run;
+use super::common::parse_and_run;
 
 #[test]
 #[ignore]
