@@ -14,6 +14,8 @@ pub enum AST {
   Float(OrderedFloat<f32>),
   String(String),
   Symbol(String),
+  Vector2(Box<AST>, Box<AST>),
+  Vector3(Box<AST>, Box<AST>, Box<AST>),
 }
 
 pub fn cons(car: AST, cdr: AST) -> AST {
@@ -156,6 +158,12 @@ impl fmt::Display for AST {
           first = false;
         }
         write!(f, "]")
+      }
+      AST::Vector2(x, y) => {
+        write!(f, "V{{{} {}}}", x, y)
+      }
+      AST::Vector3(x, y, z) => {
+        write!(f, "V{{{} {} {}}}", x, y, z)
       }
     }
   }

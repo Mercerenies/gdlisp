@@ -48,7 +48,7 @@ func eval(input):
     return obj.eval(self)
 
 # I'll probably end up migrating this to GDLisp.gd proper at some
-# point, but for now, here it is.
+# point, but for now, here it is. (///// Add Vectors to this; print using literal vector notation)
 func pretty(value):
     if value is GDLisp.NilClass:
         return "()"

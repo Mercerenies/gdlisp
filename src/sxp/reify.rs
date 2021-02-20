@@ -61,6 +61,12 @@ impl Reify for AST {
       AST::Symbol(s) => {
         Expr::Call(Some(Box::new(library::symbol_class())), String::from("new"), vec!(s.reify()))
       }
+      AST::Vector2(x, y) => {
+        Expr::Call(None, String::from("Vector2"), vec!(x.reify(), y.reify()))
+      }
+      AST::Vector3(x, y, z) => {
+        Expr::Call(None, String::from("Vector3"), vec!(x.reify(), y.reify(), z.reify()))
+      }
     }
   }
 

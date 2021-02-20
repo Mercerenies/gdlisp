@@ -176,6 +176,17 @@ impl IncCompiler {
       AST::Symbol(s) => {
         Ok(Expr::LocalVar(s.to_string()))
       }
+      AST::Vector2(x, y) => {
+        let x = self.compile_expr(&*x)?;
+        let y = self.compile_expr(&*y)?;
+        Ok(Expr::Vector2(Box::new(x), Box::new(y)))
+      }
+      AST::Vector3(x, y, z) => {
+        let x = self.compile_expr(&*x)?;
+        let y = self.compile_expr(&*y)?;
+        let z = self.compile_expr(&*z)?;
+        Ok(Expr::Vector3(Box::new(x), Box::new(y), Box::new(z)))
+      }
     }
   }
 

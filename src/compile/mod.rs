@@ -196,6 +196,19 @@ impl<'a> Compiler<'a> {
           .collect::<Result<Vec<_>, _>>()?;
         Ok(StExpr(Expr::Call(Some(Box::new(lhs)), names::lisp_to_gd(sym), args), SideEffects::ModifiesState))
       }
+      IRExpr::Vector2(x, y) => {
+        let StExpr(x, xs) = self.compile_expr(builder, table, x, NeedsResult::Yes)?;
+        let StExpr(y, ys) = self.compile_expr(builder, table, y, NeedsResult::Yes)?;
+        let side_effects = max(xs, ys);
+        Ok(StExpr(Expr::Call(None, String::from("Vector2"), vec!(x, y)), side_effects))
+      }
+      IRExpr::Vector3(x, y, z) => {
+        let StExpr(x, xs) = self.compile_expr(builder, table, x, NeedsResult::Yes)?;
+        let StExpr(y, ys) = self.compile_expr(builder, table, y, NeedsResult::Yes)?;
+        let StExpr(z, zs) = self.compile_expr(builder, table, z, NeedsResult::Yes)?;
+        let side_effects = max(xs, max(ys, zs));
+        Ok(StExpr(Expr::Call(None, String::from("Vector3"), vec!(x, y, z)), side_effects))
+      }
       /* // This will eventually be an optimization.
       IRExpr::Funcall(f, args) => {
         let func_expr = self.compile_expr(builder, table, f, NeedsResult::Yes)?.0;

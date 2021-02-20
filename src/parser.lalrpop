@@ -21,9 +21,9 @@ match {
   r"[+-]?[0-9]+" => INT,
   r"[+-]?[0-9]+((\.[0-9]+)([eE][+-]?[0-9]+)?|(\.[0-9]+)?([eE][+-]?[0-9]+))" => FLOAT,
   r#""([^\\"]|\\[\\"])*""# => STRING,
-  "(", ")", ".", "[", "]", "'", "#'", "`", ",", ":"
+  "(", ")", ".", "[", "]", "'", "#'", "`", ",", ":", "V{", "}"
 } else {
-  // Currently reserved but unused: {};:
+  // Currently reserved but unused: ;
   r"[A-Za-z_~+=\-\\!@$%^&*<>/][A-Za-z0-9_~+=\-\\!@$%^&*<>/]*" => SYMBOL,
 }
 
@@ -52,6 +52,8 @@ pub LiteralOrNestedAST: AST = {
   "(" ")" => AST::Nil,
   "(" <car: AST> <cdr: Cdr> ")" => AST::Cons(Box::new(car), Box::new(cdr)),
   "[" <contents: ArrayContents> "]" => AST::Array(contents),
+  "V{" <x: AST> <y: AST> "}" => AST::Vector2(Box::new(x), Box::new(y)),
+  "V{" <x: AST> <y: AST> <z: AST> "}" => AST::Vector3(Box::new(x), Box::new(y), Box::new(z)),
   <body: LiteralOrNestedAST> ":" <name: Symbol> => ast::list(vec!(AST::Symbol(String::from("access-slot")), body, AST::Symbol(name))),
 }
 

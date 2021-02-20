@@ -61,3 +61,15 @@ pub fn partial_quasiquote_test_4() {
 pub fn array_quasiquote_test() {
   assert_eq!(parse_compile_and_output("(let ((a 1)) `[a ,a a])"), "var a_0 = 1\nreturn [GDLisp.Symbol.new(\"a\"), a_0, GDLisp.Symbol.new(\"a\")]\n");
 }
+
+#[test]
+pub fn vector_quote_test() {
+  assert_eq!(parse_compile_and_output("(let ((a 1)) 'V{a a})"), "var a_0 = 1\nreturn Vector2(GDLisp.Symbol.new(\"a\"), GDLisp.Symbol.new(\"a\"))\n");
+  assert_eq!(parse_compile_and_output("(let ((a 1)) 'V{a a a})"), "var a_0 = 1\nreturn Vector3(GDLisp.Symbol.new(\"a\"), GDLisp.Symbol.new(\"a\"), GDLisp.Symbol.new(\"a\"))\n");
+}
+
+#[test]
+pub fn vector_quasiquote_test() {
+  assert_eq!(parse_compile_and_output("(let ((a 1)) `V{a ,a})"), "var a_0 = 1\nreturn Vector2(GDLisp.Symbol.new(\"a\"), a_0)\n");
+  assert_eq!(parse_compile_and_output("(let ((a 1)) `V{a ,a a})"), "var a_0 = 1\nreturn Vector3(GDLisp.Symbol.new(\"a\"), a_0, GDLisp.Symbol.new(\"a\"))\n");
+}

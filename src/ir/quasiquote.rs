@@ -37,6 +37,17 @@ pub fn quasiquote(icompiler: &mut IncCompiler,
         let v1 = v.iter().map(|x| quasiquote(icompiler, x)).collect::<Result<Vec<_>, _>>()?;
         Ok(Expr::Array(v1))
       }
+      AST::Vector2(x, y) => {
+        let x = quasiquote(icompiler, x)?;
+        let y = quasiquote(icompiler, y)?;
+        Ok(Expr::Vector2(Box::new(x), Box::new(y)))
+      }
+      AST::Vector3(x, y, z) => {
+        let x = quasiquote(icompiler, x)?;
+        let y = quasiquote(icompiler, y)?;
+        let z = quasiquote(icompiler, z)?;
+        Ok(Expr::Vector3(Box::new(x), Box::new(y), Box::new(z)))
+      }
     }
   }
 }
