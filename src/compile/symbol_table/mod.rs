@@ -23,7 +23,11 @@ pub struct SymbolTable {
 pub struct LocalVar {
   pub name: String,
   pub access_type: AccessType,
+  pub scope: VarScope,
 }
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+pub enum VarScope { GlobalVar, LocalVar }
 
 static DEFAULT_CALL_MAGIC: DefaultCall = DefaultCall;
 
@@ -77,19 +81,27 @@ impl SymbolTable {
 impl LocalVar {
 
   pub fn read(name: String) -> LocalVar {
-    LocalVar { name, access_type: AccessType::Read }
+    LocalVar { name, access_type: AccessType::Read, scope: VarScope::LocalVar }
   }
 
   pub fn rw(name: String) -> LocalVar {
-    LocalVar { name, access_type: AccessType::RW }
+    LocalVar { name, access_type: AccessType::RW, scope: VarScope::LocalVar }
   }
 
   pub fn closed_rw(name: String) -> LocalVar {
-    LocalVar { name, access_type: AccessType::ClosedRW }
+    LocalVar { name, access_type: AccessType::ClosedRW, scope: VarScope::LocalVar }
   }
 
-  pub fn new(name: String, access_type: AccessType) -> LocalVar {
-    LocalVar { name, access_type }
+  pub fn global(name: String) -> LocalVar {
+    LocalVar { name, access_type: AccessType::Read, scope: VarScope::GlobalVar }
+  }
+
+  pub fn new(name: String, access_type: AccessType, scope: VarScope) -> LocalVar {
+    LocalVar { name, access_type, scope }
+  }
+
+  pub fn local(name: String, access_type: AccessType) -> LocalVar {
+    LocalVar { name, access_type, scope: VarScope::LocalVar }
   }
 
   pub fn expr(&self) -> Expr {

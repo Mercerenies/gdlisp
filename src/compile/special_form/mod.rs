@@ -115,7 +115,7 @@ pub fn compile_for_stmt<'a>(compiler: &mut Compiler<'a>,
   let citer = compiler.compile_expr(builder, table, iter, NeedsResult::Yes)?.0;
   let var_name = compiler.name_generator().generate_with(&names::lisp_to_gd(name));
   let mut inner_builder = StmtBuilder::new();
-  let local_var = LocalVar { name: var_name.to_owned(), access_type: closure_vars.get(&name) };
+  let local_var = LocalVar::local(var_name.to_owned(), closure_vars.get(&name));
   table.with_local_var(name.to_owned(), local_var, |table| {
     compiler.compile_stmt(&mut inner_builder, table, &stmt_wrapper::Vacuous, body)
   })?;

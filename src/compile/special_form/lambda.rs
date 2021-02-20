@@ -5,7 +5,7 @@ use crate::ir::functions::Functions;
 use crate::ir::arglist::VarArg;
 use crate::compile::{Compiler, StExpr};
 use crate::compile::body::builder::StmtBuilder;
-use crate::compile::symbol_table::{SymbolTable, LocalVar};
+use crate::compile::symbol_table::{SymbolTable, LocalVar, VarScope};
 use crate::compile::symbol_table::function_call::{FnCall, FnSpecs, FnScope};
 use crate::compile::symbol_table::call_magic::DefaultCall;
 use crate::compile::stmt_wrapper;
@@ -148,7 +148,12 @@ fn generate_lambda_class<'a, 'b>(compiler: &mut Compiler<'a>,
   }
 }
 
-///// This is hilariously untested. Good luck :)
+pub fn purge_globals(vars: &mut Locals, table: &SymbolTable) {
+  vars.filter(|var, _| {
+    table.get_var(var).map_or(true, |v| v.scope != VarScope::GlobalVar)
+  });
+}
+
 pub fn compile_labels_scc<'a>(compiler: &mut Compiler<'a>,
                               builder: &mut StmtBuilder,
                               table: &mut SymbolTable,
@@ -175,9 +180,13 @@ pub fn compile_labels_scc<'a>(compiler: &mut Compiler<'a>,
     closure_fns.remove(&name);
   }
 
+  // No need to close around global variables, as they're available everywhere
+  purge_globals(&mut closure_vars, table);
+
   let mut lambda_table = SymbolTable::new();
   locally_bind_vars(table, &mut lambda_table, closure_vars.names())?;
   locally_bind_fns(table, &mut lambda_table, closure_fns.names())?;
+  copy_global_vars(table, &mut lambda_table);
 
   let mut gd_closure_vars = Vec::new();
   for ast_name in closure_vars.names() {
@@ -219,7 +228,7 @@ pub fn compile_labels_scc<'a>(compiler: &mut Compiler<'a>,
     let mut lambda_builder = StmtBuilder::new();
     let (arglist, gd_args) = args.clone().into_gd_arglist(&mut compiler.name_generator());
     for (arg, gd_arg) in &gd_args {
-      lambda_table.set_var(arg.to_owned(), LocalVar::new(gd_arg.to_owned(), all_vars.get(&arg)));
+      lambda_table.set_var(arg.to_owned(), LocalVar::local(gd_arg.to_owned(), all_vars.get(&arg)));
       wrap_in_cell_if_needed(arg, gd_arg, &all_vars, &mut lambda_builder);
     }
     compiler.compile_stmt(&mut lambda_builder, &mut lambda_table, &stmt_wrapper::Return, body)?;
@@ -320,6 +329,14 @@ where I : Iterator<Item=&'a U>,
   Ok(())
 }
 
+fn copy_global_vars(src_table: &SymbolTable, dest_table: &mut SymbolTable) {
+  for (name, var) in src_table.vars() {
+    if var.scope == VarScope::GlobalVar {
+      dest_table.set_var(name.to_owned(), var.clone());
+    }
+  }
+}
+
 fn closure_fn_to_gd_var(call: &FnCall) -> Option<LocalVar> {
   match &call.scope {
     FnScope::Local(name) | FnScope::SpecialLocal(name) => {
@@ -327,10 +344,10 @@ fn closure_fn_to_gd_var(call: &FnCall) -> Option<LocalVar> {
       // here (it's possible we can get away with Read in some
       // situations), but I don't think it changes anything, so we
       // may as well play it safe.
-      Some(LocalVar {
-        name: name.to_owned(),
-        access_type: AccessType::ClosedRead,
-      })
+      Some(LocalVar::local(
+        name.to_owned(),
+        AccessType::ClosedRead,
+      ))
     }
     FnScope::SemiGlobal | FnScope::Global => {
       None
@@ -363,11 +380,15 @@ pub fn compile_lambda_stmt<'a>(compiler: &mut Compiler<'a>,
 
   let mut lambda_table = SymbolTable::new();
   for arg in &gd_args {
-    lambda_table.set_var(arg.0.to_owned(), LocalVar::new(arg.1.to_owned(), all_vars.get(&arg.0)));
+    lambda_table.set_var(arg.0.to_owned(), LocalVar::local(arg.1.to_owned(), all_vars.get(&arg.0)));
   }
+
+  // No need to close around global variables, as they're available everywhere
+  purge_globals(&mut closure_vars, table);
 
   locally_bind_vars(table, &mut lambda_table, closure_vars.names())?;
   locally_bind_fns(table, &mut lambda_table, closure_fns.names())?;
+  copy_global_vars(table, &mut lambda_table);
 
   let mut gd_closure_vars = Vec::new();
   for ast_name in closure_vars.names() {
@@ -415,10 +436,10 @@ pub fn compile_function_ref<'a>(compiler: &mut Compiler<'a>,
 
     let mut closure_vars = Vec::new();
     if let FnScope::SpecialLocal(name) = func.scope {
-      closure_vars.push(LocalVar {
-        name: name,
-        access_type: AccessType::ClosedRead, // May be overly conservative but definitely safe.
-      });
+      closure_vars.push(LocalVar::local(
+        name,
+        AccessType::ClosedRead, // May be overly conservative but definitely safe.
+      ));
     }
     let closure_var_ctor_args: Vec<_> = closure_vars.iter().map(|x| {
       Expr::var(&x.name)

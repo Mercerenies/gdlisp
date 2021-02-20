@@ -142,7 +142,7 @@ impl<'a> Compiler<'a> {
           let gd_name = self.declare_var(builder, &names::lisp_to_gd(&ast_name), Some(result_value));
           Ok((ast_name, gd_name))
         }).collect::<Result<Vec<_>, _>>()?;
-        table.with_local_vars(&mut var_names.into_iter().map(|x| (x.0.clone(), LocalVar::new(x.1, closure_vars.get(&x.0)))), |table| {
+        table.with_local_vars(&mut var_names.into_iter().map(|x| (x.0.clone(), LocalVar::local(x.1, closure_vars.get(&x.0)))), |table| {
           self.compile_expr(builder, table, body, needs_result)
         })
       }
@@ -268,7 +268,7 @@ impl<'a> Compiler<'a> {
                                          Box::new(library::construct_cell(Expr::var(&arg.1)))));
       }
     }
-    table.with_local_vars(&mut gd_args.into_iter().map(|x| (x.0.to_owned(), LocalVar::new(x.1, local_vars.get(&x.0)))), |table| {
+    table.with_local_vars(&mut gd_args.into_iter().map(|x| (x.0.to_owned(), LocalVar::local(x.1, local_vars.get(&x.0)))), |table| {
       self.compile_stmt(&mut stmt_builder, table, &stmt_wrapper::Return, body)
     })?;
     Ok(decl::FnDecl {
