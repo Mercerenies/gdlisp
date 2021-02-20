@@ -2,7 +2,8 @@
 // Incremental compilation (supplies backbone for macro resolution)
 
 use super::symbol_table::SymbolTable;
-use super::{MAIN_BODY_NAME, resolve_call_name};
+use super::MAIN_BODY_NAME;
+use super::call_name::CallName;
 use super::arglist::ArgList;
 use super::literal::Literal;
 use super::expr::Expr;
@@ -96,13 +97,29 @@ impl IncCompiler {
     if vec.is_empty() {
       Ok(None) // Nil is not a macro call.
     } else {
-      let head = resolve_call_name(vec[0])?;
-      let tail = &vec[1..];
-      if let Some(call) = self.macro_files.get(head) {
-        let call = call.clone(); // Can't borrow self mutably below, so let's get rid of the immutable borrow above.
-        self.resolve_macro_call(&call, head, tail).map(Some)
+      let head = self.resolve_call_name(vec[0])?;
+      if let CallName::SimpleName(head) = head {
+        let tail = &vec[1..];
+        if let Some(call) = self.macro_files.get(&head) {
+          let call = call.clone(); // Can't borrow self mutably below, so let's get rid of the immutable borrow above.
+          self.resolve_macro_call(&call, &head, tail).map(Some)
+        } else {
+          Ok(None)
+        }
       } else {
         Ok(None)
+      }
+    }
+  }
+
+  fn resolve_call_name(&mut self, ast: &AST) -> Result<CallName, Error> {
+    if let Some((lhs, name)) = CallName::try_resolve_method_name(ast) {
+      let lhs = self.compile_expr(lhs)?;
+      Ok(CallName::MethodName(Box::new(lhs), name.to_owned()))
+    } else {
+      match ast {
+        AST::Symbol(s) => Ok(CallName::SimpleName(s.clone())),
+        _ => Err(Error::CannotCall(ast.clone())),
       }
     }
   }
@@ -127,9 +144,17 @@ impl IncCompiler {
         if vec.is_empty() {
           Ok(Expr::Literal(Literal::Nil))
         } else {
-          let head = resolve_call_name(vec[0])?;
+          let head = self.resolve_call_name(vec[0])?;
           let tail = &vec[1..];
-          self.resolve_simple_call(head, tail)
+          match head {
+            CallName::SimpleName(head) => {
+              self.resolve_simple_call(&head, tail)
+            }
+            CallName::MethodName(target, head) => {
+              let args = tail.iter().map(|x| self.compile_expr(x)).collect::<Result<Vec<_>, _>>()?;
+              Ok(Expr::MethodCall(target, head, args))
+            }
+          }
         }
       }
       AST::Array(vec) => {

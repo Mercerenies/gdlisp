@@ -41,6 +41,15 @@ mod tests {
   }
 
   #[test]
+  fn parser_colon() {
+    let p = ASTParser::new();
+    assert_eq!(p.parse("a:b").unwrap(), ast::list(vec!(ast::symbol("access-slot"), ast::symbol("a"), ast::symbol("b"))));
+    assert_eq!(p.parse("(1 . 2):b").unwrap(), ast::list(vec!(ast::symbol("access-slot"), ast::cons(AST::Int(1), AST::Int(2)), ast::symbol("b"))));
+    assert_eq!(p.parse("'a:b").unwrap(), ast::list(vec!(ast::symbol("quote"), ast::list(vec!(ast::symbol("access-slot"), ast::symbol("a"), ast::symbol("b"))))));
+    assert_eq!(p.parse("a:b:c").unwrap(), ast::list(vec!(ast::symbol("access-slot"), ast::list(vec!(ast::symbol("access-slot"), ast::symbol("a"), ast::symbol("b"))), ast::symbol("c"))));
+  }
+
+  #[test]
   fn parser_failures() {
     let p = ASTParser::new();
     assert!(p.parse("(").is_err());
@@ -50,6 +59,9 @@ mod tests {
     assert!(p.parse("1.").is_err());
     assert!(p.parse("()(").is_err());
     assert!(p.parse("(1 . )").is_err());
+    assert!(p.parse("a:").is_err());
+    assert!(p.parse(":b").is_err());
+    assert!(p.parse("a:(1 . 2)").is_err());
   }
 
 }

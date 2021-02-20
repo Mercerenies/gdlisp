@@ -28,6 +28,7 @@ pub fn dispatch_form(icompiler: &mut IncCompiler,
     "quote" => quote_form(tail).map(Some),
     "quasiquote" => quasiquote_form(icompiler, tail).map(Some),
     "unquote" => Err(Error::UnquoteOutsideQuasiquote),
+    "access-slot" => access_slot_form(icompiler, tail).map(Some),
     _ => Ok(None),
   }
 }
@@ -218,4 +219,19 @@ pub fn quasiquote_form(icompiler: &mut IncCompiler, tail: &[&AST]) -> Result<Exp
     return Err(Error::TooManyArgs(String::from("quasiquote"), 1))
   }
   quasiquote(icompiler, tail[0])
+}
+
+pub fn access_slot_form(icompiler: &mut IncCompiler, tail: &[&AST]) -> Result<Expr, Error> {
+  if tail.len() < 2 {
+    return Err(Error::TooFewArgs(String::from("access-slot"), 2))
+  }
+  if tail.len() > 2 {
+    return Err(Error::TooManyArgs(String::from("access-slot"), 2))
+  }
+  let lhs = icompiler.compile_expr(tail[0])?;
+  let slot_name = match tail[1] {
+    AST::Symbol(s) => s.to_owned(),
+    _ => return Err(Error::InvalidArg(String::from("access-slot"), tail[1].clone(), String::from("symbol"))),
+  };
+  Ok(Expr::FieldAccess(Box::new(lhs), slot_name))
 }

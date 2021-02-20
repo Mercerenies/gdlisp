@@ -21,13 +21,28 @@ match {
   r"[+-]?[0-9]+" => INT,
   r"[+-]?[0-9]+((\.[0-9]+)([eE][+-]?[0-9]+)?|(\.[0-9]+)?([eE][+-]?[0-9]+))" => FLOAT,
   r#""([^\\"]|\\[\\"])*""# => STRING,
-  "(", ")", ".", "[", "]", "'", "#'", "`", ","
+  "(", ")", ".", "[", "]", "'", "#'", "`", ",", ":"
 } else {
-  // Currently reserved but unused: {};:.
+  // Currently reserved but unused: {};:
   r"[A-Za-z_~+=\-\\!@$%^&*<>/][A-Za-z0-9_~+=\-\\!@$%^&*<>/]*" => SYMBOL,
 }
 
 pub AST: AST = {
+  <ast: LiteralOrNestedAST> => ast,
+  "'" <body: AST> => ast::list(vec!(AST::Symbol(String::from("quote")), body)),
+  "#'" <body: AST> => ast::list(vec!(AST::Symbol(String::from("function")), body)),
+  "`" <body: AST> => ast::list(vec!(AST::Symbol(String::from("quasiquote")), body)),
+  "," <body: AST> => ast::list(vec!(AST::Symbol(String::from("unquote")), body)),
+}
+
+// This is here to fix an ambiguity with the grammar. Specifically, I
+// want ' a : b to parse as (quote (access-slot a b)), not
+// (access-slot (quote a) b). There is never a use case where the
+// latter would be helpful, as (quote a) has no GDScript-only slots on
+// it. The same applies to function and quasiquote. unquote is a bit
+// more nebulous, as there are use cases for either possible parse of
+// ,a:b, but I'm treating it the same as the other three for now.
+pub LiteralOrNestedAST: AST = {
   "#t" => AST::Bool(true),
   "#f" => AST::Bool(false),
   <i: Int> => AST::Int(i),
@@ -37,10 +52,7 @@ pub AST: AST = {
   "(" ")" => AST::Nil,
   "(" <car: AST> <cdr: Cdr> ")" => AST::Cons(Box::new(car), Box::new(cdr)),
   "[" <contents: ArrayContents> "]" => AST::Array(contents),
-  "'" <body: AST> => ast::list(vec!(AST::Symbol(String::from("quote")), body)),
-  "#'" <body: AST> => ast::list(vec!(AST::Symbol(String::from("function")), body)),
-  "`" <body: AST> => ast::list(vec!(AST::Symbol(String::from("quasiquote")), body)),
-  "," <body: AST> => ast::list(vec!(AST::Symbol(String::from("unquote")), body)),
+  <body: LiteralOrNestedAST> ":" <name: Symbol> => ast::list(vec!(AST::Symbol(String::from("access-slot")), body, AST::Symbol(name))),
 }
 
 Cdr: AST = {

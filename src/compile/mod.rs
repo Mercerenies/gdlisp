@@ -180,6 +180,22 @@ impl<'a> Compiler<'a> {
       IRExpr::Quote(ast) => {
         Ok(StExpr(ast.reify(), SideEffects::None))
       }
+      IRExpr::FieldAccess(lhs, sym) => {
+        let StExpr(lhs, state) = self.compile_expr(builder, table, lhs, NeedsResult::Yes)?;
+        let side_effects = max(SideEffects::ReadsState, state);
+        Ok(StExpr(Expr::Attribute(Box::new(lhs), names::lisp_to_gd(sym)), side_effects))
+      }
+      IRExpr::MethodCall(lhs, sym, args) => {
+        // Note: No call magic, no optional/rest arguments. When
+        // calling a method, we assume all arguments are required, we
+        // perform no optimization, we do not check arity, and we
+        // simply blindly forward the call on the GDScript side.
+        let StExpr(lhs, _) = self.compile_expr(builder, table, lhs, NeedsResult::Yes)?;
+        let args = args.iter()
+          .map(|arg| self.compile_expr(builder, table, arg, NeedsResult::Yes).map(|x| x.0))
+          .collect::<Result<Vec<_>, _>>()?;
+        Ok(StExpr(Expr::Call(Some(Box::new(lhs)), names::lisp_to_gd(sym), args), SideEffects::ModifiesState))
+      }
       /* // This will eventually be an optimization.
       IRExpr::Funcall(f, args) => {
         let func_expr = self.compile_expr(builder, table, f, NeedsResult::Yes)?.0;

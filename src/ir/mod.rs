@@ -19,6 +19,7 @@ pub mod incremental;
 pub mod depends;
 pub mod macros;
 pub mod quasiquote;
+pub mod call_name;
 
 use expr::Expr;
 use decl::Decl;
@@ -41,15 +42,6 @@ pub fn compile_toplevel(body: &AST)
                         -> Result<Vec<Decl>, Error> {
   let compiler = incremental::IncCompiler::new();
   compiler.compile_toplevel(body)
-}
-
-// TODO For now, we can only call symbols. We'll need to extend this
-// eventually to support attributed calls (foo.bar(), etc).
-fn resolve_call_name(ast: &AST) -> Result<&str, Error> {
-  match ast {
-    AST::Symbol(s) => Ok(&*s),
-    _ => Err(Error::CannotCall(ast.clone())),
-  }
 }
 
 #[cfg(test)]

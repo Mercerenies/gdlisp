@@ -27,6 +27,8 @@ pub enum Expr {
   Assign(String, Box<Expr>),
   Array(Vec<Expr>),
   Quote(AST),
+  FieldAccess(Box<Expr>, String),
+  MethodCall(Box<Expr>, String, Vec<Expr>),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -169,6 +171,15 @@ impl Expr {
         }
       }
       Expr::Quote(_) => {}
+      Expr::FieldAccess(lhs, _) => {
+        lhs.walk_locals(acc_vars, acc_fns);
+      }
+      Expr::MethodCall(lhs, _, args) => {
+        lhs.walk_locals(acc_vars, acc_fns);
+        for expr in args {
+          expr.walk_locals(acc_vars, acc_fns);
+        }
+      }
     };
   }
 
