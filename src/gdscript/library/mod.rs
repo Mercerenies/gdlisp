@@ -1,12 +1,15 @@
 
 // Convenient access to the builtins in GDLisp.gd
 
+pub mod classes;
+
 use super::expr::Expr;
 use super::op;
-use crate::compile::symbol_table::SymbolTable;
+use crate::compile::symbol_table::{SymbolTable, LocalVar};
 use crate::compile::symbol_table::function_call::{FnCall, FnScope, FnSpecs};
 use crate::compile::symbol_table::call_magic;
 use crate::ir::arglist::VarArg;
+use classes::GDSCRIPT_CLASS_NAMES;
 
 use std::collections::HashSet;
 
@@ -49,6 +52,11 @@ pub fn construct_cell(expr: Expr) -> Expr {
 }
 
 pub fn bind_builtins(table: &mut SymbolTable) {
+
+  // All built-in global class names
+  for name in &GDSCRIPT_CLASS_NAMES {
+    table.set_var((*name).to_owned(), LocalVar::global((*name).to_owned()));
+  }
 
   // Cons
   table.set_fn("cons".to_owned(),
