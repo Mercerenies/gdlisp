@@ -19,7 +19,6 @@ use gdlisp::compile::symbol_table::SymbolTable;
 use gdlisp::parser;
 use gdlisp::gdscript::library;
 use gdlisp::gdscript::decl;
-use gdlisp::sxp::ast;
 use gdlisp::command_line::{parse_args, show_help_message};
 use gdlisp::pipeline;
 
@@ -29,7 +28,7 @@ use std::fs;
 
 fn run_pseudo_repl() {
   let stdin = io::stdin();
-  let parser = parser::ASTParser::new();
+  let parser = parser::SomeASTParser::new();
   let mut compiler = Compiler::new(FreshNameGenerator::new(vec!()));
   let mut table = SymbolTable::new();
   library::bind_builtins(&mut table);
@@ -40,14 +39,6 @@ fn run_pseudo_repl() {
       Err(err) => println!("Error: {}", err),
       Ok(value) => {
         println!("{}", value);
-        // If it doesn't already look like a list of declarations,
-        // make it a singleton list. (We're trying to guess what the
-        // user wants here, so it won't be perfect)
-        let value =
-          match value {
-            ast::AST::Cons(ref a, _) if matches!(**a, ast::AST::Cons(_, _)) => value,
-            _ => ast::cons(value, ast::AST::Nil),
-          };
         match ir::compile_toplevel(&value) {
           Err(err) => println!("Error: {:?}", err),
           Ok(value) => {
