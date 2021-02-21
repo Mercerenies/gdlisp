@@ -320,13 +320,9 @@ impl<'a> Compiler<'a> {
 
   pub fn compile_decls(&mut self,
                        builder: &mut CodeBuilder,
-                       table: &SymbolTable,
+                       table: &mut SymbolTable,
                        decls: &[IRDecl])
                        -> Result<(), Error> {
-    // Since we're going to be altering it a lot (and this function
-    // should be getting called infrequently), it's going to be easier
-    // to just copy the symbol table now, rather than try to track all
-    // changes and undo them.
     let mut table = table.clone();
     for decl in decls {
       Compiler::bind_decl(&mut table, decl)?;

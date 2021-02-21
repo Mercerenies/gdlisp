@@ -2,6 +2,7 @@
 pub mod error;
 pub mod translation_unit;
 
+use translation_unit::TranslationUnit;
 use crate::parser;
 use crate::ir;
 use crate::compile::Compiler;
@@ -13,6 +14,24 @@ use crate::gdscript::decl;
 
 use std::io::{self, Read, Write};
 use error::Error;
+
+/*
+pub fn compile_code(input: &str) -> Result<TranslationUnit, Error> {
+  let parser = parser::SomeASTParser::new();
+  let ast = parser.parse(&contents)?;
+
+  let mut compiler = Compiler::new(FreshNameGenerator::new(ast.all_symbols()));
+  let mut table = SymbolTable::new();
+  library::bind_builtins(&mut table);
+
+  let ir = ir::compile_toplevel(&ast)?;
+  let mut builder = CodeBuilder::new(decl::ClassExtends::Named("Node".to_owned()));
+  compiler.compile_decls(&mut builder, &table, &ir)?;
+  let result = builder.build();
+  write!(output, "{}", result.to_gd())?;
+  Ok(())
+}
+*/
 
 pub fn compile_file<R, W>(input: &mut R, output: &mut W) -> Result<(), Error>
 where R : Read,
@@ -28,7 +47,7 @@ where R : Read,
 
   let ir = ir::compile_toplevel(&ast)?;
   let mut builder = CodeBuilder::new(decl::ClassExtends::Named("Node".to_owned()));
-  compiler.compile_decls(&mut builder, &table, &ir)?;
+  compiler.compile_decls(&mut builder, &mut table, &ir)?;
   let result = builder.build();
   write!(output, "{}", result.to_gd())?;
   Ok(())

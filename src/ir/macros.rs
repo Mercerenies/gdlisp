@@ -32,7 +32,7 @@ pub fn create_macro_file(src_table: &IRSymbolTable, names: HashSet<String>) -> R
   let decls = Vec::from(src_table.filter(|d| names.contains(d.name())));
 
   let mut builder = CodeBuilder::new(decl::ClassExtends::Named("Node".to_owned()));
-  compiler.compile_decls(&mut builder, &table, &decls)?;
+  compiler.compile_decls(&mut builder, &mut table, &decls)?;
   let result = builder.build();
 
   // TODO Handle the error correctly
