@@ -273,7 +273,6 @@ impl IncCompiler {
         let name = d.name().to_owned();
         self.symbols.set(name.clone(), d);
         if is_macro {
-          // TODO Handle error correctly
           self.bind_macro(&name)?;
         }
       }
@@ -294,7 +293,6 @@ impl IncCompiler {
       body: Expr::Progn(main),
     });
     self.symbols.set(MAIN_BODY_NAME.to_owned(), main_decl);
-    self.server.shutdown().expect("IO Error"); // TODO Should we suppress this error? It is only a shutdown
     Ok(self.symbols.into())
   }
 
@@ -318,7 +316,7 @@ impl IncCompiler {
     let server = self.server.get_mut()?;
     let cmd = ServerCommand::Load((*path.to_string_lossy()).to_owned());
     let result = server.issue_command(&cmd)?;
-    Ok(result.parse().expect("Invalid response from server on load file"))
+    result.parse().map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e))
   }
 
 }
