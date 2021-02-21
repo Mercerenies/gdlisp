@@ -20,10 +20,13 @@ use gdlisp::parser;
 use gdlisp::gdscript::library;
 use gdlisp::gdscript::decl;
 use gdlisp::sxp::ast;
+use gdlisp::command_line::{parse_args, show_help_message};
 
-use std::io::{self, BufRead};
+use std::io::{self, Write, BufRead, BufWriter};
+use std::env;
+use std::fs;
 
-fn main() {
+fn run_pseudo_repl() {
   let stdin = io::stdin();
   let parser = parser::ASTParser::new();
   let mut compiler = Compiler::new(FreshNameGenerator::new(vec!()));
@@ -61,4 +64,37 @@ fn main() {
     }
   }
 
+}
+
+fn compile_file(input: &str, output: Option<&str>) {
+  let mut output_target: Box<dyn Write> = output.map_or(Box::new(io::stdout()), |name| Box::new(fs::File::create(name).unwrap()));
+  let mut output_target: BufWriter<&mut dyn Write> = BufWriter::new(output_target.by_ref());
+
+  let input_contents = fs::read_to_string(input).unwrap();
+  let parser = parser::SomeASTParser::new();
+  let ast = parser.parse(&input_contents).unwrap();
+
+  let mut compiler = Compiler::new(FreshNameGenerator::new(ast.all_symbols()));
+  let mut table = SymbolTable::new();
+  library::bind_builtins(&mut table);
+
+  let ir = ir::compile_toplevel(&ast).unwrap();
+  let mut builder = CodeBuilder::new(decl::ClassExtends::Named("Node".to_owned()));
+  compiler.compile_decls(&mut builder, &table, &ir).unwrap();
+  let result = builder.build();
+  write!(output_target, "{}", result.to_gd()).unwrap();
+
+}
+
+fn main() {
+  let args: Vec<_> = env::args().collect();
+  let program_name = &args[0];
+  let parsed_args = parse_args(&args[1..]);
+  if parsed_args.help_message {
+    show_help_message(&program_name);
+  } else if let Some(input) = parsed_args.input_file {
+    compile_file(&input, parsed_args.output_file.as_deref());
+  } else {
+    run_pseudo_repl();
+  }
 }

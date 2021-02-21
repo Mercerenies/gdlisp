@@ -35,6 +35,11 @@ pub AST: AST = {
   "," <body: AST> => ast::list(vec!(AST::Symbol(String::from("unquote")), body)),
 }
 
+pub SomeAST: AST = {
+  <one: AST> => ast::cons(one, AST::Nil),
+  <first: AST> <rest: SomeAST> => ast::cons(first, rest),
+}
+
 // This is here to fix an ambiguity with the grammar. Specifically, I
 // want ' a : b to parse as (quote (access-slot a b)), not
 // (access-slot (quote a) b). There is never a use case where the

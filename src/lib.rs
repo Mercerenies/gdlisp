@@ -12,6 +12,7 @@ pub mod gdscript;
 pub mod runner;
 pub mod graph;
 pub mod util;
+pub mod command_line;
 mod parser_test;
 
 lalrpop_mod!(#[allow(clippy::all)] pub parser);
