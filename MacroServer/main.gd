@@ -48,7 +48,7 @@ func eval(input):
     return obj.eval(self)
 
 # I'll probably end up migrating this to GDLisp.gd proper at some
-# point, but for now, here it is. (///// Add Vectors to this; print using literal vector notation)
+# point, but for now, here it is.
 func pretty(value):
     if value is GDLisp.NilClass:
         return "()"
@@ -81,5 +81,11 @@ func pretty(value):
         return "#t"
     elif value is bool and not value:
         return "#f"
+    elif value is int or value is float:
+        return str(value)
+    elif value is Vector2:
+        return "V{{} {}}".format([pretty(value.x), pretty(value.y)], "{}")
+    elif value is Vector3:
+        return "V{{} {} {}}".format([pretty(value.x), pretty(value.y), pretty(value.z)], "{}")
     else:
         return str(value)

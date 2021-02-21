@@ -141,6 +141,8 @@ mod tests {
     roundtrip_value(&mut server2, "(1 . ())");
     roundtrip_value(&mut server2, "[#t #f abc def]");
     roundtrip_value(&mut server2, "[10 20 (30 . (40 . ())) \"ABC\"]");
+    roundtrip_value(&mut server2, "V{1 2}");
+    roundtrip_value(&mut server2, "V{1 2 3}");
     // TODO Test roundtrip on string escaping (once we support parsing
     // escape sequences)
 
