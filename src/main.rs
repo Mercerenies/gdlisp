@@ -21,8 +21,9 @@ use gdlisp::gdscript::library;
 use gdlisp::gdscript::decl;
 use gdlisp::sxp::ast;
 use gdlisp::command_line::{parse_args, show_help_message};
+use gdlisp::pipeline;
 
-use std::io::{self, Write, BufRead, BufWriter};
+use std::io::{self, Write, BufRead, BufWriter, BufReader};
 use std::env;
 use std::fs;
 
@@ -70,20 +71,8 @@ fn compile_file(input: &str, output: Option<&str>) {
   let mut output_target: Box<dyn Write> = output.map_or(Box::new(io::stdout()), |name| Box::new(fs::File::create(name).unwrap()));
   let mut output_target: BufWriter<&mut dyn Write> = BufWriter::new(output_target.by_ref());
 
-  let input_contents = fs::read_to_string(input).unwrap();
-  let parser = parser::SomeASTParser::new();
-  let ast = parser.parse(&input_contents).unwrap();
-
-  let mut compiler = Compiler::new(FreshNameGenerator::new(ast.all_symbols()));
-  let mut table = SymbolTable::new();
-  library::bind_builtins(&mut table);
-
-  let ir = ir::compile_toplevel(&ast).unwrap();
-  let mut builder = CodeBuilder::new(decl::ClassExtends::Named("Node".to_owned()));
-  compiler.compile_decls(&mut builder, &table, &ir).unwrap();
-  let result = builder.build();
-  write!(output_target, "{}", result.to_gd()).unwrap();
-
+  let mut input_target = BufReader::new(fs::File::open(input).unwrap());
+  pipeline::compile_file(&mut input_target, &mut output_target).unwrap();
 }
 
 fn main() {
