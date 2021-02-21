@@ -1,5 +1,6 @@
 
 pub mod error;
+pub mod translation_unit;
 
 use crate::parser;
 use crate::ir;
