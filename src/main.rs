@@ -13,17 +13,21 @@ lalrpop_mod!(pub parser);
 
 use gdlisp::gdscript::decl;
 use gdlisp::command_line::{parse_args, show_help_message};
-use gdlisp::pipeline;
+use gdlisp::pipeline::Pipeline;
+use gdlisp::pipeline::config::ProjectConfig;
 
 use std::io::{self, Write, BufRead, BufWriter, BufReader};
 use std::env;
 use std::fs;
+use std::path::{PathBuf, Path};
+use std::str::FromStr;
 
 fn run_pseudo_repl() {
   let stdin = io::stdin();
+  let pipeline = Pipeline::new(ProjectConfig { root_directory: PathBuf::from_str(".").unwrap() }); // Infallible
 
   for line in stdin.lock().lines() {
-    match pipeline::compile_code("(eval)", &line.unwrap()) {
+    match pipeline.compile_code("(eval)", &line.unwrap()) {
       Err(err) => {
         println!("Error: {:?}", err);
       }
@@ -36,12 +40,15 @@ fn run_pseudo_repl() {
 
 }
 
-fn compile_file(input: &str, output: Option<&str>) {
+fn compile_file<P : AsRef<Path> + ?Sized>(input: &P, output: Option<&str>) {
+  let input = input.as_ref();
+  let pipeline = Pipeline::new(ProjectConfig { root_directory: input.parent().unwrap_or(input).to_owned() });
+
   let mut output_target: Box<dyn Write> = output.map_or(Box::new(io::stdout()), |name| Box::new(fs::File::create(name).unwrap()));
   let mut output_target: BufWriter<&mut dyn Write> = BufWriter::new(output_target.by_ref());
 
   let mut input_target = BufReader::new(fs::File::open(input).unwrap());
-  pipeline::compile_file(input, &mut input_target, &mut output_target).unwrap();
+  pipeline.compile_file(input, &mut input_target, &mut output_target).unwrap();
 }
 
 fn main() {

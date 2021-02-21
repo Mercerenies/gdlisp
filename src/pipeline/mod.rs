@@ -1,8 +1,10 @@
 
 pub mod error;
 pub mod translation_unit;
+pub mod config;
 
 use translation_unit::TranslationUnit;
+use config::ProjectConfig;
 use crate::parser;
 use crate::ir;
 use crate::compile::Compiler;
@@ -13,31 +15,45 @@ use crate::gdscript::library;
 use crate::gdscript::decl;
 
 use std::io::{self, Read, Write};
+use std::path::Path;
 use error::Error;
 
-pub fn compile_code(filename: &str, input: &str) -> Result<TranslationUnit, Error> {
-  let parser = parser::SomeASTParser::new();
-  let ast = parser.parse(input)?;
-
-  let mut compiler = Compiler::new(FreshNameGenerator::new(ast.all_symbols()));
-  let mut table = SymbolTable::new();
-  library::bind_builtins(&mut table);
-
-  let ir = ir::compile_toplevel(&ast)?;
-  let mut builder = CodeBuilder::new(decl::ClassExtends::Named("Node".to_owned()));
-  compiler.compile_decls(&mut builder, &mut table, &ir)?;
-  let result = builder.build();
-
-  Ok(TranslationUnit::new(filename.to_owned(), table, result))
+pub struct Pipeline {
+  config: ProjectConfig,
 }
 
-pub fn compile_file<R, W>(filename: &str, input: &mut R, output: &mut W) -> Result<(), Error>
-where R : Read,
-      W : Write {
-  let contents = read_to_end(input)?;
-  let result = decl::TopLevelClass::from(compile_code(filename, &contents)?);
-  write!(output, "{}", result.to_gd())?;
-  Ok(())
+impl Pipeline {
+
+  pub fn new(config: ProjectConfig) -> Pipeline {
+    Pipeline { config }
+  }
+
+  pub fn compile_code<P : AsRef<Path> + ?Sized>(&self, filename: &P, input: &str) -> Result<TranslationUnit, Error> {
+    let parser = parser::SomeASTParser::new();
+    let ast = parser.parse(input)?;
+
+    let mut compiler = Compiler::new(FreshNameGenerator::new(ast.all_symbols()));
+    let mut table = SymbolTable::new();
+    library::bind_builtins(&mut table);
+
+    let ir = ir::compile_toplevel(&ast)?;
+    let mut builder = CodeBuilder::new(decl::ClassExtends::Named("Node".to_owned()));
+    compiler.compile_decls(&mut builder, &mut table, &ir)?;
+    let result = builder.build();
+
+    Ok(TranslationUnit::new(filename.as_ref().to_owned(), table, result))
+  }
+
+  pub fn compile_file<P, R, W>(&self, filename: &P, input: &mut R, output: &mut W)
+                            -> Result<(), Error>
+  where P : AsRef<Path> + ?Sized,
+        R : Read,
+        W : Write {
+    let contents = read_to_end(input)?;
+    let result = decl::TopLevelClass::from(self.compile_code(filename, &contents)?);
+    write!(output, "{}", result.to_gd())?;
+    Ok(())
+  }
 
 }
 

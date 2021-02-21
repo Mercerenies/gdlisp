@@ -2,19 +2,21 @@
 use crate::compile::symbol_table::SymbolTable;
 use crate::gdscript::decl::TopLevelClass;
 
+use std::path::{PathBuf, Path};
+
 pub struct TranslationUnit {
-  filename: String,
+  filename: PathBuf,
   table: SymbolTable,
   gdscript: TopLevelClass,
 }
 
 impl TranslationUnit {
 
-  pub fn new(filename: String, table: SymbolTable, gdscript: TopLevelClass) -> TranslationUnit {
+  pub fn new(filename: PathBuf, table: SymbolTable, gdscript: TopLevelClass) -> TranslationUnit {
     TranslationUnit { filename, table, gdscript }
   }
 
-  pub fn filename(&self) -> &str {
+  pub fn filename(&self) -> &Path {
     &self.filename
   }
 
