@@ -20,6 +20,7 @@ pub mod depends;
 pub mod macros;
 pub mod quasiquote;
 pub mod call_name;
+pub mod import;
 
 use expr::Expr;
 use decl::Decl;
