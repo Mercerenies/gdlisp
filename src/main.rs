@@ -11,13 +11,6 @@ mod parser_test;
 lalrpop_mod!(pub parser);
 */
 
-use gdlisp::ir;
-use gdlisp::compile::Compiler;
-use gdlisp::compile::names::fresh::FreshNameGenerator;
-use gdlisp::compile::body::builder::CodeBuilder;
-use gdlisp::compile::symbol_table::SymbolTable;
-use gdlisp::parser;
-use gdlisp::gdscript::library;
 use gdlisp::gdscript::decl;
 use gdlisp::command_line::{parse_args, show_help_message};
 use gdlisp::pipeline;
@@ -28,30 +21,15 @@ use std::fs;
 
 fn run_pseudo_repl() {
   let stdin = io::stdin();
-  let parser = parser::SomeASTParser::new();
-  let mut compiler = Compiler::new(FreshNameGenerator::new(vec!()));
-  let mut table = SymbolTable::new();
-  library::bind_builtins(&mut table);
 
   for line in stdin.lock().lines() {
-    let str = line.unwrap();
-    match parser.parse(&str) {
-      Err(err) => println!("Error: {}", err),
-      Ok(value) => {
-        println!("{}", value);
-        match ir::compile_toplevel(&value) {
-          Err(err) => println!("Error: {:?}", err),
-          Ok(value) => {
-            let mut tmp = CodeBuilder::new(decl::ClassExtends::Named("Node".to_owned()));
-            match compiler.compile_decls(&mut tmp, &mut table, &value) {
-              Err(err) => println!("Error: {:?}", err),
-              Ok(()) => {
-                let result = tmp.build();
-                print!("{}", result.to_gd());
-              }
-            }
-          }
-        }
+    match pipeline::compile_code("(eval)", &line.unwrap()) {
+      Err(err) => {
+        println!("Error: {:?}", err);
+      }
+      Ok(trans) => {
+        let cls = decl::TopLevelClass::from(trans);
+        print!("{}", cls.to_gd());
       }
     }
   }
@@ -63,7 +41,7 @@ fn compile_file(input: &str, output: Option<&str>) {
   let mut output_target: BufWriter<&mut dyn Write> = BufWriter::new(output_target.by_ref());
 
   let mut input_target = BufReader::new(fs::File::open(input).unwrap());
-  pipeline::compile_file(&mut input_target, &mut output_target).unwrap();
+  pipeline::compile_file(input, &mut input_target, &mut output_target).unwrap();
 }
 
 fn main() {

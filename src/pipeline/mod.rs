@@ -15,31 +15,9 @@ use crate::gdscript::decl;
 use std::io::{self, Read, Write};
 use error::Error;
 
-/*
-pub fn compile_code(input: &str) -> Result<TranslationUnit, Error> {
+pub fn compile_code(filename: &str, input: &str) -> Result<TranslationUnit, Error> {
   let parser = parser::SomeASTParser::new();
-  let ast = parser.parse(&contents)?;
-
-  let mut compiler = Compiler::new(FreshNameGenerator::new(ast.all_symbols()));
-  let mut table = SymbolTable::new();
-  library::bind_builtins(&mut table);
-
-  let ir = ir::compile_toplevel(&ast)?;
-  let mut builder = CodeBuilder::new(decl::ClassExtends::Named("Node".to_owned()));
-  compiler.compile_decls(&mut builder, &table, &ir)?;
-  let result = builder.build();
-  write!(output, "{}", result.to_gd())?;
-  Ok(())
-}
-*/
-
-pub fn compile_file<R, W>(input: &mut R, output: &mut W) -> Result<(), Error>
-where R : Read,
-      W : Write {
-
-  let contents = read_to_end(input)?;
-  let parser = parser::SomeASTParser::new();
-  let ast = parser.parse(&contents)?;
+  let ast = parser.parse(input)?;
 
   let mut compiler = Compiler::new(FreshNameGenerator::new(ast.all_symbols()));
   let mut table = SymbolTable::new();
@@ -49,6 +27,15 @@ where R : Read,
   let mut builder = CodeBuilder::new(decl::ClassExtends::Named("Node".to_owned()));
   compiler.compile_decls(&mut builder, &mut table, &ir)?;
   let result = builder.build();
+
+  Ok(TranslationUnit::new(filename.to_owned(), table, result))
+}
+
+pub fn compile_file<R, W>(filename: &str, input: &mut R, output: &mut W) -> Result<(), Error>
+where R : Read,
+      W : Write {
+  let contents = read_to_end(input)?;
+  let result = decl::TopLevelClass::from(compile_code(filename, &contents)?);
   write!(output, "{}", result.to_gd())?;
   Ok(())
 
