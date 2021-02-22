@@ -12,6 +12,7 @@ mod tests {
     assert_eq!(p.parse("12").unwrap(), AST::Int(12));
     assert_eq!(p.parse("12.0").unwrap(), AST::Float((12.0).into()));
     assert_eq!(p.parse("abc").unwrap(), ast::symbol("abc"));
+    assert_eq!(p.parse("abc.def").unwrap(), ast::symbol("abc.def"));
     assert_eq!(p.parse("\"abc\"").unwrap(), ast::string("abc"));
   }
 
@@ -62,6 +63,8 @@ mod tests {
     assert!(p.parse("a:").is_err());
     assert!(p.parse(":b").is_err());
     assert!(p.parse("a:(1 . 2)").is_err());
+    assert!(p.parse("abc.").is_err());
+    assert!(p.parse(".def").is_err());
   }
 
 }
