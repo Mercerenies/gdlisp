@@ -2,11 +2,13 @@
 use crate::sxp;
 use crate::sxp::ast::AST;
 use crate::ir::arglist::ArgListParseError;
+use crate::ir::import::ImportDeclParseError;
 
 #[derive(Debug)]
 pub enum Error {
   DottedListError,
   ArgListParseError(ArgListParseError),
+  ImportDeclParseError(ImportDeclParseError),
   CannotCall(AST),
   TooFewArgs(String, usize),
   TooManyArgs(String, usize),
@@ -27,5 +29,11 @@ impl From<sxp::dotted::TryFromDottedExprError> for Error {
 impl From<ArgListParseError> for Error {
   fn from(err: ArgListParseError) -> Error {
     Error::ArgListParseError(err)
+  }
+}
+
+impl From<ImportDeclParseError> for Error {
+  fn from(err: ImportDeclParseError) -> Error {
+    Error::ImportDeclParseError(err)
   }
 }

@@ -1,5 +1,10 @@
 
+use crate::sxp::ast::{self, AST};
+use crate::sxp::dotted::DottedExpr;
+
 use std::path::{PathBuf, Path};
+use std::str::FromStr;
+use std::convert::TryInto;
 
 // Import syntax:
 //
@@ -15,11 +20,11 @@ use std::path::{PathBuf, Path};
 // (use "res://example/foo.lisp" (a b c))
 // Imports functions a, b, c from "example/foo.lisp"
 //
-// (3) Explicit import (aliased)
+// (4) Explicit import (aliased)
 // (use "res://example/foo.lisp" ((a as a1) (b as b1) (c as c1)))
 // Imports functions a, b, c as a1, b1, c1 from "example/foo.lisp"
 //
-// (4) Wildcard import
+// (5) Wildcard import
 // (use "res://example/foo.lisp" open)
 // Imports all names into the current scope
 
@@ -31,7 +36,7 @@ pub struct ImportDecl {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum ImportDetails {
-  Renamed(String),             // (1) and (2) above
+  Named(String),             // (1) and (2) above
   Restricted(Vec<ImportName>), // (3) and (4) above
   Open,                        // (5) above
 }
@@ -42,28 +47,216 @@ pub struct ImportName {
   pub out_name: String,
 }
 
+#[derive(Debug)]
+pub enum ImportDeclParseError {
+  NoFilename,
+  BadFilename(AST),
+  InvalidPath(String),
+  MalformedFunctionImport(AST),
+  InvalidEnding(AST),
+}
+
 impl ImportDecl {
+
+  pub fn starts_with_res<P : AsRef<Path> + ?Sized>(path: &P) -> bool {
+    // Checks whether the path starts with a "res://" component.
+    let mut comp = path.as_ref().components();
+    comp.next().and_then(|x| x.clone().as_os_str().to_str()) == Some("res:")
+  }
 
   pub fn default_import_name<P : AsRef<Path> + ?Sized>(path: &P) -> String {
     let path = path.as_ref();
     let mut comp: Vec<_> = path.components().collect();
-    if comp.get(0).and_then(|x| x.clone().as_os_str().to_str()) == Some("res:") {
+    if ImportDecl::starts_with_res(path) {
       comp.remove(0);
     }
     comp.into_iter().filter_map(|x| x.as_os_str().to_str()).collect::<Vec<_>>().join(".")
   }
 
+  pub fn parse_path_param(arg: &str) -> Option<PathBuf> {
+    // Paths must start with "res://"
+    let path = PathBuf::from_str(arg).unwrap(); // Infallible
+    if ImportDecl::starts_with_res(&path) {
+      Some(path)
+    } else {
+      None
+    }
+  }
+
+  pub fn named(filename: PathBuf, name: Option<String>) -> ImportDecl {
+    let name = name.unwrap_or_else(|| ImportDecl::default_import_name(&filename));
+    ImportDecl {
+      filename: filename,
+      details: ImportDetails::Named(name),
+    }
+  }
+
+  pub fn restricted(filename: PathBuf, imports: Vec<ImportName>) -> ImportDecl {
+    ImportDecl {
+      filename: filename,
+      details: ImportDetails::Restricted(imports),
+    }
+  }
+
+  pub fn open(filename: PathBuf) -> ImportDecl {
+    ImportDecl {
+      filename: filename,
+      details: ImportDetails::Open,
+    }
+  }
+
+  pub fn parse(tail: &[&AST]) -> Result<ImportDecl, ImportDeclParseError> {
+    if tail.is_empty() {
+      return Err(ImportDeclParseError::NoFilename);
+    }
+    let filename = match tail[0] {
+      AST::String(s) => ImportDecl::parse_path_param(s).ok_or_else(|| {
+        ImportDeclParseError::InvalidPath(s.clone())
+      }),
+      x => Err(ImportDeclParseError::BadFilename(x.clone())),
+    }?;
+    match tail.len() {
+      0 => { unreachable!() } // We checked tail.is_empty() already
+      1 => {
+        // (1) Qualified import
+        Ok(ImportDecl::named(filename, None))
+      }
+      2 => {
+        match tail[1] {
+          AST::Symbol(open) if open == "open" => {
+            // (5) Wildcard import
+            Ok(ImportDecl::open(filename))
+          }
+          AST::Nil | AST::Cons(_, _) => {
+            // (3) or (4) Explicit import (possibly aliased)
+            let imports: Vec<_> = DottedExpr::new(tail[1]).try_into().map_err(|_| invalid_ending_err(&tail[1..]))?;
+            let imports = imports.into_iter().map(ImportName::parse).collect::<Result<Vec<_>, _>>()?;
+            Ok(ImportDecl::restricted(filename, imports))
+          }
+          _ => {
+            Err(invalid_ending_err(&tail[1..]))
+          }
+        }
+      }
+      3 => {
+        // (2) Qualified import (aliased)
+        if *tail[1] != ast::symbol("as") {
+          return Err(invalid_ending_err(&tail[1..]));
+        }
+        match tail[2] {
+          AST::Symbol(s) => Ok(ImportDecl::named(filename, Some(s.clone()))),
+          _ => Err(invalid_ending_err(&tail[1..]))
+        }
+      }
+      _ => {
+        Err(invalid_ending_err(&tail[1..]))
+      }
+    }
+  }
+
+}
+
+impl ImportName {
+
+  pub fn new(in_name: String, out_name: String) -> ImportName {
+    ImportName { in_name, out_name }
+  }
+
+  pub fn simple(in_name: String) -> ImportName {
+    let out_name = in_name.clone();
+    ImportName { in_name, out_name }
+  }
+
+  pub fn parse(clause: &AST) -> Result<ImportName, ImportDeclParseError> {
+    match clause {
+      AST::Symbol(s) => {
+        Ok(ImportName::simple(s.clone()))
+      }
+      AST::Cons(_, _) => {
+        let vec: Vec<_> = DottedExpr::new(clause).try_into().map_err(|_| ImportDeclParseError::MalformedFunctionImport(clause.clone()))?;
+        match vec.as_slice() {
+          [AST::Symbol(i), AST::Symbol(as_), AST::Symbol(o)] if as_ == "as" => {
+            Ok(ImportName::new(i.clone(), o.clone()))
+          }
+          _ => {
+            Err(ImportDeclParseError::MalformedFunctionImport(clause.clone()))
+          }
+        }
+      }
+      _ => {
+        Err(ImportDeclParseError::MalformedFunctionImport(clause.clone()))
+      }
+    }
+  }
+
+}
+
+fn invalid_ending_err(tail: &[&AST]) -> ImportDeclParseError {
+  let ending: Vec<AST> = tail.iter().map(|x| (*x).clone()).collect();
+  ImportDeclParseError::InvalidEnding(ast::list(ending))
 }
 
 #[cfg(test)]
 mod tests {
   use super::*;
+  use crate::parser;
+
+  fn parse_ast(input: &str) -> AST {
+    let parser = parser::ASTParser::new();
+    parser.parse(input).unwrap()
+  }
+
+  fn parse_import(input: &str) -> Result<ImportDecl, ImportDeclParseError> {
+    let ast = parse_ast(input);
+    let dotted: Vec<_> = DottedExpr::new(&ast).try_into().unwrap();
+    ImportDecl::parse(&dotted)
+  }
 
   #[test]
   fn default_import_name_test() {
     assert_eq!(ImportDecl::default_import_name("a/b/c"), "a.b.c");
     assert_eq!(ImportDecl::default_import_name("abcd"), "abcd");
     assert_eq!(ImportDecl::default_import_name("res://foo/bar"), "foo.bar");
+  }
+
+  #[test]
+  fn test_parsing() {
+    assert_eq!(parse_import(r#"("res://foo/bar")"#).unwrap(),
+               ImportDecl::named(PathBuf::from("res://foo/bar"), None));
+    assert_eq!(parse_import(r#"("res://foo/bar")"#).unwrap(),
+               ImportDecl::named(PathBuf::from("res://foo/bar"), Some(String::from("foo.bar"))));
+    assert_eq!(parse_import(r#"("res://foo/bar" as foo)"#).unwrap(),
+               ImportDecl::named(PathBuf::from("res://foo/bar"), Some(String::from("foo"))));
+    assert_eq!(parse_import(r#"("res://foo/bar" as foo.baz)"#).unwrap(),
+               ImportDecl::named(PathBuf::from("res://foo/bar"), Some(String::from("foo.baz"))));
+    assert_eq!(parse_import(r#"("res://foo/bar" open)"#).unwrap(),
+               ImportDecl::open(PathBuf::from("res://foo/bar")));
+    assert_eq!(parse_import(r#"("res://foo/bar" (a b))"#).unwrap(),
+               ImportDecl::restricted(PathBuf::from("res://foo/bar"),
+                                      vec!(ImportName::simple(String::from("a")),
+                                           ImportName::simple(String::from("b")))));
+    assert_eq!(parse_import(r#"("res://foo/bar" ())"#).unwrap(),
+               ImportDecl::restricted(PathBuf::from("res://foo/bar"),
+                                      vec!()));
+    assert_eq!(parse_import(r#"("res://foo/bar" ((a as a1) b))"#).unwrap(),
+               ImportDecl::restricted(PathBuf::from("res://foo/bar"),
+                                      vec!(ImportName::new(String::from("a"), String::from("a1")),
+                                           ImportName::simple(String::from("b")))));
+  }
+
+  #[test]
+  fn test_invalid_parsing() {
+    assert!(parse_import(r#"(10)"#).is_err());
+    assert!(parse_import(r#"("foo/bar")"#).is_err());
+    assert!(parse_import(r#"("res://foo/bar" as a as b)"#).is_err());
+    assert!(parse_import(r#"("res://foo/bar" as 1)"#).is_err());
+    assert!(parse_import(r#"("res://foo/bar" open-NOT-CORRECT)"#).is_err());
+    assert!(parse_import(r#"("res://foo/bar" (1))"#).is_err());
+    assert!(parse_import(r#"("res://foo/bar" ((a as)))"#).is_err());
+    assert!(parse_import(r#"("res://foo/bar" ((a b c)))"#).is_err());
+    assert!(parse_import(r#"("res://foo/bar" ([]))"#).is_err());
+    assert!(parse_import(r#"("res://foo/bar" (()))"#).is_err());
+    assert!(parse_import(r#"("res://foo/bar" [])"#).is_err());
   }
 
 }
