@@ -43,7 +43,12 @@ fn run_pseudo_repl() {
 fn compile_file<P : AsRef<Path> + ?Sized>(input: &P) {
   let input = input.as_ref();
   let mut pipeline = Pipeline::new(ProjectConfig { root_directory: input.parent().unwrap_or(input).to_owned() });
-  pipeline.load_file(input.file_name().unwrap()).unwrap();
+  match pipeline.load_file(input.file_name().unwrap()) {
+    Err(err) => {
+      println!("Error: {:?}", err); // TODO Get Display on all our error types
+    }
+    Ok(_unit) => {}
+  }
 }
 
 fn main() {
