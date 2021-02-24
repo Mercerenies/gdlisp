@@ -1,10 +1,9 @@
 
 use crate::sxp::ast::{self, AST};
 use crate::sxp::dotted::DottedExpr;
+use crate::runner::path::{RPathBuf, PathSrc};
 
-use std::path::{PathBuf, Path};
-use std::str::FromStr;
-use std::convert::TryInto;
+use std::convert::{TryInto, TryFrom};
 
 // Import syntax:
 //
@@ -30,7 +29,7 @@ use std::convert::TryInto;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ImportDecl {
-  pub filename: PathBuf,
+  pub filename: RPathBuf,
   pub details: ImportDetails,
 }
 
@@ -58,32 +57,22 @@ pub enum ImportDeclParseError {
 
 impl ImportDecl {
 
-  pub fn starts_with_res<P : AsRef<Path> + ?Sized>(path: &P) -> bool {
-    // Checks whether the path starts with a "res://" component.
-    let mut comp = path.as_ref().components();
-    comp.next().and_then(|x| x.clone().as_os_str().to_str()) == Some("res:")
+  pub fn default_import_name(path: &RPathBuf) -> String {
+    path
+      .components_no_root()
+      .filter_map(|x| x.as_os_str().to_str())
+      .collect::<Vec<_>>()
+      .join(".")
   }
 
-  pub fn default_import_name<P : AsRef<Path> + ?Sized>(path: &P) -> String {
-    let path = path.as_ref();
-    let mut comp: Vec<_> = path.components().collect();
-    if ImportDecl::starts_with_res(path) {
-      comp.remove(0);
-    }
-    comp.into_iter().filter_map(|x| x.as_os_str().to_str()).collect::<Vec<_>>().join(".")
-  }
-
-  pub fn parse_path_param(arg: &str) -> Option<PathBuf> {
+  pub fn parse_path_param(arg: &str) -> Option<RPathBuf> {
     // Paths must start with "res://"
-    let path = PathBuf::from_str(arg).unwrap(); // Infallible
-    if ImportDecl::starts_with_res(&path) {
-      Some(path)
-    } else {
-      None
-    }
+    RPathBuf::try_from(String::from(arg)).ok().filter(|path| {
+      path.source() == PathSrc::Res
+    })
   }
 
-  pub fn named(filename: PathBuf, name: Option<String>) -> ImportDecl {
+  pub fn named(filename: RPathBuf, name: Option<String>) -> ImportDecl {
     let name = name.unwrap_or_else(|| ImportDecl::default_import_name(&filename));
     ImportDecl {
       filename: filename,
@@ -91,14 +80,14 @@ impl ImportDecl {
     }
   }
 
-  pub fn restricted(filename: PathBuf, imports: Vec<ImportName>) -> ImportDecl {
+  pub fn restricted(filename: RPathBuf, imports: Vec<ImportName>) -> ImportDecl {
     ImportDecl {
       filename: filename,
       details: ImportDetails::Restricted(imports),
     }
   }
 
-  pub fn open(filename: PathBuf) -> ImportDecl {
+  pub fn open(filename: RPathBuf) -> ImportDecl {
     ImportDecl {
       filename: filename,
       details: ImportDetails::Open,
@@ -212,34 +201,38 @@ mod tests {
     ImportDecl::parse(&dotted)
   }
 
+  fn str_to_rpathbuf(input: &str) -> RPathBuf {
+    RPathBuf::try_from(String::from(input)).unwrap()
+  }
+
   #[test]
   fn default_import_name_test() {
-    assert_eq!(ImportDecl::default_import_name("a/b/c"), "a.b.c");
-    assert_eq!(ImportDecl::default_import_name("abcd"), "abcd");
-    assert_eq!(ImportDecl::default_import_name("res://foo/bar"), "foo.bar");
+    assert_eq!(ImportDecl::default_import_name(&str_to_rpathbuf("/a/b/c")), "a.b.c");
+    assert_eq!(ImportDecl::default_import_name(&str_to_rpathbuf("/abcd")), "abcd");
+    assert_eq!(ImportDecl::default_import_name(&str_to_rpathbuf("res://foo/bar")), "foo.bar");
   }
 
   #[test]
   fn test_parsing() {
     assert_eq!(parse_import(r#"("res://foo/bar")"#).unwrap(),
-               ImportDecl::named(PathBuf::from("res://foo/bar"), None));
+               ImportDecl::named(str_to_rpathbuf("res://foo/bar"), None));
     assert_eq!(parse_import(r#"("res://foo/bar")"#).unwrap(),
-               ImportDecl::named(PathBuf::from("res://foo/bar"), Some(String::from("foo.bar"))));
+               ImportDecl::named(str_to_rpathbuf("res://foo/bar"), Some(String::from("foo.bar"))));
     assert_eq!(parse_import(r#"("res://foo/bar" as foo)"#).unwrap(),
-               ImportDecl::named(PathBuf::from("res://foo/bar"), Some(String::from("foo"))));
+               ImportDecl::named(str_to_rpathbuf("res://foo/bar"), Some(String::from("foo"))));
     assert_eq!(parse_import(r#"("res://foo/bar" as foo.baz)"#).unwrap(),
-               ImportDecl::named(PathBuf::from("res://foo/bar"), Some(String::from("foo.baz"))));
+               ImportDecl::named(str_to_rpathbuf("res://foo/bar"), Some(String::from("foo.baz"))));
     assert_eq!(parse_import(r#"("res://foo/bar" open)"#).unwrap(),
-               ImportDecl::open(PathBuf::from("res://foo/bar")));
+               ImportDecl::open(str_to_rpathbuf("res://foo/bar")));
     assert_eq!(parse_import(r#"("res://foo/bar" (a b))"#).unwrap(),
-               ImportDecl::restricted(PathBuf::from("res://foo/bar"),
+               ImportDecl::restricted(str_to_rpathbuf("res://foo/bar"),
                                       vec!(ImportName::simple(String::from("a")),
                                            ImportName::simple(String::from("b")))));
     assert_eq!(parse_import(r#"("res://foo/bar" ())"#).unwrap(),
-               ImportDecl::restricted(PathBuf::from("res://foo/bar"),
+               ImportDecl::restricted(str_to_rpathbuf("res://foo/bar"),
                                       vec!()));
     assert_eq!(parse_import(r#"("res://foo/bar" ((a as a1) b))"#).unwrap(),
-               ImportDecl::restricted(PathBuf::from("res://foo/bar"),
+               ImportDecl::restricted(str_to_rpathbuf("res://foo/bar"),
                                       vec!(ImportName::new(String::from("a"), String::from("a1")),
                                            ImportName::simple(String::from("b")))));
   }

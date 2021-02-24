@@ -1,7 +1,7 @@
 
 // An RPathBuf consists of a PathBuf together with a specifier
 
-use std::path::{PathBuf, Path};
+use std::path::{PathBuf, Path, Components};
 use std::convert::TryFrom;
 use std::str::FromStr;
 
@@ -37,6 +37,18 @@ impl RPathBuf {
 
   pub fn path(&self) -> &Path {
     &self.path
+  }
+
+  pub fn components(&self) -> Components<'_> {
+    self.path().components()
+  }
+
+  pub fn components_no_root(&self) -> Components<'_> {
+    let mut comp = self.components();
+    if self.path().has_root() {
+      let _ignore_root = comp.next();
+    }
+    comp
   }
 
 }
