@@ -261,7 +261,7 @@ impl IncCompiler {
   fn compile_decl_or_expr<L, E>(&mut self, loader: &mut L, main: &mut Vec<Expr>, curr: &AST)
                                 -> Result<(), PError>
   where L : FileLoader<Error=E>,
-        E : Into<PError> {
+        PError : From<E> {
     let mut candidate: Option<AST>; // Just need somewhere to store the intermediate.
     let mut curr = curr; // Change lifetime :)
     while let Some(ast) = self.try_resolve_macro_call(curr)? {
@@ -279,6 +279,7 @@ impl IncCompiler {
     }
     let imp = self.compile_import(curr)?;
     if let Some(imp) = imp {
+      loader.load_file(imp.filename.path())?;
       self.imports.push(imp);
     } else {
       // TODO The intention of catching DottedListError here is to
@@ -304,8 +305,9 @@ impl IncCompiler {
   pub fn compile_toplevel<L, E>(mut self, loader: &mut L, body: &AST)
                                 -> Result<decl::TopLevel, PError>
   where L : FileLoader<Error=E>,
-        E : Into<PError> {
-    let body: Vec<_> = DottedExpr::new(body).try_into()?;
+        PError : From<E> {
+    let body: Result<Vec<_>, TryFromDottedExprError> = DottedExpr::new(body).try_into();
+    let body: Vec<_> = body?; // *sigh* Sometimes the type checker just doesn't get it ...
     let mut main: Vec<Expr> = Vec::new();
     for curr in body {
       self.compile_decl_or_expr(loader, &mut main, curr)?;

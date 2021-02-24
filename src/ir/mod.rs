@@ -44,7 +44,7 @@ pub fn compile_decl(decl: &AST)
 pub fn compile_toplevel<L, E>(loader: &mut L, body: &AST)
                               -> Result<decl::TopLevel, PError>
 where L : FileLoader<Error=E>,
-      E : Into<PError> {
+      PError : From<E> {
   let compiler = incremental::IncCompiler::new();
   compiler.compile_toplevel(loader, body)
 }
