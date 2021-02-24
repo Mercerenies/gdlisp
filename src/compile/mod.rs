@@ -22,7 +22,7 @@ use symbol_table::function_call;
 use symbol_table::call_magic::DefaultCall;
 use crate::ir;
 use crate::ir::expr::FuncRefTarget;
-use crate::ir::import::ImportDecl;
+use crate::ir::import::{ImportDecl, ImportDetails};
 use crate::runner::path::RPathBuf;
 use crate::pipeline::error::{Error as PError};
 use crate::pipeline::loader::FileLoader;
@@ -322,8 +322,16 @@ impl<'a> Compiler<'a> {
     Ok(())
   }
 
-  fn make_preload_line(var: String, path: RPathBuf) -> Decl {
+  fn make_preload_line(var: String, path: &RPathBuf) -> Decl {
     Decl::ConstDecl(var, Expr::Call(None, String::from("preload"), vec!(Expr::from(path.to_string()))))
+  }
+
+  fn import_name(&mut self, import: &ImportDecl) -> String {
+    let prefix = match &import.details {
+      ImportDetails::Named(s) => names::lisp_to_gd(&s),
+      ImportDetails::Restricted(_) | ImportDetails::Open => String::from("_Import"),
+    };
+    self.gen.generate_with(&prefix)
   }
 
   pub fn resolve_import<L, E>(&mut self,
@@ -334,6 +342,8 @@ impl<'a> Compiler<'a> {
                               -> Result<(), Error>
   where L : FileLoader<Error=E>,
         PError : From<E> {
+    let preload_name = self.import_name(import);
+    builder.add_decl(Compiler::make_preload_line(preload_name, &import.filename));
     Ok(()) ////
   }
 
