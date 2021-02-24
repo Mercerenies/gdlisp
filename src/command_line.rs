@@ -6,7 +6,6 @@ use getopts::{Options, ParsingStyle};
 #[derive(Debug, Clone, Default)]
 pub struct CommandLineArgs {
   pub input_file: Option<String>,
-  pub output_file: Option<String>,
   pub help_message: bool,
 }
 
@@ -29,7 +28,6 @@ pub fn options() -> Options {
   opts
     .parsing_style(ParsingStyle::FloatingFrees)
     .long_only(false)
-    .optopt("o", "output", "Output filename", "FILE")
     .optflag("", "help", "Display usage information");
   opts
 }
@@ -44,7 +42,6 @@ pub fn parse_args(args: &[String]) -> CommandLineArgs {
 
       result.help_message = parsed.opt_present("help");
       result.input_file = parsed.free.first().cloned();
-      result.output_file = parsed.opt_str("output");
 
       result
     }

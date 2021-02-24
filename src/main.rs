@@ -15,10 +15,10 @@ use gdlisp::gdscript::decl;
 use gdlisp::command_line::{parse_args, show_help_message};
 use gdlisp::pipeline::Pipeline;
 use gdlisp::pipeline::config::ProjectConfig;
+use gdlisp::pipeline::loader::FileLoader;
 
-use std::io::{self, Write, BufRead, BufWriter, BufReader};
+use std::io::{self, BufRead};
 use std::env;
-use std::fs;
 use std::path::{PathBuf, Path};
 use std::str::FromStr;
 
@@ -40,15 +40,10 @@ fn run_pseudo_repl() {
 
 }
 
-fn compile_file<P : AsRef<Path> + ?Sized>(input: &P, output: Option<&str>) {
+fn compile_file<P : AsRef<Path> + ?Sized>(input: &P) {
   let input = input.as_ref();
   let mut pipeline = Pipeline::new(ProjectConfig { root_directory: input.parent().unwrap_or(input).to_owned() });
-
-  let mut output_target: Box<dyn Write> = output.map_or(Box::new(io::stdout()), |name| Box::new(fs::File::create(name).unwrap()));
-  let mut output_target: BufWriter<&mut dyn Write> = BufWriter::new(output_target.by_ref());
-
-  let mut input_target = BufReader::new(fs::File::open(input).unwrap());
-  pipeline.compile_file(input, &mut input_target, &mut output_target).unwrap();
+  pipeline.load_file(input.file_name().unwrap()).unwrap();
 }
 
 fn main() {
@@ -58,7 +53,7 @@ fn main() {
   if parsed_args.help_message {
     show_help_message(&program_name);
   } else if let Some(input) = parsed_args.input_file {
-    compile_file(&input, parsed_args.output_file.as_deref());
+    compile_file(&input);
   } else {
     run_pseudo_repl();
   }
