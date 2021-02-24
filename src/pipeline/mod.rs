@@ -88,6 +88,16 @@ impl Pipeline {
     self.known_files.get(input_path.as_ref())
   }
 
+  fn to_absolute_path<P>(&self, input_path: &P) -> PathBuf
+  where P : AsRef<Path> + ?Sized {
+    let input_path = input_path.as_ref();
+    if input_path.is_absolute() {
+      input_path.to_owned()
+    } else {
+      self.config.root_directory.join(input_path)
+    }
+  }
+
 }
 
 impl FileLoader for Pipeline {
@@ -96,12 +106,13 @@ impl FileLoader for Pipeline {
   fn load_file<'a, 'b, P>(&'a mut self, input_path: &'b P)
                               -> Result<&'a TranslationUnit, Error>
   where P : AsRef<Path> + ?Sized {
+    let input_path = self.to_absolute_path(input_path);
     // if-let here causes Rust to complain due to lifetime rules, so
     // we use contains_key instead.
-    if self.known_files.contains_key(input_path.as_ref()) {
-      Ok(self.get_loaded_file(input_path).unwrap())
+    if self.known_files.contains_key(&input_path) {
+      Ok(self.get_loaded_file(&input_path).unwrap())
     } else {
-      self.load_file_unconditionally(input_path)
+      self.load_file_unconditionally(&input_path)
     }
   }
 
