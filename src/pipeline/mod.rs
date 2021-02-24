@@ -66,8 +66,8 @@ impl Pipeline {
     Ok(())
   }
 
-  pub fn load_file<'a, 'b, P>(&'a mut self, input_path: &'b P)
-                              -> Result<&'a TranslationUnit, Error>
+  fn load_file_unconditionally<'a, 'b, P>(&'a mut self, input_path: &'b P)
+                                          -> Result<&'a TranslationUnit, Error>
   where P : AsRef<Path> + ?Sized {
     let input_path = input_path.as_ref();
     let output_path = input_to_output_filename(input_path);
@@ -78,6 +78,24 @@ impl Pipeline {
     write!(output_file, "{}", unit.gdscript().to_gd())?;
     self.known_files.insert(input_path.to_owned(), unit);
     Ok(self.known_files.get(input_path).expect("Path not present in load_file"))
+  }
+
+  pub fn get_loaded_file<'a, 'b, P>(&'a self, input_path: &'b P)
+                                    -> Option<&'a TranslationUnit>
+  where P : AsRef<Path> + ?Sized {
+    self.known_files.get(input_path.as_ref())
+  }
+
+  pub fn load_file<'a, 'b, P>(&'a mut self, input_path: &'b P)
+                              -> Result<&'a TranslationUnit, Error>
+  where P : AsRef<Path> + ?Sized {
+    // if-let here causes Rust to complain due to lifetime rules, so
+    // we use contains_key instead.
+    if self.known_files.contains_key(input_path.as_ref()) {
+      Ok(self.get_loaded_file(input_path).unwrap())
+    } else {
+      self.load_file_unconditionally(input_path)
+    }
   }
 
 }
