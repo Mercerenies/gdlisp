@@ -6,13 +6,14 @@ use super::MAIN_BODY_NAME;
 use super::call_name::CallName;
 use super::arglist::ArgList;
 use super::literal::Literal;
+use super::import::ImportDecl;
 use super::expr::Expr;
 use super::special_form;
 use super::depends::Dependencies;
 use super::decl::{self, Decl};
 use super::macros;
 use crate::sxp::dotted::{DottedExpr, TryFromDottedExprError};
-use crate::sxp::ast::AST;
+use crate::sxp::ast::{self, AST};
 use crate::sxp::reify::Reify;
 use crate::compile::error::Error;
 use crate::compile::names;
@@ -37,7 +38,8 @@ pub struct IncCompiler {
   server: LazyServer,
   #[allow(dead_code)] // Need to keep these so the files stay alive until compilation is done
   temporary_files: Vec<NamedTempFile>,
-  macro_files: HashMap<String, MacroCall>
+  macro_files: HashMap<String, MacroCall>,
+  imports: Vec<ImportDecl>,
 }
 
 #[derive(Clone, Debug)]
@@ -58,6 +60,7 @@ impl IncCompiler {
       server: LazyServer::new(),
       temporary_files: vec!(),
       macro_files: HashMap::new(),
+      imports: vec!(),
     }
   }
 
@@ -244,6 +247,15 @@ impl IncCompiler {
     }
   }
 
+  pub fn compile_import(&mut self, curr: &AST) -> Result<Option<ImportDecl>, Error> {
+    if let Ok(vec) = Vec::try_from(DottedExpr::new(curr)) {
+      if !vec.is_empty() && *vec[0] == ast::symbol("use") {
+        return ImportDecl::parse(&vec[1..]).map_err(Error::from).map(Some);
+      }
+    }
+    Ok(None)
+  }
+
   fn compile_decl_or_expr(&mut self, main: &mut Vec<Expr>, curr: &AST)
                           -> Result<(), Error> {
     let mut candidate: Option<AST>; // Just need somewhere to store the intermediate.
@@ -261,27 +273,32 @@ impl IncCompiler {
         return Ok(());
       }
     }
-    // TODO The intention of catching DottedListError here is to
-    // catch the initial dotted list check. If we encounter
-    // DottedListError somewhere else in the computation, it's
-    // possible it's an error we need to propagate. Consider this.
-    match self.compile_decl(curr) {
-      Err(Error::UnknownDecl(_)) | Err(Error::DottedListError) => main.push(self.compile_expr(curr)?),
-      Err(e) => return Err(e),
-      Ok(d) => {
-        let is_macro = d.is_macro();
-        let name = d.name().to_owned();
-        self.symbols.set(name.clone(), d);
-        if is_macro {
-          self.bind_macro(&name)?;
+    let imp = self.compile_import(curr)?;
+    if let Some(imp) = imp {
+      self.imports.push(imp);
+    } else {
+      // TODO The intention of catching DottedListError here is to
+      // catch the initial dotted list check. If we encounter
+      // DottedListError somewhere else in the computation, it's
+      // possible it's an error we need to propagate. Consider this.
+      match self.compile_decl(curr) {
+        Err(Error::UnknownDecl(_)) | Err(Error::DottedListError) => main.push(self.compile_expr(curr)?),
+        Err(e) => return Err(e),
+        Ok(d) => {
+          let is_macro = d.is_macro();
+          let name = d.name().to_owned();
+          self.symbols.set(name.clone(), d);
+          if is_macro {
+            self.bind_macro(&name)?;
+          }
         }
-      }
-    };
+      };
+    }
     Ok(())
   }
 
   pub fn compile_toplevel(mut self, body: &AST)
-                          -> Result<Vec<Decl>, Error> {
+                          -> Result<decl::TopLevel, Error> {
     let body: Vec<_> = DottedExpr::new(body).try_into()?;
     let mut main: Vec<Expr> = Vec::new();
     for curr in body {
@@ -293,7 +310,7 @@ impl IncCompiler {
       body: Expr::Progn(main),
     });
     self.symbols.set(MAIN_BODY_NAME.to_owned(), main_decl);
-    Ok(self.symbols.into())
+    Ok(self.into())
   }
 
   pub fn bind_macro(&mut self, name: &str) -> Result<(), Error> {
@@ -329,10 +346,13 @@ impl Default for IncCompiler {
 
 }
 
-impl From<IncCompiler> for Vec<Decl> {
+impl From<IncCompiler> for decl::TopLevel {
 
-  fn from(compiler: IncCompiler) -> Vec<Decl> {
-    compiler.symbols.into()
+  fn from(compiler: IncCompiler) -> decl::TopLevel {
+    decl::TopLevel {
+      imports: compiler.imports,
+      decls: compiler.symbols.into(),
+    }
   }
 
 }

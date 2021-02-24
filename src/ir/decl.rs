@@ -1,8 +1,15 @@
 
 use super::arglist::ArgList;
 use super::expr::Expr;
+use super::import::ImportDecl;
 
 use std::collections::HashSet;
+
+#[derive(Clone, Debug, Eq, PartialEq, Default)]
+pub struct TopLevel {
+  pub imports: Vec<ImportDecl>,
+  pub decls: Vec<Decl>,
+}
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum Decl {
@@ -22,6 +29,14 @@ pub struct MacroDecl {
   pub name: String,
   pub args: ArgList,
   pub body: Expr,
+}
+
+impl TopLevel {
+
+  pub fn new() -> TopLevel {
+    TopLevel::default()
+  }
+
 }
 
 impl Decl {

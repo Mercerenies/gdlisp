@@ -1,4 +1,5 @@
 
+use super::decl::TopLevel;
 use crate::compile::Compiler;
 use crate::compile::names::fresh::FreshNameGenerator;
 use crate::compile::error::Error;
@@ -32,7 +33,7 @@ pub fn create_macro_file(src_table: &IRSymbolTable, names: HashSet<String>) -> R
   let decls = Vec::from(src_table.filter(|d| names.contains(d.name())));
 
   let mut builder = CodeBuilder::new(decl::ClassExtends::Named("Node".to_owned()));
-  compiler.compile_decls(&mut builder, &mut table, &decls)?;
+  compiler.compile_decls(&mut builder, &mut table, &TopLevel { imports: vec!(), decls })?; //// Deal with imports
   let result = builder.build();
 
   // TODO Handle the error correctly

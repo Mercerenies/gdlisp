@@ -40,7 +40,7 @@ pub fn compile_decl(decl: &AST)
 }
 
 pub fn compile_toplevel(body: &AST)
-                        -> Result<Vec<Decl>, Error> {
+                        -> Result<decl::TopLevel, Error> {
   let compiler = incremental::IncCompiler::new();
   compiler.compile_toplevel(body)
 }

@@ -321,13 +321,14 @@ impl<'a> Compiler<'a> {
   pub fn compile_decls(&mut self,
                        builder: &mut CodeBuilder,
                        table: &mut SymbolTable,
-                       decls: &[IRDecl])
+                       toplevel: &ir::decl::TopLevel)
                        -> Result<(), Error> {
     let mut table = table.clone();
-    for decl in decls {
+    //// imports
+    for decl in &toplevel.decls {
       Compiler::bind_decl(&mut table, decl)?;
     }
-    for decl in decls {
+    for decl in &toplevel.decls {
       self.compile_decl(builder, &mut table, decl)?;
     }
     Ok(())
