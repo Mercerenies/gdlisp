@@ -70,12 +70,7 @@ impl Pipeline {
                               -> Result<&'a TranslationUnit, Error>
   where P : AsRef<Path> + ?Sized {
     let input_path = input_path.as_ref();
-    let output_path = {
-      let mut output_path = input_path.to_owned();
-      let renamed = output_path.set_extension("gd");
-      assert!(renamed); // Make sure the path was actually to a file
-      output_path
-    };
+    let output_path = input_to_output_filename(input_path);
     let mut input_file = io::BufReader::new(fs::File::open(input_path)?);
     let mut output_file = io::BufWriter::new(fs::File::create(output_path)?);
 
@@ -85,6 +80,13 @@ impl Pipeline {
     Ok(self.known_files.get(input_path).expect("Path not present in load_file"))
   }
 
+}
+
+pub fn input_to_output_filename<P : AsRef<Path> + ?Sized>(input: &P) -> PathBuf {
+  let mut output_path = input.as_ref().to_owned();
+  let renamed = output_path.set_extension("gd");
+  assert!(renamed); // Make sure the path was actually to a file
+  output_path
 }
 
 fn read_to_end(input: &mut impl Read) -> io::Result<String> {
