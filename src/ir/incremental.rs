@@ -321,14 +321,14 @@ impl IncCompiler {
     Ok(self.into())
   }
 
-  pub fn bind_macro(&mut self, name: &str) -> Result<(), Error> {
+  pub fn bind_macro(&mut self, name: &str) -> Result<(), PError> {
     // Now we need to find the dependencies and spawn up the
     // server for the macro itself.
     let mut deps = Dependencies::identify(&self.symbols, &name);
     deps.purge_unknowns(library::all_builtin_names().into_iter());
     // Aside from built-in functions, it must be the case that
     // all referenced functions are already defined.
-    let names = deps.try_into_knowns()?;
+    let names = deps.try_into_knowns().map_err(Error::from)?;
     let tmpfile = macros::create_macro_file(&self.symbols, names)?;
     let idx = self.load_file_on_server(tmpfile.path()).expect("IO Error"); // TODO Get rid of .expect(...)
     self.temporary_files.push(tmpfile);

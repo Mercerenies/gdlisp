@@ -44,7 +44,7 @@ impl Pipeline {
 
     let ir = ir::compile_toplevel(self, &ast)?;
     let mut builder = CodeBuilder::new(decl::ClassExtends::Named("Node".to_owned()));
-    compiler.compile_decls(&mut builder, &mut table, &ir)?;
+    compiler.compile_toplevel(self, &mut builder, &mut table, &ir)?;
     let result = builder.build();
 
     Ok(TranslationUnit::new(filename.as_ref().to_owned(), table, result))

@@ -146,7 +146,7 @@ pub fn parse_and_run(input: &str) -> String {
 
   let decls = ir::compile_toplevel(&mut PanicFileLoader, &value).unwrap();
   let mut builder = CodeBuilder::new(decl::ClassExtends::Named(String::from("Reference")));
-  compiler.compile_decls(&mut builder, &mut table, &decls).unwrap();
+  compiler.compile_toplevel(&mut PanicFileLoader, &mut builder, &mut table, &decls).unwrap();
 
   let mut temp_dir = Builder::new().prefix("__gdlisp_test").rand_bytes(5).tempdir().unwrap();
   let code_output = builder.build();
@@ -211,7 +211,7 @@ pub fn parse_compile_decl(input: &str) -> String {
 
   let mut builder = CodeBuilder::new(decl::ClassExtends::Named("Reference".to_owned()));
   let decls = ir::compile_toplevel(&mut PanicFileLoader, &value).unwrap();
-  compiler.compile_decls(&mut builder, &mut table, &decls).unwrap();
+  compiler.compile_toplevel(&mut PanicFileLoader, &mut builder, &mut table, &decls).unwrap();
   let class = builder.build();
 
   class.to_gd()

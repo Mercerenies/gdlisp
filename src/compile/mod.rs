@@ -22,6 +22,10 @@ use symbol_table::function_call;
 use symbol_table::call_magic::DefaultCall;
 use crate::ir;
 use crate::ir::expr::FuncRefTarget;
+use crate::ir::import::ImportDecl;
+use crate::runner::path::RPathBuf;
+use crate::pipeline::error::{Error as PError};
+use crate::pipeline::loader::FileLoader;
 use special_form::lambda;
 use special_form::flet;
 use stateful::{StExpr, NeedsResult, SideEffects};
@@ -318,20 +322,47 @@ impl<'a> Compiler<'a> {
     Ok(())
   }
 
+  fn make_preload_line(var: String, path: RPathBuf) -> Decl {
+    Decl::ConstDecl(var, Expr::Call(None, String::from("preload"), vec!(Expr::from(path.to_string()))))
+  }
+
+  pub fn resolve_import<L, E>(&mut self,
+                              loader: &mut L,
+                              builder: &mut CodeBuilder,
+                              table: &mut SymbolTable,
+                              import: &ImportDecl)
+                              -> Result<(), Error>
+  where L : FileLoader<Error=E>,
+        PError : From<E> {
+    Ok(()) ////
+  }
+
   pub fn compile_decls(&mut self,
                        builder: &mut CodeBuilder,
                        table: &mut SymbolTable,
-                       toplevel: &ir::decl::TopLevel)
-                       -> Result<(), Error> {
-    let mut table = table.clone();
-    //// imports
-    for decl in &toplevel.decls {
-      Compiler::bind_decl(&mut table, decl)?;
+                       decls: &[IRDecl])
+                       -> Result<(), PError> {
+    for decl in decls {
+      Compiler::bind_decl(table, decl)?;
     }
-    for decl in &toplevel.decls {
-      self.compile_decl(builder, &mut table, decl)?;
+    for decl in decls {
+      self.compile_decl(builder, table, decl)?;
     }
     Ok(())
+  }
+
+  pub fn compile_toplevel<L, E>(&mut self,
+                                loader: &mut L,
+                                builder: &mut CodeBuilder,
+                                table: &mut SymbolTable,
+                                toplevel: &ir::decl::TopLevel)
+                                -> Result<(), PError>
+  where L : FileLoader<Error=E>,
+        PError : From<E> {
+    for imp in &toplevel.imports {
+      self.resolve_import(loader, builder, table, imp)?;
+    }
+    self.compile_decls(builder, table, &toplevel.decls)
   }
 
 }
