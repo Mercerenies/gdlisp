@@ -5,6 +5,7 @@ pub mod config;
 
 use translation_unit::TranslationUnit;
 use config::ProjectConfig;
+use error::Error;
 use crate::parser;
 use crate::ir;
 use crate::compile::Compiler;
@@ -16,19 +17,21 @@ use crate::gdscript::decl;
 
 use std::io::{self, Read, Write};
 use std::path::Path;
-use error::Error;
+use std::collections::HashMap;
 
 pub struct Pipeline {
   config: ProjectConfig,
+  known_files: HashMap<String, TranslationUnit>,
 }
 
 impl Pipeline {
 
   pub fn new(config: ProjectConfig) -> Pipeline {
-    Pipeline { config }
+    Pipeline { config: config, known_files: HashMap::new() }
   }
 
-  pub fn compile_code<P : AsRef<Path> + ?Sized>(&self, filename: &P, input: &str) -> Result<TranslationUnit, Error> {
+  pub fn compile_code<P : AsRef<Path> + ?Sized>(&mut self, filename: &P, input: &str)
+                                                -> Result<TranslationUnit, Error> {
     let parser = parser::SomeASTParser::new();
     let ast = parser.parse(input)?;
 
@@ -44,7 +47,7 @@ impl Pipeline {
     Ok(TranslationUnit::new(filename.as_ref().to_owned(), table, result))
   }
 
-  pub fn compile_file<P, R, W>(&self, filename: &P, input: &mut R, output: &mut W)
+  pub fn compile_file<P, R, W>(&mut self, filename: &P, input: &mut R, output: &mut W)
                             -> Result<(), Error>
   where P : AsRef<Path> + ?Sized,
         R : Read,

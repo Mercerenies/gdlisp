@@ -24,7 +24,7 @@ use std::str::FromStr;
 
 fn run_pseudo_repl() {
   let stdin = io::stdin();
-  let pipeline = Pipeline::new(ProjectConfig { root_directory: PathBuf::from_str(".").unwrap() }); // Infallible
+  let mut pipeline = Pipeline::new(ProjectConfig { root_directory: PathBuf::from_str(".").unwrap() }); // Infallible
 
   for line in stdin.lock().lines() {
     match pipeline.compile_code("(eval)", &line.unwrap()) {
@@ -42,7 +42,7 @@ fn run_pseudo_repl() {
 
 fn compile_file<P : AsRef<Path> + ?Sized>(input: &P, output: Option<&str>) {
   let input = input.as_ref();
-  let pipeline = Pipeline::new(ProjectConfig { root_directory: input.parent().unwrap_or(input).to_owned() });
+  let mut pipeline = Pipeline::new(ProjectConfig { root_directory: input.parent().unwrap_or(input).to_owned() });
 
   let mut output_target: Box<dyn Write> = output.map_or(Box::new(io::stdout()), |name| Box::new(fs::File::create(name).unwrap()));
   let mut output_target: BufWriter<&mut dyn Write> = BufWriter::new(output_target.by_ref());
