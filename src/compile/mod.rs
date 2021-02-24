@@ -339,12 +339,18 @@ impl<'a> Compiler<'a> {
                               builder: &mut CodeBuilder,
                               table: &mut SymbolTable,
                               import: &ImportDecl)
-                              -> Result<(), Error>
+                              -> Result<(), PError>
   where L : FileLoader<Error=E>,
         PError : From<E> {
     let preload_name = self.import_name(import);
     builder.add_decl(Compiler::make_preload_line(preload_name, &import.filename));
-    Ok(()) ////
+
+    // Now add the pertinent symbols to the symbol table
+    let unit = loader.load_file(&import.filename)?;
+    ///// (Note: We need to fix up TranslationUnit, as its symbol
+    ///// table includes built-ins and things we don't want in it)
+
+    Ok(())
   }
 
   pub fn compile_decls(&mut self,
