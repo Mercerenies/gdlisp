@@ -1,4 +1,6 @@
 
+use super::common::PanicFileLoader;
+
 use gdlisp::ir;
 use gdlisp::ir::symbol_table::SymbolTable;
 use gdlisp::ir::depends::Dependencies;
@@ -7,7 +9,7 @@ use gdlisp::parser;
 fn dependencies_of(input: &str, target_name: &str) -> Dependencies {
   let parser = parser::ASTParser::new();
   let ast = parser.parse(input).unwrap();
-  let toplevel = ir::compile_toplevel(&ast).unwrap();
+  let toplevel = ir::compile_toplevel(&mut PanicFileLoader, &ast).unwrap();
   let table = SymbolTable::from(toplevel.decls); // TODO Deal with imports here?
   Dependencies::identify(&table, target_name)
 }

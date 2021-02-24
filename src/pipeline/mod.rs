@@ -2,10 +2,12 @@
 pub mod error;
 pub mod translation_unit;
 pub mod config;
+pub mod loader;
 
 use translation_unit::TranslationUnit;
 use config::ProjectConfig;
 use error::Error;
+use loader::FileLoader;
 use crate::parser;
 use crate::ir;
 use crate::compile::Compiler;
@@ -40,7 +42,7 @@ impl Pipeline {
     let mut table = SymbolTable::new();
     library::bind_builtins(&mut table);
 
-    let ir = ir::compile_toplevel(&ast)?;
+    let ir = ir::compile_toplevel(self, &ast)?;
     let mut builder = CodeBuilder::new(decl::ClassExtends::Named("Node".to_owned()));
     compiler.compile_decls(&mut builder, &mut table, &ir)?;
     let result = builder.build();
@@ -86,7 +88,12 @@ impl Pipeline {
     self.known_files.get(input_path.as_ref())
   }
 
-  pub fn load_file<'a, 'b, P>(&'a mut self, input_path: &'b P)
+}
+
+impl FileLoader for Pipeline {
+  type Error = Error;
+
+  fn load_file<'a, 'b, P>(&'a mut self, input_path: &'b P)
                               -> Result<&'a TranslationUnit, Error>
   where P : AsRef<Path> + ?Sized {
     // if-let here causes Rust to complain due to lifetime rules, so

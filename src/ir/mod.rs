@@ -27,6 +27,7 @@ use decl::Decl;
 use crate::sxp::ast::AST;
 use crate::compile::error::Error;
 use crate::pipeline::error::{Error as PError};
+use crate::pipeline::loader::FileLoader;
 
 pub const MAIN_BODY_NAME: &str = "run";
 
@@ -40,10 +41,12 @@ pub fn compile_decl(decl: &AST)
   incremental::IncCompiler::new().compile_decl(decl)
 }
 
-pub fn compile_toplevel(body: &AST)
-                        -> Result<decl::TopLevel, PError> {
+pub fn compile_toplevel<L, E>(loader: &mut L, body: &AST)
+                              -> Result<decl::TopLevel, PError>
+where L : FileLoader<Error=E>,
+      E : Into<PError> {
   let compiler = incremental::IncCompiler::new();
-  compiler.compile_toplevel(body)
+  compiler.compile_toplevel(loader, body)
 }
 
 #[cfg(test)]

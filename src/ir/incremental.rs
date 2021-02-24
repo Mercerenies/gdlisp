@@ -25,6 +25,7 @@ use crate::runner::macro_server::lazy::LazyServer;
 use crate::runner::macro_server::command::ServerCommand;
 use crate::parser;
 use crate::pipeline::error::{Error as PError};
+use crate::pipeline::loader::FileLoader;
 
 use tempfile::NamedTempFile;
 
@@ -257,8 +258,10 @@ impl IncCompiler {
     Ok(None)
   }
 
-  fn compile_decl_or_expr(&mut self, main: &mut Vec<Expr>, curr: &AST)
-                          -> Result<(), PError> {
+  fn compile_decl_or_expr<L, E>(&mut self, loader: &mut L, main: &mut Vec<Expr>, curr: &AST)
+                                -> Result<(), PError>
+  where L : FileLoader<Error=E>,
+        E : Into<PError> {
     let mut candidate: Option<AST>; // Just need somewhere to store the intermediate.
     let mut curr = curr; // Change lifetime :)
     while let Some(ast) = self.try_resolve_macro_call(curr)? {
@@ -269,7 +272,7 @@ impl IncCompiler {
     if let Ok(vec) = Vec::try_from(DottedExpr::new(curr)) {
       if !vec.is_empty() && matches!(vec[0], AST::Symbol(progn) if progn == "progn") {
         for inner in &vec[1..] {
-          self.compile_decl_or_expr(main, inner)?;
+          self.compile_decl_or_expr(loader, main, inner)?;
         }
         return Ok(());
       }
@@ -298,12 +301,14 @@ impl IncCompiler {
     Ok(())
   }
 
-  pub fn compile_toplevel(mut self, body: &AST)
-                          -> Result<decl::TopLevel, PError> {
+  pub fn compile_toplevel<L, E>(mut self, loader: &mut L, body: &AST)
+                                -> Result<decl::TopLevel, PError>
+  where L : FileLoader<Error=E>,
+        E : Into<PError> {
     let body: Vec<_> = DottedExpr::new(body).try_into()?;
     let mut main: Vec<Expr> = Vec::new();
     for curr in body {
-      self.compile_decl_or_expr(&mut main, curr)?;
+      self.compile_decl_or_expr(loader, &mut main, curr)?;
     }
     let main_decl = Decl::FnDecl(decl::FnDecl {
       name: MAIN_BODY_NAME.to_owned(),

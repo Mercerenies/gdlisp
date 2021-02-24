@@ -16,9 +16,13 @@ use gdlisp::parser;
 use gdlisp::ir;
 use gdlisp::gdscript::library;
 use gdlisp::gdscript::decl;
+use gdlisp::pipeline::loader::FileLoader;
+use gdlisp::pipeline::translation_unit::TranslationUnit;
+use gdlisp::pipeline::error::{Error as PError};
 
 use tempfile::{Builder, TempDir};
 
+use std::path::Path;
 use std::fs::{File, copy};
 use std::io::{self, Write};
 
@@ -55,6 +59,20 @@ where T : IntoGDFile + ?Sized {
   runner::run_with_temporary(&runner_text)
 }
 */
+
+pub struct PanicFileLoader;
+
+// The snippets in here should all be self-contained and should NOT
+// import files. As such, import statements panic.
+impl FileLoader for PanicFileLoader {
+  type Error = PError;
+
+  fn load_file<'a, 'b, P>(&'a mut self, _input_path: &'b P)
+                          -> Result<&'a TranslationUnit, Self::Error>
+  where P : AsRef<Path> + ?Sized {
+    panic!("Unexpected import statement!")
+  }
+}
 
 fn bind_helper_symbols(table: &mut SymbolTable) {
   // TODO This is just a single-argument shim which calls print. It
@@ -126,7 +144,7 @@ pub fn parse_and_run(input: &str) -> String {
   bind_helper_symbols(&mut table);
   library::bind_builtins(&mut table);
 
-  let decls = ir::compile_toplevel(&value).unwrap();
+  let decls = ir::compile_toplevel(&mut PanicFileLoader, &value).unwrap();
   let mut builder = CodeBuilder::new(decl::ClassExtends::Named(String::from("Reference")));
   compiler.compile_decls(&mut builder, &mut table, &decls).unwrap();
 
@@ -192,7 +210,7 @@ pub fn parse_compile_decl(input: &str) -> String {
   library::bind_builtins(&mut table);
 
   let mut builder = CodeBuilder::new(decl::ClassExtends::Named("Reference".to_owned()));
-  let decls = ir::compile_toplevel(&value).unwrap();
+  let decls = ir::compile_toplevel(&mut PanicFileLoader, &value).unwrap();
   compiler.compile_decls(&mut builder, &mut table, &decls).unwrap();
   let class = builder.build();
 
