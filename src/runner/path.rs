@@ -4,6 +4,7 @@
 use std::path::{PathBuf, Path, Components};
 use std::convert::TryFrom;
 use std::str::FromStr;
+use std::fmt;
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct RPathBuf {
@@ -53,10 +54,25 @@ impl RPathBuf {
 
 }
 
+impl fmt::Display for RPathBuf {
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    let path = self.path().to_string_lossy().replace("\\", "/");
+    write!(f, "{}{}", self.source().prefix(), path)
+  }
+}
+
 impl PathSrc {
 
   pub fn should_be_relative_path(self) -> bool {
     self != PathSrc::Absolute
+  }
+
+  pub fn prefix(self) -> &'static str {
+    match self {
+      PathSrc::User => "user://",
+      PathSrc::Res => "res://",
+      PathSrc::Absolute => "",
+    }
   }
 
 }
@@ -111,6 +127,13 @@ mod tests {
     let abs = abs.unwrap();
     assert_eq!(abs.source(), PathSrc::Absolute);
     assert_eq!(abs.path(), PathBuf::from_str("/foo/bar").unwrap());
+  }
+
+  #[test]
+  fn test_rpathbuf_display() {
+    assert_eq!(RPathBuf::try_from(String::from("res://foo/bar")).unwrap().to_string(), "res://foo/bar");
+    assert_eq!(RPathBuf::try_from(String::from("user://foo/bar")).unwrap().to_string(), "user://foo/bar");
+    assert_eq!(RPathBuf::try_from(String::from("/foo/bar")).unwrap().to_string(), "/foo/bar");
   }
 
 }
