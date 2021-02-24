@@ -5,13 +5,13 @@ use std::path::{PathBuf, Path, Components};
 use std::convert::TryFrom;
 use std::str::FromStr;
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct RPathBuf {
   source: PathSrc,
   path: PathBuf,
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum PathSrc { User, Res, Absolute }
 
 #[derive(Clone, Copy, Debug)]
