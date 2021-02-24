@@ -16,12 +16,13 @@ use crate::gdscript::library;
 use crate::gdscript::decl;
 
 use std::io::{self, Read, Write};
-use std::path::Path;
+use std::fs;
+use std::path::{Path, PathBuf};
 use std::collections::HashMap;
 
 pub struct Pipeline {
   config: ProjectConfig,
-  known_files: HashMap<String, TranslationUnit>,
+  known_files: HashMap<PathBuf, TranslationUnit>,
 }
 
 impl Pipeline {
@@ -47,15 +48,41 @@ impl Pipeline {
     Ok(TranslationUnit::new(filename.as_ref().to_owned(), table, result))
   }
 
+  pub fn compile_file_to_unit<P, R>(&mut self, filename: &P, input: &mut R)
+                                    -> Result<TranslationUnit, Error>
+  where P : AsRef<Path> + ?Sized,
+        R : Read {
+    let contents = read_to_end(input)?;
+    self.compile_code(filename, &contents)
+  }
+
   pub fn compile_file<P, R, W>(&mut self, filename: &P, input: &mut R, output: &mut W)
                             -> Result<(), Error>
   where P : AsRef<Path> + ?Sized,
         R : Read,
         W : Write {
-    let contents = read_to_end(input)?;
-    let result = decl::TopLevelClass::from(self.compile_code(filename, &contents)?);
+    let result = decl::TopLevelClass::from(self.compile_file_to_unit(filename, input)?);
     write!(output, "{}", result.to_gd())?;
     Ok(())
+  }
+
+  pub fn load_file<'a, 'b, P>(&'a mut self, input_path: &'b P)
+                              -> Result<&'a TranslationUnit, Error>
+  where P : AsRef<Path> + ?Sized {
+    let input_path = input_path.as_ref();
+    let output_path = {
+      let mut output_path = input_path.to_owned();
+      let renamed = output_path.set_extension("gd");
+      assert!(renamed); // Make sure the path was actually to a file
+      output_path
+    };
+    let mut input_file = io::BufReader::new(fs::File::open(input_path)?);
+    let mut output_file = io::BufWriter::new(fs::File::create(output_path)?);
+
+    let unit = self.compile_file_to_unit(input_path, &mut input_file)?;
+    write!(output_file, "{}", unit.gdscript().to_gd())?;
+    self.known_files.insert(input_path.to_owned(), unit);
+    Ok(self.known_files.get(input_path).expect("Path not present in load_file"))
   }
 
 }
