@@ -3,6 +3,7 @@ use crate::sxp::ast::{self, AST};
 use crate::sxp::dotted::DottedExpr;
 use crate::runner::path::{RPathBuf, PathSrc};
 
+use std::path::{PathBuf, Path};
 use std::convert::{TryInto, TryFrom};
 
 // Import syntax:
@@ -92,6 +93,10 @@ impl ImportDecl {
       filename: filename,
       details: ImportDetails::Open,
     }
+  }
+
+  pub fn resolve_path<P : AsRef<Path> + ?Sized>(&self, project_dir: &P) -> PathBuf {
+    project_dir.as_ref().join(self.filename.path())
   }
 
   pub fn parse(tail: &[&AST]) -> Result<ImportDecl, ImportDeclParseError> {
