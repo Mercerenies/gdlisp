@@ -24,6 +24,7 @@ use crate::gdscript::expr::{Expr as GDExpr};
 use crate::runner::macro_server::lazy::LazyServer;
 use crate::runner::macro_server::command::ServerCommand;
 use crate::parser;
+use crate::pipeline::error::{Error as PError};
 
 use tempfile::NamedTempFile;
 
@@ -257,7 +258,7 @@ impl IncCompiler {
   }
 
   fn compile_decl_or_expr(&mut self, main: &mut Vec<Expr>, curr: &AST)
-                          -> Result<(), Error> {
+                          -> Result<(), PError> {
     let mut candidate: Option<AST>; // Just need somewhere to store the intermediate.
     let mut curr = curr; // Change lifetime :)
     while let Some(ast) = self.try_resolve_macro_call(curr)? {
@@ -283,7 +284,7 @@ impl IncCompiler {
       // possible it's an error we need to propagate. Consider this.
       match self.compile_decl(curr) {
         Err(Error::UnknownDecl(_)) | Err(Error::DottedListError) => main.push(self.compile_expr(curr)?),
-        Err(e) => return Err(e),
+        Err(e) => return Err(e.into()),
         Ok(d) => {
           let is_macro = d.is_macro();
           let name = d.name().to_owned();
@@ -298,7 +299,7 @@ impl IncCompiler {
   }
 
   pub fn compile_toplevel(mut self, body: &AST)
-                          -> Result<decl::TopLevel, Error> {
+                          -> Result<decl::TopLevel, PError> {
     let body: Vec<_> = DottedExpr::new(body).try_into()?;
     let mut main: Vec<Expr> = Vec::new();
     for curr in body {

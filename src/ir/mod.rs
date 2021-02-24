@@ -26,6 +26,7 @@ use expr::Expr;
 use decl::Decl;
 use crate::sxp::ast::AST;
 use crate::compile::error::Error;
+use crate::pipeline::error::{Error as PError};
 
 pub const MAIN_BODY_NAME: &str = "run";
 
@@ -40,7 +41,7 @@ pub fn compile_decl(decl: &AST)
 }
 
 pub fn compile_toplevel(body: &AST)
-                        -> Result<decl::TopLevel, Error> {
+                        -> Result<decl::TopLevel, PError> {
   let compiler = incremental::IncCompiler::new();
   compiler.compile_toplevel(body)
 }
