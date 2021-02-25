@@ -334,6 +334,45 @@ impl<'a> Compiler<'a> {
     self.gen.generate_with(&prefix)
   }
 
+  fn insert_object_into_call(import_name: String, object: Expr) -> Expr {
+    // This is really just a hacky approximation. I'm not sure this
+    // function even makes total sense in the general case, if given
+    // inputs not of the form we expect.
+    match object {
+      Expr::Var(s) => {
+        Expr::Attribute(Box::new(Expr::Var(import_name)), s)
+      }
+      Expr::Attribute(inner, s) => {
+        let inner = Compiler::insert_object_into_call(import_name, *inner);
+        Expr::Attribute(Box::new(inner), s)
+      }
+      Expr::Subscript(inner, rhs) => {
+        // Can this case even happen? WHEN would this case even happen?
+        let inner = Compiler::insert_object_into_call(import_name, *inner);
+        Expr::Subscript(Box::new(inner), rhs)
+      }
+      _ => {
+        // WTF? What do we do here?
+        //
+        // TODO Make a real error for this and return Result<...>
+        panic!("Invalid import")
+      }
+    }
+  }
+
+  fn translate_call(import_name: String, call: function_call::FnCall) -> function_call::FnCall {
+    let object = match call.object {
+      None => Expr::Var(import_name),
+      Some(x) => Compiler::insert_object_into_call(import_name, *x),
+    };
+    function_call::FnCall {
+      scope: call.scope,
+      object: Some(Box::new(object)),
+      function: call.function,
+      specs: call.specs,
+    }
+  }
+
   pub fn resolve_import<L, E>(&mut self,
                               loader: &mut L,
                               builder: &mut CodeBuilder,
@@ -343,12 +382,32 @@ impl<'a> Compiler<'a> {
   where L : FileLoader<Error=E>,
         PError : From<E> {
     let preload_name = self.import_name(import);
-    builder.add_decl(Compiler::make_preload_line(preload_name, &import.filename));
+    builder.add_decl(Compiler::make_preload_line(preload_name.clone(), &import.filename));
 
     // Now add the pertinent symbols to the symbol table
-    let unit = loader.load_file(&import.filename)?;
-    ///// (Note: We need to fix up TranslationUnit, as its symbol
-    ///// table includes built-ins and things we don't want in it)
+    let unit = loader.load_file(&import.filename.path())?;
+    let unit_table = unit.table();
+    for export_name in unit.exports() {
+      let import_name = match &import.details {
+        ImportDetails::Named(s) => {
+          format!("{}.{}", s, export_name)
+        }
+        ImportDetails::Open => {
+          export_name.clone()
+        }
+        ImportDetails::Restricted(vec) => {
+          // Find it in the import list.
+          if let Some(name_match) = vec.iter().find(|x| x.in_name == *export_name) {
+            name_match.out_name.clone()
+          } else {
+            continue // Name not explicitly imported, so move on
+          }
+        }
+      };
+      let (call, _) = unit_table.get_fn(export_name).ok_or_else(|| Error::NoSuchFn(export_name.clone()))?;
+      let call = Compiler::translate_call(preload_name.clone(), call.clone());
+      table.set_fn(import_name.clone(), call, Box::new(DefaultCall));
+    }
 
     Ok(())
   }

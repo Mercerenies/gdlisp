@@ -8,12 +8,17 @@ pub struct TranslationUnit {
   filename: PathBuf,
   table: SymbolTable,
   gdscript: TopLevelClass,
+  exports: Vec<String>,
 }
 
 impl TranslationUnit {
 
-  pub fn new(filename: PathBuf, table: SymbolTable, gdscript: TopLevelClass) -> TranslationUnit {
-    TranslationUnit { filename, table, gdscript }
+  pub fn new(filename: PathBuf,
+             table: SymbolTable,
+             gdscript: TopLevelClass,
+             exports: Vec<String>)
+             -> TranslationUnit {
+    TranslationUnit { filename, table, gdscript, exports }
   }
 
   pub fn filename(&self) -> &Path {
@@ -26,6 +31,10 @@ impl TranslationUnit {
 
   pub fn gdscript(&self) -> &TopLevelClass {
     &self.gdscript
+  }
+
+  pub fn exports(&self) -> &[String] {
+    &self.exports
   }
 
 }

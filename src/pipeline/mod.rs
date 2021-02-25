@@ -47,7 +47,7 @@ impl Pipeline {
     compiler.compile_toplevel(self, &mut builder, &mut table, &ir)?;
     let result = builder.build();
 
-    Ok(TranslationUnit::new(filename.as_ref().to_owned(), table, result))
+    Ok(TranslationUnit::new(filename.as_ref().to_owned(), table, result, ir::export::get_export_list(&ir.decls)))
   }
 
   pub fn compile_file_to_unit<P, R>(&mut self, filename: &P, input: &mut R)
