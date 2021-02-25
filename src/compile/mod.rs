@@ -323,6 +323,8 @@ impl<'a> Compiler<'a> {
   }
 
   fn make_preload_line(var: String, path: &RPathBuf) -> Decl {
+    let mut path = path.clone();
+    path.path_mut().set_extension("gd");
     Decl::ConstDecl(var, Expr::Call(None, String::from("preload"), vec!(Expr::from(path.to_string()))))
   }
 
