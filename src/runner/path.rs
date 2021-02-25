@@ -40,6 +40,10 @@ impl RPathBuf {
     &self.path
   }
 
+  pub fn path_mut(&mut self) -> &mut PathBuf {
+    &mut self.path
+  }
+
   pub fn components(&self) -> Components<'_> {
     self.path().components()
   }
