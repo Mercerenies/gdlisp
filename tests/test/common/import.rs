@@ -62,7 +62,8 @@ impl FileLoader for MockFileLoader {
       compiler.compile_toplevel(self, &mut builder, &mut table, &ir).unwrap();
       let result = builder.build();
 
-      let unit = TranslationUnit::new(input_path.as_ref().to_owned(), table, result, ir::export::get_export_list(&ir.decls));
+      let exports = ir::export::get_export_list(&ir.decls);
+      let unit = TranslationUnit::new(input_path.as_ref().to_owned(), table, ir, result, exports);
       self.loaded_files.insert(input_path_str.clone().into_owned(), unit);
       Ok(self.loaded_files.get(&*input_path_str).unwrap())
     }
