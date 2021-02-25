@@ -58,6 +58,8 @@ pub enum ImportDeclParseError {
 impl ImportDecl {
 
   pub fn default_import_name(path: &RPathBuf) -> String {
+    let mut path = path.clone();
+    path.path_mut().set_extension("");
     path
       .components_no_root()
       .filter_map(|x| x.as_os_str().to_str())
@@ -210,6 +212,8 @@ mod tests {
     assert_eq!(ImportDecl::default_import_name(&str_to_rpathbuf("/a/b/c")), "a.b.c");
     assert_eq!(ImportDecl::default_import_name(&str_to_rpathbuf("/abcd")), "abcd");
     assert_eq!(ImportDecl::default_import_name(&str_to_rpathbuf("res://foo/bar")), "foo.bar");
+    assert_eq!(ImportDecl::default_import_name(&str_to_rpathbuf("res://foo/bar.lisp")), "foo.bar");
+    assert_eq!(ImportDecl::default_import_name(&str_to_rpathbuf("res://foo/bar.gd")), "foo.bar");
   }
 
   #[test]
