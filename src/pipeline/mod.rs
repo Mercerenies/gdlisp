@@ -16,6 +16,7 @@ use crate::compile::body::builder::CodeBuilder;
 use crate::compile::symbol_table::SymbolTable;
 use crate::gdscript::library;
 use crate::gdscript::decl;
+use crate::util;
 
 use std::io::{self, Read, Write};
 use std::fs;
@@ -54,7 +55,7 @@ impl Pipeline {
                                     -> Result<TranslationUnit, Error>
   where P : AsRef<Path> + ?Sized,
         R : Read {
-    let contents = read_to_end(input)?;
+    let contents = util::read_to_end(input)?;
     self.compile_code(filename, &contents)
   }
 
@@ -123,10 +124,4 @@ pub fn input_to_output_filename<P : AsRef<Path> + ?Sized>(input: &P) -> PathBuf 
   let renamed = output_path.set_extension("gd");
   assert!(renamed); // Make sure the path was actually to a file
   output_path
-}
-
-fn read_to_end(input: &mut impl Read) -> io::Result<String> {
-  let mut vec = Vec::new();
-  input.read_to_end(&mut vec)?;
-  String::from_utf8(vec).map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e))
 }

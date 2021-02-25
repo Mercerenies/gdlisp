@@ -3,6 +3,7 @@ pub mod debug_wrapper;
 
 use std::collections::HashMap;
 use std::hash::Hash;
+use std::io::{self, Read};
 
 pub fn fold1<I : Iterator, F : FnMut(I::Item, I::Item) -> I::Item>(iter: I, mut f: F) -> Option<I::Item> {
   iter.fold(None, |x, y| match x {
@@ -38,6 +39,12 @@ pub fn merge_hashmap_inplace<K : Eq + Hash, V>(a: &mut HashMap<K, V>,
       Some(v1) => a.insert(k, merge_fn(v, v1)),
     };
   }
+}
+
+pub fn read_to_end(input: &mut impl Read) -> io::Result<String> {
+  let mut vec = Vec::new();
+  input.read_to_end(&mut vec)?;
+  String::from_utf8(vec).map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e))
 }
 
 #[cfg(test)]
