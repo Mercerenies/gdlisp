@@ -69,4 +69,10 @@ impl FileLoader for MockFileLoader {
     }
   }
 
+  fn get_file<'a, 'b, P>(&'a self, input_path: &'b P) -> Option<&'a TranslationUnit>
+  where P :AsRef<Path> + ?Sized {
+    let input_path_str = input_path.as_ref().to_string_lossy();
+    self.loaded_files.get(&*input_path_str)
+  }
+
 }

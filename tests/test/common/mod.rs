@@ -74,6 +74,12 @@ impl FileLoader for PanicFileLoader {
   where P : AsRef<Path> + ?Sized {
     panic!("Unexpected import statement!")
   }
+
+  fn get_file<'a, 'b, P>(&'a self, _input_path: &'b P) -> Option<&'a TranslationUnit>
+  where P :AsRef<Path> + ?Sized {
+    None
+  }
+
 }
 
 fn bind_helper_symbols(table: &mut SymbolTable) {

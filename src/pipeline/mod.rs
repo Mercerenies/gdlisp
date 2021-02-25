@@ -118,6 +118,11 @@ impl FileLoader for Pipeline {
     }
   }
 
+  fn get_file<'a, 'b, P>(&'a self, input_path: &'b P) -> Option<&'a TranslationUnit>
+  where P :AsRef<Path> + ?Sized {
+    self.get_loaded_file(input_path)
+  }
+
 }
 
 pub fn input_to_output_filename<P : AsRef<Path> + ?Sized>(input: &P) -> PathBuf {
