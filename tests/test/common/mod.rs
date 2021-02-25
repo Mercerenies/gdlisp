@@ -3,6 +3,8 @@
 
 extern crate gdlisp;
 
+pub mod import;
+
 use gdlisp::compile::Compiler;
 use gdlisp::compile::stmt_wrapper;
 use gdlisp::compile::names::fresh::FreshNameGenerator;
