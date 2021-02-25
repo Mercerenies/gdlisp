@@ -99,3 +99,11 @@ static func run():
     return _Import_0.two()
 "#);
 }
+
+#[test]
+#[should_panic]
+fn nonexistent_import_test() {
+  load_and_output_simple_file(r#"
+    (use "res://example.lisp" (nonexistent-function-name))
+  "#);
+}

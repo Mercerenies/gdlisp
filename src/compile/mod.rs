@@ -356,7 +356,9 @@ impl<'a> Compiler<'a> {
       _ => {
         // WTF? What do we do here?
         //
-        // TODO Make a real error for this and return Result<...>
+        // TODO Make a real error for this and return Result<...> (or
+        // restrict what FnCall can contain to be not all Expr but
+        // some other simpler type with an Into<Expr>)
         panic!("Invalid import")
       }
     }
@@ -389,7 +391,8 @@ impl<'a> Compiler<'a> {
     // Now add the pertinent symbols to the symbol table
     let unit = loader.load_file(&import.filename.path())?;
     let unit_table = unit.table();
-    for export_name in unit.exports() {
+    let exports = unit.exports();
+    for export_name in exports {
       let import_name = match &import.details {
         ImportDetails::Named(s) => {
           format!("{}.{}", s, export_name)
@@ -409,6 +412,15 @@ impl<'a> Compiler<'a> {
       let (call, _) = unit_table.get_fn(export_name).ok_or_else(|| Error::NoSuchFn(export_name.clone()))?;
       let call = Compiler::translate_call(preload_name.clone(), call.clone());
       table.set_fn(import_name.clone(), call, Box::new(DefaultCall));
+    }
+
+    // If it was a restricted import list, validate the import names
+    if let ImportDetails::Restricted(vec) = &import.details {
+      for name in vec {
+        if !exports.contains(&name.in_name) {
+          return Err(PError::GDError(Error::NoSuchFn(name.in_name.clone())));
+        }
+      }
     }
 
     Ok(())
