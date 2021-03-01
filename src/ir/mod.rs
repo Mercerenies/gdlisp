@@ -26,19 +26,18 @@ pub mod export;
 use expr::Expr;
 use decl::Decl;
 use crate::sxp::ast::AST;
-use crate::compile::error::Error;
 use crate::pipeline::error::{Error as PError};
 use crate::pipeline::loader::FileLoader;
 
 pub const MAIN_BODY_NAME: &str = "run";
 
 pub fn compile_expr(expr: &AST)
-                    -> Result<Expr, Error> {
+                    -> Result<Expr, PError> {
   incremental::IncCompiler::new().compile_expr(expr)
 }
 
 pub fn compile_decl(decl: &AST)
-                    -> Result<Decl, Error> {
+                    -> Result<Decl, PError> {
   incremental::IncCompiler::new().compile_decl(decl)
 }
 

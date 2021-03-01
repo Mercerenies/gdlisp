@@ -1,6 +1,7 @@
 
 use crate::compile::error::{Error as GDError};
 use crate::sxp::dotted::TryFromDottedExprError;
+use crate::ir::arglist::ArgListParseError;
 
 use lalrpop_util::ParseError;
 
@@ -34,6 +35,12 @@ impl From<GDError> for Error {
 
 impl From<TryFromDottedExprError> for Error {
   fn from(e: TryFromDottedExprError) -> Error {
+    Error::from(GDError::from(e))
+  }
+}
+
+impl From<ArgListParseError> for Error {
+  fn from(e: ArgListParseError) -> Error {
     Error::from(GDError::from(e))
   }
 }

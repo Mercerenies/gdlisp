@@ -474,7 +474,7 @@ mod tests {
     table.set_var(String::from("foobar"), LocalVar::read(String::from("foobar")));
   }
 
-  fn compile_stmt(ast: &AST) -> Result<(Vec<Stmt>, Vec<Decl>), Error> {
+  fn compile_stmt(ast: &AST) -> Result<(Vec<Stmt>, Vec<Decl>), PError> {
     let used_names = ast.all_symbols();
     let mut compiler = Compiler::new(FreshNameGenerator::new(used_names));
     let mut table = SymbolTable::new();

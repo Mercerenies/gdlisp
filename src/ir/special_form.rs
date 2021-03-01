@@ -4,7 +4,8 @@ use crate::sxp::dotted::DottedExpr;
 use super::expr::{Expr, FuncRefTarget};
 use super::arglist::ArgList;
 use super::quasiquote::quasiquote;
-use crate::compile::error::Error;
+use crate::pipeline::error::Error;
+use crate::compile::error::{Error as GDError};
 use crate::ir::incremental::IncCompiler;
 
 use std::convert::TryInto;
@@ -27,7 +28,7 @@ pub fn dispatch_form(icompiler: &mut IncCompiler,
     "setq" => assign_form(icompiler, tail).map(Some),
     "quote" => quote_form(tail).map(Some),
     "quasiquote" => quasiquote_form(icompiler, tail).map(Some),
-    "unquote" => Err(Error::UnquoteOutsideQuasiquote),
+    "unquote" => Err(Error::from(GDError::UnquoteOutsideQuasiquote)),
     "access-slot" => access_slot_form(icompiler, tail).map(Some),
     _ => Ok(None),
   }
@@ -44,10 +45,10 @@ pub fn if_form(icompiler: &mut IncCompiler,
                tail: &[&AST])
                -> Result<Expr, Error> {
   let (cond, t, f) = match tail {
-    [] | [_] => Err(Error::TooFewArgs(String::from("if"), tail.len())),
+    [] | [_] => Err(Error::from(GDError::TooFewArgs(String::from("if"), tail.len()))),
     [cond, t] => Ok((*cond, *t, &AST::Nil)),
     [cond, t, f] => Ok((*cond, *t, *f)),
-    _ => Err(Error::TooManyArgs(String::from("if"), tail.len())),
+    _ => Err(Error::from(GDError::TooManyArgs(String::from("if"), tail.len()))),
   }?;
   let cond = icompiler.compile_expr(cond)?;
   let t = icompiler.compile_expr(t)?;
@@ -62,7 +63,7 @@ pub fn cond_form(icompiler: &mut IncCompiler,
     let vec: Vec<&AST> = DottedExpr::new(clause).try_into()?;
     match vec.len() {
       0 => {
-        Err(Error::InvalidArg(String::from("cond"), (*clause).clone(), String::from("nonempty list")))
+        Err(Error::from(GDError::InvalidArg(String::from("cond"), (*clause).clone(), String::from("nonempty list"))))
       }
       1 => {
         let cond = icompiler.compile_expr(vec[0])?;
@@ -82,7 +83,7 @@ pub fn while_form(icompiler: &mut IncCompiler,
                   tail: &[&AST])
                   -> Result<Expr, Error> {
   if tail.is_empty() {
-    return Err(Error::TooFewArgs(String::from("while"), tail.len()));
+    return Err(Error::from(GDError::TooFewArgs(String::from("while"), tail.len())));
   }
   let cond = icompiler.compile_expr(tail[0])?;
   let body = tail[1..].iter().map(|x| icompiler.compile_expr(x)).collect::<Result<Vec<_>, _>>()?;
@@ -93,11 +94,11 @@ pub fn for_form(icompiler: &mut IncCompiler,
                 tail: &[&AST])
                 -> Result<Expr, Error> {
   if tail.len() < 2 {
-    return Err(Error::TooFewArgs(String::from("for"), tail.len()));
+    return Err(Error::from(GDError::TooFewArgs(String::from("for"), tail.len())));
   }
   let name = match tail[0] {
     AST::Symbol(s) => s.to_owned(),
-    _ => return Err(Error::InvalidArg(String::from("for"), (*tail[0]).clone(), String::from("variable name"))),
+    _ => return Err(Error::from(GDError::InvalidArg(String::from("for"), (*tail[0]).clone(), String::from("variable name")))),
   };
   let iter = icompiler.compile_expr(tail[1])?;
   let body = tail[2..].iter().map(|x| icompiler.compile_expr(x)).collect::<Result<Vec<_>, _>>()?;
@@ -108,19 +109,19 @@ pub fn let_form(icompiler: &mut IncCompiler,
                 tail: &[&AST])
                 -> Result<Expr, Error> {
   if tail.is_empty() {
-    return Err(Error::TooFewArgs(String::from("let"), tail.len()));
+    return Err(Error::from(GDError::TooFewArgs(String::from("let"), tail.len())));
   }
   let vars: Vec<_> = DottedExpr::new(tail[0]).try_into()?;
   let var_clauses = vars.into_iter().map(|clause| {
     let var: Vec<_> = match DottedExpr::new(clause) {
       DottedExpr { elements, terminal: AST::Nil } if !elements.is_empty() => elements,
       DottedExpr { elements, terminal: tail@AST::Symbol(_) } if elements.is_empty() => vec!(tail),
-      _ => return Err(Error::InvalidArg(String::from("let"), (*clause).clone(), String::from("variable declaration")))
+      _ => return Err(Error::from(GDError::InvalidArg(String::from("let"), (*clause).clone(), String::from("variable declaration"))))
     };
     let result_value = var[1..].iter().map(|e| icompiler.compile_expr(e)).collect::<Result<Vec<_>, _>>()?;
     let name = match var[0] {
       AST::Symbol(s) => Ok(s.clone()),
-      _ => Err(Error::InvalidArg(String::from("let"), (*clause).clone(), String::from("variable declaration"))),
+      _ => Err(Error::from(GDError::InvalidArg(String::from("let"), (*clause).clone(), String::from("variable declaration")))),
     }?;
     Ok((name, Expr::Progn(result_value)))
   }).collect::<Result<Vec<_>, _>>()?;
@@ -132,7 +133,7 @@ pub fn lambda_form(icompiler: &mut IncCompiler,
                    tail: &[&AST])
                    -> Result<Expr, Error> {
   if tail.is_empty() {
-    return Err(Error::TooFewArgs(String::from("lambda"), 1));
+    return Err(Error::from(GDError::TooFewArgs(String::from("lambda"), 1)));
   }
   let args: Vec<_> = DottedExpr::new(tail[0]).try_into()?;
   let args = ArgList::parse(args)?;
@@ -143,17 +144,17 @@ pub fn lambda_form(icompiler: &mut IncCompiler,
 pub fn function_form(tail: &[&AST])
                      -> Result<Expr, Error> {
   if tail.is_empty() {
-    return Err(Error::TooFewArgs(String::from("function"), 1));
+    return Err(Error::from(GDError::TooFewArgs(String::from("function"), 1)));
   }
   if tail.len() > 1 {
-    return Err(Error::TooManyArgs(String::from("function"), 1));
+    return Err(Error::from(GDError::TooManyArgs(String::from("function"), 1)));
   }
   match tail[0] {
     AST::Symbol(s) => {
       Ok(Expr::FuncRef(FuncRefTarget::SimpleName(s.clone())))
     }
     x => {
-      Err(Error::InvalidArg(String::from("function"), x.clone(), String::from("symbol")))
+      Err(Error::from(GDError::InvalidArg(String::from("function"), x.clone(), String::from("symbol"))))
     }
   }
 }
@@ -162,14 +163,14 @@ pub fn assign_form(icompiler: &mut IncCompiler,
                    tail: &[&AST])
                    -> Result<Expr, Error> {
   if tail.len() < 2 {
-    return Err(Error::TooFewArgs(String::from("setq"), 2))
+    return Err(Error::from(GDError::TooFewArgs(String::from("setq"), 2)))
   }
   if tail.len() > 2 {
-    return Err(Error::TooManyArgs(String::from("setq"), 2))
+    return Err(Error::from(GDError::TooManyArgs(String::from("setq"), 2)))
   }
   let var_name = match tail[0] {
     AST::Symbol(s) => s,
-    x => return Err(Error::InvalidArg(String::from("setq"), x.clone(), String::from("symbol"))),
+    x => return Err(Error::from(GDError::InvalidArg(String::from("setq"), x.clone(), String::from("symbol")))),
   };
   let value = icompiler.compile_expr(tail[1])?;
   Ok(Expr::Assign(var_name.clone(), Box::new(value)))
@@ -180,17 +181,17 @@ pub fn flet_form(icompiler: &mut IncCompiler,
                  container: impl FnOnce(Vec<(String, ArgList, Expr)>, Box<Expr>) -> Expr)
                  -> Result<Expr, Error> {
   if tail.is_empty() {
-    return Err(Error::TooFewArgs(String::from("flet"), tail.len()));
+    return Err(Error::from(GDError::TooFewArgs(String::from("flet"), tail.len())));
   }
   let fns: Vec<_> = DottedExpr::new(tail[0]).try_into()?;
   let fn_clauses = fns.into_iter().map(|clause| {
     let func: Vec<_> = DottedExpr::new(clause).try_into()?;
     if func.len() < 2 {
-      return Err(Error::InvalidArg(String::from("flet"), clause.clone(), String::from("function declaration")));
+      return Err(Error::from(GDError::InvalidArg(String::from("flet"), clause.clone(), String::from("function declaration"))));
     }
     let name = match func[0] {
       AST::Symbol(s) => Ok(s.clone()),
-      _ => Err(Error::InvalidArg(String::from("flet"), (*clause).clone(), String::from("function declaration"))),
+      _ => Err(Error::from(GDError::InvalidArg(String::from("flet"), (*clause).clone(), String::from("function declaration")))),
     }?;
     let args: Vec<_> = DottedExpr::new(func[1]).try_into()?;
     let args = ArgList::parse(args)?;
@@ -203,35 +204,35 @@ pub fn flet_form(icompiler: &mut IncCompiler,
 
 pub fn quote_form(tail: &[&AST]) -> Result<Expr, Error> {
   if tail.is_empty() {
-    return Err(Error::TooFewArgs(String::from("quote"), 1))
+    return Err(Error::from(GDError::TooFewArgs(String::from("quote"), 1)))
   }
   if tail.len() > 1 {
-    return Err(Error::TooManyArgs(String::from("quote"), 1))
+    return Err(Error::from(GDError::TooManyArgs(String::from("quote"), 1)))
   }
   Ok(Expr::Quote(tail[0].clone()))
 }
 
 pub fn quasiquote_form(icompiler: &mut IncCompiler, tail: &[&AST]) -> Result<Expr, Error> {
   if tail.is_empty() {
-    return Err(Error::TooFewArgs(String::from("quasiquote"), 1))
+    return Err(Error::from(GDError::TooFewArgs(String::from("quasiquote"), 1)))
   }
   if tail.len() > 1 {
-    return Err(Error::TooManyArgs(String::from("quasiquote"), 1))
+    return Err(Error::from(GDError::TooManyArgs(String::from("quasiquote"), 1)))
   }
   quasiquote(icompiler, tail[0])
 }
 
 pub fn access_slot_form(icompiler: &mut IncCompiler, tail: &[&AST]) -> Result<Expr, Error> {
   if tail.len() < 2 {
-    return Err(Error::TooFewArgs(String::from("access-slot"), 2))
+    return Err(Error::from(GDError::TooFewArgs(String::from("access-slot"), 2)))
   }
   if tail.len() > 2 {
-    return Err(Error::TooManyArgs(String::from("access-slot"), 2))
+    return Err(Error::from(GDError::TooManyArgs(String::from("access-slot"), 2)))
   }
   let lhs = icompiler.compile_expr(tail[0])?;
   let slot_name = match tail[1] {
     AST::Symbol(s) => s.to_owned(),
-    _ => return Err(Error::InvalidArg(String::from("access-slot"), tail[1].clone(), String::from("symbol"))),
+    _ => return Err(Error::from(GDError::InvalidArg(String::from("access-slot"), tail[1].clone(), String::from("symbol")))),
   };
   Ok(Expr::FieldAccess(Box::new(lhs), slot_name))
 }

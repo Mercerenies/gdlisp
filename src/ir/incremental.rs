@@ -41,20 +41,20 @@ impl IncCompiler {
     }
   }
 
-  fn resolve_macro_call(&mut self, call: &MacroCall, head: &str, tail: &[&AST]) -> Result<AST, Error> {
+  fn resolve_macro_call(&mut self, call: &MacroCall, head: &str, tail: &[&AST]) -> Result<AST, PError> {
     match self.symbols.get(head) {
       Some(Decl::MacroDecl(mdecl)) => {
         let args: Vec<_> = tail.iter().map(|x| x.reify()).collect();
-        let ast = self.server.run_server_file(call, mdecl.args.clone(), args).expect("Error in macro call"); // TODO Expect
+        let ast = self.server.run_server_file(call, mdecl.args.clone(), args)?;
         Ok(ast)
       }
       _ => {
-        Err(Error::NoSuchFn(head.to_owned()))
+        Err(PError::from(Error::NoSuchFn(head.to_owned())))
       }
     }
   }
 
-  fn try_resolve_macro_call(&mut self, ast: &AST) -> Result<Option<AST>, Error> {
+  fn try_resolve_macro_call(&mut self, ast: &AST) -> Result<Option<AST>, PError> {
     let vec: Vec<&AST> = match DottedExpr::new(ast).try_into() {
       Err(TryFromDottedExprError {}) => return Ok(None),
       Ok(v) => v,
@@ -65,7 +65,7 @@ impl IncCompiler {
       let head = self.resolve_call_name(vec[0])?;
       if let CallName::SimpleName(head) = head {
         let tail = &vec[1..];
-        if let Some(call) = self.server.get_file(&head) { // TODO Head not globally unique; fix this
+        if let Some(call) = self.server.get_file(&head) { // TODO Head not globally unique; fix this (/////)
           let call = call.clone(); // Can't borrow self mutably below, so let's get rid of the immutable borrow above.
           self.resolve_macro_call(&call, &head, tail).map(Some)
         } else {
@@ -77,19 +77,19 @@ impl IncCompiler {
     }
   }
 
-  fn resolve_call_name(&mut self, ast: &AST) -> Result<CallName, Error> {
+  fn resolve_call_name(&mut self, ast: &AST) -> Result<CallName, PError> {
     if let Some((lhs, name)) = CallName::try_resolve_method_name(ast) {
       let lhs = self.compile_expr(lhs)?;
       Ok(CallName::MethodName(Box::new(lhs), name.to_owned()))
     } else {
       match ast {
         AST::Symbol(s) => Ok(CallName::SimpleName(s.clone())),
-        _ => Err(Error::CannotCall(ast.clone())),
+        _ => Err(PError::from(Error::CannotCall(ast.clone()))),
       }
     }
   }
 
-  pub fn resolve_simple_call(&mut self, head: &str, tail: &[&AST]) -> Result<Expr, Error> {
+  pub fn resolve_simple_call(&mut self, head: &str, tail: &[&AST]) -> Result<Expr, PError> {
     if let Some(sf) = special_form::dispatch_form(self, head, tail)? {
       Ok(sf)
     } else if let Some(call) = self.server.get_file(head) {
@@ -102,7 +102,7 @@ impl IncCompiler {
     }
   }
 
-  pub fn compile_expr(&mut self, expr: &AST) -> Result<Expr, Error> {
+  pub fn compile_expr(&mut self, expr: &AST) -> Result<Expr, PError> {
     match expr {
       AST::Nil | AST::Cons(_, _) => {
         let vec: Vec<&AST> = DottedExpr::new(expr).try_into()?;
@@ -156,21 +156,21 @@ impl IncCompiler {
   }
 
   pub fn compile_decl(&mut self, decl: &AST)
-                      -> Result<Decl, Error> {
+                      -> Result<Decl, PError> {
     let vec: Vec<&AST> = DottedExpr::new(decl).try_into()?;
     if vec.is_empty() {
-      return Err(Error::UnknownDecl(decl.clone()));
+      return Err(PError::from(Error::UnknownDecl(decl.clone())));
     }
     match vec[0] {
       AST::Symbol(s) => {
         match s.borrow() {
           "defn" => {
             if vec.len() < 3 {
-              return Err(Error::InvalidDecl(decl.clone()));
+              return Err(PError::from(Error::InvalidDecl(decl.clone())));
             }
             let name = match vec[1] {
             AST::Symbol(s) => s,
-              _ => return Err(Error::InvalidDecl(decl.clone())),
+              _ => return Err(PError::from(Error::InvalidDecl(decl.clone()))),
             };
             let args: Vec<_> = DottedExpr::new(vec[2]).try_into()?;
             let args = ArgList::parse(args)?;
@@ -183,11 +183,11 @@ impl IncCompiler {
           }
           "defmacro" => {
             if vec.len() < 3 {
-              return Err(Error::InvalidDecl(decl.clone()));
+              return Err(PError::from(Error::InvalidDecl(decl.clone())));
             }
             let name = match vec[1] {
               AST::Symbol(s) => s,
-              _ => return Err(Error::InvalidDecl(decl.clone())),
+              _ => return Err(PError::from(Error::InvalidDecl(decl.clone()))),
             };
             let args: Vec<_> = DottedExpr::new(vec[2]).try_into()?;
             let args = ArgList::parse(args)?;
@@ -199,12 +199,12 @@ impl IncCompiler {
             }))
           }
           _ => {
-            Err(Error::UnknownDecl(decl.clone()))
+            Err(PError::from(Error::UnknownDecl(decl.clone())))
           }
         }
       }
       _ => {
-        Err(Error::InvalidDecl(decl.clone()))
+        Err(PError::from(Error::InvalidDecl(decl.clone())))
       }
     }
   }
@@ -247,7 +247,7 @@ impl IncCompiler {
       // DottedListError somewhere else in the computation, it's
       // possible it's an error we need to propagate. Consider this.
       match self.compile_decl(curr) {
-        Err(Error::UnknownDecl(_)) | Err(Error::DottedListError) => main.push(self.compile_expr(curr)?),
+        Err(PError::GDError(Error::UnknownDecl(_))) | Err(PError::GDError(Error::DottedListError)) => main.push(self.compile_expr(curr)?),
         Err(e) => return Err(e.into()),
         Ok(d) => {
           let is_macro = d.is_macro();

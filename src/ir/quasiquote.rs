@@ -1,9 +1,9 @@
 
 use crate::sxp::ast::AST;
-use crate::compile::error::Error;
 use crate::ir::incremental::IncCompiler;
 use super::expr::Expr;
 use super::literal::Literal;
+use crate::pipeline::error::Error;
 
 pub fn quasiquote(icompiler: &mut IncCompiler,
                   arg: &AST)
