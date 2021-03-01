@@ -3,8 +3,6 @@ extern crate gdlisp;
 
 use super::common::{parse_compile_decl, parse_and_run};
 
-///// Quasiquoting :)
-
 #[test]
 #[ignore]
 pub fn simple_macro_test() {

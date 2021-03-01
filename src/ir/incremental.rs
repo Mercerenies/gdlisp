@@ -16,42 +16,19 @@ use crate::sxp::dotted::{DottedExpr, TryFromDottedExprError};
 use crate::sxp::ast::{self, AST};
 use crate::sxp::reify::Reify;
 use crate::compile::error::Error;
-use crate::compile::names;
-use crate::compile::symbol_table::function_call::{FnCall, FnScope, FnSpecs};
-use crate::compile::symbol_table::call_magic::compile_default_call;
 use crate::gdscript::library;
-use crate::gdscript::expr::{Expr as GDExpr};
-use crate::runner::macro_server::lazy::LazyServer;
-use crate::runner::macro_server::command::ServerCommand;
-use crate::parser;
+use crate::runner::macro_server::named_file_server::{MacroCall, NamedFileServer};
 use crate::pipeline::error::{Error as PError};
 use crate::pipeline::loader::FileLoader;
 
-use tempfile::NamedTempFile;
-
-use std::io;
-use std::path::Path;
 use std::convert::{TryFrom, TryInto};
 use std::borrow::Borrow;
-use std::collections::HashMap;
 
 pub struct IncCompiler {
   symbols: SymbolTable,
-  server: LazyServer,
-  #[allow(dead_code)] // Need to keep these so the files stay alive until compilation is done
-  temporary_files: Vec<NamedTempFile>,
-  macro_files: HashMap<String, MacroCall>,
+  server: NamedFileServer,
   imports: Vec<ImportDecl>,
 }
-
-#[derive(Clone, Debug)]
-pub struct MacroCall {
-  pub index: u32,
-  pub name: String,
-}
-
-// TODO Move server, temporary_files, macro_files into something that provides a
-// nice Rust-side interface to the server.
 
 #[allow(clippy::new_without_default)]
 impl IncCompiler {
@@ -59,9 +36,7 @@ impl IncCompiler {
   pub fn new() -> IncCompiler {
     IncCompiler {
       symbols: SymbolTable::new(),
-      server: LazyServer::new(),
-      temporary_files: vec!(),
-      macro_files: HashMap::new(),
+      server: NamedFileServer::new(),
       imports: vec!(),
     }
   }
@@ -69,24 +44,9 @@ impl IncCompiler {
   fn resolve_macro_call(&mut self, call: &MacroCall, head: &str, tail: &[&AST]) -> Result<AST, Error> {
     match self.symbols.get(head) {
       Some(Decl::MacroDecl(mdecl)) => {
-        let specs = FnSpecs::from(mdecl.args.clone());
-        let call_object =
-          GDExpr::Subscript(
-            Box::new(GDExpr::Attribute(Box::new(GDExpr::var("MAIN")), String::from("loaded_files"))),
-            Box::new(GDExpr::from(call.index as i32))
-          );
-        let call = FnCall {
-          scope: FnScope::Global,
-          object: Some(Box::new(call_object)),
-          function: call.name.to_owned(),
-          specs: specs,
-        };
         let args: Vec<_> = tail.iter().map(|x| x.reify()).collect();
-        let server = self.server.get_mut().expect("IO Error on server"); // TODO Fix Expect
-        let eval_str = compile_default_call(call, args)?.to_gd();
-        let result = server.issue_command(&ServerCommand::Eval(eval_str)).expect("IO Error on server"); // TODO Fix Expect
-        let parser = parser::ASTParser::new();
-        Ok(parser.parse(&result).expect("Malformed input returned from macro server")) // TODO Fix Expect
+        let ast = self.server.run_server_file(call, mdecl.args.clone(), args).expect("Error in macro call"); // TODO Expect
+        Ok(ast)
       }
       _ => {
         Err(Error::NoSuchFn(head.to_owned()))
@@ -105,7 +65,7 @@ impl IncCompiler {
       let head = self.resolve_call_name(vec[0])?;
       if let CallName::SimpleName(head) = head {
         let tail = &vec[1..];
-        if let Some(call) = self.macro_files.get(&head) {
+        if let Some(call) = self.server.get_file(&head) { // TODO Head not globally unique; fix this
           let call = call.clone(); // Can't borrow self mutably below, so let's get rid of the immutable borrow above.
           self.resolve_macro_call(&call, &head, tail).map(Some)
         } else {
@@ -132,7 +92,7 @@ impl IncCompiler {
   pub fn resolve_simple_call(&mut self, head: &str, tail: &[&AST]) -> Result<Expr, Error> {
     if let Some(sf) = special_form::dispatch_form(self, head, tail)? {
       Ok(sf)
-    } else if let Some(call) = self.macro_files.get(head) {
+    } else if let Some(call) = self.server.get_file(head) {
       let call = call.clone(); // Can't borrow self mutably below, so let's get rid of the immutable borrow above.
       let result = self.resolve_macro_call(&call, head, tail)?;
       self.compile_expr(&result)
@@ -330,18 +290,8 @@ impl IncCompiler {
     // all referenced functions are already defined.
     let names = deps.try_into_knowns().map_err(Error::from)?;
     let tmpfile = macros::create_macro_file(&self.symbols, names)?;
-    let idx = self.load_file_on_server(tmpfile.path()).expect("IO Error"); // TODO Get rid of .expect(...)
-    self.temporary_files.push(tmpfile);
-    self.macro_files.insert(name.to_owned(), MacroCall { index: idx, name: names::lisp_to_gd(name) });
+    self.server.stand_up_file(name.to_owned(), tmpfile)?;
     Ok(())
-  }
-
-  fn load_file_on_server(&mut self, path: &Path) -> io::Result<u32> {
-    // TODO Can we get these two .expect() calls to return something in io::Result?
-    let server = self.server.get_mut()?;
-    let cmd = ServerCommand::Load((*path.to_string_lossy()).to_owned());
-    let result = server.issue_command(&cmd)?;
-    result.parse().map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e))
   }
 
 }

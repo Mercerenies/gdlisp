@@ -1,6 +1,7 @@
 
 pub mod command;
 pub mod lazy;
+pub mod named_file_server;
 
 use super::run_project_process;
 
