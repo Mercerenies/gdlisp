@@ -18,14 +18,13 @@ use std::io;
 
 pub struct NamedFileServer {
   server: LazyServer,
-  #[allow(dead_code)] // Need to keep these so the files stay alive until compilation is done
-  temporary_files: Vec<NamedTempFile>,
-  macro_files: HashMap<String, MacroCall>,
+  macro_files: HashMap<String, (MacroCall, NamedTempFile)>,
 }
 
 #[derive(Clone, Debug)]
 pub struct MacroCall {
-  pub index: u32,
+  pub index: u32, // Index in the lookup table on the GDScript side
+  pub original_name: String, // Probably not needed, but we have it so we may as well keep track of it.
   pub name: String,
 }
 
@@ -35,7 +34,6 @@ impl NamedFileServer {
   pub fn new() -> NamedFileServer {
     NamedFileServer {
       server: LazyServer::new(),
-      temporary_files: vec!(),
       macro_files: HashMap::new(),
     }
   }
@@ -49,14 +47,14 @@ impl NamedFileServer {
 
   pub fn stand_up_file(&mut self, name: String, file: NamedTempFile) -> io::Result<()> {
     let idx = self.load_file_on_server(file.path())?;
-    self.temporary_files.push(file);
     let gdname = names::lisp_to_gd(&name);
-    self.macro_files.insert(name, MacroCall { index: idx, name: gdname });
+    let call = MacroCall { index: idx, original_name: name.to_owned(), name: gdname };
+    self.macro_files.insert(name, (call, file));
     Ok(())
   }
 
   pub fn get_file(&self, name: &str) -> Option<&MacroCall> {
-    self.macro_files.get(name)
+    self.macro_files.get(name).map(|x| &x.0)
   }
 
   pub fn run_server_file(&mut self, call: &MacroCall, parms: ArgList, args: Vec<GDExpr>)
