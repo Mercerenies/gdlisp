@@ -17,16 +17,18 @@ use crate::sxp::ast::{self, AST};
 use crate::sxp::reify::Reify;
 use crate::compile::error::Error;
 use crate::gdscript::library;
-use crate::runner::macro_server::named_file_server::{MacroCall, NamedFileServer};
+use crate::runner::macro_server::named_file_server::{MacroCall, MacroID, NamedFileServer};
 use crate::pipeline::error::{Error as PError};
 use crate::pipeline::loader::FileLoader;
 
 use std::convert::{TryFrom, TryInto};
 use std::borrow::Borrow;
+use std::collections::HashMap;
 
 pub struct IncCompiler {
   symbols: SymbolTable,
   server: NamedFileServer,
+  macros: HashMap<String, MacroID>,
   imports: Vec<ImportDecl>,
 }
 
@@ -37,6 +39,7 @@ impl IncCompiler {
     IncCompiler {
       symbols: SymbolTable::new(),
       server: NamedFileServer::new(),
+      macros: HashMap::new(),
       imports: vec!(),
     }
   }
@@ -54,27 +57,26 @@ impl IncCompiler {
     }
   }
 
+  fn get_macro_file(&self, head: &str) -> Option<&MacroCall> {
+    self.macros.get(head).and_then(|id| self.server.get_file(*id))
+  }
+
   fn try_resolve_macro_call(&mut self, ast: &AST) -> Result<Option<AST>, PError> {
     let vec: Vec<&AST> = match DottedExpr::new(ast).try_into() {
       Err(TryFromDottedExprError {}) => return Ok(None),
       Ok(v) => v,
     };
-    if vec.is_empty() {
-      Ok(None) // Nil is not a macro call.
-    } else {
+    if !vec.is_empty() {
       let head = self.resolve_call_name(vec[0])?;
       if let CallName::SimpleName(head) = head {
         let tail = &vec[1..];
-        if let Some(call) = self.server.get_file(&head) { // TODO Head not globally unique; fix this (/////)
+        if let Some(call) = self.get_macro_file(&head) {
           let call = call.clone(); // Can't borrow self mutably below, so let's get rid of the immutable borrow above.
-          self.resolve_macro_call(&call, &head, tail).map(Some)
-        } else {
-          Ok(None)
+          return self.resolve_macro_call(&call, &head, tail).map(Some);
         }
-      } else {
-        Ok(None)
       }
     }
+    Ok(None)
   }
 
   fn resolve_call_name(&mut self, ast: &AST) -> Result<CallName, PError> {
@@ -92,7 +94,7 @@ impl IncCompiler {
   pub fn resolve_simple_call(&mut self, head: &str, tail: &[&AST]) -> Result<Expr, PError> {
     if let Some(sf) = special_form::dispatch_form(self, head, tail)? {
       Ok(sf)
-    } else if let Some(call) = self.server.get_file(head) {
+    } else if let Some(call) = self.get_macro_file(head) {
       let call = call.clone(); // Can't borrow self mutably below, so let's get rid of the immutable borrow above.
       let result = self.resolve_macro_call(&call, head, tail)?;
       self.compile_expr(&result)

@@ -18,8 +18,13 @@ use std::io;
 
 pub struct NamedFileServer {
   server: LazyServer,
-  macro_files: HashMap<String, (MacroCall, NamedTempFile)>,
+  macro_files: HashMap<MacroID, (MacroCall, NamedTempFile)>,
+  next_id: MacroID,
 }
+
+#[derive(Copy, Clone, Debug, Eq, PartialEq, Hash, Default)]
+#[repr(transparent)]
+pub struct MacroID(pub u32);
 
 #[derive(Clone, Debug)]
 pub struct MacroCall {
@@ -35,6 +40,7 @@ impl NamedFileServer {
     NamedFileServer {
       server: LazyServer::new(),
       macro_files: HashMap::new(),
+      next_id: MacroID::default(),
     }
   }
 
@@ -45,16 +51,18 @@ impl NamedFileServer {
     result.parse().map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e))
   }
 
-  pub fn stand_up_file(&mut self, name: String, file: NamedTempFile) -> io::Result<()> {
+  pub fn stand_up_file(&mut self, name: String, file: NamedTempFile) -> io::Result<MacroID> {
     let idx = self.load_file_on_server(file.path())?;
     let gdname = names::lisp_to_gd(&name);
-    let call = MacroCall { index: idx, original_name: name.to_owned(), name: gdname };
-    self.macro_files.insert(name, (call, file));
-    Ok(())
+    let call = MacroCall { index: idx, original_name: name, name: gdname };
+    let id = self.next_id;
+    self.next_id = self.next_id.next();
+    self.macro_files.insert(id, (call, file));
+    Ok(id)
   }
 
-  pub fn get_file(&self, name: &str) -> Option<&MacroCall> {
-    self.macro_files.get(name).map(|x| &x.0)
+  pub fn get_file(&self, id: MacroID) -> Option<&MacroCall> {
+    self.macro_files.get(&id).map(|x| &x.0)
   }
 
   pub fn run_server_file(&mut self, call: &MacroCall, parms: ArgList, args: Vec<GDExpr>)
@@ -77,6 +85,14 @@ impl NamedFileServer {
     let parser = parser::ASTParser::new();
     let parsed = parser.parse(&result)?;
     Ok(parsed)
+  }
+
+}
+
+impl MacroID {
+
+  pub fn next(self) -> MacroID {
+    MacroID(self.0 + 1)
   }
 
 }
