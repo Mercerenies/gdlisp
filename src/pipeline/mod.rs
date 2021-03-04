@@ -3,6 +3,7 @@ pub mod error;
 pub mod translation_unit;
 pub mod config;
 pub mod loader;
+pub mod resolver;
 
 use translation_unit::TranslationUnit;
 use config::ProjectConfig;
