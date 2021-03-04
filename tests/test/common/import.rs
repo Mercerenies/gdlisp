@@ -34,6 +34,7 @@ impl MockFileLoader {
 
 }
 
+/*
 impl FileLoader for MockFileLoader {
   // Doesn't actually throw any error (it panics on errors, since it's
   // exclusively used for testing), but the PError bound is required
@@ -76,3 +77,4 @@ impl FileLoader for MockFileLoader {
   }
 
 }
+*/ ////

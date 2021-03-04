@@ -15,7 +15,6 @@ use gdlisp::gdscript::decl;
 use gdlisp::command_line::{parse_args, show_help_message};
 use gdlisp::pipeline::Pipeline;
 use gdlisp::pipeline::config::ProjectConfig;
-use gdlisp::pipeline::loader::FileLoader;
 
 use std::io::{self, BufRead};
 use std::env;

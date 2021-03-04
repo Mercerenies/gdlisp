@@ -25,7 +25,7 @@ use crate::ir::expr::FuncRefTarget;
 use crate::ir::import::{ImportDecl, ImportDetails};
 use crate::runner::path::RPathBuf;
 use crate::pipeline::error::{Error as PError};
-use crate::pipeline::loader::FileLoader;
+use crate::pipeline::Pipeline;
 use special_form::lambda;
 use special_form::flet;
 use stateful::{StExpr, NeedsResult, SideEffects};
@@ -377,19 +377,17 @@ impl<'a> Compiler<'a> {
     }
   }
 
-  pub fn resolve_import<L, E>(&mut self,
-                              loader: &mut L,
-                              builder: &mut CodeBuilder,
-                              table: &mut SymbolTable,
-                              import: &ImportDecl)
-                              -> Result<(), PError>
-  where L : FileLoader<Error=E>,
-        PError : From<E> {
+  pub fn resolve_import(&mut self,
+                        pipeline: &mut Pipeline,
+                        builder: &mut CodeBuilder,
+                        table: &mut SymbolTable,
+                        import: &ImportDecl)
+                        -> Result<(), PError> {
     let preload_name = self.import_name(import);
     builder.add_decl(Compiler::make_preload_line(preload_name.clone(), &import.filename));
 
     // Now add the pertinent symbols to the symbol table
-    let unit = loader.load_file(&import.filename.path())?;
+    let unit = pipeline.load_file(&import.filename.path())?;
     let unit_table = unit.table();
     let exports = unit.exports();
     for export_name in exports {
@@ -440,16 +438,14 @@ impl<'a> Compiler<'a> {
     Ok(())
   }
 
-  pub fn compile_toplevel<L, E>(&mut self,
-                                loader: &mut L,
-                                builder: &mut CodeBuilder,
-                                table: &mut SymbolTable,
-                                toplevel: &ir::decl::TopLevel)
-                                -> Result<(), PError>
-  where L : FileLoader<Error=E>,
-        PError : From<E> {
+  pub fn compile_toplevel(&mut self,
+                          pipeline: &mut Pipeline,
+                          builder: &mut CodeBuilder,
+                          table: &mut SymbolTable,
+                          toplevel: &ir::decl::TopLevel)
+                          -> Result<(), PError> {
     for imp in &toplevel.imports {
-      self.resolve_import(loader, builder, table, imp)?;
+      self.resolve_import(pipeline, builder, table, imp)?;
     }
     self.compile_decls(builder, table, &toplevel.decls)
   }

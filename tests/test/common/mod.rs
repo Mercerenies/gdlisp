@@ -18,15 +18,15 @@ use gdlisp::parser;
 use gdlisp::ir;
 use gdlisp::gdscript::library;
 use gdlisp::gdscript::decl;
-use gdlisp::pipeline::loader::FileLoader;
-use gdlisp::pipeline::translation_unit::TranslationUnit;
-use gdlisp::pipeline::error::{Error as PError};
+use gdlisp::pipeline::Pipeline;
+use gdlisp::pipeline::config::ProjectConfig;
 
 use tempfile::{Builder, TempDir};
 
-use std::path::Path;
+use std::path::PathBuf;
 use std::fs::{File, copy};
 use std::io::{self, Write};
+use std::str::FromStr;
 
 pub const BEGIN_GDLISP_TESTS: &'static str = "__BEGIN_GDLISP_TESTS__";
 
@@ -62,24 +62,12 @@ where T : IntoGDFile + ?Sized {
 }
 */
 
-pub struct PanicFileLoader;
+pub fn dummy_config() -> ProjectConfig {
+  ProjectConfig { root_directory: PathBuf::from_str(".").unwrap() } // Infallible
+}
 
-// The snippets in here should all be self-contained and should NOT
-// import files. As such, import statements panic.
-impl FileLoader for PanicFileLoader {
-  type Error = PError;
-
-  fn load_file<'a, 'b, P>(&'a mut self, _input_path: &'b P)
-                          -> Result<&'a TranslationUnit, Self::Error>
-  where P : AsRef<Path> + ?Sized {
-    panic!("Unexpected import statement!")
-  }
-
-  fn get_file<'a, 'b, P>(&'a self, _input_path: &'b P) -> Option<&'a TranslationUnit>
-  where P :AsRef<Path> + ?Sized {
-    None
-  }
-
+pub fn dummy_pipeline() -> Pipeline {
+  Pipeline::new(dummy_config())
 }
 
 fn bind_helper_symbols(table: &mut SymbolTable) {
@@ -152,9 +140,11 @@ pub fn parse_and_run(input: &str) -> String {
   bind_helper_symbols(&mut table);
   library::bind_builtins(&mut table);
 
-  let decls = ir::compile_toplevel(&mut PanicFileLoader, &value).unwrap();
+  let mut pipeline = dummy_pipeline();
+
+  let decls = ir::compile_toplevel(&mut pipeline, &value).unwrap();
   let mut builder = CodeBuilder::new(decl::ClassExtends::Named(String::from("Reference")));
-  compiler.compile_toplevel(&mut PanicFileLoader, &mut builder, &mut table, &decls).unwrap();
+  compiler.compile_toplevel(&mut pipeline, &mut builder, &mut table, &decls).unwrap();
 
   let mut temp_dir = Builder::new().prefix("__gdlisp_test").rand_bytes(5).tempdir().unwrap();
   let code_output = builder.build();
@@ -217,9 +207,11 @@ pub fn parse_compile_decl(input: &str) -> String {
   let mut table = SymbolTable::new();
   library::bind_builtins(&mut table);
 
+  let mut pipeline = dummy_pipeline();
+
   let mut builder = CodeBuilder::new(decl::ClassExtends::Named("Reference".to_owned()));
-  let decls = ir::compile_toplevel(&mut PanicFileLoader, &value).unwrap();
-  compiler.compile_toplevel(&mut PanicFileLoader, &mut builder, &mut table, &decls).unwrap();
+  let decls = ir::compile_toplevel(&mut pipeline, &value).unwrap();
+  compiler.compile_toplevel(&mut pipeline, &mut builder, &mut table, &decls).unwrap();
   let class = builder.build();
 
   class.to_gd()

@@ -1,6 +1,7 @@
 
 extern crate gdlisp;
 
+/*
 use super::common::import::MockFileLoader;
 
 use gdlisp::pipeline::loader::FileLoader;
@@ -107,3 +108,4 @@ fn nonexistent_import_test() {
     (use "res://example.lisp" (nonexistent-function-name))
   "#);
 }
+*/ ////

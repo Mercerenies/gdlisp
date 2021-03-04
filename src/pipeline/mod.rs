@@ -8,7 +8,6 @@ pub mod resolver;
 use translation_unit::TranslationUnit;
 use config::ProjectConfig;
 use error::Error;
-use loader::FileLoader;
 use crate::parser;
 use crate::ir;
 use crate::compile::Compiler;
@@ -101,12 +100,7 @@ impl Pipeline {
     }
   }
 
-}
-
-impl FileLoader for Pipeline {
-  type Error = Error;
-
-  fn load_file<'a, 'b, P>(&'a mut self, input_path: &'b P)
+  pub fn load_file<'a, 'b, P>(&'a mut self, input_path: &'b P)
                               -> Result<&'a TranslationUnit, Error>
   where P : AsRef<Path> + ?Sized {
     let input_path = self.to_absolute_path(input_path);
@@ -119,7 +113,7 @@ impl FileLoader for Pipeline {
     }
   }
 
-  fn get_file<'a, 'b, P>(&'a self, input_path: &'b P) -> Option<&'a TranslationUnit>
+  pub fn get_file<'a, 'b, P>(&'a self, input_path: &'b P) -> Option<&'a TranslationUnit>
   where P :AsRef<Path> + ?Sized {
     self.get_loaded_file(input_path)
   }

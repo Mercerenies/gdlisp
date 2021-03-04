@@ -19,7 +19,7 @@ use crate::compile::error::Error;
 use crate::gdscript::library;
 use crate::runner::macro_server::named_file_server::{MacroCall, MacroID, NamedFileServer};
 use crate::pipeline::error::{Error as PError};
-use crate::pipeline::loader::FileLoader;
+use crate::pipeline::Pipeline;
 
 use std::convert::{TryFrom, TryInto};
 use std::borrow::Borrow;
@@ -220,10 +220,8 @@ impl IncCompiler {
     Ok(None)
   }
 
-  fn compile_decl_or_expr<L, E>(&mut self, loader: &mut L, main: &mut Vec<Expr>, curr: &AST)
-                                -> Result<(), PError>
-  where L : FileLoader<Error=E>,
-        PError : From<E> {
+  fn compile_decl_or_expr(&mut self, pipeline: &mut Pipeline, main: &mut Vec<Expr>, curr: &AST)
+                          -> Result<(), PError> {
     let mut candidate: Option<AST>; // Just need somewhere to store the intermediate.
     let mut curr = curr; // Change lifetime :)
     while let Some(ast) = self.try_resolve_macro_call(curr)? {
@@ -234,14 +232,14 @@ impl IncCompiler {
     if let Ok(vec) = Vec::try_from(DottedExpr::new(curr)) {
       if !vec.is_empty() && matches!(vec[0], AST::Symbol(progn) if progn == "progn") {
         for inner in &vec[1..] {
-          self.compile_decl_or_expr(loader, main, inner)?;
+          self.compile_decl_or_expr(pipeline, main, inner)?;
         }
         return Ok(());
       }
     }
     let imp = self.compile_import(curr)?;
     if let Some(imp) = imp {
-      loader.load_file(imp.filename.path())?;
+      pipeline.load_file(imp.filename.path())?;
       self.imports.push(imp);
     } else {
       // TODO The intention of catching DottedListError here is to
@@ -264,15 +262,13 @@ impl IncCompiler {
     Ok(())
   }
 
-  pub fn compile_toplevel<L, E>(mut self, loader: &mut L, body: &AST)
-                                -> Result<decl::TopLevel, PError>
-  where L : FileLoader<Error=E>,
-        PError : From<E> {
+  pub fn compile_toplevel(mut self, pipeline: &mut Pipeline, body: &AST)
+                          -> Result<decl::TopLevel, PError> {
     let body: Result<Vec<_>, TryFromDottedExprError> = DottedExpr::new(body).try_into();
     let body: Vec<_> = body?; // *sigh* Sometimes the type checker just doesn't get it ...
     let mut main: Vec<Expr> = Vec::new();
     for curr in body {
-      self.compile_decl_or_expr(loader, &mut main, curr)?;
+      self.compile_decl_or_expr(pipeline, &mut main, curr)?;
     }
     let main_decl = Decl::FnDecl(decl::FnDecl {
       name: MAIN_BODY_NAME.to_owned(),
