@@ -5,7 +5,7 @@ use gdlisp::pipeline::resolver::NameResolver;
 
 use std::collections::HashMap;
 use std::path::Path;
-use std::io::{self, Read};
+use std::io::{self, Read, Write};
 use std::cmp::min;
 
 // Behaves like the read instance on &[u8] but takes ownership of its
@@ -53,10 +53,14 @@ impl Read for StringReader {
 
 impl NameResolver for MockFileLoader {
 
-  fn resolve_path(&self, filename: &Path) -> io::Result<Box<dyn Read>> {
+  fn resolve_input_path(&self, filename: &Path) -> io::Result<Box<dyn Read>> {
     let filename = filename.file_name().unwrap().to_string_lossy().to_owned();
     let file_contents = StringReader::new(self.files.get(&*filename).unwrap().to_owned());
     Ok(Box::new(file_contents))
+  }
+
+  fn resolve_output_path(&self, _filename: &Path) -> io::Result<Box<dyn Write>> {
+    Ok(Box::new(io::sink()))
   }
 
 }

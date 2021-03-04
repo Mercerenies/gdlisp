@@ -19,8 +19,7 @@ use crate::gdscript::library;
 use crate::gdscript::decl;
 use crate::util;
 
-use std::io::{self, Read, Write};
-use std::fs;
+use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
 use std::collections::HashMap;
 
@@ -81,8 +80,8 @@ impl Pipeline {
   where P : AsRef<Path> + ?Sized {
     let input_path = input_path.as_ref();
     let output_path = input_to_output_filename(input_path);
-    let mut input_file = self.resolver.resolve_path(input_path)?;
-    let mut output_file = io::BufWriter::new(fs::File::create(output_path)?);
+    let mut input_file = self.resolver.resolve_input_path(input_path)?;
+    let mut output_file = self.resolver.resolve_output_path(&output_path)?;
 
     let unit = self.compile_file_to_unit(input_path, &mut input_file)?;
     write!(output_file, "{}", unit.gdscript().to_gd())?;
