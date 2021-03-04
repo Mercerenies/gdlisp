@@ -84,7 +84,7 @@ impl Pipeline {
 
   fn load_file_unconditionally<'a, 'b, P>(&'a mut self, input_path: &'b P)
                                           -> Result<&'a TranslationUnit, Error>
-  where P : AsRef<Path> + ?Sized {
+  where P : AsRef<Path> + ?Sized { ///// Name translation rules (stand up a file on GDScript for each source file and make sure to translate the preloads appropriately, so we can get imports right)
     let input_path = input_path.as_ref();
     let output_path = input_to_output_filename(input_path);
     let mut input_file = self.resolver.resolve_input_path(input_path)?;
