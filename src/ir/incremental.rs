@@ -288,7 +288,8 @@ impl IncCompiler {
     // all referenced functions are already defined.
     let names = deps.try_into_knowns().map_err(Error::from)?;
     let tmpfile = macros::create_macro_file(&self.symbols, names)?;
-    self.server.stand_up_file(name.to_owned(), tmpfile)?;
+    let m_id = self.server.stand_up_file(name.to_owned(), tmpfile)?;
+    self.macros.insert(name.to_owned(), m_id);
     Ok(())
   }
 
