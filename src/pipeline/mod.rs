@@ -8,6 +8,7 @@ pub mod resolver;
 use translation_unit::TranslationUnit;
 use config::ProjectConfig;
 use error::Error;
+use resolver::{NameResolver, DefaultNameResolver};
 use crate::parser;
 use crate::ir;
 use crate::compile::Compiler;
@@ -25,13 +26,18 @@ use std::collections::HashMap;
 
 pub struct Pipeline {
   config: ProjectConfig,
+  resolver: Box<dyn NameResolver>,
   known_files: HashMap<PathBuf, TranslationUnit>,
 }
 
 impl Pipeline {
 
+  pub fn with_resolver(config: ProjectConfig, resolver: Box<dyn NameResolver>) -> Pipeline {
+    Pipeline { config: config, resolver: resolver, known_files: HashMap::new() }
+  }
+
   pub fn new(config: ProjectConfig) -> Pipeline {
-    Pipeline { config: config, known_files: HashMap::new() }
+    Pipeline::with_resolver(config, Box::new(DefaultNameResolver))
   }
 
   pub fn compile_code<P : AsRef<Path> + ?Sized>(&mut self, filename: &P, input: &str)
@@ -75,7 +81,7 @@ impl Pipeline {
   where P : AsRef<Path> + ?Sized {
     let input_path = input_path.as_ref();
     let output_path = input_to_output_filename(input_path);
-    let mut input_file = io::BufReader::new(fs::File::open(input_path)?);
+    let mut input_file = self.resolver.resolve_path(input_path)?;
     let mut output_file = io::BufWriter::new(fs::File::create(output_path)?);
 
     let unit = self.compile_file_to_unit(input_path, &mut input_file)?;
