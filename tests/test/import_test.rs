@@ -1,10 +1,10 @@
 
 extern crate gdlisp;
 
-/*
 use super::common::import::MockFileLoader;
+use super::common::dummy_config;
 
-use gdlisp::pipeline::loader::FileLoader;
+use gdlisp::pipeline::Pipeline;
 
 fn setup_simple_file_loader(loader: &mut MockFileLoader) {
   loader.add_file("example.lisp", "(defn one () 1) (defn two () 2)");
@@ -14,7 +14,8 @@ fn load_and_output_simple_file(input: &str) -> String {
   let mut loader = MockFileLoader::new();
   setup_simple_file_loader(&mut loader);
   loader.add_file("main.lisp", input);
-  loader.load_file("main.lisp").unwrap().gdscript().to_gd()
+  let mut pipeline = Pipeline::with_resolver(dummy_config(), Box::new(loader));
+  pipeline.load_file("main.lisp").unwrap().gdscript().to_gd()
 }
 
 #[test]
@@ -108,4 +109,4 @@ fn nonexistent_import_test() {
     (use "res://example.lisp" (nonexistent-function-name))
   "#);
 }
-*/ ////
+
