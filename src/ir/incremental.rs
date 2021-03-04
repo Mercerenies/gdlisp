@@ -17,7 +17,7 @@ use crate::sxp::ast::{self, AST};
 use crate::sxp::reify::Reify;
 use crate::compile::error::Error;
 use crate::gdscript::library;
-use crate::runner::macro_server::named_file_server::{MacroCall, MacroID, NamedFileServer};
+use crate::runner::macro_server::named_file_server::{MacroCall, MacroID};
 use crate::pipeline::error::{Error as PError};
 use crate::pipeline::Pipeline;
 
@@ -27,7 +27,6 @@ use std::collections::HashMap;
 
 pub struct IncCompiler {
   symbols: SymbolTable,
-  server: NamedFileServer,
   macros: HashMap<String, MacroID>,
   imports: Vec<ImportDecl>,
 }
@@ -38,17 +37,17 @@ impl IncCompiler {
   pub fn new() -> IncCompiler {
     IncCompiler {
       symbols: SymbolTable::new(),
-      server: NamedFileServer::new(),
       macros: HashMap::new(),
       imports: vec!(),
     }
   }
 
-  fn resolve_macro_call(&mut self, call: &MacroCall, head: &str, tail: &[&AST]) -> Result<AST, PError> {
+  fn resolve_macro_call(&mut self, pipeline: &mut Pipeline, call: &MacroCall, head: &str, tail: &[&AST])
+                        -> Result<AST, PError> {
     match self.symbols.get(head) {
       Some(Decl::MacroDecl(mdecl)) => {
         let args: Vec<_> = tail.iter().map(|x| x.reify()).collect();
-        let ast = self.server.run_server_file(call, mdecl.args.clone(), args)?;
+        let ast = pipeline.get_server_mut().run_server_file(call, mdecl.args.clone(), args)?;
         Ok(ast)
       }
       _ => {
@@ -57,31 +56,31 @@ impl IncCompiler {
     }
   }
 
-  fn get_macro_file(&self, head: &str) -> Option<&MacroCall> {
-    self.macros.get(head).and_then(|id| self.server.get_file(*id))
+  fn get_macro_file<'a, 'b, 'c>(&'a self, pipeline: &'b Pipeline, head: &'c str) -> Option<&'b MacroCall> {
+    self.macros.get(head).and_then(|id| pipeline.get_server().get_file(*id))
   }
 
-  fn try_resolve_macro_call(&mut self, ast: &AST) -> Result<Option<AST>, PError> {
+  fn try_resolve_macro_call(&mut self, pipeline: &mut Pipeline, ast: &AST) -> Result<Option<AST>, PError> {
     let vec: Vec<&AST> = match DottedExpr::new(ast).try_into() {
       Err(TryFromDottedExprError {}) => return Ok(None),
       Ok(v) => v,
     };
     if !vec.is_empty() {
-      let head = self.resolve_call_name(vec[0])?;
+      let head = self.resolve_call_name(pipeline, vec[0])?;
       if let CallName::SimpleName(head) = head {
         let tail = &vec[1..];
-        if let Some(call) = self.get_macro_file(&head) {
+        if let Some(call) = self.get_macro_file(pipeline, &head) {
           let call = call.clone(); // Can't borrow self mutably below, so let's get rid of the immutable borrow above.
-          return self.resolve_macro_call(&call, &head, tail).map(Some);
+          return self.resolve_macro_call(pipeline, &call, &head, tail).map(Some);
         }
       }
     }
     Ok(None)
   }
 
-  fn resolve_call_name(&mut self, ast: &AST) -> Result<CallName, PError> {
+  fn resolve_call_name(&mut self, pipeline: &mut Pipeline, ast: &AST) -> Result<CallName, PError> {
     if let Some((lhs, name)) = CallName::try_resolve_method_name(ast) {
-      let lhs = self.compile_expr(lhs)?;
+      let lhs = self.compile_expr(pipeline, lhs)?;
       Ok(CallName::MethodName(Box::new(lhs), name.to_owned()))
     } else {
       match ast {
@@ -91,41 +90,42 @@ impl IncCompiler {
     }
   }
 
-  pub fn resolve_simple_call(&mut self, head: &str, tail: &[&AST]) -> Result<Expr, PError> {
-    if let Some(sf) = special_form::dispatch_form(self, head, tail)? {
+  pub fn resolve_simple_call(&mut self, pipeline: &mut Pipeline, head: &str, tail: &[&AST])
+                             -> Result<Expr, PError> {
+    if let Some(sf) = special_form::dispatch_form(self, pipeline, head, tail)? {
       Ok(sf)
-    } else if let Some(call) = self.get_macro_file(head) {
+    } else if let Some(call) = self.get_macro_file(pipeline, head) {
       let call = call.clone(); // Can't borrow self mutably below, so let's get rid of the immutable borrow above.
-      let result = self.resolve_macro_call(&call, head, tail)?;
-      self.compile_expr(&result)
+      let result = self.resolve_macro_call(pipeline, &call, head, tail)?;
+      self.compile_expr(pipeline, &result)
     } else {
-      let args = tail.iter().map(|x| self.compile_expr(x)).collect::<Result<Vec<_>, _>>()?;
+      let args = tail.iter().map(|x| self.compile_expr(pipeline, x)).collect::<Result<Vec<_>, _>>()?;
       Ok(Expr::Call(head.to_owned(), args))
     }
   }
 
-  pub fn compile_expr(&mut self, expr: &AST) -> Result<Expr, PError> {
+  pub fn compile_expr(&mut self, pipeline: &mut Pipeline, expr: &AST) -> Result<Expr, PError> {
     match expr {
       AST::Nil | AST::Cons(_, _) => {
         let vec: Vec<&AST> = DottedExpr::new(expr).try_into()?;
         if vec.is_empty() {
           Ok(Expr::Literal(Literal::Nil))
         } else {
-          let head = self.resolve_call_name(vec[0])?;
+          let head = self.resolve_call_name(pipeline, vec[0])?;
           let tail = &vec[1..];
           match head {
             CallName::SimpleName(head) => {
-              self.resolve_simple_call(&head, tail)
+              self.resolve_simple_call(pipeline, &head, tail)
             }
             CallName::MethodName(target, head) => {
-              let args = tail.iter().map(|x| self.compile_expr(x)).collect::<Result<Vec<_>, _>>()?;
+              let args = tail.iter().map(|x| self.compile_expr(pipeline, x)).collect::<Result<Vec<_>, _>>()?;
               Ok(Expr::MethodCall(target, head, args))
             }
           }
         }
       }
       AST::Array(vec) => {
-        let vec = vec.iter().map(|e| self.compile_expr(e)).collect::<Result<Vec<_>, _>>()?;
+        let vec = vec.iter().map(|e| self.compile_expr(pipeline, e)).collect::<Result<Vec<_>, _>>()?;
         Ok(Expr::Array(vec))
       }
       AST::Int(n) => {
@@ -144,20 +144,20 @@ impl IncCompiler {
         Ok(Expr::LocalVar(s.to_string()))
       }
       AST::Vector2(x, y) => {
-        let x = self.compile_expr(&*x)?;
-        let y = self.compile_expr(&*y)?;
+        let x = self.compile_expr(pipeline, &*x)?;
+        let y = self.compile_expr(pipeline, &*y)?;
         Ok(Expr::Vector2(Box::new(x), Box::new(y)))
       }
       AST::Vector3(x, y, z) => {
-        let x = self.compile_expr(&*x)?;
-        let y = self.compile_expr(&*y)?;
-        let z = self.compile_expr(&*z)?;
+        let x = self.compile_expr(pipeline, &*x)?;
+        let y = self.compile_expr(pipeline, &*y)?;
+        let z = self.compile_expr(pipeline, &*z)?;
         Ok(Expr::Vector3(Box::new(x), Box::new(y), Box::new(z)))
       }
     }
   }
 
-  pub fn compile_decl(&mut self, decl: &AST)
+  pub fn compile_decl(&mut self, pipeline: &mut Pipeline, decl: &AST)
                       -> Result<Decl, PError> {
     let vec: Vec<&AST> = DottedExpr::new(decl).try_into()?;
     if vec.is_empty() {
@@ -176,7 +176,7 @@ impl IncCompiler {
             };
             let args: Vec<_> = DottedExpr::new(vec[2]).try_into()?;
             let args = ArgList::parse(args)?;
-            let body = vec[3..].iter().map(|expr| self.compile_expr(expr)).collect::<Result<Vec<_>, _>>()?;
+            let body = vec[3..].iter().map(|expr| self.compile_expr(pipeline, expr)).collect::<Result<Vec<_>, _>>()?;
             Ok(Decl::FnDecl(decl::FnDecl {
               name: name.to_owned(),
               args: args,
@@ -193,7 +193,7 @@ impl IncCompiler {
             };
             let args: Vec<_> = DottedExpr::new(vec[2]).try_into()?;
             let args = ArgList::parse(args)?;
-            let body = vec[3..].iter().map(|expr| self.compile_expr(expr)).collect::<Result<Vec<_>, _>>()?;
+            let body = vec[3..].iter().map(|expr| self.compile_expr(pipeline, expr)).collect::<Result<Vec<_>, _>>()?;
             Ok(Decl::MacroDecl(decl::MacroDecl {
               name: name.to_owned(),
               args: args,
@@ -224,7 +224,7 @@ impl IncCompiler {
                           -> Result<(), PError> {
     let mut candidate: Option<AST>; // Just need somewhere to store the intermediate.
     let mut curr = curr; // Change lifetime :)
-    while let Some(ast) = self.try_resolve_macro_call(curr)? {
+    while let Some(ast) = self.try_resolve_macro_call(pipeline, curr)? {
       candidate = Some(ast);
       curr = &candidate.as_ref().unwrap();
     }
@@ -246,15 +246,15 @@ impl IncCompiler {
       // catch the initial dotted list check. If we encounter
       // DottedListError somewhere else in the computation, it's
       // possible it's an error we need to propagate. Consider this.
-      match self.compile_decl(curr) {
-        Err(PError::GDError(Error::UnknownDecl(_))) | Err(PError::GDError(Error::DottedListError)) => main.push(self.compile_expr(curr)?),
+      match self.compile_decl(pipeline, curr) {
+        Err(PError::GDError(Error::UnknownDecl(_))) | Err(PError::GDError(Error::DottedListError)) => main.push(self.compile_expr(pipeline, curr)?),
         Err(e) => return Err(e.into()),
         Ok(d) => {
           let is_macro = d.is_macro();
           let name = d.name().to_owned();
           self.symbols.set(name.clone(), d);
           if is_macro {
-            self.bind_macro(&name)?;
+            self.bind_macro(pipeline, &name)?;
           }
         }
       };
@@ -279,7 +279,7 @@ impl IncCompiler {
     Ok(self.into())
   }
 
-  pub fn bind_macro(&mut self, name: &str) -> Result<(), PError> {
+  pub fn bind_macro(&mut self, pipeline: &mut Pipeline, name: &str) -> Result<(), PError> {
     // Now we need to find the dependencies and spawn up the
     // server for the macro itself.
     let mut deps = Dependencies::identify(&self.symbols, &name);
@@ -288,7 +288,7 @@ impl IncCompiler {
     // all referenced functions are already defined.
     let names = deps.try_into_knowns().map_err(Error::from)?;
     let tmpfile = macros::create_macro_file(&self.symbols, names)?;
-    let m_id = self.server.stand_up_file(name.to_owned(), tmpfile)?;
+    let m_id = pipeline.get_server_mut().stand_up_file(name.to_owned(), tmpfile)?;
     self.macros.insert(name.to_owned(), m_id);
     Ok(())
   }

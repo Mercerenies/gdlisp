@@ -458,6 +458,9 @@ mod tests {
   use crate::gdscript::decl::Decl;
   use crate::sxp::ast::{self, AST};
   use crate::compile::symbol_table::function_call::{FnCall, FnScope, FnSpecs};
+  use crate::pipeline::config::ProjectConfig;
+
+  use std::path::PathBuf;
 
   // TODO A lot more of this
 
@@ -471,13 +474,16 @@ mod tests {
   }
 
   fn compile_stmt(ast: &AST) -> Result<(Vec<Stmt>, Vec<Decl>), PError> {
+
+    let mut pipeline = Pipeline::new(ProjectConfig { root_directory: PathBuf::from(".") });
+
     let used_names = ast.all_symbols();
     let mut compiler = Compiler::new(FreshNameGenerator::new(used_names));
     let mut table = SymbolTable::new();
     bind_helper_symbols(&mut table);
     library::bind_builtins(&mut table);
     let mut builder = StmtBuilder::new();
-    let expr = ir::compile_expr(ast)?;
+    let expr = ir::compile_expr(&mut pipeline, ast)?;
     let () = compiler.compile_stmt(&mut builder, &mut table, &mut stmt_wrapper::Return, &expr)?;
     Ok(builder.build())
   }

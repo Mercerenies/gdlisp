@@ -4,12 +4,14 @@ use crate::ir::incremental::IncCompiler;
 use super::expr::Expr;
 use super::literal::Literal;
 use crate::pipeline::error::Error;
+use crate::pipeline::Pipeline;
 
 pub fn quasiquote(icompiler: &mut IncCompiler,
+                  pipeline: &mut Pipeline,
                   arg: &AST)
                   -> Result<Expr, Error> {
   if let Some(ast) = check_for_unquote(arg) {
-    icompiler.compile_expr(ast)
+    icompiler.compile_expr(pipeline, ast)
   } else {
     match arg {
       AST::Nil => {
@@ -31,21 +33,21 @@ pub fn quasiquote(icompiler: &mut IncCompiler,
         Ok(Expr::Literal(Literal::Symbol(s.to_owned())))
       }
       AST::Cons(car, cdr) => {
-        Ok(Expr::Call(String::from("cons"), vec!(quasiquote(icompiler, car)?, quasiquote(icompiler, cdr)?)))
+        Ok(Expr::Call(String::from("cons"), vec!(quasiquote(icompiler, pipeline, car)?, quasiquote(icompiler, pipeline, cdr)?)))
       }
       AST::Array(v) => {
-        let v1 = v.iter().map(|x| quasiquote(icompiler, x)).collect::<Result<Vec<_>, _>>()?;
+        let v1 = v.iter().map(|x| quasiquote(icompiler, pipeline, x)).collect::<Result<Vec<_>, _>>()?;
         Ok(Expr::Array(v1))
       }
       AST::Vector2(x, y) => {
-        let x = quasiquote(icompiler, x)?;
-        let y = quasiquote(icompiler, y)?;
+        let x = quasiquote(icompiler, pipeline, x)?;
+        let y = quasiquote(icompiler, pipeline, y)?;
         Ok(Expr::Vector2(Box::new(x), Box::new(y)))
       }
       AST::Vector3(x, y, z) => {
-        let x = quasiquote(icompiler, x)?;
-        let y = quasiquote(icompiler, y)?;
-        let z = quasiquote(icompiler, z)?;
+        let x = quasiquote(icompiler, pipeline, x)?;
+        let y = quasiquote(icompiler, pipeline, y)?;
+        let z = quasiquote(icompiler, pipeline, z)?;
         Ok(Expr::Vector3(Box::new(x), Box::new(y), Box::new(z)))
       }
     }

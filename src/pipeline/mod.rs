@@ -18,6 +18,7 @@ use crate::compile::symbol_table::SymbolTable;
 use crate::gdscript::library;
 use crate::gdscript::decl;
 use crate::util;
+use crate::runner::macro_server::named_file_server::NamedFileServer;
 
 use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
@@ -27,12 +28,18 @@ pub struct Pipeline {
   config: ProjectConfig,
   resolver: Box<dyn NameResolver>,
   known_files: HashMap<PathBuf, TranslationUnit>,
+  server: NamedFileServer,
 }
 
 impl Pipeline {
 
   pub fn with_resolver(config: ProjectConfig, resolver: Box<dyn NameResolver>) -> Pipeline {
-    Pipeline { config: config, resolver: resolver, known_files: HashMap::new() }
+    Pipeline {
+      config: config,
+      resolver: resolver,
+      known_files: HashMap::new(),
+      server: NamedFileServer::new(),
+    }
   }
 
   pub fn new(config: ProjectConfig) -> Pipeline {
@@ -121,6 +128,14 @@ impl Pipeline {
   pub fn get_file<'a, 'b, P>(&'a self, input_path: &'b P) -> Option<&'a TranslationUnit>
   where P :AsRef<Path> + ?Sized {
     self.get_loaded_file(input_path)
+  }
+
+  pub fn get_server(&self) -> &NamedFileServer {
+    &self.server
+  }
+
+  pub fn get_server_mut(&mut self) -> &mut NamedFileServer {
+    &mut self.server
   }
 
 }

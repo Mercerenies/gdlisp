@@ -7,41 +7,45 @@ use super::quasiquote::quasiquote;
 use crate::pipeline::error::Error;
 use crate::compile::error::{Error as GDError};
 use crate::ir::incremental::IncCompiler;
+use crate::pipeline::Pipeline;
 
 use std::convert::TryInto;
 
 pub fn dispatch_form(icompiler: &mut IncCompiler,
+                     pipeline: &mut Pipeline,
                      head: &str,
                      tail: &[&AST])
                      -> Result<Option<Expr>, Error> {
   match head {
-    "progn" => progn_form(icompiler, tail).map(Some),
-    "if" => if_form(icompiler, tail).map(Some),
-    "cond" => cond_form(icompiler, tail).map(Some),
-    "while" => while_form(icompiler, tail).map(Some),
-    "for" => for_form(icompiler, tail).map(Some),
-    "let" => let_form(icompiler, tail).map(Some),
-    "flet" => flet_form(icompiler, tail, Expr::FLet).map(Some),
-    "labels" => flet_form(icompiler, tail, Expr::Labels).map(Some),
-    "lambda" => lambda_form(icompiler, tail).map(Some),
+    "progn" => progn_form(icompiler, pipeline, tail).map(Some),
+    "if" => if_form(icompiler, pipeline, tail).map(Some),
+    "cond" => cond_form(icompiler, pipeline, tail).map(Some),
+    "while" => while_form(icompiler, pipeline, tail).map(Some),
+    "for" => for_form(icompiler, pipeline, tail).map(Some),
+    "let" => let_form(icompiler, pipeline, tail).map(Some),
+    "flet" => flet_form(icompiler, pipeline, tail, Expr::FLet).map(Some),
+    "labels" => flet_form(icompiler, pipeline, tail, Expr::Labels).map(Some),
+    "lambda" => lambda_form(icompiler, pipeline, tail).map(Some),
     "function" => function_form(tail).map(Some),
-    "setq" => assign_form(icompiler, tail).map(Some),
+    "setq" => assign_form(icompiler, pipeline, tail).map(Some),
     "quote" => quote_form(tail).map(Some),
-    "quasiquote" => quasiquote_form(icompiler, tail).map(Some),
+    "quasiquote" => quasiquote_form(icompiler, pipeline, tail).map(Some),
     "unquote" => Err(Error::from(GDError::UnquoteOutsideQuasiquote)),
-    "access-slot" => access_slot_form(icompiler, tail).map(Some),
+    "access-slot" => access_slot_form(icompiler, pipeline, tail).map(Some),
     _ => Ok(None),
   }
 }
 
 pub fn progn_form(icompiler: &mut IncCompiler,
+                  pipeline: &mut Pipeline,
                   tail: &[&AST])
                   -> Result<Expr, Error> {
-  let body = tail.iter().map(|expr| icompiler.compile_expr(expr)).collect::<Result<Vec<_>, _>>()?;
+  let body = tail.iter().map(|expr| icompiler.compile_expr(pipeline, expr)).collect::<Result<Vec<_>, _>>()?;
   Ok(Expr::Progn(body))
 }
 
 pub fn if_form(icompiler: &mut IncCompiler,
+               pipeline: &mut Pipeline,
                tail: &[&AST])
                -> Result<Expr, Error> {
   let (cond, t, f) = match tail {
@@ -50,13 +54,14 @@ pub fn if_form(icompiler: &mut IncCompiler,
     [cond, t, f] => Ok((*cond, *t, *f)),
     _ => Err(Error::from(GDError::TooManyArgs(String::from("if"), tail.len()))),
   }?;
-  let cond = icompiler.compile_expr(cond)?;
-  let t = icompiler.compile_expr(t)?;
-  let f = icompiler.compile_expr(f)?;
+  let cond = icompiler.compile_expr(pipeline, cond)?;
+  let t = icompiler.compile_expr(pipeline, t)?;
+  let f = icompiler.compile_expr(pipeline, f)?;
   Ok(Expr::if_stmt(cond, t, f))
 }
 
 pub fn cond_form(icompiler: &mut IncCompiler,
+                 pipeline: &mut Pipeline,
                  tail: &[&AST])
                  -> Result<Expr, Error> {
   let body = tail.iter().map(|clause| {
@@ -66,12 +71,12 @@ pub fn cond_form(icompiler: &mut IncCompiler,
         Err(Error::from(GDError::InvalidArg(String::from("cond"), (*clause).clone(), String::from("nonempty list"))))
       }
       1 => {
-        let cond = icompiler.compile_expr(vec[0])?;
+        let cond = icompiler.compile_expr(pipeline, vec[0])?;
         Ok((cond, None))
       }
       _ => {
-        let cond = icompiler.compile_expr(vec[0])?;
-        let inner = vec[1..].iter().map(|expr| icompiler.compile_expr(expr)).collect::<Result<Vec<_>, _>>()?;
+        let cond = icompiler.compile_expr(pipeline, vec[0])?;
+        let inner = vec[1..].iter().map(|expr| icompiler.compile_expr(pipeline, expr)).collect::<Result<Vec<_>, _>>()?;
         Ok((cond, Some(Expr::Progn(inner))))
       }
     }
@@ -80,17 +85,19 @@ pub fn cond_form(icompiler: &mut IncCompiler,
 }
 
 pub fn while_form(icompiler: &mut IncCompiler,
+                  pipeline: &mut Pipeline,
                   tail: &[&AST])
                   -> Result<Expr, Error> {
   if tail.is_empty() {
     return Err(Error::from(GDError::TooFewArgs(String::from("while"), tail.len())));
   }
-  let cond = icompiler.compile_expr(tail[0])?;
-  let body = tail[1..].iter().map(|x| icompiler.compile_expr(x)).collect::<Result<Vec<_>, _>>()?;
+  let cond = icompiler.compile_expr(pipeline, tail[0])?;
+  let body = tail[1..].iter().map(|x| icompiler.compile_expr(pipeline, x)).collect::<Result<Vec<_>, _>>()?;
   Ok(Expr::while_stmt(cond, Expr::Progn(body)))
 }
 
 pub fn for_form(icompiler: &mut IncCompiler,
+                pipeline: &mut Pipeline,
                 tail: &[&AST])
                 -> Result<Expr, Error> {
   if tail.len() < 2 {
@@ -100,12 +107,13 @@ pub fn for_form(icompiler: &mut IncCompiler,
     AST::Symbol(s) => s.to_owned(),
     _ => return Err(Error::from(GDError::InvalidArg(String::from("for"), (*tail[0]).clone(), String::from("variable name")))),
   };
-  let iter = icompiler.compile_expr(tail[1])?;
-  let body = tail[2..].iter().map(|x| icompiler.compile_expr(x)).collect::<Result<Vec<_>, _>>()?;
+  let iter = icompiler.compile_expr(pipeline, tail[1])?;
+  let body = tail[2..].iter().map(|x| icompiler.compile_expr(pipeline, x)).collect::<Result<Vec<_>, _>>()?;
   Ok(Expr::for_stmt(name, iter, Expr::Progn(body)))
 }
 
 pub fn let_form(icompiler: &mut IncCompiler,
+                pipeline: &mut Pipeline,
                 tail: &[&AST])
                 -> Result<Expr, Error> {
   if tail.is_empty() {
@@ -118,18 +126,19 @@ pub fn let_form(icompiler: &mut IncCompiler,
       DottedExpr { elements, terminal: tail@AST::Symbol(_) } if elements.is_empty() => vec!(tail),
       _ => return Err(Error::from(GDError::InvalidArg(String::from("let"), (*clause).clone(), String::from("variable declaration"))))
     };
-    let result_value = var[1..].iter().map(|e| icompiler.compile_expr(e)).collect::<Result<Vec<_>, _>>()?;
+    let result_value = var[1..].iter().map(|e| icompiler.compile_expr(pipeline, e)).collect::<Result<Vec<_>, _>>()?;
     let name = match var[0] {
       AST::Symbol(s) => Ok(s.clone()),
       _ => Err(Error::from(GDError::InvalidArg(String::from("let"), (*clause).clone(), String::from("variable declaration")))),
     }?;
     Ok((name, Expr::Progn(result_value)))
   }).collect::<Result<Vec<_>, _>>()?;
-  let body = tail[1..].iter().map(|expr| icompiler.compile_expr(expr)).collect::<Result<Vec<_>, _>>()?;
+  let body = tail[1..].iter().map(|expr| icompiler.compile_expr(pipeline, expr)).collect::<Result<Vec<_>, _>>()?;
   Ok(Expr::Let(var_clauses, Box::new(Expr::Progn(body))))
 }
 
 pub fn lambda_form(icompiler: &mut IncCompiler,
+                   pipeline: &mut Pipeline,
                    tail: &[&AST])
                    -> Result<Expr, Error> {
   if tail.is_empty() {
@@ -137,7 +146,7 @@ pub fn lambda_form(icompiler: &mut IncCompiler,
   }
   let args: Vec<_> = DottedExpr::new(tail[0]).try_into()?;
   let args = ArgList::parse(args)?;
-  let body = tail[1..].iter().map(|expr| icompiler.compile_expr(expr)).collect::<Result<Vec<_>, _>>()?;
+  let body = tail[1..].iter().map(|expr| icompiler.compile_expr(pipeline, expr)).collect::<Result<Vec<_>, _>>()?;
   Ok(Expr::Lambda(args, Box::new(Expr::Progn(body))))
 }
 
@@ -160,6 +169,7 @@ pub fn function_form(tail: &[&AST])
 }
 
 pub fn assign_form(icompiler: &mut IncCompiler,
+                   pipeline: &mut Pipeline,
                    tail: &[&AST])
                    -> Result<Expr, Error> {
   if tail.len() < 2 {
@@ -172,11 +182,12 @@ pub fn assign_form(icompiler: &mut IncCompiler,
     AST::Symbol(s) => s,
     x => return Err(Error::from(GDError::InvalidArg(String::from("setq"), x.clone(), String::from("symbol")))),
   };
-  let value = icompiler.compile_expr(tail[1])?;
+  let value = icompiler.compile_expr(pipeline, tail[1])?;
   Ok(Expr::Assign(var_name.clone(), Box::new(value)))
 }
 
 pub fn flet_form(icompiler: &mut IncCompiler,
+                 pipeline: &mut Pipeline,
                  tail: &[&AST],
                  container: impl FnOnce(Vec<(String, ArgList, Expr)>, Box<Expr>) -> Expr)
                  -> Result<Expr, Error> {
@@ -195,10 +206,10 @@ pub fn flet_form(icompiler: &mut IncCompiler,
     }?;
     let args: Vec<_> = DottedExpr::new(func[1]).try_into()?;
     let args = ArgList::parse(args)?;
-    let body = func[2..].iter().map(|expr| icompiler.compile_expr(expr)).collect::<Result<Vec<_>, _>>()?;
+    let body = func[2..].iter().map(|expr| icompiler.compile_expr(pipeline, expr)).collect::<Result<Vec<_>, _>>()?;
     Ok((name, args, Expr::Progn(body)))
   }).collect::<Result<Vec<_>, _>>()?;
-  let body = tail[1..].iter().map(|expr| icompiler.compile_expr(expr)).collect::<Result<Vec<_>, _>>()?;
+  let body = tail[1..].iter().map(|expr| icompiler.compile_expr(pipeline, expr)).collect::<Result<Vec<_>, _>>()?;
   Ok(container(fn_clauses, Box::new(Expr::Progn(body))))
 }
 
@@ -212,24 +223,26 @@ pub fn quote_form(tail: &[&AST]) -> Result<Expr, Error> {
   Ok(Expr::Quote(tail[0].clone()))
 }
 
-pub fn quasiquote_form(icompiler: &mut IncCompiler, tail: &[&AST]) -> Result<Expr, Error> {
+pub fn quasiquote_form(icompiler: &mut IncCompiler,
+                       pipeline: &mut Pipeline,tail: &[&AST]) -> Result<Expr, Error> {
   if tail.is_empty() {
     return Err(Error::from(GDError::TooFewArgs(String::from("quasiquote"), 1)))
   }
   if tail.len() > 1 {
     return Err(Error::from(GDError::TooManyArgs(String::from("quasiquote"), 1)))
   }
-  quasiquote(icompiler, tail[0])
+  quasiquote(icompiler, pipeline, tail[0])
 }
 
-pub fn access_slot_form(icompiler: &mut IncCompiler, tail: &[&AST]) -> Result<Expr, Error> {
+pub fn access_slot_form(icompiler: &mut IncCompiler,
+                        pipeline: &mut Pipeline,tail: &[&AST]) -> Result<Expr, Error> {
   if tail.len() < 2 {
     return Err(Error::from(GDError::TooFewArgs(String::from("access-slot"), 2)))
   }
   if tail.len() > 2 {
     return Err(Error::from(GDError::TooManyArgs(String::from("access-slot"), 2)))
   }
-  let lhs = icompiler.compile_expr(tail[0])?;
+  let lhs = icompiler.compile_expr(pipeline, tail[0])?;
   let slot_name = match tail[1] {
     AST::Symbol(s) => s.to_owned(),
     _ => return Err(Error::from(GDError::InvalidArg(String::from("access-slot"), tail[1].clone(), String::from("symbol")))),

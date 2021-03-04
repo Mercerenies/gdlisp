@@ -188,8 +188,10 @@ pub fn parse_compile_and_output_h(input: &str) -> (String, String) {
   bind_helper_symbols_comp(&mut table);
   library::bind_builtins(&mut table);
 
+  let mut pipeline = dummy_pipeline();
+
   let mut builder = StmtBuilder::new();
-  let value = ir::compile_expr(&value).unwrap();
+  let value = ir::compile_expr(&mut pipeline, &value).unwrap();
   let () = compiler.compile_stmt(&mut builder, &mut table, &mut stmt_wrapper::Return, &value).unwrap();
   let (stmts, helpers) = builder.build();
   let a = stmts.into_iter().map(|stmt| stmt.to_gd(0)).collect::<String>();
