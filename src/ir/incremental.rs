@@ -287,7 +287,7 @@ impl IncCompiler {
     // Aside from built-in functions, it must be the case that
     // all referenced functions are already defined.
     let names = deps.try_into_knowns().map_err(Error::from)?;
-    let tmpfile = macros::create_macro_file(&self.symbols, names)?;
+    let tmpfile = macros::create_macro_file(pipeline, self.imports.clone(), &self.symbols, names)?;
     let m_id = pipeline.get_server_mut().stand_up_file(name.to_owned(), tmpfile)?;
     self.macros.insert(name.to_owned(), m_id);
     Ok(())

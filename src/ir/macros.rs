@@ -3,11 +3,13 @@ use crate::compile::Compiler;
 use crate::compile::names::fresh::FreshNameGenerator;
 use crate::compile::body::builder::CodeBuilder;
 use crate::compile::symbol_table::SymbolTable;
-use crate::compile::preload_resolver::DefaultPreloadResolver;
 use crate::gdscript::decl;
 use crate::gdscript::library;
 use crate::runner::into_gd_file::IntoGDFile;
 use crate::pipeline::error::{Error as PError};
+use crate::pipeline::Pipeline;
+use crate::ir::import::ImportDecl;
+use crate::ir::decl::TopLevel;
 
 use tempfile::{NamedTempFile, Builder};
 
@@ -25,15 +27,16 @@ fn make_tmp() -> io::Result<NamedTempFile> {
     .tempfile()
 }
 
-pub fn create_macro_file(src_table: &IRSymbolTable, names: HashSet<String>) -> Result<NamedTempFile, PError> {
+pub fn create_macro_file(pipeline: &mut Pipeline, imports: Vec<ImportDecl>, src_table: &IRSymbolTable, names: HashSet<String>) -> Result<NamedTempFile, PError> {
   let mut table = SymbolTable::new();
   library::bind_builtins(&mut table);
 
-  let mut compiler = Compiler::new(FreshNameGenerator::new(vec!()), Box::new(DefaultPreloadResolver)); ////
+  let mut compiler = Compiler::new(FreshNameGenerator::new(vec!()), Box::new(pipeline.make_preload_resolver()));
   let decls = Vec::from(src_table.filter(|d| names.contains(d.name())));
+  let toplevel = TopLevel { imports, decls };
 
   let mut builder = CodeBuilder::new(decl::ClassExtends::Named("Node".to_owned()));
-  compiler.compile_decls(&mut builder, &mut table, &decls)?; ///// Deal with imports
+  compiler.compile_toplevel(pipeline, &mut builder, &mut table, &toplevel)?;
   let result = builder.build();
 
   // TODO Handle the error correctly

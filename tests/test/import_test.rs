@@ -1,6 +1,8 @@
 
 extern crate gdlisp;
 
+//// Lazy loading in NamedFileServer so these tests don't have to be #[ignore]
+
 use super::common::import::MockFileLoader;
 use super::common::dummy_config;
 

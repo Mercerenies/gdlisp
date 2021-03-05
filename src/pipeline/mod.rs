@@ -15,13 +15,15 @@ use crate::compile::Compiler;
 use crate::compile::names::fresh::FreshNameGenerator;
 use crate::compile::body::builder::CodeBuilder;
 use crate::compile::symbol_table::SymbolTable;
-use crate::compile::preload_resolver::DefaultPreloadResolver;
+use crate::compile::preload_resolver::{DefaultPreloadResolver, LookupPreloadResolver};
 use crate::gdscript::library;
 use crate::gdscript::decl;
 use crate::util;
 use crate::runner::macro_server::named_file_server::NamedFileServer;
 
-use std::io::{Read, Write};
+use tempfile::Builder;
+
+use std::io::Write;
 use std::path::{Path, PathBuf};
 use std::collections::HashMap;
 
@@ -29,6 +31,7 @@ pub struct Pipeline {
   config: ProjectConfig,
   resolver: Box<dyn NameResolver>,
   known_files: HashMap<PathBuf, TranslationUnit>,
+  known_files_paths: HashMap<PathBuf, PathBuf>,
   server: NamedFileServer,
 }
 
@@ -39,6 +42,7 @@ impl Pipeline {
       config: config,
       resolver: resolver,
       known_files: HashMap::new(),
+      known_files_paths: HashMap::new(),
       server: NamedFileServer::new(),
     }
   }
@@ -65,34 +69,43 @@ impl Pipeline {
     Ok(TranslationUnit::new(filename.as_ref().to_owned(), table, ir, result, exports))
   }
 
-  pub fn compile_file_to_unit<P, R>(&mut self, filename: &P, input: &mut R)
-                                    -> Result<TranslationUnit, Error>
-  where P : AsRef<Path> + ?Sized,
-        R : Read {
-    let contents = util::read_to_end(input)?;
-    self.compile_code(filename, &contents)
-  }
-
-  pub fn compile_file<P, R, W>(&mut self, filename: &P, input: &mut R, output: &mut W)
-                            -> Result<(), Error>
-  where P : AsRef<Path> + ?Sized,
-        R : Read,
-        W : Write {
-    let result = decl::TopLevelClass::from(self.compile_file_to_unit(filename, input)?);
-    write!(output, "{}", result.to_gd())?;
-    Ok(())
-  }
-
   fn load_file_unconditionally<'a, 'b, P>(&'a mut self, input_path: &'b P)
                                           -> Result<&'a TranslationUnit, Error>
-  where P : AsRef<Path> + ?Sized { ///// Name translation rules (stand up a file on GDScript for each source file and make sure to translate the preloads appropriately, so we can get imports right)
+  where P : AsRef<Path> + ?Sized {
     let input_path = input_path.as_ref();
     let output_path = input_to_output_filename(input_path);
     let mut input_file = self.resolver.resolve_input_path(input_path)?;
     let mut output_file = self.resolver.resolve_output_path(&output_path)?;
 
-    let unit = self.compile_file_to_unit(input_path, &mut input_file)?;
+    let contents = util::read_to_end(&mut input_file)?;
+    let unit = self.compile_code(&input_path, &contents)?;
     write!(output_file, "{}", unit.gdscript().to_gd())?;
+
+    // Also output to a temporary file
+    let mut tmpfile = Builder::new()
+      .prefix("__gdlisp_file")
+      .suffix(".gd")
+      .rand_bytes(5)
+      .tempfile()?;
+
+    let parser = parser::SomeASTParser::new();
+    let ast = parser.parse(&contents)?;
+    let resolver = self.make_preload_resolver();
+    let mut compiler = Compiler::new(FreshNameGenerator::new(ast.all_symbols()), Box::new(resolver));
+    let mut table = SymbolTable::new();
+    library::bind_builtins(&mut table);
+
+    let mut builder = CodeBuilder::new(decl::ClassExtends::Named("Node".to_owned()));
+    compiler.compile_toplevel(self, &mut builder, &mut table, unit.ir())?;
+    let tmpresult = builder.build();
+
+    write!(tmpfile, "{}", tmpresult.to_gd())?;
+    let mut input_path_store_name = input_path.strip_prefix(&self.config.root_directory).expect("Non-local file load detected").to_owned(); // TODO Expect
+    input_path_store_name.set_extension("gd");
+    tmpfile.flush()?;
+    self.known_files_paths.insert(input_path_store_name, tmpfile.path().to_owned());
+    self.server.stand_up_file(String::from("(standalone file)"), tmpfile)?;
+
     self.known_files.insert(input_path.to_owned(), unit);
     Ok(self.known_files.get(input_path).expect("Path not present in load_file"))
   }
@@ -137,6 +150,10 @@ impl Pipeline {
 
   pub fn get_server_mut(&mut self) -> &mut NamedFileServer {
     &mut self.server
+  }
+
+  pub fn make_preload_resolver(&self) -> LookupPreloadResolver {
+    LookupPreloadResolver(self.known_files_paths.clone())
   }
 
 }
