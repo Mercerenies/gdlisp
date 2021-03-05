@@ -12,6 +12,7 @@ use gdlisp::compile::body::builder::{CodeBuilder, StmtBuilder};
 use gdlisp::compile::symbol_table::{LocalVar, SymbolTable};
 use gdlisp::compile::symbol_table::function_call::{FnCall, FnScope, FnSpecs};
 use gdlisp::compile::symbol_table::call_magic::DefaultCall;
+use gdlisp::compile::preload_resolver::DefaultPreloadResolver;
 use gdlisp::runner;
 use gdlisp::runner::into_gd_file::IntoGDFile;
 use gdlisp::parser;
@@ -135,7 +136,7 @@ pub fn parse_and_run(input: &str) -> String {
   let parser = parser::ASTParser::new();
   let value = parser.parse(input).unwrap();
   let used_names = value.all_symbols();
-  let mut compiler = Compiler::new(FreshNameGenerator::new(used_names));
+  let mut compiler = Compiler::new(FreshNameGenerator::new(used_names), Box::new(DefaultPreloadResolver));
   let mut table = SymbolTable::new();
   bind_helper_symbols(&mut table);
   library::bind_builtins(&mut table);
@@ -183,7 +184,7 @@ pub fn parse_compile_and_output_h(input: &str) -> (String, String) {
   let parser = parser::ASTParser::new();
   let value = parser.parse(input).unwrap();
   let used_names = value.all_symbols();
-  let mut compiler = Compiler::new(FreshNameGenerator::new(used_names));
+  let mut compiler = Compiler::new(FreshNameGenerator::new(used_names), Box::new(DefaultPreloadResolver));
   let mut table = SymbolTable::new();
   bind_helper_symbols_comp(&mut table);
   library::bind_builtins(&mut table);
@@ -205,7 +206,7 @@ pub fn parse_compile_decl(input: &str) -> String {
   let parser = parser::ASTParser::new();
   let value = parser.parse(input).unwrap();
   let used_names = value.all_symbols();
-  let mut compiler = Compiler::new(FreshNameGenerator::new(used_names));
+  let mut compiler = Compiler::new(FreshNameGenerator::new(used_names), Box::new(DefaultPreloadResolver));
   let mut table = SymbolTable::new();
   library::bind_builtins(&mut table);
 

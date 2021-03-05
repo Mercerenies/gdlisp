@@ -6,9 +6,11 @@ pub mod stmt_wrapper;
 pub mod symbol_table;
 pub mod special_form;
 pub mod stateful;
+pub mod preload_resolver;
 
 use body::builder::{CodeBuilder, StmtBuilder, HasDecls};
 use names::fresh::FreshNameGenerator;
+use preload_resolver::PreloadResolver;
 use crate::sxp::reify::Reify;
 use crate::gdscript::expr::Expr;
 use crate::gdscript::stmt::Stmt;
@@ -39,12 +41,13 @@ type IRLiteral = ir::literal::Literal;
 
 pub struct Compiler<'a> {
   gen: FreshNameGenerator<'a>,
+  resolver: Box<dyn PreloadResolver>,
 }
 
 impl<'a> Compiler<'a> {
 
-  pub fn new(gen: FreshNameGenerator<'a>) -> Compiler<'a> {
-    Compiler { gen }
+  pub fn new(gen: FreshNameGenerator<'a>, resolver: Box<dyn PreloadResolver>) -> Compiler<'a> {
+    Compiler { gen, resolver }
   }
 
   pub fn compile_stmts(&mut self,
@@ -322,10 +325,11 @@ impl<'a> Compiler<'a> {
     Ok(())
   }
 
-  fn make_preload_line(var: String, path: &RPathBuf) -> Decl {
+  fn make_preload_line(&self, var: String, path: &RPathBuf) -> Result<Decl, Error> {
     let mut path = path.clone();
     path.path_mut().set_extension("gd");
-    Decl::ConstDecl(var, Expr::Call(None, String::from("preload"), vec!(Expr::from(path.to_string()))))
+    let path = self.resolver.resolve_preload(&path).ok_or(Error::NoSuchFile(path.clone()))?;
+    Ok(Decl::ConstDecl(var, Expr::Call(None, String::from("preload"), vec!(Expr::from(path)))))
   }
 
   fn import_name(&mut self, import: &ImportDecl) -> String {
@@ -384,7 +388,7 @@ impl<'a> Compiler<'a> {
                         import: &ImportDecl)
                         -> Result<(), PError> {
     let preload_name = self.import_name(import);
-    builder.add_decl(Compiler::make_preload_line(preload_name.clone(), &import.filename));
+    builder.add_decl(self.make_preload_line(preload_name.clone(), &import.filename)?);
 
     // Now add the pertinent symbols to the symbol table
     let unit = pipeline.load_file(&import.filename.path())?;
@@ -459,6 +463,7 @@ mod tests {
   use crate::sxp::ast::{self, AST};
   use crate::compile::symbol_table::function_call::{FnCall, FnScope, FnSpecs};
   use crate::pipeline::config::ProjectConfig;
+  use crate::compile::preload_resolver::DefaultPreloadResolver;
 
   use std::path::PathBuf;
 
@@ -478,7 +483,7 @@ mod tests {
     let mut pipeline = Pipeline::new(ProjectConfig { root_directory: PathBuf::from(".") });
 
     let used_names = ast.all_symbols();
-    let mut compiler = Compiler::new(FreshNameGenerator::new(used_names));
+    let mut compiler = Compiler::new(FreshNameGenerator::new(used_names), Box::new(DefaultPreloadResolver));
     let mut table = SymbolTable::new();
     bind_helper_symbols(&mut table);
     library::bind_builtins(&mut table);

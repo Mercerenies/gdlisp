@@ -3,6 +3,7 @@ use crate::compile::Compiler;
 use crate::compile::names::fresh::FreshNameGenerator;
 use crate::compile::body::builder::CodeBuilder;
 use crate::compile::symbol_table::SymbolTable;
+use crate::compile::preload_resolver::DefaultPreloadResolver;
 use crate::gdscript::decl;
 use crate::gdscript::library;
 use crate::runner::into_gd_file::IntoGDFile;
@@ -28,7 +29,7 @@ pub fn create_macro_file(src_table: &IRSymbolTable, names: HashSet<String>) -> R
   let mut table = SymbolTable::new();
   library::bind_builtins(&mut table);
 
-  let mut compiler = Compiler::new(FreshNameGenerator::new(vec!()));
+  let mut compiler = Compiler::new(FreshNameGenerator::new(vec!()), Box::new(DefaultPreloadResolver)); ////
   let decls = Vec::from(src_table.filter(|d| names.contains(d.name())));
 
   let mut builder = CodeBuilder::new(decl::ClassExtends::Named("Node".to_owned()));

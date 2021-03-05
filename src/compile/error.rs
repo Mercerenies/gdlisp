@@ -3,6 +3,7 @@ use crate::sxp;
 use crate::sxp::ast::AST;
 use crate::ir::arglist::ArgListParseError;
 use crate::ir::import::ImportDeclParseError;
+use crate::runner::path::RPathBuf;
 
 #[derive(Debug)]
 pub enum Error {
@@ -18,6 +19,7 @@ pub enum Error {
   UnknownDecl(AST),
   InvalidDecl(AST),
   UnquoteOutsideQuasiquote,
+  NoSuchFile(RPathBuf),
 }
 
 impl From<sxp::dotted::TryFromDottedExprError> for Error {

@@ -15,6 +15,7 @@ use crate::compile::Compiler;
 use crate::compile::names::fresh::FreshNameGenerator;
 use crate::compile::body::builder::CodeBuilder;
 use crate::compile::symbol_table::SymbolTable;
+use crate::compile::preload_resolver::DefaultPreloadResolver;
 use crate::gdscript::library;
 use crate::gdscript::decl;
 use crate::util;
@@ -51,7 +52,7 @@ impl Pipeline {
     let parser = parser::SomeASTParser::new();
     let ast = parser.parse(input)?;
 
-    let mut compiler = Compiler::new(FreshNameGenerator::new(ast.all_symbols()));
+    let mut compiler = Compiler::new(FreshNameGenerator::new(ast.all_symbols()), Box::new(DefaultPreloadResolver));
     let mut table = SymbolTable::new();
     library::bind_builtins(&mut table);
 
