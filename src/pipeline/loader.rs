@@ -1,4 +1,6 @@
 
+#![deprecated]
+
 use super::TranslationUnit;
 
 use std::path::Path;
