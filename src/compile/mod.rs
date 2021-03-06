@@ -394,24 +394,9 @@ impl<'a> Compiler<'a> {
     let unit = pipeline.load_file(&import.filename.path())?;
     let unit_table = unit.table();
     let exports = unit.exports();
-    for export_name in exports {
-      let import_name = match &import.details {
-        ImportDetails::Named(s) => {
-          format!("{}.{}", s, export_name)
-        }
-        ImportDetails::Open => {
-          export_name.clone()
-        }
-        ImportDetails::Restricted(vec) => {
-          // Find it in the import list.
-          if let Some(name_match) = vec.iter().find(|x| x.in_name == *export_name) {
-            name_match.out_name.clone()
-          } else {
-            continue // Name not explicitly imported, so move on
-          }
-        }
-      };
-      let (call, _) = unit_table.get_fn(export_name).ok_or_else(|| Error::NoSuchFn(export_name.clone()))?;
+    let names = import.names(&unit.exports());
+    for (import_name, export_name) in names {
+      let (call, _) = unit_table.get_fn(&export_name).ok_or_else(|| Error::NoSuchFn(export_name))?;
       let call = Compiler::translate_call(preload_name.clone(), call.clone());
       table.set_fn(import_name.clone(), call, Box::new(DefaultCall));
     }

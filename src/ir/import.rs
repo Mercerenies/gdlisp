@@ -96,6 +96,28 @@ impl ImportDecl {
     }
   }
 
+  pub fn names(&self, exports: &[String]) -> Vec<(String, String)> {
+    exports.into_iter().cloned().filter_map(|export_name| {
+      let import_name = match &self.details {
+        ImportDetails::Named(s) => {
+          Some(format!("{}.{}", s, export_name))
+        }
+        ImportDetails::Open => {
+          Some(export_name.clone())
+        }
+        ImportDetails::Restricted(vec) => {
+          // Find it in the import list.
+          if let Some(name_match) = vec.iter().find(|x| x.in_name == *export_name) {
+            Some(name_match.out_name.clone())
+          } else {
+            None
+          }
+        }
+      };
+      import_name.map(|import_name| (import_name, export_name))
+    }).collect()
+  }
+
   pub fn parse(tail: &[&AST]) -> Result<ImportDecl, ImportDeclParseError> {
     if tail.is_empty() {
       return Err(ImportDeclParseError::NoFilename);
