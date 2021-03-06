@@ -18,8 +18,9 @@ pub enum DependencyError {
 
 impl Dependencies {
 
-  pub fn identify(table: &SymbolTable, name: &str) -> Dependencies {
+  pub fn identify(table: &SymbolTable, known_imports: &HashSet<String>, name: &str) -> Dependencies {
     let mut visited = HashSet::new();
+    let mut imports = HashSet::new();
     let mut unknown = HashSet::new();
     match table.get(name) {
       None => {
@@ -34,21 +35,21 @@ impl Dependencies {
           }
           let deps = current.dependencies();
           for dep in deps {
-            match table.get(&dep) {
-            None => {
+            if let Some(next) = table.get(&dep) {
+              frontier.push(next);
+            } else if known_imports.contains(&dep) {
+              imports.insert(dep);
+            } else {
               unknown.insert(dep);
-            }
-              Some(next) => {
-                frontier.push(next);
-              }
             }
           }
           visited.insert(current.name().to_owned());
       }
       }
     }
+    let known = &visited - &imports;
     Dependencies {
-      known: visited,
+      known: known,
       unknown: unknown,
     }
   }

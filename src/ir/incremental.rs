@@ -23,7 +23,7 @@ use crate::pipeline::Pipeline;
 
 use std::convert::{TryFrom, TryInto};
 use std::borrow::Borrow;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 pub struct IncCompiler {
   symbols: SymbolTable,
@@ -280,16 +280,25 @@ impl IncCompiler {
   }
 
   pub fn bind_macro(&mut self, pipeline: &mut Pipeline, name: &str) -> Result<(), PError> {
+
+    let translation_names = self.imports.iter().map(|import| {
+      let unit = pipeline.load_file(&import.filename.path())?;
+      Ok(import.names(unit.exports()))
+    }).collect::<Result<Vec<_>, PError>>()?;
+    let imported_names: HashSet<_> = translation_names.into_iter().flatten().map(|(input, _)| input).collect();
+
     // Now we need to find the dependencies and spawn up the
     // server for the macro itself.
-    let mut deps = Dependencies::identify(&self.symbols, &name);
+    let mut deps = Dependencies::identify(&self.symbols, &imported_names, &name);
     deps.purge_unknowns(library::all_builtin_names().into_iter());
+
     // Aside from built-in functions, it must be the case that
     // all referenced functions are already defined.
     let names = deps.try_into_knowns().map_err(Error::from)?;
     let tmpfile = macros::create_macro_file(pipeline, self.imports.clone(), &self.symbols, names)?;
     let m_id = pipeline.get_server_mut().stand_up_file(name.to_owned(), tmpfile)?;
     self.macros.insert(name.to_owned(), m_id);
+
     Ok(())
   }
 
