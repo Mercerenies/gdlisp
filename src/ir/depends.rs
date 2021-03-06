@@ -8,6 +8,7 @@ use std::borrow::Borrow;
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct Dependencies {
   pub known: HashSet<String>,
+  pub imports: HashSet<String>,
   pub unknown: HashSet<String>,
 }
 
@@ -48,10 +49,7 @@ impl Dependencies {
       }
     }
     let known = &visited - &imports;
-    Dependencies {
-      known: known,
-      unknown: unknown,
-    }
+    Dependencies { known, imports, unknown }
   }
 
   pub fn purge_unknowns<T, I>(&mut self, purge: I)
@@ -63,6 +61,10 @@ impl Dependencies {
   }
 
   pub fn try_into_knowns(self) -> Result<HashSet<String>, DependencyError> {
+    // Note: We explicitly don't care about imports here. As long as
+    // all names are either knowns or imports (and there are no
+    // unknowns), then we can safely discard the imports and keep only
+    // the knowns, as the imports are already loaded elsewhere.
     if let Some(unknown) = self.unknown.into_iter().next() {
       Err(DependencyError::UnknownName(unknown))
     } else {

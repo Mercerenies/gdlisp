@@ -18,7 +18,8 @@ fn dependencies_of(input: &str, target_name: &str) -> Dependencies {
 
 fn make_deps(known: Vec<&str>, unknown: Vec<&str>) -> Dependencies {
   Dependencies {
-    known  :   known.into_iter().map(str::to_owned).collect(),
+    known: known.into_iter().map(str::to_owned).collect(),
+    imports: HashSet::new(),
     unknown: unknown.into_iter().map(str::to_owned).collect(),
   }
 }
