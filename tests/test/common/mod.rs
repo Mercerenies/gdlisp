@@ -143,7 +143,7 @@ pub fn parse_and_run(input: &str) -> String {
 
   let mut pipeline = dummy_pipeline();
 
-  let decls = ir::compile_toplevel(&mut pipeline, &value).unwrap();
+  let (decls, _macros) = ir::compile_toplevel(&mut pipeline, &value).unwrap();
   let mut builder = CodeBuilder::new(decl::ClassExtends::Named(String::from("Reference")));
   compiler.compile_toplevel(&mut pipeline, &mut builder, &mut table, &decls).unwrap();
 
@@ -213,7 +213,7 @@ pub fn parse_compile_decl(input: &str) -> String {
   let mut pipeline = dummy_pipeline();
 
   let mut builder = CodeBuilder::new(decl::ClassExtends::Named("Reference".to_owned()));
-  let decls = ir::compile_toplevel(&mut pipeline, &value).unwrap();
+  let (decls, _macros) = ir::compile_toplevel(&mut pipeline, &value).unwrap();
   compiler.compile_toplevel(&mut pipeline, &mut builder, &mut table, &decls).unwrap();
   let class = builder.build();
 

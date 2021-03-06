@@ -11,7 +11,7 @@ use std::collections::HashSet;
 fn dependencies_of(input: &str, target_name: &str) -> Dependencies {
   let parser = parser::ASTParser::new();
   let ast = parser.parse(input).unwrap();
-  let toplevel = ir::compile_toplevel(&mut dummy_pipeline(), &ast).unwrap();
+  let (toplevel, _macros) = ir::compile_toplevel(&mut dummy_pipeline(), &ast).unwrap();
   let table = SymbolTable::from(toplevel.decls); // TODO Deal with imports here?
   Dependencies::identify(&table, &HashSet::new(), target_name)
 }

@@ -60,13 +60,13 @@ impl Pipeline {
     let mut table = SymbolTable::new();
     library::bind_builtins(&mut table);
 
-    let ir = ir::compile_toplevel(self, &ast)?;
+    let (ir, macros) = ir::compile_toplevel(self, &ast)?;
     let mut builder = CodeBuilder::new(decl::ClassExtends::Named("Node".to_owned()));
     compiler.compile_toplevel(self, &mut builder, &mut table, &ir)?;
     let result = builder.build();
 
     let exports = ir::export::get_export_list(&ir.decls);
-    Ok(TranslationUnit::new(filename.as_ref().to_owned(), table, ir, result, exports))
+    Ok(TranslationUnit::new(filename.as_ref().to_owned(), table, ir, result, exports, macros))
   }
 
   fn load_file_unconditionally<'a, 'b, P>(&'a mut self, input_path: &'b P)

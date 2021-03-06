@@ -135,7 +135,7 @@ static func run():
 
 #[test]
 #[ignore]
-fn macro_from_other_file_test() {
+fn macro_from_other_file_import_test() {
   let mut loader = MockFileLoader::new();
   loader.add_file("example.lisp", "(defmacro add-one (x) (+ x 1))");
   loader.add_file("main.lisp", r#"

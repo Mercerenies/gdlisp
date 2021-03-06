@@ -20,6 +20,7 @@ use crate::gdscript::library;
 use crate::runner::macro_server::named_file_server::{MacroCall, MacroID};
 use crate::pipeline::error::{Error as PError};
 use crate::pipeline::Pipeline;
+use crate::pipeline::translation_unit::TranslationUnit;
 
 use std::convert::{TryFrom, TryInto};
 use std::borrow::Borrow;
@@ -27,7 +28,7 @@ use std::collections::{HashMap, HashSet};
 
 pub struct IncCompiler {
   symbols: SymbolTable,
-  macros: HashMap<String, MacroID>,
+  macros: HashMap<String, (MacroID, decl::MacroDecl, bool)>, // bool is true if imported
   imports: Vec<ImportDecl>,
 }
 
@@ -44,8 +45,8 @@ impl IncCompiler {
 
   fn resolve_macro_call(&mut self, pipeline: &mut Pipeline, call: &MacroCall, head: &str, tail: &[&AST])
                         -> Result<AST, PError> {
-    match self.symbols.get(head) {
-      Some(Decl::MacroDecl(mdecl)) => {
+    match self.macros.get(head) {
+      Some((_, mdecl, _)) => {
         let args: Vec<_> = tail.iter().map(|x| x.reify()).collect();
         let ast = pipeline.get_server_mut().run_server_file(call, mdecl.args.clone(), args)?;
         Ok(ast)
@@ -57,7 +58,7 @@ impl IncCompiler {
   }
 
   fn get_macro_file<'a, 'b, 'c>(&'a self, pipeline: &'b Pipeline, head: &'c str) -> Option<&'b MacroCall> {
-    self.macros.get(head).and_then(|id| pipeline.get_server().get_file(*id))
+    self.macros.get(head).map(|x| x.0).and_then(|id| pipeline.get_server().get_file(id))
   }
 
   fn try_resolve_macro_call(&mut self, pipeline: &mut Pipeline, ast: &AST) -> Result<Option<AST>, PError> {
@@ -220,6 +221,14 @@ impl IncCompiler {
     Ok(None)
   }
 
+  fn import_macros_from(&mut self, unit: &TranslationUnit, import: &ImportDecl) {
+    for (import_name, export_name) in import.names(unit.exports()) {
+      if let Some(x) = unit.macros().get(&export_name) {
+        self.macros.insert(import_name, (x.0, x.1.clone(), true));
+      }
+    }
+  }
+
   fn compile_decl_or_expr(&mut self, pipeline: &mut Pipeline, main: &mut Vec<Expr>, curr: &AST)
                           -> Result<(), PError> {
     let mut candidate: Option<AST>; // Just need somewhere to store the intermediate.
@@ -239,7 +248,8 @@ impl IncCompiler {
     }
     let imp = self.compile_import(curr)?;
     if let Some(imp) = imp {
-      pipeline.load_file(imp.filename.path())?;
+      let file = pipeline.load_file(imp.filename.path())?;
+      self.import_macros_from(&file, &imp);
       self.imports.push(imp);
     } else {
       // TODO The intention of catching DottedListError here is to
@@ -250,11 +260,10 @@ impl IncCompiler {
         Err(PError::GDError(Error::UnknownDecl(_))) | Err(PError::GDError(Error::DottedListError)) => main.push(self.compile_expr(pipeline, curr)?),
         Err(e) => return Err(e.into()),
         Ok(d) => {
-          let is_macro = d.is_macro();
           let name = d.name().to_owned();
-          self.symbols.set(name.clone(), d);
-          if is_macro {
-            self.bind_macro(pipeline, &name)?;
+          self.symbols.set(name.clone(), d.clone());
+          if let Decl::MacroDecl(mdecl) = d {
+            self.bind_macro(pipeline, &name, mdecl.clone())?;
           }
         }
       };
@@ -263,7 +272,7 @@ impl IncCompiler {
   }
 
   pub fn compile_toplevel(mut self, pipeline: &mut Pipeline, body: &AST)
-                          -> Result<decl::TopLevel, PError> {
+                          -> Result<(decl::TopLevel, HashMap<String, (MacroID, decl::MacroDecl)>), PError> {
     let body: Result<Vec<_>, TryFromDottedExprError> = DottedExpr::new(body).try_into();
     let body: Vec<_> = body?; // *sigh* Sometimes the type checker just doesn't get it ...
     let mut main: Vec<Expr> = Vec::new();
@@ -279,7 +288,7 @@ impl IncCompiler {
     Ok(self.into())
   }
 
-  pub fn bind_macro(&mut self, pipeline: &mut Pipeline, name: &str) -> Result<(), PError> {
+  pub fn bind_macro(&mut self, pipeline: &mut Pipeline, name: &str, decl: decl::MacroDecl) -> Result<(), PError> {
 
     let translation_names = self.imports.iter().map(|import| {
       let unit = pipeline.load_file(&import.filename.path())?;
@@ -297,7 +306,7 @@ impl IncCompiler {
     let names = deps.try_into_knowns().map_err(Error::from)?;
     let tmpfile = macros::create_macro_file(pipeline, self.imports.clone(), &self.symbols, names)?;
     let m_id = pipeline.get_server_mut().stand_up_file(name.to_owned(), tmpfile)?;
-    self.macros.insert(name.to_owned(), m_id);
+    self.macros.insert(name.to_owned(), (m_id, decl, false));
 
     Ok(())
   }
@@ -312,13 +321,15 @@ impl Default for IncCompiler {
 
 }
 
-impl From<IncCompiler> for decl::TopLevel {
+impl From<IncCompiler> for (decl::TopLevel, HashMap<String, (MacroID, decl::MacroDecl)>) {
 
-  fn from(compiler: IncCompiler) -> decl::TopLevel {
-    decl::TopLevel {
+  fn from(compiler: IncCompiler) -> (decl::TopLevel, HashMap<String, (MacroID, decl::MacroDecl)>) {
+    let toplevel = decl::TopLevel {
       imports: compiler.imports,
       decls: compiler.symbols.into(),
-    }
+    };
+    let macros: HashMap<_, _> = compiler.macros.into_iter().filter(|(_, x)| !x.2).map(|(s, x)| (s, (x.0, x.1))).collect();
+    (toplevel, macros)
   }
 
 }

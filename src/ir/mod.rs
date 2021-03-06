@@ -28,6 +28,9 @@ use decl::Decl;
 use crate::sxp::ast::AST;
 use crate::pipeline::error::{Error as PError};
 use crate::pipeline::Pipeline;
+use crate::runner::macro_server::named_file_server::MacroID;
+
+use std::collections::HashMap;
 
 pub const MAIN_BODY_NAME: &str = "run";
 
@@ -42,7 +45,7 @@ pub fn compile_decl(pipeline: &mut Pipeline, decl: &AST)
 }
 
 pub fn compile_toplevel(pipeline: &mut Pipeline, body: &AST)
-                        -> Result<decl::TopLevel, PError> {
+                        -> Result<(decl::TopLevel, HashMap<String, (MacroID, decl::MacroDecl)>), PError> {
   let compiler = incremental::IncCompiler::new();
   compiler.compile_toplevel(pipeline, body)
 }
