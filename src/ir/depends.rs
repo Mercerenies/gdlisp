@@ -52,6 +52,8 @@ impl Dependencies {
     Dependencies { known, imports, unknown }
   }
 
+  // TODO Rather than purge after the fact, we can use the imports
+  // argument above to account for built-ins.
   pub fn purge_unknowns<T, I>(&mut self, purge: I)
   where T : Borrow<str>,
         I : Iterator<Item=T> {
