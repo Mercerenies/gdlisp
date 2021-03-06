@@ -56,11 +56,15 @@ impl RPathBuf {
     comp
   }
 
+  pub fn path_to_string<P : AsRef<Path> + ?Sized>(path: &P) -> String {
+    path.as_ref().to_string_lossy().replace("\\", "/")
+  }
+
 }
 
 impl fmt::Display for RPathBuf {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-    let path = self.path().to_string_lossy().replace("\\", "/");
+    let path = RPathBuf::path_to_string(self.path());
     write!(f, "{}{}", self.source().prefix(), path)
   }
 }

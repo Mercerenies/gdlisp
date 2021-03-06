@@ -30,8 +30,7 @@ impl PreloadResolver for DefaultPreloadResolver {
 impl PreloadResolver for LookupPreloadResolver {
 
   fn resolve_preload(&self, path: &RPathBuf) -> Option<String> {
-    // TODO This to_string-ish thing is the same as in Display for RPathBuf; make a common helper function
-    self.0.get(path.path()).map(|x| x.to_string_lossy().replace("\\", "/"))
+    self.0.get(path.path()).map(RPathBuf::path_to_string)
   }
 
 }
