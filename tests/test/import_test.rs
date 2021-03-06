@@ -112,3 +112,41 @@ fn nonexistent_import_test() {
   "#);
 }
 
+#[test]
+#[ignore]
+fn macro_uses_other_import_test() {
+  let mut loader = MockFileLoader::new();
+  loader.add_file("example.lisp", "(defn add-one (x) (+ x 1))");
+  loader.add_file("main.lisp", r#"
+    (use "res://example.lisp" open)
+    (defmacro f (x) (add-one x))
+    (f 43)
+  "#);
+  let mut pipeline = Pipeline::with_resolver(dummy_config(), Box::new(loader));
+  let result = pipeline.load_file("main.lisp").unwrap().gdscript().to_gd();
+  assert_eq!(result, r#"extends Node
+const _Import_0 = preload("res://example.gd")
+static func f(x_1):
+    return _Import_0.add_one(x_1)
+static func run():
+    return 44
+"#);
+}
+
+#[test]
+#[ignore]
+fn macro_from_other_file_test() {
+  let mut loader = MockFileLoader::new();
+  loader.add_file("example.lisp", "(defmacro add-one (x) (+ x 1))");
+  loader.add_file("main.lisp", r#"
+    (use "res://example.lisp" open)
+    (add-one 43)
+  "#);
+  let mut pipeline = Pipeline::with_resolver(dummy_config(), Box::new(loader));
+  let result = pipeline.load_file("main.lisp").unwrap().gdscript().to_gd();
+  assert_eq!(result, r#"extends Node
+const _Import_0 = preload("res://example.gd")
+static func run():
+    return 44
+"#);
+}
