@@ -6,7 +6,7 @@ use crate::ir::arglist::ArgListParseError;
 use lalrpop_util::ParseError;
 
 use std::io;
-use std::fmt::Display;
+use std::fmt;
 
 #[derive(Debug)]
 pub enum Error {
@@ -15,7 +15,17 @@ pub enum Error {
   GDError(GDError),
 }
 
-impl<L : Display, T : Display, E : Display> From<ParseError<L, T, E>> for Error {
+impl fmt::Display for Error {
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    match self {
+      Error::ParseError(err) => write!(f, "{}", err),
+      Error::IOError(err) => write!(f, "{}", err),
+      Error::GDError(err) => write!(f, "{}", err),
+    }
+  }
+}
+
+impl<L : fmt::Display, T : fmt::Display, E : fmt::Display> From<ParseError<L, T, E>> for Error {
   fn from(e: ParseError<L, T, E>) -> Error {
     Error::ParseError(e.to_string())
   }

@@ -4,6 +4,7 @@ use crate::sxp::dotted::DottedExpr;
 use crate::runner::path::{RPathBuf, PathSrc};
 
 use std::convert::{TryInto, TryFrom};
+use std::fmt;
 
 // Import syntax:
 //
@@ -207,6 +208,28 @@ impl ImportName {
 fn invalid_ending_err(tail: &[&AST]) -> ImportDeclParseError {
   let ending: Vec<AST> = tail.iter().map(|x| (*x).clone()).collect();
   ImportDeclParseError::InvalidEnding(ast::list(ending))
+}
+
+impl fmt::Display for ImportDeclParseError {
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    match self {
+      ImportDeclParseError::NoFilename => {
+        write!(f, "Expected filename in import")
+      }
+      ImportDeclParseError::BadFilename(ast) => {
+        write!(f, "Not a valid filename in import {}", ast)
+      }
+      ImportDeclParseError::InvalidPath(s) => {
+        write!(f, "Not a valid path in import {}", s)
+      }
+      ImportDeclParseError::MalformedFunctionImport(ast) => {
+        write!(f, "Malformed function import {}", ast)
+      }
+      ImportDeclParseError::InvalidEnding(ast) => {
+        write!(f, "Invalid end of import {}", ast)
+      }
+    }
+  }
 }
 
 #[cfg(test)]

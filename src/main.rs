@@ -28,7 +28,7 @@ fn run_pseudo_repl() {
   for line in stdin.lock().lines() {
     match pipeline.compile_code("(eval)", &line.unwrap()) {
       Err(err) => {
-        println!("Error: {:?}", err);
+        println!("Error: {}", err);
       }
       Ok(trans) => {
         let cls = decl::TopLevelClass::from(trans);
@@ -44,7 +44,7 @@ fn compile_file<P : AsRef<Path> + ?Sized>(input: &P) {
   let mut pipeline = Pipeline::new(ProjectConfig { root_directory: input.parent().unwrap_or(input).to_owned() });
   match pipeline.load_file(input.file_name().unwrap()) {
     Err(err) => {
-      println!("Error: {:?}", err); // TODO Get Display on all our error types
+      println!("Error: {}", err);
     }
     Ok(_unit) => {}
   }

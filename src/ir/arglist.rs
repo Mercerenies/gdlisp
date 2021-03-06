@@ -7,6 +7,7 @@ use crate::sxp::ast::AST;
 use std::convert::TryInto;
 use std::borrow::Borrow;
 use std::cmp::Ordering;
+use std::fmt;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct ArgList {
@@ -203,6 +204,22 @@ impl From<ArgList> for FnSpecs {
     )
   }
 
+}
+
+impl fmt::Display for ArgListParseError {
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    match self {
+      ArgListParseError::InvalidArgument(ast) => {
+        write!(f, "Invalid arglist argument {}", ast)
+      }
+      ArgListParseError::UnknownDirective(s) => {
+        write!(f, "Unknown arglist directive {}", s)
+      }
+      ArgListParseError::DirectiveOutOfOrder(s) => {
+        write!(f, "Arglist directive appeared out of order {}", s)
+      }
+    }
+  }
 }
 
 #[cfg(test)]
