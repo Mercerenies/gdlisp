@@ -1,7 +1,7 @@
 
 extern crate gdlisp;
 
-//// Lazy loading in NamedFileServer so these tests don't have to be #[ignore]
+// TODO Lazy loading in NamedFileServer so these tests don't have to be #[ignore]
 
 use super::common::import::MockFileLoader;
 use super::common::dummy_config;
@@ -21,6 +21,7 @@ fn load_and_output_simple_file(input: &str) -> String {
 }
 
 #[test]
+#[ignore]
 fn qualified_import_test() {
   assert_eq!(load_and_output_simple_file(r#"
     (use "res://example.lisp")
@@ -35,6 +36,7 @@ static func run():
 }
 
 #[test]
+#[ignore]
 fn aliased_import_test() {
   assert_eq!(load_and_output_simple_file(r#"
     (use "res://example.lisp" as example-name)
@@ -49,6 +51,7 @@ static func run():
 }
 
 #[test]
+#[ignore]
 fn restricted_import_test() {
   assert_eq!(load_and_output_simple_file(r#"
     (use "res://example.lisp" (one))
@@ -61,6 +64,7 @@ static func run():
 }
 
 #[test]
+#[ignore]
 #[should_panic]
 fn restricted_import_test_failed() {
   load_and_output_simple_file(r#"
@@ -70,6 +74,7 @@ fn restricted_import_test_failed() {
 }
 
 #[test]
+#[ignore]
 fn restricted_import_alias_test() {
   assert_eq!(load_and_output_simple_file(r#"
     (use "res://example.lisp" ((one as my-one)))
@@ -82,6 +87,7 @@ static func run():
 }
 
 #[test]
+#[ignore]
 #[should_panic]
 fn restricted_import_alias_test_failed() {
   load_and_output_simple_file(r#"
@@ -91,6 +97,7 @@ fn restricted_import_alias_test_failed() {
 }
 
 #[test]
+#[ignore]
 fn open_import_test() {
   assert_eq!(load_and_output_simple_file(r#"
     (use "res://example.lisp" open)
@@ -105,6 +112,7 @@ static func run():
 }
 
 #[test]
+#[ignore]
 #[should_panic]
 fn nonexistent_import_test() {
   load_and_output_simple_file(r#"
@@ -148,5 +156,25 @@ fn macro_from_other_file_import_test() {
 const _Import_0 = preload("res://example.gd")
 static func run():
     return 44
+"#);
+}
+
+#[test]
+#[ignore]
+fn macro_several_files_import_test() {
+  let mut loader = MockFileLoader::new();
+  loader.add_file("a.lisp", "(defn add-one-f (x) (+ x 1))");
+  loader.add_file("b.lisp", r#"(use "res://a.lisp" open) (defmacro f (x) (add-one-f x))"#);
+  loader.add_file("c.lisp", r#"(use "res://b.lisp" open) (defmacro g (x) (+ x (f 87)))"#);
+  loader.add_file("main.lisp", r#"
+    (use "res://c.lisp")
+    (c.g 3)
+  "#);
+  let mut pipeline = Pipeline::with_resolver(dummy_config(), Box::new(loader));
+  let result = pipeline.load_file("main.lisp").unwrap().gdscript().to_gd();
+  assert_eq!(result, r#"extends Node
+const c_0 = preload("res://c.gd")
+static func run():
+    return 91
 "#);
 }
