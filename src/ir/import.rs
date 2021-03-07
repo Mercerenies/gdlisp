@@ -98,7 +98,7 @@ impl ImportDecl {
   }
 
   pub fn names(&self, exports: &[String]) -> Vec<(String, String)> {
-    exports.into_iter().cloned().filter_map(|export_name| {
+    exports.iter().cloned().filter_map(|export_name| {
       let import_name = match &self.details {
         ImportDetails::Named(s) => {
           Some(format!("{}.{}", s, export_name))

@@ -328,7 +328,7 @@ impl<'a> Compiler<'a> {
   fn make_preload_line(&self, var: String, path: &RPathBuf) -> Result<Decl, Error> {
     let mut path = path.clone();
     path.path_mut().set_extension("gd");
-    let path = self.resolver.resolve_preload(&path).ok_or(Error::NoSuchFile(path.clone()))?;
+    let path = self.resolver.resolve_preload(&path).ok_or_else(|| Error::NoSuchFile(path.clone()))?;
     Ok(Decl::ConstDecl(var, Expr::Call(None, String::from("preload"), vec!(Expr::from(path)))))
   }
 
@@ -396,7 +396,7 @@ impl<'a> Compiler<'a> {
     let exports = unit.exports();
     let names = import.names(&unit.exports());
     for (import_name, export_name) in names {
-      let (call, _) = unit_table.get_fn(&export_name).ok_or_else(|| Error::NoSuchFn(export_name))?;
+      let (call, _) = unit_table.get_fn(&export_name).ok_or(Error::NoSuchFn(export_name))?;
       let call = Compiler::translate_call(preload_name.clone(), call.clone());
       table.set_fn(import_name.clone(), call, Box::new(DefaultCall));
     }

@@ -258,12 +258,12 @@ impl IncCompiler {
       // possible it's an error we need to propagate. Consider this.
       match self.compile_decl(pipeline, curr) {
         Err(PError::GDError(Error::UnknownDecl(_))) | Err(PError::GDError(Error::DottedListError)) => main.push(self.compile_expr(pipeline, curr)?),
-        Err(e) => return Err(e.into()),
+        Err(e) => return Err(e),
         Ok(d) => {
           let name = d.name().to_owned();
           self.symbols.set(name.clone(), d.clone());
           if let Decl::MacroDecl(mdecl) = d {
-            self.bind_macro(pipeline, &name, mdecl.clone())?;
+            self.bind_macro(pipeline, &name, mdecl)?;
           }
         }
       };
