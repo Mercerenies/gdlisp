@@ -40,9 +40,14 @@ impl SymbolTable {
   }
 
   pub fn set(&mut self, name: String, value: Decl) {
-    let n = self.in_order.len();
-    self.appropriate_map_mut(Namespace::Function).insert(name, n);
-    self.in_order.push(value);
+    let new_idx = self.in_order.len();
+    if self.appropriate_map_mut(Namespace::Function).contains_key(&name) {
+      let idx = *self.appropriate_map_mut(Namespace::Function).get(&name).unwrap();
+      self.in_order[idx] = value;
+    } else {
+      self.appropriate_map_mut(Namespace::Function).insert(name, new_idx);
+      self.in_order.push(value);
+    }
   }
 
   pub fn del(&mut self, name: &str) {
