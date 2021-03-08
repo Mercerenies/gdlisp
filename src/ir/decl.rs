@@ -2,6 +2,7 @@
 use super::arglist::ArgList;
 use super::expr::Expr;
 use super::import::ImportDecl;
+use super::symbol_table::Namespace;
 
 use std::collections::HashSet;
 
@@ -58,6 +59,13 @@ impl Decl {
 
   pub fn is_macro(&self) -> bool {
     matches!(self, Decl::MacroDecl(_))
+  }
+
+  pub fn namespace(&self) -> Namespace {
+    match self {
+      Decl::FnDecl(_) => Namespace::Function,
+      Decl::MacroDecl(_) => Namespace::Function,
+    }
   }
 
 }
