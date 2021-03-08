@@ -5,8 +5,14 @@ use std::collections::HashMap;
 
 #[derive(Clone, Debug, Default)]
 pub struct SymbolTable {
+  values: HashMap<String, usize>,
   functions: HashMap<String, usize>,
   in_order: Vec<Decl>,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub enum Namespace {
+  Value, Function,
 }
 
 impl SymbolTable {
@@ -15,17 +21,32 @@ impl SymbolTable {
     SymbolTable::default()
   }
 
+  fn appropriate_map(&self, namespace: Namespace) -> &HashMap<String, usize> {
+    match namespace {
+      Namespace::Value => &self.values,
+      Namespace::Function => &self.functions,
+    }
+  }
+
+  fn appropriate_map_mut(&mut self, namespace: Namespace) -> &mut HashMap<String, usize> {
+    match namespace {
+      Namespace::Value => &mut self.values,
+      Namespace::Function => &mut self.functions,
+    }
+  }
+
   pub fn get(&self, name: &str) -> Option<&Decl> {
-    self.functions.get(name).map(|idx| &self.in_order[*idx])
+    self.appropriate_map(Namespace::Function).get(name).map(|idx| &self.in_order[*idx])
   }
 
   pub fn set(&mut self, name: String, value: Decl) {
-    self.functions.insert(name, self.in_order.len());
+    let n = self.in_order.len();
+    self.appropriate_map_mut(Namespace::Function).insert(name, n);
     self.in_order.push(value);
   }
 
   pub fn del(&mut self, name: &str) {
-    self.functions.remove(name);
+    self.appropriate_map_mut(Namespace::Function).remove(name);
   }
 
   pub fn has(&self, name: &str) -> bool {
