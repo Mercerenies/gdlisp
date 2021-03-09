@@ -2,7 +2,7 @@
 use super::arglist::ArgList;
 use super::expr::Expr;
 use super::import::ImportDecl;
-use super::symbol_table::Namespace;
+use super::identifier::Namespace;
 
 use std::collections::HashSet;
 

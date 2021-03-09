@@ -1,6 +1,6 @@
 
 use super::Decl;
-use super::identifier::Id;
+use super::identifier::{Id, Namespace};
 
 use std::collections::HashMap;
 
@@ -8,12 +8,6 @@ use std::collections::HashMap;
 pub struct SymbolTable {
   values: HashMap<Id, usize>,
   in_order: Vec<Decl>,
-}
-
-// TODO This should probably be in crate::ir::identifier, not here
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
-pub enum Namespace {
-  Value, Function,
 }
 
 impl SymbolTable {

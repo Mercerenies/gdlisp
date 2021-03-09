@@ -1,6 +1,4 @@
 
-use super::symbol_table::Namespace;
-
 use std::borrow::Borrow;
 use std::hash::{Hash, Hasher};
 
@@ -8,6 +6,11 @@ use std::hash::{Hash, Hasher};
 pub struct Id {
   pub namespace: Namespace,
   pub name: String,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub enum Namespace {
+  Value, Function,
 }
 
 // This trait is a specialized version of KeyPair from this
