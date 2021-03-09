@@ -22,6 +22,7 @@ pub mod quasiquote;
 pub mod call_name;
 pub mod import;
 pub mod export;
+pub mod identifier;
 
 use expr::Expr;
 use decl::Decl;
