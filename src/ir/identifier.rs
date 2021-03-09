@@ -1,5 +1,5 @@
 
-use std::borrow::Borrow;
+use std::borrow::{Borrow, ToOwned};
 use std::hash::{Hash, Hasher};
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
@@ -72,6 +72,13 @@ impl<'a> PartialEq for (dyn IdLike + 'a) {
 }
 
 impl<'a> Eq for (dyn IdLike + 'a) {}
+
+impl<'a> ToOwned for (dyn IdLike + 'a) {
+  type Owned = Id;
+  fn to_owned(&self) -> Id {
+    Id::new(self.namespace(), self.name().to_owned())
+  }
+}
 
 #[cfg(test)]
 mod tests {
