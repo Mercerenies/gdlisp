@@ -1,7 +1,6 @@
 
-#![allow(
-  clippy::redundant_field_names
-)]
+#![allow(clippy::redundant_field_names)]
+#![allow(non_shorthand_field_patterns)]
 
 #[macro_use] extern crate lalrpop_util;
 
