@@ -15,8 +15,7 @@ use std::borrow::Borrow;
 #[derive(Clone, Debug, Default)]
 pub struct SymbolTable {
   locals: HashMap<String, LocalVar>,
-  functions: HashMap<String, FnCall>,
-  magic_functions: HashMap<String, DebugWrapper<Box<dyn CallMagic + 'static>>>,
+  functions: HashMap<String, (FnCall, DebugWrapper<Box<dyn CallMagic + 'static>>)>,
 }
 
 #[derive(PartialEq, Eq, Clone, Debug)]
@@ -28,8 +27,6 @@ pub struct LocalVar {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum VarScope { GlobalVar, LocalVar }
-
-static DEFAULT_CALL_MAGIC: DefaultCall = DefaultCall;
 
 impl SymbolTable {
 
@@ -50,20 +47,17 @@ impl SymbolTable {
   }
 
   pub fn get_fn(&self, name: &str) -> Option<(&FnCall, &(dyn CallMagic + 'static))> {
-    self.functions.get(name).map(|func| {
-      let magic: &(dyn CallMagic + 'static) = self.magic_functions.get(name).map_or(&DEFAULT_CALL_MAGIC, |x| x.0.borrow());
-      (func, magic)
+    self.functions.get(name).map(|(call, magic)| {
+      (call, &*magic.0)
     })
   }
 
   pub fn set_fn(&mut self, name: String, value: FnCall, magic: Box<dyn CallMagic + 'static>) {
-    self.functions.insert(name.clone(), value);
-    self.magic_functions.insert(name, DebugWrapper(magic));
+    self.functions.insert(name.clone(), (value, DebugWrapper(magic)));
   }
 
   pub fn del_fn(&mut self, name: &str) {
     self.functions.remove(name);
-    self.magic_functions.remove(name);
   }
 
   pub fn vars(&self) -> impl Iterator<Item=(&str, &LocalVar)> {
@@ -71,8 +65,8 @@ impl SymbolTable {
   }
 
   pub fn fns(&self) -> impl Iterator<Item=(&str, &FnCall, &(dyn CallMagic + 'static))> {
-    self.functions.iter().map(move |(name, value)| {
-      (name.borrow(), value, self.get_fn(name).map_or(&DEFAULT_CALL_MAGIC as &(dyn CallMagic + 'static), |x| x.1))
+    self.functions.iter().map(|(name, value)| {
+      (name.borrow(), &value.0, &*value.1.0)
     })
   }
 
