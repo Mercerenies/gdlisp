@@ -1,15 +1,16 @@
 
-use crate::ir::Decl;
+use super::Decl;
+use super::identifier::Id;
 
 use std::collections::HashMap;
 
 #[derive(Clone, Debug, Default)]
 pub struct SymbolTable {
-  values: HashMap<String, usize>,
-  functions: HashMap<String, usize>,
+  values: HashMap<Id, usize>,
   in_order: Vec<Decl>,
 }
 
+// TODO This should probably be in crate::ir::identifier, not here
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum Namespace {
   Value, Function,
@@ -21,37 +22,26 @@ impl SymbolTable {
     SymbolTable::default()
   }
 
-  fn appropriate_map(&self, namespace: Namespace) -> &HashMap<String, usize> {
-    match namespace {
-      Namespace::Value => &self.values,
-      Namespace::Function => &self.functions,
-    }
-  }
-
-  fn appropriate_map_mut(&mut self, namespace: Namespace) -> &mut HashMap<String, usize> {
-    match namespace {
-      Namespace::Value => &mut self.values,
-      Namespace::Function => &mut self.functions,
-    }
-  }
-
   pub fn get(&self, name: &str) -> Option<&Decl> {
-    self.appropriate_map(Namespace::Function).get(name).map(|idx| &self.in_order[*idx])
+    let id = Id::build(Namespace::Function, name);
+    self.values.get(&*id).map(|idx| &self.in_order[*idx])
   }
 
   pub fn set(&mut self, name: String, value: Decl) {
+    let id = Id::new(Namespace::Function, name);
     let new_idx = self.in_order.len();
-    if self.appropriate_map_mut(Namespace::Function).contains_key(&name) {
-      let idx = *self.appropriate_map_mut(Namespace::Function).get(&name).unwrap();
+    if self.values.contains_key(&id) {
+      let idx = *self.values.get(&id).unwrap();
       self.in_order[idx] = value;
     } else {
-      self.appropriate_map_mut(Namespace::Function).insert(name, new_idx);
+      self.values.insert(id, new_idx);
       self.in_order.push(value);
     }
   }
 
   pub fn del(&mut self, name: &str) {
-    self.appropriate_map_mut(Namespace::Function).remove(name);
+    let id = Id::build(Namespace::Function, name);
+    self.values.remove(&*id);
   }
 
   pub fn has(&self, name: &str) -> bool {
