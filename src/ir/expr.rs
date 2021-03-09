@@ -4,6 +4,7 @@ use super::arglist::ArgList;
 //use crate::gdscript::op::{self, UnaryOp, BinaryOp, OperatorHasInfo};
 use super::locals::{Locals, AccessType};
 use super::functions::Functions;
+use super::identifier::{Namespace, Id};
 use crate::sxp::ast::AST;
 
 use std::collections::HashSet;
@@ -212,6 +213,13 @@ impl Expr {
     let mut fns = Functions::new();
     self.walk_locals(&mut vars, &mut fns);
     (vars, fns)
+  }
+
+  pub fn get_ids(&self) -> impl Iterator<Item=Id> {
+    let (vars, fns) = self.get_names();
+    let vars = vars.into_names().map(|x| Id::new(Namespace::Value, x));
+    let fns = fns.into_names().map(|x| Id::new(Namespace::Function, x));
+    Iterator::chain(vars, fns)
   }
 
 }
