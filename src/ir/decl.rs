@@ -2,7 +2,7 @@
 use super::arglist::ArgList;
 use super::expr::Expr;
 use super::import::ImportDecl;
-use super::identifier::Namespace;
+use super::identifier::{Namespace, Id, IdLike};
 
 use std::collections::HashSet;
 
@@ -42,6 +42,14 @@ impl TopLevel {
 
 impl Decl {
 
+  pub fn to_id(&self) -> Id {
+    Id::new(self.namespace(), self.name().to_owned())
+  }
+
+  pub fn id_like<'a>(&'a self) -> Box<dyn IdLike + 'a> {
+    Id::build(self.namespace(), self.name())
+  }
+
   pub fn name(&self) -> &str {
     match self {
       Decl::FnDecl(decl) => &decl.name,
@@ -50,10 +58,22 @@ impl Decl {
   }
 
   // Gets the direct dependencies required by the declaration.
-  pub fn dependencies(&self) -> HashSet<String> {
+  pub fn dependencies(&self) -> HashSet<Id> {
     match self {
-      Decl::FnDecl(f) => f.body.get_functions().into_names().collect(),
-      Decl::MacroDecl(m) => m.body.get_functions().into_names().collect(),
+      Decl::FnDecl(f) => {
+        let mut ids: HashSet<Id> = f.body.get_ids().collect();
+        for name in f.args.iter_vars() {
+          ids.remove(&*Id::build(Namespace::Value, name));
+        }
+        ids
+      }
+      Decl::MacroDecl(m) => {
+        let mut ids: HashSet<Id> = m.body.get_ids().collect();
+        for name in m.args.iter_vars() {
+          ids.remove(&*Id::build(Namespace::Value, name));
+        }
+        ids
+      }
     }
   }
 

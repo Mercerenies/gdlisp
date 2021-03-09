@@ -2,6 +2,7 @@
 use crate::sxp::ast::{self, AST};
 use crate::sxp::dotted::DottedExpr;
 use crate::runner::path::{RPathBuf, PathSrc};
+use super::identifier::{Namespace, Id};
 
 use std::convert::{TryInto, TryFrom};
 use std::fmt;
@@ -43,6 +44,7 @@ pub enum ImportDetails {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ImportName {
+  pub namespace: Namespace,
   pub in_name: String,
   pub out_name: String,
 }
@@ -97,7 +99,7 @@ impl ImportDecl {
     }
   }
 
-  pub fn names(&self, exports: &[String]) -> Vec<(String, String)> {
+  pub fn names(&self, exports: &[String]) -> Vec<ImportName> {
     exports.iter().cloned().filter_map(|export_name| {
       let import_name = match &self.details {
         ImportDetails::Named(s) => {
@@ -115,7 +117,10 @@ impl ImportDecl {
           }
         }
       };
-      import_name.map(|import_name| (import_name, export_name))
+      // TODO Support other namespaces
+      import_name.map(|import_name| {
+        ImportName::new(Namespace::Function, import_name, export_name)
+      })
     }).collect()
   }
 
@@ -144,7 +149,9 @@ impl ImportDecl {
           AST::Nil | AST::Cons(_, _) => {
             // (3) or (4) Explicit import (possibly aliased)
             let imports: Vec<_> = DottedExpr::new(tail[1]).try_into().map_err(|_| invalid_ending_err(&tail[1..]))?;
-            let imports = imports.into_iter().map(ImportName::parse).collect::<Result<Vec<_>, _>>()?;
+            let imports = imports.into_iter()
+              .map(|x| ImportName::parse(Namespace::Function, x)) // TODO Support value namespace
+              .collect::<Result<Vec<_>, _>>()?;
             Ok(ImportDecl::restricted(filename, imports))
           }
           _ => {
@@ -172,25 +179,33 @@ impl ImportDecl {
 
 impl ImportName {
 
-  pub fn new(in_name: String, out_name: String) -> ImportName {
-    ImportName { in_name, out_name }
+  pub fn new(namespace: Namespace, in_name: String, out_name: String) -> ImportName {
+    ImportName { namespace, in_name, out_name }
   }
 
-  pub fn simple(in_name: String) -> ImportName {
+  pub fn simple(namespace: Namespace, in_name: String) -> ImportName {
     let out_name = in_name.clone();
-    ImportName { in_name, out_name }
+    ImportName { namespace, in_name, out_name }
   }
 
-  pub fn parse(clause: &AST) -> Result<ImportName, ImportDeclParseError> {
+  pub fn into_imported_id(self) -> Id {
+    Id::new(self.namespace, self.in_name)
+  }
+
+  pub fn into_exported_id(self) -> Id {
+    Id::new(self.namespace, self.out_name)
+  }
+
+  pub fn parse(namespace: Namespace, clause: &AST) -> Result<ImportName, ImportDeclParseError> {
     match clause {
       AST::Symbol(s) => {
-        Ok(ImportName::simple(s.clone()))
+        Ok(ImportName::simple(namespace, s.clone()))
       }
       AST::Cons(_, _) => {
         let vec: Vec<_> = DottedExpr::new(clause).try_into().map_err(|_| ImportDeclParseError::MalformedFunctionImport(clause.clone()))?;
         match vec.as_slice() {
           [AST::Symbol(i), AST::Symbol(as_), AST::Symbol(o)] if as_ == "as" => {
-            Ok(ImportName::new(i.clone(), o.clone()))
+            Ok(ImportName::new(namespace, i.clone(), o.clone()))
           }
           _ => {
             Err(ImportDeclParseError::MalformedFunctionImport(clause.clone()))
@@ -275,15 +290,15 @@ mod tests {
                ImportDecl::open(str_to_rpathbuf("res://foo/bar")));
     assert_eq!(parse_import(r#"("res://foo/bar" (a b))"#).unwrap(),
                ImportDecl::restricted(str_to_rpathbuf("res://foo/bar"),
-                                      vec!(ImportName::simple(String::from("a")),
-                                           ImportName::simple(String::from("b")))));
+                                      vec!(ImportName::simple(Namespace::Function, String::from("a")),
+                                           ImportName::simple(Namespace::Function, String::from("b")))));
     assert_eq!(parse_import(r#"("res://foo/bar" ())"#).unwrap(),
                ImportDecl::restricted(str_to_rpathbuf("res://foo/bar"),
                                       vec!()));
     assert_eq!(parse_import(r#"("res://foo/bar" ((a as a1) b))"#).unwrap(),
                ImportDecl::restricted(str_to_rpathbuf("res://foo/bar"),
-                                      vec!(ImportName::new(String::from("a"), String::from("a1")),
-                                           ImportName::simple(String::from("b")))));
+                                      vec!(ImportName::new(Namespace::Function, String::from("a"), String::from("a1")),
+                                           ImportName::simple(Namespace::Function, String::from("b")))));
   }
 
   #[test]

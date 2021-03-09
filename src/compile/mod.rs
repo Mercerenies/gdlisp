@@ -24,7 +24,8 @@ use symbol_table::function_call;
 use symbol_table::call_magic::DefaultCall;
 use crate::ir;
 use crate::ir::expr::FuncRefTarget;
-use crate::ir::import::{ImportDecl, ImportDetails};
+use crate::ir::import::{ImportName, ImportDecl, ImportDetails};
+use crate::ir::identifier::Namespace;
 use crate::runner::path::RPathBuf;
 use crate::pipeline::error::{Error as PError};
 use crate::pipeline::Pipeline;
@@ -395,10 +396,18 @@ impl<'a> Compiler<'a> {
     let unit_table = unit.table();
     let exports = unit.exports();
     let names = import.names(&unit.exports());
-    for (import_name, export_name) in names {
-      let (call, _) = unit_table.get_fn(&export_name).ok_or(Error::NoSuchFn(export_name))?;
-      let call = Compiler::translate_call(preload_name.clone(), call.clone());
-      table.set_fn(import_name.clone(), call, Box::new(DefaultCall));
+    for imp in names {
+      let ImportName { namespace: namespace, in_name: import_name, out_name: export_name } = imp;
+      match namespace {
+        Namespace::Function => {
+          let (call, _) = unit_table.get_fn(&export_name).ok_or(Error::NoSuchFn(export_name))?;
+          let call = Compiler::translate_call(preload_name.clone(), call.clone());
+          table.set_fn(import_name.clone(), call, Box::new(DefaultCall));
+        }
+        Namespace::Value => {
+          todo!() // TODO Not yet implemented
+        }
+      }
     }
 
     // If it was a restricted import list, validate the import names

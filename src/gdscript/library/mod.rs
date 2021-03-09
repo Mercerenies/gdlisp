@@ -9,6 +9,7 @@ use crate::compile::symbol_table::{SymbolTable, LocalVar};
 use crate::compile::symbol_table::function_call::{FnCall, FnScope, FnSpecs};
 use crate::compile::symbol_table::call_magic;
 use crate::ir::arglist::VarArg;
+use crate::ir::identifier::{Id, Namespace};
 use classes::GDSCRIPT_CLASS_NAMES;
 
 use std::collections::HashSet;
@@ -180,11 +181,18 @@ pub fn bind_builtins(table: &mut SymbolTable) {
 
 }
 
-pub fn all_builtin_names() -> HashSet<String> {
+pub fn all_builtin_names() -> HashSet<Id> {
   // This is a *really* roundabout way of doing this, but whatever.
   // The canonical list is given in bind_builtins, so for the sake of
   // DRY we'll delegate to that function.
   let mut table = SymbolTable::new();
   bind_builtins(&mut table);
-  table.fns().map(|(x, _, _)| x.to_owned()).collect()
+  let mut names = HashSet::new();
+  for (func, _, _) in table.fns() {
+    names.insert(Id::new(Namespace::Function, func.to_owned()));
+  }
+  for (var, _) in table.vars() {
+    names.insert(Id::new(Namespace::Value, var.to_owned()));
+  }
+  names
 }

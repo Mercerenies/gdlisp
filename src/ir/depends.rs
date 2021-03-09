@@ -1,37 +1,38 @@
 
 use super::symbol_table::SymbolTable;
+use super::identifier::{IdLike, Id, Namespace};
 use crate::compile::error::Error;
 
 use std::collections::HashSet;
-use std::borrow::Borrow;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct Dependencies {
-  pub known: HashSet<String>,
-  pub imports: HashSet<String>,
-  pub unknown: HashSet<String>,
+  pub known: HashSet<Id>,
+  pub imports: HashSet<Id>,
+  pub unknown: HashSet<Id>,
 }
 
 #[derive(Debug)]
 pub enum DependencyError {
-  UnknownName(String),
+  UnknownName(Id),
 }
 
 impl Dependencies {
 
-  pub fn identify(table: &SymbolTable, known_imports: &HashSet<String>, name: &str) -> Dependencies {
+  pub fn identify<'a>(table: &SymbolTable, known_imports: &HashSet<Id>, id: &(dyn IdLike + 'a))
+                      -> Dependencies {
     let mut visited = HashSet::new();
     let mut imports = HashSet::new();
     let mut unknown = HashSet::new();
-    match table.get(name) {
+    match table.get(id) {
       None => {
         // No traversal necessary.
-        unknown.insert(name.to_owned());
+        unknown.insert(id.to_owned());
       }
       Some(initial) => {
         let mut frontier = vec!(initial);
         while let Some(current) = frontier.pop() {
-          if visited.contains(current.name()) {
+          if visited.contains(&*current.id_like()) {
             continue;
           }
           let deps = current.dependencies();
@@ -44,7 +45,7 @@ impl Dependencies {
               unknown.insert(dep);
             }
           }
-          visited.insert(current.name().to_owned());
+          visited.insert(current.to_id());
       }
       }
     }
@@ -54,15 +55,15 @@ impl Dependencies {
 
   // TODO Rather than purge after the fact, we can use the imports
   // argument above to account for built-ins.
-  pub fn purge_unknowns<T, I>(&mut self, purge: I)
-  where T : Borrow<str>,
-        I : Iterator<Item=T> {
+  pub fn purge_unknowns<'a, 'b, I>(&mut self, purge: I)
+  where I : Iterator<Item=&'a (dyn IdLike + 'b)>,
+        'b : 'a {
     for s in purge {
-      self.unknown.remove(s.borrow());
+      self.unknown.remove(s);
     }
   }
 
-  pub fn try_into_knowns(self) -> Result<HashSet<String>, DependencyError> {
+  pub fn try_into_knowns(self) -> Result<HashSet<Id>, DependencyError> {
     // Note: We explicitly don't care about imports here. As long as
     // all names are either knowns or imports (and there are no
     // unknowns), then we can safely discard the imports and keep only
@@ -79,7 +80,12 @@ impl Dependencies {
 impl From<DependencyError> for Error {
   fn from(e: DependencyError) -> Error {
     match e {
-      DependencyError::UnknownName(x) => Error::NoSuchFn(x)
+      DependencyError::UnknownName(id) => {
+        match id.namespace {
+          Namespace::Function => Error::NoSuchFn(id.name),
+          Namespace::Value => Error::NoSuchVar(id.name),
+        }
+      }
     }
   }
 }

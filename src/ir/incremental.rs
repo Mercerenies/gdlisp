@@ -6,12 +6,13 @@ use super::MAIN_BODY_NAME;
 use super::call_name::CallName;
 use super::arglist::ArgList;
 use super::literal::Literal;
-use super::import::ImportDecl;
+use super::import::{ImportDecl, ImportName};
 use super::expr::Expr;
 use super::special_form;
 use super::depends::Dependencies;
 use super::decl::{self, Decl};
 use super::macros;
+use super::identifier::{Id, IdLike, Namespace};
 use crate::sxp::dotted::{DottedExpr, TryFromDottedExprError};
 use crate::sxp::ast::{self, AST};
 use crate::sxp::reify::Reify;
@@ -222,9 +223,12 @@ impl IncCompiler {
   }
 
   fn import_macros_from(&mut self, unit: &TranslationUnit, import: &ImportDecl) {
-    for (import_name, export_name) in import.names(unit.exports()) {
-      if let Some(x) = unit.macros().get(&export_name) {
-        self.macros.insert(import_name, (x.0, x.1.clone(), true));
+    for imp in import.names(unit.exports()) {
+      let ImportName { namespace: namespace, in_name: import_name, out_name: export_name } = imp;
+      if namespace == Namespace::Function { // Macros are always in the function namespace
+        if let Some(x) = unit.macros().get(&export_name) {
+          self.macros.insert(import_name, (x.0, x.1.clone(), true));
+        }
       }
     }
   }
@@ -261,7 +265,7 @@ impl IncCompiler {
         Err(e) => return Err(e),
         Ok(d) => {
           let name = d.name().to_owned();
-          self.symbols.set(name.clone(), d.clone());
+          self.symbols.set(d.to_id(), d.clone());
           if let Decl::MacroDecl(mdecl) = d {
             self.bind_macro(pipeline, &name, mdecl)?;
           }
@@ -284,7 +288,7 @@ impl IncCompiler {
       args: ArgList::empty(),
       body: Expr::Progn(main),
     });
-    self.symbols.set(MAIN_BODY_NAME.to_owned(), main_decl);
+    self.symbols.set(Id::new(Namespace::Function, MAIN_BODY_NAME.to_owned()), main_decl);
     Ok(self.into())
   }
 
@@ -294,12 +298,13 @@ impl IncCompiler {
       let unit = pipeline.load_file(&import.filename.path())?;
       Ok(import.names(unit.exports()))
     }).collect::<Result<Vec<_>, PError>>()?;
-    let imported_names: HashSet<_> = translation_names.into_iter().flatten().map(|(input, _)| input).collect();
+    let imported_names: HashSet<_> =
+      translation_names.into_iter().flatten().map(ImportName::into_imported_id).collect();
 
     // Now we need to find the dependencies and spawn up the
     // server for the macro itself.
-    let mut deps = Dependencies::identify(&self.symbols, &imported_names, &name);
-    deps.purge_unknowns(library::all_builtin_names().into_iter());
+    let mut deps = Dependencies::identify(&self.symbols, &imported_names, &*Id::build(Namespace::Function, name));
+    deps.purge_unknowns(library::all_builtin_names().iter().map(|x| x as &dyn IdLike));
 
     // Aside from built-in functions, it must be the case that
     // all referenced functions are already defined.

@@ -4,11 +4,12 @@ use super::common::dummy_pipeline;
 use gdlisp::ir;
 use gdlisp::ir::symbol_table::SymbolTable;
 use gdlisp::ir::depends::Dependencies;
+use gdlisp::ir::identifier::{IdLike, Id, Namespace};
 use gdlisp::parser;
 
 use std::collections::HashSet;
 
-fn dependencies_of(input: &str, target_name: &str) -> Dependencies {
+fn dependencies_of<'a>(input: &str, target_name: &(dyn IdLike + 'a)) -> Dependencies {
   let parser = parser::ASTParser::new();
   let ast = parser.parse(input).unwrap();
   let (toplevel, _macros) = ir::compile_toplevel(&mut dummy_pipeline(), &ast).unwrap();
@@ -18,9 +19,9 @@ fn dependencies_of(input: &str, target_name: &str) -> Dependencies {
 
 fn make_deps(known: Vec<&str>, unknown: Vec<&str>) -> Dependencies {
   Dependencies {
-    known: known.into_iter().map(str::to_owned).collect(),
+    known: known.into_iter().map(|x| Id::new(Namespace::Function, x.to_owned())).collect(),
     imports: HashSet::new(),
-    unknown: unknown.into_iter().map(str::to_owned).collect(),
+    unknown: unknown.into_iter().map(|x| Id::new(Namespace::Function, x.to_owned())).collect(),
   }
 }
 
@@ -29,7 +30,7 @@ pub fn dependencies_test_empty() {
   assert_eq!(dependencies_of(r#"
     ((defn foo () ())
      (defn bar () ())
-     (defn baz () ()))"#, "baz"),
+     (defn baz () ()))"#, &*Id::build(Namespace::Function, "baz")),
              make_deps(vec!("baz"), vec!()));
 }
 
@@ -38,7 +39,7 @@ pub fn dependencies_test_forward() {
   assert_eq!(dependencies_of(r#"
     ((defn foo () ())
      (defn bar () ())
-     (defn baz () (bar)))"#, "baz"),
+     (defn baz () (bar)))"#, &*Id::build(Namespace::Function, "baz")),
              make_deps(vec!("baz", "bar"), vec!()));
 }
 
@@ -47,7 +48,7 @@ pub fn dependencies_test_backward() {
   assert_eq!(dependencies_of(r#"
     ((defn foo () ())
      (defn bar () (baz))
-     (defn baz () ()))"#, "baz"),
+     (defn baz () ()))"#, &*Id::build(Namespace::Function, "baz")),
              make_deps(vec!("baz"), vec!()));
 }
 
@@ -56,7 +57,7 @@ pub fn dependencies_test_two() {
   assert_eq!(dependencies_of(r#"
     ((defn foo () ())
      (defn bar () ())
-     (defn baz () (foo) (bar)))"#, "baz"),
+     (defn baz () (foo) (bar)))"#, &*Id::build(Namespace::Function, "baz")),
              make_deps(vec!("baz", "bar", "foo"), vec!()));
 }
 
@@ -65,7 +66,7 @@ pub fn dependencies_test_transitive() {
   assert_eq!(dependencies_of(r#"
     ((defn foo () (bar))
      (defn bar () ())
-     (defn baz () (foo)))"#, "baz"),
+     (defn baz () (foo)))"#, &*Id::build(Namespace::Function, "baz")),
              make_deps(vec!("baz", "bar", "foo"), vec!()));
 }
 
@@ -74,7 +75,7 @@ pub fn dependencies_test_recursion() {
   assert_eq!(dependencies_of(r#"
     ((defn foo () (bar))
      (defn bar () (bar))
-     (defn baz () (foo) (baz)))"#, "baz"),
+     (defn baz () (foo) (baz)))"#, &*Id::build(Namespace::Function, "baz")),
              make_deps(vec!("baz", "bar", "foo"), vec!()));
 }
 
@@ -83,7 +84,7 @@ pub fn dependencies_test_cycle() {
   assert_eq!(dependencies_of(r#"
     ((defn foo () (baz))
      (defn bar () (foo))
-     (defn baz () (bar)))"#, "baz"),
+     (defn baz () (bar)))"#, &*Id::build(Namespace::Function, "baz")),
              make_deps(vec!("baz", "bar", "foo"), vec!()));
 }
 
@@ -92,7 +93,7 @@ pub fn dependencies_test_unknowns_1() {
   assert_eq!(dependencies_of(r#"
     ((defn foo () (aaa))
      (defn bar () (foo))
-     (defn baz () (bar)))"#, "baz"),
+     (defn baz () (bar)))"#, &*Id::build(Namespace::Function, "baz")),
              make_deps(vec!("baz", "bar", "foo"), vec!("aaa")));
 }
 
@@ -101,6 +102,6 @@ pub fn dependencies_test_unknowns_2() {
   assert_eq!(dependencies_of(r#"
     ((defn foo () (aaa))
      (defn bar () (bbb))
-     (defn baz () (bar)))"#, "baz"),
+     (defn baz () (bar)))"#, &*Id::build(Namespace::Function, "baz")),
              make_deps(vec!("baz", "bar"), vec!("bbb")));
 }

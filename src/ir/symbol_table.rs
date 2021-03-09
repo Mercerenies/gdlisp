@@ -1,6 +1,6 @@
 
 use super::Decl;
-use super::identifier::{Id, Namespace};
+use super::identifier::{Id, IdLike};
 
 use std::collections::HashMap;
 
@@ -16,13 +16,11 @@ impl SymbolTable {
     SymbolTable::default()
   }
 
-  pub fn get(&self, name: &str) -> Option<&Decl> {
-    let id = Id::build(Namespace::Function, name);
-    self.values.get(&*id).map(|idx| &self.in_order[*idx])
+  pub fn get<'a>(&self, id: &(dyn IdLike + 'a)) -> Option<&Decl> {
+    self.values.get(id).map(|idx| &self.in_order[*idx])
   }
 
-  pub fn set(&mut self, name: String, value: Decl) {
-    let id = Id::new(Namespace::Function, name);
+  pub fn set(&mut self, id: Id, value: Decl) {
     let new_idx = self.in_order.len();
     if self.values.contains_key(&id) {
       let idx = *self.values.get(&id).unwrap();
@@ -33,13 +31,12 @@ impl SymbolTable {
     }
   }
 
-  pub fn del(&mut self, name: &str) {
-    let id = Id::build(Namespace::Function, name);
-    self.values.remove(&*id);
+  pub fn del<'a>(&mut self, id: &(dyn IdLike + 'a)) {
+    self.values.remove(id);
   }
 
-  pub fn has(&self, name: &str) -> bool {
-    self.get(name).is_some()
+  pub fn has<'a>(&self, id: &(dyn IdLike + 'a)) -> bool {
+    self.get(id).is_some()
   }
 
   pub fn filter(&self, condition: impl FnMut(&Decl) -> bool) -> SymbolTable {
@@ -63,7 +60,7 @@ impl From<Vec<Decl>> for SymbolTable {
   fn from(decls: Vec<Decl>) -> SymbolTable {
     let mut table = SymbolTable::new();
     for decl in decls {
-      table.set(decl.name().to_owned(), decl);
+      table.set(decl.to_id(), decl);
     }
     table
   }
