@@ -2,7 +2,8 @@
 use crate::sxp;
 use crate::sxp::ast::AST;
 use crate::ir::arglist::ArgListParseError;
-use crate::ir::import::ImportDeclParseError;
+use crate::ir::identifier::Namespace;
+use crate::ir::import::{ImportDeclParseError, ImportNameResolutionError};
 use crate::runner::path::RPathBuf;
 
 use std::fmt;
@@ -26,6 +27,7 @@ pub enum Error {
   InvalidDecl(AST),
   UnquoteOutsideQuasiquote,
   NoSuchFile(RPathBuf),
+  AmbiguousNamespace(String),
 }
 
 impl fmt::Display for Error {
@@ -70,6 +72,9 @@ impl fmt::Display for Error {
       Error::NoSuchFile(p) => {
         write!(f, "Cannot locate file {}", p)
       }
+      Error::AmbiguousNamespace(s) => {
+        write!(f, "Ambiguous namespace when importing {}", s)
+      }
     }
   }
 }
@@ -89,5 +94,21 @@ impl From<ArgListParseError> for Error {
 impl From<ImportDeclParseError> for Error {
   fn from(err: ImportDeclParseError) -> Error {
     Error::ImportDeclParseError(err)
+  }
+}
+
+impl From<ImportNameResolutionError> for Error {
+  fn from(err: ImportNameResolutionError) -> Error {
+    match err {
+      ImportNameResolutionError::UnknownName(id) => {
+        match id.namespace {
+          Namespace::Function => Error::NoSuchFn(id.name),
+          Namespace::Value => Error::NoSuchVar(id.name),
+        }
+      }
+      ImportNameResolutionError::AmbiguousNamespace(s) => {
+        Error::AmbiguousNamespace(s)
+      }
+    }
   }
 }

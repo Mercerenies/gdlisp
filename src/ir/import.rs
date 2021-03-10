@@ -37,14 +37,14 @@ pub struct ImportDecl {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum ImportDetails {
-  Named(String),               // (1) and (2) above
-  Restricted(Vec<ImportName>), // (3) and (4) above
-  Open,                        // (5) above
+  Named(String),                                  // (1) and (2) above
+  Restricted(Vec<ImportName<Option<Namespace>>>), // (3) and (4) above
+  Open,                                           // (5) above
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub struct ImportName {
-  pub namespace: Namespace,
+pub struct ImportName<NS> {
+  pub namespace: NS,
   pub in_name: String,
   pub out_name: String,
 }
@@ -56,6 +56,12 @@ pub enum ImportDeclParseError {
   InvalidPath(String),
   MalformedFunctionImport(AST),
   InvalidEnding(AST),
+}
+
+#[derive(Debug)]
+pub enum ImportNameResolutionError {
+  UnknownName(Id),
+  AmbiguousNamespace(String),
 }
 
 impl ImportDecl {
@@ -85,7 +91,7 @@ impl ImportDecl {
     }
   }
 
-  pub fn restricted(filename: RPathBuf, imports: Vec<ImportName>) -> ImportDecl {
+  pub fn restricted(filename: RPathBuf, imports: Vec<ImportName<Option<Namespace>>>) -> ImportDecl {
     ImportDecl {
       filename: filename,
       details: ImportDetails::Restricted(imports),
@@ -99,7 +105,7 @@ impl ImportDecl {
     }
   }
 
-  pub fn names(&self, exports: &[Id]) -> Vec<ImportName> {
+  pub fn names(&self, exports: &[Id]) -> Vec<ImportName<Namespace>> {
     exports.iter().cloned().filter_map(|export| {
       let Id { namespace: export_namespace, name: export_name } = export;
       let import_name = match &self.details {
@@ -111,8 +117,8 @@ impl ImportDecl {
         }
         ImportDetails::Restricted(vec) => {
           // Find it in the import list.
-          if let Some(name_match) = vec.iter().find(|x| x.namespace == export_namespace && x.in_name == *export_name) {
-            Some(name_match.out_name.clone())
+          if let Some(name_match) = vec.iter().find(|x| x.namespace.map_or(true, |ns| ns == export_namespace) && x.out_name == *export_name) {
+            Some(name_match.in_name.clone())
           } else {
             None
           }
@@ -150,7 +156,7 @@ impl ImportDecl {
             // (3) or (4) Explicit import (possibly aliased)
             let imports: Vec<_> = DottedExpr::new(tail[1]).try_into().map_err(|_| invalid_ending_err(&tail[1..]))?;
             let imports = imports.into_iter()
-              .map(|x| ImportName::parse(Namespace::Function, x)) // TODO Support value namespace
+              .map(|x| ImportName::<Option<Namespace>>::parse(x))
               .collect::<Result<Vec<_>, _>>()?;
             Ok(ImportDecl::restricted(filename, imports))
           }
@@ -177,16 +183,63 @@ impl ImportDecl {
 
 }
 
-impl ImportName {
+impl<NS> ImportName<NS> {
 
-  pub fn new(namespace: Namespace, in_name: String, out_name: String) -> ImportName {
+  pub fn new(namespace: NS, in_name: String, out_name: String) -> ImportName<NS> {
     ImportName { namespace, in_name, out_name }
   }
 
-  pub fn simple(namespace: Namespace, in_name: String) -> ImportName {
+  pub fn simple(namespace: NS, in_name: String) -> ImportName<NS> {
     let out_name = in_name.clone();
     ImportName { namespace, in_name, out_name }
   }
+
+  pub fn parse(clause: &AST) -> Result<ImportName<Option<Namespace>>, ImportDeclParseError> {
+    // TODO Alternate namespaces
+    match clause {
+      AST::Symbol(s) => {
+        Ok(ImportName::simple(None, s.clone()))
+      }
+      AST::Cons(_, _) => {
+        let vec: Vec<_> = DottedExpr::new(clause).try_into().map_err(|_| ImportDeclParseError::MalformedFunctionImport(clause.clone()))?;
+        match vec.as_slice() {
+          [AST::Symbol(o), AST::Symbol(as_), AST::Symbol(i)] if as_ == "as" => {
+            Ok(ImportName::new(None, i.clone(), o.clone()))
+          }
+          _ => {
+            Err(ImportDeclParseError::MalformedFunctionImport(clause.clone()))
+          }
+        }
+      }
+      _ => {
+        Err(ImportDeclParseError::MalformedFunctionImport(clause.clone()))
+      }
+    }
+  }
+
+}
+
+impl ImportName<Option<Namespace>> {
+
+  pub fn refine(&self, exports: &[Id]) -> Result<ImportName<Namespace>, ImportNameResolutionError> {
+    let mut matches = Vec::new();
+    for export_id in exports {
+      if self.namespace.map_or(true, |ns| ns == export_id.namespace) && export_id.name == self.out_name {
+        matches.push(export_id);
+      }
+    }
+    if matches.is_empty() {
+      Err(ImportNameResolutionError::UnknownName(Id::new(self.namespace.unwrap_or(Namespace::Function), self.out_name.to_owned())))
+    } else if matches.len() == 1 {
+      Ok(ImportName::new(matches[0].namespace, self.in_name.to_owned(), self.out_name.to_owned()))
+    } else {
+      Err(ImportNameResolutionError::AmbiguousNamespace(self.out_name.to_owned()))
+    }
+  }
+
+}
+
+impl ImportName<Namespace> {
 
   pub fn into_imported_id(self) -> Id {
     Id::new(self.namespace, self.in_name)
@@ -202,28 +255,6 @@ impl ImportName {
 
   pub fn to_exported_id<'a>(&'a self) -> Box<dyn IdLike + 'a> {
     Id::build(self.namespace, &self.out_name)
-  }
-
-  pub fn parse(namespace: Namespace, clause: &AST) -> Result<ImportName, ImportDeclParseError> {
-    match clause {
-      AST::Symbol(s) => {
-        Ok(ImportName::simple(namespace, s.clone()))
-      }
-      AST::Cons(_, _) => {
-        let vec: Vec<_> = DottedExpr::new(clause).try_into().map_err(|_| ImportDeclParseError::MalformedFunctionImport(clause.clone()))?;
-        match vec.as_slice() {
-          [AST::Symbol(i), AST::Symbol(as_), AST::Symbol(o)] if as_ == "as" => {
-            Ok(ImportName::new(namespace, i.clone(), o.clone()))
-          }
-          _ => {
-            Err(ImportDeclParseError::MalformedFunctionImport(clause.clone()))
-          }
-        }
-      }
-      _ => {
-        Err(ImportDeclParseError::MalformedFunctionImport(clause.clone()))
-      }
-    }
   }
 
 }
@@ -250,6 +281,19 @@ impl fmt::Display for ImportDeclParseError {
       }
       ImportDeclParseError::InvalidEnding(ast) => {
         write!(f, "Invalid end of import {}", ast)
+      }
+    }
+  }
+}
+
+impl fmt::Display for ImportNameResolutionError {
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    match self {
+      ImportNameResolutionError::UnknownName(id) => {
+        write!(f, "Unknown name in import resolution {}", id.name)
+      }
+      ImportNameResolutionError::AmbiguousNamespace(name) => {
+        write!(f, "Ambiguous namespace at {} in import", name)
       }
     }
   }
@@ -298,15 +342,15 @@ mod tests {
                ImportDecl::open(str_to_rpathbuf("res://foo/bar")));
     assert_eq!(parse_import(r#"("res://foo/bar" (a b))"#).unwrap(),
                ImportDecl::restricted(str_to_rpathbuf("res://foo/bar"),
-                                      vec!(ImportName::simple(Namespace::Function, String::from("a")),
-                                           ImportName::simple(Namespace::Function, String::from("b")))));
+                                      vec!(ImportName::simple(None, String::from("a")),
+                                           ImportName::simple(None, String::from("b")))));
     assert_eq!(parse_import(r#"("res://foo/bar" ())"#).unwrap(),
                ImportDecl::restricted(str_to_rpathbuf("res://foo/bar"),
                                       vec!()));
     assert_eq!(parse_import(r#"("res://foo/bar" ((a as a1) b))"#).unwrap(),
                ImportDecl::restricted(str_to_rpathbuf("res://foo/bar"),
-                                      vec!(ImportName::new(Namespace::Function, String::from("a"), String::from("a1")),
-                                           ImportName::simple(Namespace::Function, String::from("b")))));
+                                      vec!(ImportName::new(None, String::from("a1"), String::from("a")),
+                                           ImportName::simple(None, String::from("b")))));
   }
 
   #[test]
