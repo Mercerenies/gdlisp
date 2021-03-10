@@ -18,11 +18,11 @@ use std::fmt;
 // Imports "example/foo.lisp" as renamed-foo
 //
 // (3) Explicit import
-// (use "res://example/foo.lisp" (a b c))
+// (use "res://example/foo.lisp" (a b c (d function)))
 // Imports functions a, b, c from "example/foo.lisp"
 //
 // (4) Explicit import (aliased)
-// (use "res://example/foo.lisp" ((a as a1) (b as b1) (c as c1)))
+// (use "res://example/foo.lisp" ((a as a1) (b as b1) (c as c1) (d value as d1)))
 // Imports functions a, b, c as a1, b1, c1 from "example/foo.lisp"
 //
 // (5) Wildcard import
@@ -194,8 +194,15 @@ impl<NS> ImportName<NS> {
     ImportName { namespace, in_name, out_name }
   }
 
+  fn symbol_to_namespace(symbol: &str) -> Result<Namespace, ImportDeclParseError> {
+    match symbol {
+      "value" => Ok(Namespace::Value),
+      "function" => Ok(Namespace::Function),
+      _ => Err(ImportDeclParseError::MalformedFunctionImport(AST::Symbol(symbol.to_owned()))),
+    }
+  }
+
   pub fn parse(clause: &AST) -> Result<ImportName<Option<Namespace>>, ImportDeclParseError> {
-    // TODO Alternate namespaces
     match clause {
       AST::Symbol(s) => {
         Ok(ImportName::simple(None, s.clone()))
@@ -205,6 +212,14 @@ impl<NS> ImportName<NS> {
         match vec.as_slice() {
           [AST::Symbol(o), AST::Symbol(as_), AST::Symbol(i)] if as_ == "as" => {
             Ok(ImportName::new(None, i.clone(), o.clone()))
+          }
+          [AST::Symbol(o), AST::Symbol(ns), AST::Symbol(as_), AST::Symbol(i)] if as_ == "as" => {
+            let ns = ImportName::<Option<Namespace>>::symbol_to_namespace(ns)?;
+            Ok(ImportName::new(Some(ns), i.clone(), o.clone()))
+          }
+          [AST::Symbol(o), AST::Symbol(ns)] => {
+            let ns = ImportName::<Option<Namespace>>::symbol_to_namespace(ns)?;
+            Ok(ImportName::new(Some(ns), o.clone(), o.clone()))
           }
           _ => {
             Err(ImportDeclParseError::MalformedFunctionImport(clause.clone()))
@@ -351,6 +366,10 @@ mod tests {
                ImportDecl::restricted(str_to_rpathbuf("res://foo/bar"),
                                       vec!(ImportName::new(None, String::from("a1"), String::from("a")),
                                            ImportName::simple(None, String::from("b")))));
+    assert_eq!(parse_import(r#"("res://foo/bar" ((a function as a1) (b value)))"#).unwrap(),
+               ImportDecl::restricted(str_to_rpathbuf("res://foo/bar"),
+                                      vec!(ImportName::new(Some(Namespace::Function), String::from("a1"), String::from("a")),
+                                           ImportName::simple(Some(Namespace::Value), String::from("b")))));
   }
 
   #[test]

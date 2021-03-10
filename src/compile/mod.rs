@@ -405,7 +405,7 @@ impl<'a> Compiler<'a> {
           table.set_fn(import_name.clone(), call, Box::new(DefaultCall));
         }
         Namespace::Value => {
-          todo!() // TODO Not yet implemented
+          todo!() // TODO Not yet implemented (///// Going to require extending LocalVar to support subscripted names like FnCall does)
         }
       }
     }
