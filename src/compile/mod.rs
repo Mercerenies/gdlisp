@@ -412,9 +412,9 @@ impl<'a> Compiler<'a> {
 
     // If it was a restricted import list, validate the import names
     if let ImportDetails::Restricted(vec) = &import.details {
-      for name in vec {
-        if !exports.contains(&name.in_name) {
-          return Err(PError::GDError(Error::NoSuchFn(name.in_name.clone())));
+      for imp in vec {
+        if !exports.contains(&imp.clone().into_imported_id()) {
+          return Err(PError::GDError(Error::NoSuchFn(imp.in_name.clone())));
         }
       }
     }

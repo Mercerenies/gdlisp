@@ -1,6 +1,7 @@
 
 use crate::compile::symbol_table::SymbolTable;
 use crate::ir::decl::{TopLevel, MacroDecl};
+use crate::ir::identifier::Id;
 use crate::gdscript::decl::TopLevelClass;
 use crate::runner::macro_server::named_file_server::MacroID;
 
@@ -13,7 +14,7 @@ pub struct TranslationUnit {
   table: SymbolTable,
   ir: TopLevel,
   gdscript: TopLevelClass,
-  exports: Vec<String>,
+  exports: Vec<Id>,
   macros: HashMap<String, (MacroID, MacroDecl)>,
 }
 
@@ -23,7 +24,7 @@ impl TranslationUnit {
              table: SymbolTable,
              ir: TopLevel,
              gdscript: TopLevelClass,
-             exports: Vec<String>,
+             exports: Vec<Id>,
              macros: HashMap<String, (MacroID, MacroDecl)>)
              -> TranslationUnit {
     TranslationUnit { filename, table, ir, gdscript, exports, macros }
@@ -45,7 +46,7 @@ impl TranslationUnit {
     &self.gdscript
   }
 
-  pub fn exports(&self) -> &[String] {
+  pub fn exports(&self) -> &[Id] {
     &self.exports
   }
 

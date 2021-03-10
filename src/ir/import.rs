@@ -2,7 +2,7 @@
 use crate::sxp::ast::{self, AST};
 use crate::sxp::dotted::DottedExpr;
 use crate::runner::path::{RPathBuf, PathSrc};
-use super::identifier::{Namespace, Id};
+use super::identifier::{Namespace, Id, IdLike};
 
 use std::convert::{TryInto, TryFrom};
 use std::fmt;
@@ -37,7 +37,7 @@ pub struct ImportDecl {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum ImportDetails {
-  Named(String),             // (1) and (2) above
+  Named(String),               // (1) and (2) above
   Restricted(Vec<ImportName>), // (3) and (4) above
   Open,                        // (5) above
 }
@@ -99,8 +99,9 @@ impl ImportDecl {
     }
   }
 
-  pub fn names(&self, exports: &[String]) -> Vec<ImportName> {
-    exports.iter().cloned().filter_map(|export_name| {
+  pub fn names(&self, exports: &[Id]) -> Vec<ImportName> {
+    exports.iter().cloned().filter_map(|export| {
+      let Id { namespace: export_namespace, name: export_name } = export;
       let import_name = match &self.details {
         ImportDetails::Named(s) => {
           Some(format!("{}.{}", s, export_name))
@@ -110,16 +111,15 @@ impl ImportDecl {
         }
         ImportDetails::Restricted(vec) => {
           // Find it in the import list.
-          if let Some(name_match) = vec.iter().find(|x| x.in_name == *export_name) {
+          if let Some(name_match) = vec.iter().find(|x| x.namespace == export_namespace && x.in_name == *export_name) {
             Some(name_match.out_name.clone())
           } else {
             None
           }
         }
       };
-      // TODO Support other namespaces
       import_name.map(|import_name| {
-        ImportName::new(Namespace::Function, import_name, export_name)
+        ImportName::new(export_namespace, import_name, export_name)
       })
     }).collect()
   }
@@ -194,6 +194,14 @@ impl ImportName {
 
   pub fn into_exported_id(self) -> Id {
     Id::new(self.namespace, self.out_name)
+  }
+
+  pub fn to_imported_id<'a>(&'a self) -> Box<dyn IdLike + 'a> {
+    Id::build(self.namespace, &self.in_name)
+  }
+
+  pub fn to_exported_id<'a>(&'a self) -> Box<dyn IdLike + 'a> {
+    Id::build(self.namespace, &self.out_name)
   }
 
   pub fn parse(namespace: Namespace, clause: &AST) -> Result<ImportName, ImportDeclParseError> {
