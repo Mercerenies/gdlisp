@@ -5,17 +5,16 @@ use crate::ir::identifier::Id;
 use crate::gdscript::decl::TopLevelClass;
 use crate::runner::macro_server::named_file_server::MacroID;
 
-use std::path::{PathBuf, Path};
+use std::path::PathBuf;
 use std::collections::HashMap;
 
-// TODO Why are all of these private? I give basically free access to them all below.
 pub struct TranslationUnit {
-  filename: PathBuf,
-  table: SymbolTable,
-  ir: TopLevel,
-  gdscript: TopLevelClass,
-  exports: Vec<Id>,
-  macros: HashMap<String, (MacroID, MacroDecl)>,
+  pub filename: PathBuf,
+  pub table: SymbolTable,
+  pub ir: TopLevel,
+  pub gdscript: TopLevelClass,
+  pub exports: Vec<Id>,
+  pub macros: HashMap<String, (MacroID, MacroDecl)>,
 }
 
 impl TranslationUnit {
@@ -28,30 +27,6 @@ impl TranslationUnit {
              macros: HashMap<String, (MacroID, MacroDecl)>)
              -> TranslationUnit {
     TranslationUnit { filename, table, ir, gdscript, exports, macros }
-  }
-
-  pub fn filename(&self) -> &Path {
-    &self.filename
-  }
-
-  pub fn table(&self) -> &SymbolTable {
-    &self.table
-  }
-
-  pub fn ir(&self) -> &TopLevel {
-    &self.ir
-  }
-
-  pub fn gdscript(&self) -> &TopLevelClass {
-    &self.gdscript
-  }
-
-  pub fn exports(&self) -> &[Id] {
-    &self.exports
-  }
-
-  pub fn macros(&self) -> &HashMap<String, (MacroID, MacroDecl)> {
-    &self.macros
   }
 
 }

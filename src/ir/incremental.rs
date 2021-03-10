@@ -223,10 +223,10 @@ impl IncCompiler {
   }
 
   fn import_macros_from(&mut self, unit: &TranslationUnit, import: &ImportDecl) {
-    for imp in import.names(unit.exports()) {
+    for imp in import.names(&unit.exports) {
       let ImportName { namespace: namespace, in_name: import_name, out_name: export_name } = imp;
       if namespace == Namespace::Function { // Macros are always in the function namespace
-        if let Some(x) = unit.macros().get(&export_name) {
+        if let Some(x) = unit.macros.get(&export_name) {
           self.macros.insert(import_name, (x.0, x.1.clone(), true));
         }
       }
@@ -296,7 +296,7 @@ impl IncCompiler {
 
     let translation_names = self.imports.iter().map(|import| {
       let unit = pipeline.load_file(&import.filename.path())?;
-      Ok(import.names(unit.exports()))
+      Ok(import.names(&unit.exports))
     }).collect::<Result<Vec<_>, PError>>()?;
     let imported_names: HashSet<_> =
       translation_names.into_iter().flatten().map(ImportName::into_imported_id).collect();

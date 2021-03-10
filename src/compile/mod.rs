@@ -393,9 +393,9 @@ impl<'a> Compiler<'a> {
 
     // Now add the pertinent symbols to the symbol table
     let unit = pipeline.load_file(&import.filename.path())?;
-    let unit_table = unit.table();
-    let exports = unit.exports();
-    let names = import.names(&unit.exports());
+    let unit_table = &unit.table;
+    let exports = &unit.exports;
+    let names = import.names(&unit.exports);
     for imp in names {
       let ImportName { namespace: namespace, in_name: import_name, out_name: export_name } = imp;
       match namespace {

@@ -79,7 +79,7 @@ impl Pipeline {
 
     let contents = util::read_to_end(&mut input_file)?;
     let unit = self.compile_code(&input_path, &contents)?;
-    write!(output_file, "{}", unit.gdscript().to_gd())?;
+    write!(output_file, "{}", unit.gdscript.to_gd())?;
 
     // Also output to a temporary file
     let mut tmpfile = Builder::new()
@@ -96,7 +96,7 @@ impl Pipeline {
     library::bind_builtins(&mut table);
 
     let mut builder = CodeBuilder::new(decl::ClassExtends::Named("Node".to_owned()));
-    compiler.compile_toplevel(self, &mut builder, &mut table, unit.ir())?;
+    compiler.compile_toplevel(self, &mut builder, &mut table, &unit.ir)?;
     let tmpresult = builder.build();
 
     write!(tmpfile, "{}", tmpresult.to_gd())?;

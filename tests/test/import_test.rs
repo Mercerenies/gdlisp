@@ -17,7 +17,7 @@ fn load_and_output_simple_file(input: &str) -> String {
   setup_simple_file_loader(&mut loader);
   loader.add_file("main.lisp", input);
   let mut pipeline = Pipeline::with_resolver(dummy_config(), Box::new(loader));
-  pipeline.load_file("main.lisp").unwrap().gdscript().to_gd()
+  pipeline.load_file("main.lisp").unwrap().gdscript.to_gd()
 }
 
 #[test]
@@ -131,7 +131,7 @@ fn macro_uses_other_import_test() {
     (f 43)
   "#);
   let mut pipeline = Pipeline::with_resolver(dummy_config(), Box::new(loader));
-  let result = pipeline.load_file("main.lisp").unwrap().gdscript().to_gd();
+  let result = pipeline.load_file("main.lisp").unwrap().gdscript.to_gd();
   assert_eq!(result, r#"extends Node
 const _Import_0 = preload("res://example.gd")
 static func f(x_1):
@@ -151,7 +151,7 @@ fn macro_from_other_file_import_test() {
     (add-one 43)
   "#);
   let mut pipeline = Pipeline::with_resolver(dummy_config(), Box::new(loader));
-  let result = pipeline.load_file("main.lisp").unwrap().gdscript().to_gd();
+  let result = pipeline.load_file("main.lisp").unwrap().gdscript.to_gd();
   assert_eq!(result, r#"extends Node
 const _Import_0 = preload("res://example.gd")
 static func run():
@@ -171,7 +171,7 @@ fn macro_several_files_import_test() {
     (c.g 3)
   "#);
   let mut pipeline = Pipeline::with_resolver(dummy_config(), Box::new(loader));
-  let result = pipeline.load_file("main.lisp").unwrap().gdscript().to_gd();
+  let result = pipeline.load_file("main.lisp").unwrap().gdscript.to_gd();
   assert_eq!(result, r#"extends Node
 const c_0 = preload("res://c.gd")
 static func run():
