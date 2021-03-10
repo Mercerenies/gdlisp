@@ -28,6 +28,7 @@ pub enum Error {
   UnquoteOutsideQuasiquote,
   NoSuchFile(RPathBuf),
   AmbiguousNamespace(String),
+  NotConstantEnough(String),
 }
 
 impl fmt::Display for Error {
@@ -74,6 +75,9 @@ impl fmt::Display for Error {
       }
       Error::AmbiguousNamespace(s) => {
         write!(f, "Ambiguous namespace when importing {}", s)
+      }
+      Error::NotConstantEnough(s) => {
+        write!(f, "Expression for constant declaration {} is not constant enough", s)
       }
     }
   }
