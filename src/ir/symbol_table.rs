@@ -20,6 +20,7 @@ impl SymbolTable {
     self.values.get(id).map(|idx| &self.in_order[*idx])
   }
 
+  #[allow(clippy::map_entry)] // Using the Entry API would require that value be cloned.
   pub fn set(&mut self, id: Id, value: Decl) {
     let new_idx = self.in_order.len();
     if self.values.contains_key(&id) {

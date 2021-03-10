@@ -53,7 +53,7 @@ impl SymbolTable {
   }
 
   pub fn set_fn(&mut self, name: String, value: FnCall, magic: Box<dyn CallMagic + 'static>) {
-    self.functions.insert(name.clone(), (value, DebugWrapper(magic)));
+    self.functions.insert(name, (value, DebugWrapper(magic)));
   }
 
   pub fn del_fn(&mut self, name: &str) {
