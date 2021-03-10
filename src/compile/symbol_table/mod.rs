@@ -20,7 +20,7 @@ pub struct SymbolTable {
 
 #[derive(PartialEq, Eq, Clone, Debug)]
 pub struct LocalVar {
-  pub name: String,
+  pub name: Vec<String>, // Qualified name
   pub access_type: AccessType,
   pub scope: VarScope,
 }
@@ -75,34 +75,36 @@ impl SymbolTable {
 impl LocalVar {
 
   pub fn read(name: String) -> LocalVar {
-    LocalVar { name, access_type: AccessType::Read, scope: VarScope::LocalVar }
+    LocalVar { name: vec!(name), access_type: AccessType::Read, scope: VarScope::LocalVar }
   }
 
   pub fn rw(name: String) -> LocalVar {
-    LocalVar { name, access_type: AccessType::RW, scope: VarScope::LocalVar }
+    LocalVar { name: vec!(name), access_type: AccessType::RW, scope: VarScope::LocalVar }
   }
 
   pub fn closed_rw(name: String) -> LocalVar {
-    LocalVar { name, access_type: AccessType::ClosedRW, scope: VarScope::LocalVar }
+    LocalVar { name: vec!(name), access_type: AccessType::ClosedRW, scope: VarScope::LocalVar }
   }
 
   pub fn global(name: String) -> LocalVar {
-    LocalVar { name, access_type: AccessType::Read, scope: VarScope::GlobalVar }
+    LocalVar { name: vec!(name), access_type: AccessType::Read, scope: VarScope::GlobalVar }
   }
 
   pub fn new(name: String, access_type: AccessType, scope: VarScope) -> LocalVar {
-    LocalVar { name, access_type, scope }
+    LocalVar { name: vec!(name), access_type, scope }
   }
 
   pub fn local(name: String, access_type: AccessType) -> LocalVar {
-    LocalVar { name, access_type, scope: VarScope::LocalVar }
+    LocalVar { name: vec!(name), access_type, scope: VarScope::LocalVar }
   }
 
   pub fn expr(&self) -> Expr {
+    let var = Expr::var(&self.name[0]);
+    let inner = self.name[1..].iter().fold(var, |acc, b| Expr::Attribute(Box::new(acc), b.to_owned()));
     if self.access_type.requires_cell() {
-        Expr::Attribute(Box::new(Expr::var(&self.name)), CELL_CONTENTS.to_owned())
+      Expr::Attribute(Box::new(inner), CELL_CONTENTS.to_owned())
     } else {
-      Expr::var(&self.name)
+      inner
     }
   }
 
@@ -213,7 +215,7 @@ mod tests {
     table.set_var("foo".to_owned(), LocalVar::read("bar".to_owned()));
     table.set_var("foo1".to_owned(), LocalVar::rw("baz".to_owned()));
     table.set_var("foo2".to_owned(), LocalVar::read("abcdef".to_owned()));
-    let mut vec: Vec<_> = table.vars().map(|x| (x.0, x.1.name.borrow())).collect();
+    let mut vec: Vec<_> = table.vars().map(|x| (x.0, x.1.name[0].borrow())).collect();
     vec.sort_unstable();
     assert_eq!(vec, vec!(("foo", "bar"), ("foo1", "baz"), ("foo2", "abcdef")));
   }

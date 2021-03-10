@@ -1,6 +1,6 @@
 
 use crate::ir;
-use crate::ir::locals::{Locals, AccessType};
+use crate::ir::locals::Locals;
 use crate::ir::functions::Functions;
 use crate::ir::arglist::VarArg;
 use crate::compile::{Compiler, StExpr};
@@ -100,7 +100,7 @@ fn generate_lambda_vararg(specs: FnSpecs) -> decl::FnDecl {
 fn generate_lambda_class<'a, 'b>(compiler: &mut Compiler<'a>,
                                  specs: FnSpecs,
                                  args: ArgList,
-                                 closed_vars: &[LocalVar],
+                                 closed_vars: &[String],
                                  lambda_body: Vec<Stmt>,
                                  block_prefix: &'b str)
                                  -> decl::ClassDecl {
@@ -113,8 +113,8 @@ fn generate_lambda_class<'a, 'b>(compiler: &mut Compiler<'a>,
   };
   let funcv = generate_lambda_vararg(specs);
   let mut constructor_body = Vec::new();
-  for var in closed_vars.iter() {
-    constructor_body.push(assign_to_compiler(var.name.to_string(), var.name.to_string()));
+  for name in closed_vars.iter() {
+    constructor_body.push(assign_to_compiler(name.to_string(), name.to_string()));
   }
   let r: i32  = specs.required.try_into().unwrap();
   let o: i32  = specs.optional.try_into().unwrap();
@@ -129,12 +129,12 @@ fn generate_lambda_class<'a, 'b>(compiler: &mut Compiler<'a>,
   let constructor =
     decl::FnDecl {
       name: String::from("_init"),
-      args: ArgList::required(closed_vars.iter().map(|x| x.name.to_owned()).collect()),
+      args: ArgList::required(closed_vars.iter().map(|x| x.to_owned()).collect()),
       body: constructor_body,
     };
   let mut class_body = vec!();
   for var in closed_vars {
-    class_body.push(Decl::VarDecl(var.name.clone(), None));
+    class_body.push(Decl::VarDecl(var.to_owned(), None));
   }
   class_body.append(&mut vec!(
     Decl::FnDecl(decl::Static::NonStatic, constructor),
@@ -193,7 +193,9 @@ pub fn compile_labels_scc<'a>(compiler: &mut Compiler<'a>,
     let var = lambda_table.get_var(&ast_name).unwrap_or_else(|| {
       panic!("Internal error compiling lambda variable {}", ast_name)
     }).to_owned();
-    gd_closure_vars.push(var);
+    if let [name] = &*var.name {
+      gd_closure_vars.push(name.to_owned());
+    }
   }
   for func in closure_fns.names() {
     match table.get_fn(func) {
@@ -251,16 +253,16 @@ pub fn compile_labels_scc<'a>(compiler: &mut Compiler<'a>,
 
   let mut constructor_body = Vec::new();
   for var in &gd_closure_vars {
-    constructor_body.push(assign_to_compiler(var.name.to_string(), var.name.to_string()));
+    constructor_body.push(assign_to_compiler(var.to_string(), var.to_string()));
   }
   let constructor = decl::FnDecl {
     name: String::from("_init"),
-    args: ArgList::required(gd_closure_vars.iter().map(|x| x.name.to_owned()).collect()),
+    args: ArgList::required(gd_closure_vars.iter().map(|x| x.to_owned()).collect()),
     body: constructor_body,
   };
   let mut class_body = vec!();
   for var in &gd_closure_vars {
-    class_body.push(Decl::VarDecl(var.name.clone(), None));
+    class_body.push(Decl::VarDecl(var.clone(), None));
   }
   class_body.push(Decl::FnDecl(decl::Static::NonStatic, constructor));
   for func in functions {
@@ -272,7 +274,7 @@ pub fn compile_labels_scc<'a>(compiler: &mut Compiler<'a>,
     body: class_body,
   };
   builder.add_helper(Decl::ClassDecl(class));
-  let constructor_args: Vec<_> = gd_closure_vars.into_iter().map(|s| Expr::Var(s.name)).collect();
+  let constructor_args: Vec<_> = gd_closure_vars.into_iter().map(Expr::Var).collect();
   let expr = Expr::Call(Some(Box::new(Expr::Var(class_name))), String::from("new"), constructor_args);
   builder.append(Stmt::VarDecl(local_var_name, expr));
 
@@ -337,17 +339,10 @@ fn copy_global_vars(src_table: &SymbolTable, dest_table: &mut SymbolTable) {
   }
 }
 
-fn closure_fn_to_gd_var(call: &FnCall) -> Option<LocalVar> {
+fn closure_fn_to_gd_var(call: &FnCall) -> Option<String> {
   match &call.scope {
     FnScope::Local(name) | FnScope::SpecialLocal(name) => {
-      // ClosedRead *might* be more conservative than necessary
-      // here (it's possible we can get away with Read in some
-      // situations), but I don't think it changes anything, so we
-      // may as well play it safe.
-      Some(LocalVar::local(
-        name.to_owned(),
-        AccessType::ClosedRead,
-      ))
+      Some(name.to_owned())
     }
     FnScope::SemiGlobal | FnScope::Global => {
       None
@@ -395,7 +390,9 @@ pub fn compile_lambda_stmt<'a>(compiler: &mut Compiler<'a>,
     let var = lambda_table.get_var(&ast_name).unwrap_or_else(|| {
       panic!("Internal error compiling lambda variable {}", ast_name)
     }).to_owned();
-    gd_closure_vars.push(var);
+    if let [name] = &*var.name {
+      gd_closure_vars.push(name.to_owned());
+    }
   }
   for func in closure_fns.names() {
     match table.get_fn(func) {
@@ -416,7 +413,7 @@ pub fn compile_lambda_stmt<'a>(compiler: &mut Compiler<'a>,
   let class = generate_lambda_class(compiler, args.clone().into(), arglist, &gd_closure_vars, lambda_body, "_LambdaBlock");
   let class_name = class.name.clone();
   builder.add_helper(Decl::ClassDecl(class));
-  let constructor_args = gd_closure_vars.into_iter().map(|s| Expr::Var(s.name)).collect();
+  let constructor_args = gd_closure_vars.into_iter().map(|s| Expr::Var(s)).collect();
   let expr = Expr::Call(Some(Box::new(Expr::Var(class_name))), String::from("new"), constructor_args);
   Ok(StExpr(expr, SideEffects::None))
 }
@@ -436,13 +433,10 @@ pub fn compile_function_ref<'a>(compiler: &mut Compiler<'a>,
 
     let mut closure_vars = Vec::new();
     if let FnScope::SpecialLocal(name) = func.scope {
-      closure_vars.push(LocalVar::local(
-        name,
-        AccessType::ClosedRead, // May be overly conservative but definitely safe.
-      ));
+      closure_vars.push(name);
     }
-    let closure_var_ctor_args: Vec<_> = closure_vars.iter().map(|x| {
-      Expr::var(&x.name)
+    let closure_var_ctor_args: Vec<_> = closure_vars.iter().map(|name| {
+      Expr::var(name)
     }).collect();
 
     let body = Stmt::ReturnStmt(
