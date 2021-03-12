@@ -16,6 +16,7 @@ pub struct TopLevel {
 pub enum Decl {
   FnDecl(FnDecl),
   MacroDecl(MacroDecl),
+  ConstDecl(ConstDecl),
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -30,6 +31,12 @@ pub struct MacroDecl {
   pub name: String,
   pub args: ArgList,
   pub body: Expr,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ConstDecl {
+  pub name: String,
+  pub value: Expr,
 }
 
 impl TopLevel {
@@ -54,6 +61,7 @@ impl Decl {
     match self {
       Decl::FnDecl(decl) => &decl.name,
       Decl::MacroDecl(decl) => &decl.name,
+      Decl::ConstDecl(decl) => &decl.name,
     }
   }
 
@@ -74,6 +82,9 @@ impl Decl {
         }
         ids
       }
+      Decl::ConstDecl(c) => {
+        c.value.get_ids().collect()
+      }
     }
   }
 
@@ -85,6 +96,7 @@ impl Decl {
     match self {
       Decl::FnDecl(_) => Namespace::Function,
       Decl::MacroDecl(_) => Namespace::Function,
+      Decl::ConstDecl(_) => Namespace::Value,
     }
   }
 

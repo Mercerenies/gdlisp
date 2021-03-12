@@ -202,6 +202,18 @@ impl IncCompiler {
               body: Expr::Progn(body),
             }))
           }
+          "defconst" => {
+            // TODO Check that it's constant and all names are known (and themselves constant) (////)
+            if vec.len() != 3 {
+              return Err(PError::from(Error::InvalidDecl(decl.clone())));
+            }
+            let name = match vec[1] {
+              AST::Symbol(s) => s.to_owned(),
+              _ => return Err(PError::from(Error::InvalidDecl(decl.clone()))),
+            };
+            let value = self.compile_expr(pipeline, vec[2])?;
+            Ok(Decl::ConstDecl(decl::ConstDecl { name, value }))
+          }
           _ => {
             Err(PError::from(Error::UnknownDecl(decl.clone())))
           }

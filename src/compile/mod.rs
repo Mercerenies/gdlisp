@@ -268,6 +268,18 @@ impl<'a> Compiler<'a> {
         builder.add_decl(Decl::FnDecl(decl::Static::IsStatic, function));
         Ok(())
       }
+      IRDecl::ConstDecl(ir::decl::ConstDecl { name, value }) => {
+        let gd_name = names::lisp_to_gd(&name);
+        let mut tmp_builder = StmtBuilder::new();
+        let value = self.compile_expr(&mut tmp_builder, table, value, NeedsResult::Yes)?.0;
+        let (stmts, decls) = tmp_builder.build();
+        if stmts.is_empty() && decls.is_empty() {
+          builder.add_decl(Decl::ConstDecl(gd_name, value));
+          Ok(())
+        } else {
+          Err(Error::NotConstantEnough(name.to_owned()))
+        }
+      }
     }
   }
 
@@ -321,6 +333,10 @@ impl<'a> Compiler<'a> {
           names::lisp_to_gd(name)
         );
         table.set_fn(name.clone(), func, Box::new(DefaultCall));
+      }
+      IRDecl::ConstDecl(ir::decl::ConstDecl { name, value: _ }) => {
+        let var = LocalVar::global(names::lisp_to_gd(name));
+        table.set_var(name.clone(), var);
       }
     };
     Ok(())
