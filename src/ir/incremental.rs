@@ -12,6 +12,7 @@ use super::special_form;
 use super::depends::Dependencies;
 use super::decl::{self, Decl};
 use super::macros;
+use super::constant::MaybeConstant;
 use super::identifier::{Id, IdLike, Namespace};
 use crate::sxp::dotted::{DottedExpr, TryFromDottedExprError};
 use crate::sxp::ast::{self, AST};
@@ -203,7 +204,6 @@ impl IncCompiler {
             }))
           }
           "defconst" => {
-            // TODO Check that it's constant and all names are known (and themselves constant) (////)
             if vec.len() != 3 {
               return Err(PError::from(Error::InvalidDecl(decl.clone())));
             }
@@ -212,6 +212,7 @@ impl IncCompiler {
               _ => return Err(PError::from(Error::InvalidDecl(decl.clone()))),
             };
             let value = self.compile_expr(pipeline, vec[2])?;
+            value.validate_const_expr(&name)?;
             Ok(Decl::ConstDecl(decl::ConstDecl { name, value }))
           }
           _ => {
