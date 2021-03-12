@@ -405,7 +405,9 @@ impl<'a> Compiler<'a> {
           table.set_fn(import_name.clone(), call, Box::new(DefaultCall));
         }
         Namespace::Value => {
-          todo!() // TODO Not yet implemented (///// Going to require extending LocalVar to support subscripted names like FnCall does)
+          let mut var = unit_table.get_var(&export_name).ok_or(Error::NoSuchVar(export_name))?.clone();
+          var.name.insert(0, preload_name.clone());
+          table.set_var(import_name.clone(), var);
         }
       }
     }
