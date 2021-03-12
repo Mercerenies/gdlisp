@@ -3,6 +3,7 @@ pub mod common;
 pub mod builtin_function_test;
 pub mod collection_conversion_test;
 pub mod cond_if_test;
+pub mod const_test;
 pub mod declaration_test;
 pub mod dependencies_test;
 pub mod even_odd_test;
