@@ -329,6 +329,9 @@ impl<'a> Compiler<'a> {
 
     let mut body = vec!();
     body.push(Decl::FnDecl(decl::Static::NonStatic, self.compile_constructor(builder, table, constructor)?));
+    for d in decls {
+      body.push(self.compile_class_inner_decl(builder, table, d)?);
+    }
 
     let decl = decl::ClassDecl {
       name: gd_name,
@@ -343,11 +346,35 @@ impl<'a> Compiler<'a> {
                              table: &mut SymbolTable,
                              constructor: &ir::decl::ConstructorDecl)
                              -> Result<decl::FnDecl, Error> {
+    // TODO No implicit return on constructor (also handle self)
     self.declare_function(builder,
                           table,
                           String::from(library::CONSTRUCTOR_NAME),
                           IRArgList::from(constructor.args.clone()),
                           &constructor.body)
+  }
+
+
+  pub fn compile_class_inner_decl(&mut self,
+                                  builder: &mut impl HasDecls,
+                                  table: &mut SymbolTable,
+                                  decl: &ir::decl::ClassInnerDecl)
+                                  -> Result<Decl, Error> {
+    match decl {
+      ir::decl::ClassInnerDecl::ClassVarDecl(v) => {
+        let name = names::lisp_to_gd(&v.name);
+        Ok(Decl::VarDecl(name, None))
+      }
+      ir::decl::ClassInnerDecl::ClassFnDecl(f) => {
+        // TODO Handle self
+        let func = self.declare_function(builder,
+                                         table,
+                                         f.name.to_owned(),
+                                         IRArgList::from(f.args.clone()),
+                                         &f.body)?;
+        Ok(Decl::FnDecl(decl::Static::NonStatic, func))
+      }
+    }
   }
 
   fn bind_decl(table: &mut SymbolTable,
