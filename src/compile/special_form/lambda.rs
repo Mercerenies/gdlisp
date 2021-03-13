@@ -128,7 +128,7 @@ fn generate_lambda_class<'a, 'b>(compiler: &mut Compiler<'a>,
   constructor_body.push(assign_expr_to_compiler(String::from("__gdlisp_rest"), Expr::from(x)));
   let constructor =
     decl::FnDecl {
-      name: String::from("_init"),
+      name: String::from(library::CONSTRUCTOR_NAME),
       args: ArgList::required(closed_vars.iter().map(|x| x.to_owned()).collect()),
       body: constructor_body,
     };
@@ -256,7 +256,7 @@ pub fn compile_labels_scc<'a>(compiler: &mut Compiler<'a>,
     constructor_body.push(assign_to_compiler(var.to_string(), var.to_string()));
   }
   let constructor = decl::FnDecl {
-    name: String::from("_init"),
+    name: String::from(library::CONSTRUCTOR_NAME),
     args: ArgList::required(gd_closure_vars.iter().map(|x| x.to_owned()).collect()),
     body: constructor_body,
   };

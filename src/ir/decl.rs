@@ -1,6 +1,7 @@
 
-use super::arglist::ArgList;
+use super::arglist::{ArgList, SimpleArgList};
 use super::expr::Expr;
+use super::literal::Literal;
 use super::import::ImportDecl;
 use super::identifier::{Namespace, Id, IdLike};
 
@@ -17,6 +18,7 @@ pub enum Decl {
   FnDecl(FnDecl),
   MacroDecl(MacroDecl),
   ConstDecl(ConstDecl),
+  ClassDecl(ClassDecl),
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -37,6 +39,38 @@ pub struct MacroDecl {
 pub struct ConstDecl {
   pub name: String,
   pub value: Expr,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ClassDecl {
+  pub name: String,
+  pub extends: String,
+  pub constructor: ConstructorDecl,
+  pub decls: Vec<ClassInnerDecl>,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ConstructorDecl { // TODO Super
+  pub args: SimpleArgList,
+  pub body: Expr,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum ClassInnerDecl {
+  ClassVarDecl(ClassVarDecl),
+  ClassFnDecl(ClassFnDecl),
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ClassVarDecl {
+  pub name: String,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ClassFnDecl {
+  pub name: String,
+  pub args: SimpleArgList,
+  pub body: Expr,
 }
 
 impl TopLevel {
@@ -62,6 +96,7 @@ impl Decl {
       Decl::FnDecl(decl) => &decl.name,
       Decl::MacroDecl(decl) => &decl.name,
       Decl::ConstDecl(decl) => &decl.name,
+      Decl::ClassDecl(decl) => &decl.name,
     }
   }
 
@@ -85,6 +120,10 @@ impl Decl {
       Decl::ConstDecl(c) => {
         c.value.get_ids().collect()
       }
+      Decl::ClassDecl(c) => {
+        // TODO Handle `self`?
+        todo!()
+      }
     }
   }
 
@@ -97,6 +136,31 @@ impl Decl {
       Decl::FnDecl(_) => Namespace::Function,
       Decl::MacroDecl(_) => Namespace::Function,
       Decl::ConstDecl(_) => Namespace::Value,
+      Decl::ClassDecl(_) => Namespace::Value,
+    }
+  }
+
+}
+
+impl ClassDecl {
+
+  pub fn new(name: String, extends: String) -> ClassDecl {
+    ClassDecl {
+      name: name,
+      extends: extends,
+      constructor: ConstructorDecl::default(),
+      decls: vec!(),
+    }
+  }
+
+}
+
+impl Default for ConstructorDecl {
+
+  fn default() -> ConstructorDecl {
+    ConstructorDecl {
+      args: SimpleArgList { args: vec!() },
+      body: Expr::Literal(Literal::Nil),
     }
   }
 

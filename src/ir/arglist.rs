@@ -16,6 +16,11 @@ pub struct ArgList {
   pub rest_arg: Option<(String, VarArg)>,
 }
 
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct SimpleArgList {
+  pub args: Vec<String>,
+}
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum VarArg { RestArg, ArrArg }
 
@@ -192,6 +197,18 @@ impl ArgList {
 
 }
 
+impl SimpleArgList {
+
+  pub fn into_gd_arglist(self, gen: &mut FreshNameGenerator) -> (GDArgList, Vec<(String, String)>) {
+    ArgList::from(self).into_gd_arglist(gen)
+  }
+
+  pub fn iter_vars(&self) -> impl Iterator<Item = &str> {
+    self.args.iter().map(|x| x.borrow())
+  }
+
+}
+
 impl From<ArgList> for FnSpecs {
 
   fn from(arglist: ArgList) -> FnSpecs {
@@ -204,6 +221,12 @@ impl From<ArgList> for FnSpecs {
     )
   }
 
+}
+
+impl From<SimpleArgList> for ArgList {
+  fn from(arglist: SimpleArgList) -> ArgList {
+    ArgList::required(arglist.args)
+  }
 }
 
 impl fmt::Display for ArgListParseError {

@@ -280,6 +280,13 @@ impl<'a> Compiler<'a> {
           Err(Error::NotConstantEnough(name.to_owned()))
         }
       }
+      IRDecl::ClassDecl(ir::decl::ClassDecl { name, extends, constructor, decls }) => {
+        let gd_name = names::lisp_to_gd(&name);
+        let extends = table.get_var(&extends).ok_or_else(|| Error::NoSuchVar(extends.clone()))?.name.clone();
+        let class = self.declare_class(builder, table, gd_name, extends, constructor, decls)?;
+        builder.add_decl(Decl::ClassDecl(class));
+        Ok(())
+      }
     }
   }
 
@@ -295,7 +302,7 @@ impl<'a> Compiler<'a> {
     let mut stmt_builder = StmtBuilder::new();
     for arg in &gd_args {
       if local_vars.get(&arg.0).requires_cell() {
-            // Special behavior to wrap the argument in a cell.
+        // Special behavior to wrap the argument in a cell.
         stmt_builder.append(Stmt::Assign(Box::new(Expr::var(&arg.1)),
                                          op::AssignOp::Eq,
                                          Box::new(library::construct_cell(Expr::var(&arg.1)))));
@@ -309,6 +316,38 @@ impl<'a> Compiler<'a> {
       args: arglist,
       body: stmt_builder.build_into(builder),
     })
+  }
+
+  pub fn declare_class(&mut self,
+                       builder: &mut impl HasDecls,
+                       table: &mut SymbolTable,
+                       gd_name: String,
+                       extends: Vec<String>,
+                       constructor: &ir::decl::ConstructorDecl,
+                       decls: &[ir::decl::ClassInnerDecl])
+                       -> Result<decl::ClassDecl, Error> {
+
+    let mut body = vec!();
+    body.push(Decl::FnDecl(decl::Static::NonStatic, self.compile_constructor(builder, table, constructor)?));
+
+    let decl = decl::ClassDecl {
+      name: gd_name,
+      extends: decl::ClassExtends::Qualified(extends),
+      body: body,
+    };
+    Ok(decl)
+  }
+
+  pub fn compile_constructor(&mut self,
+                             builder: &mut impl HasDecls,
+                             table: &mut SymbolTable,
+                             constructor: &ir::decl::ConstructorDecl)
+                             -> Result<decl::FnDecl, Error> {
+    self.declare_function(builder,
+                          table,
+                          String::from(library::CONSTRUCTOR_NAME),
+                          IRArgList::from(constructor.args.clone()),
+                          &constructor.body)
   }
 
   fn bind_decl(table: &mut SymbolTable,
@@ -335,6 +374,10 @@ impl<'a> Compiler<'a> {
         table.set_fn(name.clone(), func, Box::new(DefaultCall));
       }
       IRDecl::ConstDecl(ir::decl::ConstDecl { name, value: _ }) => {
+        let var = LocalVar::global(names::lisp_to_gd(name));
+        table.set_var(name.clone(), var);
+      }
+      IRDecl::ClassDecl(ir::decl::ClassDecl { name, .. }) => {
         let var = LocalVar::global(names::lisp_to_gd(name));
         table.set_var(name.clone(), var);
       }

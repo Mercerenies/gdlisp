@@ -15,8 +15,8 @@ use classes::GDSCRIPT_CLASS_NAMES;
 use std::collections::HashSet;
 
 pub const GDLISP_NAME: &str = "GDLisp";
-
 pub const CELL_CONTENTS: &str = "contents";
+pub const CONSTRUCTOR_NAME: &str = "_init";
 
 pub fn gdlisp_root() -> Expr {
   Expr::Var(String::from(GDLISP_NAME))
