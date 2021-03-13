@@ -122,7 +122,12 @@ impl Decl {
       }
       Decl::ClassDecl(c) => {
         // TODO Handle `self`?
-        todo!()
+        let mut ids = HashSet::new();
+        ids.extend(c.constructor.dependencies());
+        for d in &c.decls {
+          ids.extend(d.dependencies());
+        }
+        ids
       }
     }
   }
@@ -150,6 +155,35 @@ impl ClassDecl {
       extends: extends,
       constructor: ConstructorDecl::default(),
       decls: vec!(),
+    }
+  }
+
+}
+
+impl ConstructorDecl {
+
+  pub fn dependencies(&self) -> HashSet<Id> {
+    let mut ids: HashSet<Id> = self.body.get_ids().collect();
+    for name in self.args.iter_vars() {
+      ids.remove(&*Id::build(Namespace::Value, name));
+    }
+    ids
+  }
+
+}
+
+impl ClassInnerDecl {
+
+  pub fn dependencies(&self) -> HashSet<Id> {
+    match self {
+      ClassInnerDecl::ClassVarDecl(_) => HashSet::new(),
+      ClassInnerDecl::ClassFnDecl(func) => {
+        let mut ids: HashSet<Id> = func.body.get_ids().collect();
+        for name in func.args.iter_vars() {
+          ids.remove(&*Id::build(Namespace::Value, name));
+        }
+        ids
+      }
     }
   }
 
