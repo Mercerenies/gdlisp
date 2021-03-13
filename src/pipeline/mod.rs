@@ -61,7 +61,7 @@ impl Pipeline {
     library::bind_builtins(&mut table);
 
     let (ir, macros) = ir::compile_toplevel(self, &ast)?;
-    let mut builder = CodeBuilder::new(decl::ClassExtends::Named("Node".to_owned()));
+    let mut builder = CodeBuilder::new(decl::ClassExtends::named("Node".to_owned()));
     compiler.compile_toplevel(self, &mut builder, &mut table, &ir)?;
     let result = builder.build();
 
@@ -95,7 +95,7 @@ impl Pipeline {
     let mut table = SymbolTable::new();
     library::bind_builtins(&mut table);
 
-    let mut builder = CodeBuilder::new(decl::ClassExtends::Named("Node".to_owned()));
+    let mut builder = CodeBuilder::new(decl::ClassExtends::named("Node".to_owned()));
     compiler.compile_toplevel(self, &mut builder, &mut table, &unit.ir)?;
     let tmpresult = builder.build();
 

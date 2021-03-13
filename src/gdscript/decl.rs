@@ -32,7 +32,6 @@ pub struct TopLevelClass {
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum ClassExtends {
   Qualified(Vec<String>),
-  Named(String), // TODO This is now obsolete and Qualified can be used instead.
   // StringLit(String), // TODO Support string literals (once we have them in general)
 }
 
@@ -109,10 +108,13 @@ impl Decl {
 
 impl ClassExtends {
 
+  pub fn named(name: String) -> ClassExtends {
+    ClassExtends::Qualified(vec!(name))
+  }
+
   pub fn to_gd(&self) -> String {
     match self {
       ClassExtends::Qualified(names) => names.join("."),
-      ClassExtends::Named(name) => name.clone(),
     }
   }
 
@@ -202,14 +204,14 @@ mod tests {
 
     let decl1 = Decl::ClassDecl(ClassDecl {
       name: String::from("MyClass"),
-      extends: ClassExtends::Named(String::from("ParentClass")),
+      extends: ClassExtends::named(String::from("ParentClass")),
       body: vec!(),
     });
     assert_eq!(decl1.to_gd(0), "class MyClass extends ParentClass:\n    func _init():\n        pass\n");
 
     let decl2 = Decl::ClassDecl(ClassDecl {
       name: String::from("MyClass"),
-      extends: ClassExtends::Named(String::from("ParentClass")),
+      extends: ClassExtends::named(String::from("ParentClass")),
       body: vec!(
         Decl::VarDecl(String::from("variable"), None),
       ),
@@ -218,7 +220,7 @@ mod tests {
 
     let decl3 = Decl::ClassDecl(ClassDecl {
       name: String::from("MyClass"),
-      extends: ClassExtends::Named(String::from("ParentClass")),
+      extends: ClassExtends::named(String::from("ParentClass")),
       body: vec!(
         Decl::VarDecl(String::from("variable"), None),
         sample_function.clone(),

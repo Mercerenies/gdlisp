@@ -36,7 +36,7 @@ pub fn create_macro_file(pipeline: &mut Pipeline, imports: Vec<ImportDecl>, src_
   let decls = Vec::from(src_table.filter(|d| names.contains(&*d.id_like())));
   let toplevel = TopLevel { imports, decls };
 
-  let mut builder = CodeBuilder::new(decl::ClassExtends::Named("Node".to_owned()));
+  let mut builder = CodeBuilder::new(decl::ClassExtends::named("Node".to_owned()));
   compiler.compile_toplevel(pipeline, &mut builder, &mut table, &toplevel)?;
   let result = builder.build();
 

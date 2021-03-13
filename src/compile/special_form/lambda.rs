@@ -270,7 +270,7 @@ pub fn compile_labels_scc<'a>(compiler: &mut Compiler<'a>,
   }
   let class = decl::ClassDecl {
     name: class_name.clone(),
-    extends: decl::ClassExtends::Named(String::from("Reference")),
+    extends: decl::ClassExtends::named(String::from("Reference")),
     body: class_body,
   };
   builder.add_helper(Decl::ClassDecl(class));
