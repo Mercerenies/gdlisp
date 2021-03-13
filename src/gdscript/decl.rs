@@ -31,8 +31,8 @@ pub struct TopLevelClass {
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum ClassExtends {
-  Qualified(String, String),
-  Named(String),
+  Qualified(Vec<String>),
+  Named(String), // TODO This is now obsolete and Qualified can be used instead.
   // StringLit(String), // TODO Support string literals (once we have them in general)
 }
 
@@ -111,7 +111,7 @@ impl ClassExtends {
 
   pub fn to_gd(&self) -> String {
     match self {
-      ClassExtends::Qualified(a, b) => format!("{}.{}", a, b),
+      ClassExtends::Qualified(names) => names.join("."),
       ClassExtends::Named(name) => name.clone(),
     }
   }

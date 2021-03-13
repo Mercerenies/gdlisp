@@ -143,7 +143,7 @@ fn generate_lambda_class<'a, 'b>(compiler: &mut Compiler<'a>,
   ));
   decl::ClassDecl {
     name: class_name,
-    extends: decl::ClassExtends::Qualified(String::from("GDLisp"), String::from("Function")),
+    extends: decl::ClassExtends::Qualified(vec!(String::from("GDLisp"), String::from("Function"))),
     body: class_body,
   }
 }
