@@ -4,7 +4,7 @@
 use super::symbol_table::SymbolTable;
 use super::MAIN_BODY_NAME;
 use super::call_name::CallName;
-use super::arglist::ArgList;
+use super::arglist::{ArgList, SimpleArgList};
 use super::literal::Literal;
 use super::import::{ImportDecl, ImportName};
 use super::expr::Expr;
@@ -160,6 +160,9 @@ impl IncCompiler {
     }
   }
 
+  // TODO Separate into a piece that checks whether we're a valid
+  // decl, so we don't get weird "no such function defclass" errors on
+  // Error::InvalidDecl.
   pub fn compile_decl(&mut self, pipeline: &mut Pipeline, decl: &AST)
                       -> Result<Decl, PError> {
     let vec: Vec<&AST> = DottedExpr::new(decl).try_into()?;
@@ -174,7 +177,7 @@ impl IncCompiler {
               return Err(PError::from(Error::InvalidDecl(decl.clone())));
             }
             let name = match vec[1] {
-            AST::Symbol(s) => s,
+              AST::Symbol(s) => s,
               _ => return Err(PError::from(Error::InvalidDecl(decl.clone()))),
             };
             let args: Vec<_> = DottedExpr::new(vec[2]).try_into()?;
@@ -215,6 +218,28 @@ impl IncCompiler {
             value.validate_const_expr(&name)?;
             Ok(Decl::ConstDecl(decl::ConstDecl { name, value }))
           }
+          "defclass" => {
+            if vec.len() < 3 {
+              return Err(PError::from(Error::InvalidDecl(decl.clone())));
+            }
+            let name = match vec[1] {
+              AST::Symbol(s) => s.to_owned(),
+              _ => return Err(PError::from(Error::InvalidDecl(decl.clone()))),
+            };
+            let superclass = match vec[2] {
+              AST::Cons(car, cdr) =>
+                match (&**car, &**cdr) {
+                  (AST::Symbol(superclass_name), AST::Nil) => superclass_name.to_owned(),
+                  _ => return Err(PError::from(Error::InvalidDecl(decl.clone()))),
+                },
+              _ => return Err(PError::from(Error::InvalidDecl(decl.clone()))),
+            };
+            let mut class = decl::ClassDecl::new(name, superclass);
+            for decl in &vec[3..] {
+              self.compile_class_inner_decl(pipeline, &mut class, decl)?;
+            }
+            Ok(Decl::ClassDecl(class))
+          }
           _ => {
             Err(PError::from(Error::UnknownDecl(decl.clone())))
           }
@@ -223,6 +248,77 @@ impl IncCompiler {
       _ => {
         Err(PError::from(Error::InvalidDecl(decl.clone())))
       }
+    }
+  }
+
+  ///// Test test test test test test
+  fn compile_class_inner_decl(&mut self,
+                              pipeline: &mut Pipeline,
+                              acc: &mut decl::ClassDecl,
+                              curr: &AST)
+                              -> Result<(), PError> {
+    // TODO Error if we declare constructor twice
+
+    // Deal with macros
+    let mut candidate: Option<AST>;
+    let mut curr = curr;
+    while let Some(ast) = self.try_resolve_macro_call(pipeline, curr)? {
+      candidate = Some(ast);
+      curr = &candidate.as_ref().unwrap();
+    }
+
+    let vec = Vec::try_from(DottedExpr::new(curr)).map_err(Error::from)?;
+    if vec.is_empty() {
+      return Err(PError::from(Error::InvalidDecl(curr.clone())));
+    }
+    if let AST::Symbol(s) = vec[0] {
+      match s.as_str() {
+        "progn" => {
+          // Top-level magic progn
+          for d in &vec[1..] {
+            self.compile_class_inner_decl(pipeline, acc, d)?;
+          }
+          Ok(())
+        }
+        "defvar" => {
+          if vec.len() != 2 {
+            return Err(PError::from(Error::InvalidDecl(curr.clone())));
+          }
+          if let AST::Symbol(vname) = vec[1] {
+            let decl = decl::ClassVarDecl { name: vname.to_owned() };
+            acc.decls.push(decl::ClassInnerDecl::ClassVarDecl(decl));
+            Ok(())
+          } else {
+            Err(PError::from(Error::InvalidDecl(curr.clone())))
+          }
+        }
+        "defn" => {
+          // TODO Unify some of this with the equivalent code from compile_decl?
+          if vec.len() < 3 {
+            return Err(PError::from(Error::InvalidDecl(curr.clone())));
+          }
+          if let AST::Symbol(fname) = vec[1] {
+            let args: Vec<_> = DottedExpr::new(vec[2]).try_into()?;
+            let args = SimpleArgList::parse(args)?;
+            let body = vec[3..].iter().map(|expr| self.compile_expr(pipeline, expr)).collect::<Result<Vec<_>, _>>()?;
+            if fname == "_init" {
+              // Constructor
+              acc.constructor = decl::ConstructorDecl { args, body: Expr::Progn(body) };
+            } else {
+              let decl = decl::ClassFnDecl { name: fname.to_owned(), args, body: Expr::Progn(body) };
+              acc.decls.push(decl::ClassInnerDecl::ClassFnDecl(decl));
+            }
+            Ok(())
+          } else {
+            Err(PError::from(Error::InvalidDecl(curr.clone())))
+          }
+        }
+        _ => {
+          Err(PError::from(Error::InvalidDecl(curr.clone())))
+        }
+      }
+    } else {
+      Err(PError::from(Error::InvalidDecl(curr.clone())))
     }
   }
 

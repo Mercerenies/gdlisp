@@ -4,7 +4,7 @@ use crate::compile::names::fresh::FreshNameGenerator;
 use crate::compile::symbol_table::function_call::FnSpecs;
 use crate::sxp::ast::AST;
 
-use std::convert::TryInto;
+use std::convert::{TryFrom, TryInto};
 use std::borrow::Borrow;
 use std::cmp::Ordering;
 use std::fmt;
@@ -29,6 +29,7 @@ pub enum ArgListParseError {
   InvalidArgument(AST),
   UnknownDirective(String),
   DirectiveOutOfOrder(String),
+  ModifiersNotAllowed,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -207,6 +208,13 @@ impl SimpleArgList {
     self.args.iter().map(|x| x.borrow())
   }
 
+  pub fn parse<'a>(args: impl IntoIterator<Item = &'a AST>)
+                   -> Result<SimpleArgList, ArgListParseError> {
+    ArgList::parse(args).and_then(
+      SimpleArgList::try_from
+    )
+  }
+
 }
 
 impl From<ArgList> for FnSpecs {
@@ -229,6 +237,19 @@ impl From<SimpleArgList> for ArgList {
   }
 }
 
+impl TryFrom<ArgList> for SimpleArgList {
+  type Error = ArgListParseError;
+
+  fn try_from(arglist: ArgList) -> Result<Self, Self::Error> {
+    if arglist.optional_args.is_empty() && arglist.rest_arg.is_none() {
+      Ok(SimpleArgList { args: arglist.required_args })
+    } else {
+      Err(ArgListParseError::ModifiersNotAllowed)
+    }
+  }
+
+}
+
 impl fmt::Display for ArgListParseError {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     match self {
@@ -240,6 +261,9 @@ impl fmt::Display for ArgListParseError {
       }
       ArgListParseError::DirectiveOutOfOrder(s) => {
         write!(f, "Arglist directive appeared out of order {}", s)
+      }
+      ArgListParseError::ModifiersNotAllowed => {
+        write!(f, "Arglist modifiers not allowed in this context")
       }
     }
   }
