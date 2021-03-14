@@ -8,6 +8,7 @@ use crate::gdscript::library;
 use crate::runner::into_gd_file::IntoGDFile;
 use crate::pipeline::error::{Error as PError};
 use crate::pipeline::Pipeline;
+use crate::ir;
 use crate::ir::import::ImportDecl;
 use crate::ir::decl::TopLevel;
 use crate::ir::identifier::Id;
@@ -34,7 +35,16 @@ pub fn create_macro_file(pipeline: &mut Pipeline, imports: Vec<ImportDecl>, src_
 
   let mut compiler = Compiler::new(FreshNameGenerator::new(vec!()), Box::new(pipeline.make_preload_resolver()));
   let decls = Vec::from(src_table.filter(|d| names.contains(&*d.id_like())));
-  let toplevel = TopLevel { imports, decls };
+  let toplevel = {
+    let mut toplevel = TopLevel { imports, decls };
+    // Strip main class qualifier; we don't need or want it during macro expansion.
+    for d in &mut toplevel.decls {
+      if let ir::decl::Decl::ClassDecl(cdecl) = d {
+        cdecl.main_class = false;
+      }
+    }
+    toplevel
+  };
 
   let mut builder = CodeBuilder::new(decl::ClassExtends::named("Node".to_owned()));
   compiler.compile_toplevel(pipeline, &mut builder, &mut table, &toplevel)?;

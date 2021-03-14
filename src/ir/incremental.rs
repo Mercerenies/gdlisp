@@ -235,7 +235,12 @@ impl IncCompiler {
               _ => return Err(PError::from(Error::InvalidDecl(decl.clone()))),
             };
             let mut class = decl::ClassDecl::new(name, superclass);
-            for decl in &vec[3..] {
+            let mut decl_body = &vec[3..];
+            if vec.len() > 3 && vec[3] == &AST::Symbol(String::from("main")) {
+              class.main_class = true;
+              decl_body = &vec[4..];
+            }
+            for decl in decl_body {
               self.compile_class_inner_decl(pipeline, &mut class, decl)?;
             }
             Ok(Decl::ClassDecl(class))

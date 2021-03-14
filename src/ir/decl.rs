@@ -45,6 +45,7 @@ pub struct ConstDecl {
 pub struct ClassDecl {
   pub name: String,
   pub extends: String,
+  pub main_class: bool,
   pub constructor: ConstructorDecl,
   pub decls: Vec<ClassInnerDecl>,
 }
@@ -153,6 +154,7 @@ impl ClassDecl {
     ClassDecl {
       name: name,
       extends: extends,
+      main_class: false,
       constructor: ConstructorDecl::default(),
       decls: vec!(),
     }

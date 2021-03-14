@@ -293,13 +293,30 @@ impl<'a> Compiler<'a> {
           Err(Error::NotConstantEnough(name.to_owned()))
         }
       }
-      IRDecl::ClassDecl(ir::decl::ClassDecl { name, extends, constructor, decls }) => {
+      IRDecl::ClassDecl(ir::decl::ClassDecl { name, extends, main_class, constructor, decls }) => {
         let gd_name = names::lisp_to_gd(&name);
         let extends = table.get_var(&extends).ok_or_else(|| Error::NoSuchVar(extends.clone()))?.name.clone();
         let class = self.declare_class(builder, table, gd_name, extends, constructor, decls)?;
-        builder.add_decl(Decl::ClassDecl(class));
-        Ok(())
+        if *main_class {
+          self.flatten_class_into_main(builder, class);
+          Ok(())
+        } else {
+          builder.add_decl(Decl::ClassDecl(class));
+          Ok(())
+        }
       }
+    }
+  }
+
+  // TODO It's an error to have multiple main classes in one file, but we don't currently report this.
+  fn flatten_class_into_main(&mut self,
+                             builder: &mut CodeBuilder,
+                             class: decl::ClassDecl)
+                             -> () {
+    let decl::ClassDecl { name: _, extends, body } = class;
+    builder.extends(extends);
+    for decl in body {
+      builder.add_decl(decl);
     }
   }
 
@@ -400,7 +417,8 @@ impl<'a> Compiler<'a> {
     }
   }
 
-  fn bind_decl(table: &mut SymbolTable,
+  fn bind_decl(pipeline: &mut Pipeline,
+               table: &mut SymbolTable,
                decl: &IRDecl)
                -> Result<(), Error> {
     match decl {
@@ -428,9 +446,15 @@ impl<'a> Compiler<'a> {
         var.assignable = false; // Can't assign to constants
         table.set_var(name.clone(), var);
       }
-      IRDecl::ClassDecl(ir::decl::ClassDecl { name, .. }) => {
-        let var = LocalVar::global(names::lisp_to_gd(name));
-        table.set_var(name.clone(), var);
+      IRDecl::ClassDecl(ir::decl::ClassDecl { name, main_class, .. }) => {
+        if *main_class {
+          let filename = pipeline.currently_loading_file().expect("Loading file not recognized"); // TODO Expect?
+          let _expr = Expr::Call(None, String::from("load"), vec!(Expr::from(filename.to_string())));
+          todo!() ////
+        } else {
+          let var = LocalVar::global(names::lisp_to_gd(name));
+          table.set_var(name.clone(), var);
+        }
       }
     };
     Ok(())
@@ -533,12 +557,13 @@ impl<'a> Compiler<'a> {
   }
 
   pub fn compile_decls(&mut self,
+                       pipeline: &mut Pipeline,
                        builder: &mut CodeBuilder,
                        table: &mut SymbolTable,
                        decls: &[IRDecl])
                        -> Result<(), PError> {
     for decl in decls {
-      Compiler::bind_decl(table, decl)?;
+      Compiler::bind_decl(pipeline, table, decl)?;
     }
     for decl in decls {
       self.compile_decl(builder, table, decl)?;
@@ -555,7 +580,7 @@ impl<'a> Compiler<'a> {
     for imp in &toplevel.imports {
       self.resolve_import(pipeline, builder, table, imp)?;
     }
-    self.compile_decls(builder, table, &toplevel.decls)
+    self.compile_decls(pipeline, builder, table, &toplevel.decls)
   }
 
 }

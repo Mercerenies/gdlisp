@@ -20,12 +20,14 @@ use crate::gdscript::library;
 use crate::gdscript::decl;
 use crate::util;
 use crate::runner::macro_server::named_file_server::NamedFileServer;
+use crate::runner::path::{RPathBuf, PathSrc};
 
 use tempfile::Builder;
 
 use std::io::Write;
 use std::path::{Path, PathBuf};
 use std::collections::HashMap;
+use std::mem;
 
 pub struct Pipeline {
   config: ProjectConfig,
@@ -33,6 +35,7 @@ pub struct Pipeline {
   known_files: HashMap<PathBuf, TranslationUnit>,
   known_files_paths: HashMap<PathBuf, PathBuf>,
   server: NamedFileServer,
+  current_file_path: Option<RPathBuf>,
 }
 
 impl Pipeline {
@@ -44,6 +47,7 @@ impl Pipeline {
       known_files: HashMap::new(),
       known_files_paths: HashMap::new(),
       server: NamedFileServer::new(),
+      current_file_path: None,
     }
   }
 
@@ -53,6 +57,11 @@ impl Pipeline {
 
   pub fn compile_code<P : AsRef<Path> + ?Sized>(&mut self, filename: &P, input: &str)
                                                 -> Result<TranslationUnit, Error> {
+
+    let file_path = filename.as_ref().strip_prefix(&self.config.root_directory).expect("Non-local file load detected").to_owned(); // TODO Expect
+    let mut old_file_path = Some(RPathBuf::new(PathSrc::Res, file_path).expect("Non-local file load detected")); // TODO Expect
+    mem::swap(&mut old_file_path, &mut self.current_file_path);
+
     let parser = parser::SomeASTParser::new();
     let ast = parser.parse(input)?;
 
@@ -64,6 +73,8 @@ impl Pipeline {
     let mut builder = CodeBuilder::new(decl::ClassExtends::named("Node".to_owned()));
     compiler.compile_toplevel(self, &mut builder, &mut table, &ir)?;
     let result = builder.build();
+
+    mem::swap(&mut old_file_path, &mut self.current_file_path);
 
     let exports = ir::export::get_export_list(&ir.decls);
     Ok(TranslationUnit::new(filename.as_ref().to_owned(), table, ir, result, exports, macros))
@@ -154,6 +165,10 @@ impl Pipeline {
 
   pub fn make_preload_resolver(&self) -> LookupPreloadResolver {
     LookupPreloadResolver(self.known_files_paths.clone())
+  }
+
+  pub fn currently_loading_file(&self) -> Option<&RPathBuf> {
+    self.current_file_path.as_ref()
   }
 
 }
