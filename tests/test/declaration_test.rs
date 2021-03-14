@@ -4,7 +4,7 @@ extern crate gdlisp;
 use super::common::parse_compile_decl;
 
 #[test]
-pub fn empty_class_test() {
+pub fn empty_file_test() {
   assert_eq!(parse_compile_decl("()"), "extends Reference\nstatic func run():\n    return GDLisp.Nil\n");
 }
 

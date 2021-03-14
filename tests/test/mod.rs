@@ -1,6 +1,7 @@
 
 pub mod common;
 pub mod builtin_function_test;
+pub mod class_test;
 pub mod collection_conversion_test;
 pub mod cond_if_test;
 pub mod const_test;
