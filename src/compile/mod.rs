@@ -19,13 +19,14 @@ use crate::gdscript::op;
 use crate::gdscript::library;
 use error::Error;
 use stmt_wrapper::StmtWrapper;
-use symbol_table::{HasSymbolTable, SymbolTable, LocalVar};
+use symbol_table::{HasSymbolTable, SymbolTable, LocalVar, VarScope};
 use symbol_table::function_call;
 use symbol_table::call_magic::DefaultCall;
 use crate::ir;
 use crate::ir::expr::FuncRefTarget;
 use crate::ir::import::{ImportName, ImportDecl, ImportDetails};
 use crate::ir::identifier::Namespace;
+use crate::ir::locals::AccessType;
 use crate::runner::path::RPathBuf;
 use crate::pipeline::error::{Error as PError};
 use crate::pipeline::Pipeline;
@@ -327,11 +328,20 @@ impl<'a> Compiler<'a> {
                        decls: &[ir::decl::ClassInnerDecl])
                        -> Result<decl::ClassDecl, Error> {
 
+    let self_var = LocalVar {
+      name: vec!(String::from("self")),
+      access_type: AccessType::ClosedRead,
+      scope: VarScope::LocalVar,
+    };
+
     let mut body = vec!();
-    body.push(Decl::FnDecl(decl::Static::NonStatic, self.compile_constructor(builder, table, constructor)?));
-    for d in decls {
-      body.push(self.compile_class_inner_decl(builder, table, d)?);
-    }
+    table.with_local_var::<Result<(), Error>, _>(String::from("self"), self_var, |table| {
+      body.push(Decl::FnDecl(decl::Static::NonStatic, self.compile_constructor(builder, table, constructor)?));
+      for d in decls {
+        body.push(self.compile_class_inner_decl(builder, table, d)?);
+      }
+      Ok(())
+    })?;
 
     let decl = decl::ClassDecl {
       name: gd_name,
@@ -346,7 +356,7 @@ impl<'a> Compiler<'a> {
                              table: &mut SymbolTable,
                              constructor: &ir::decl::ConstructorDecl)
                              -> Result<decl::FnDecl, Error> {
-    // TODO No implicit return on constructor (also handle self)
+    // TODO No implicit return on constructor
     self.declare_function(builder,
                           table,
                           String::from(library::CONSTRUCTOR_NAME),
@@ -366,10 +376,10 @@ impl<'a> Compiler<'a> {
         Ok(Decl::VarDecl(name, None))
       }
       ir::decl::ClassInnerDecl::ClassFnDecl(f) => {
-        // TODO Handle self
+        let gd_name = names::lisp_to_gd(&f.name);
         let func = self.declare_function(builder,
                                          table,
-                                         f.name.to_owned(),
+                                         gd_name,
                                          IRArgList::from(f.args.clone()),
                                          &f.body)?;
         Ok(Decl::FnDecl(decl::Static::NonStatic, func))

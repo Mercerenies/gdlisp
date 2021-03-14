@@ -121,12 +121,12 @@ impl Decl {
         c.value.get_ids().collect()
       }
       Decl::ClassDecl(c) => {
-        // TODO Handle `self`?
         let mut ids = HashSet::new();
         ids.extend(c.constructor.dependencies());
         for d in &c.decls {
           ids.extend(d.dependencies());
         }
+        ids.remove(&Id::new(Namespace::Value, String::from("self")));
         ids
       }
     }
