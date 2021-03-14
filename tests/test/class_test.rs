@@ -1,7 +1,7 @@
 
 extern crate gdlisp;
 
-use super::common::parse_compile_decl;
+use super::common::{parse_compile_decl, parse_and_run};
 
 #[test]
 pub fn empty_class_test() {
@@ -91,4 +91,39 @@ class Foo extends Node:
 static func run():
     return GDLisp.Nil
 "#);
+}
+
+#[test]
+#[ignore]
+pub fn simple_self_run_class_test() {
+  assert_eq!(parse_and_run(r#"
+    ((defclass Foo (Reference)
+       (defvar x)
+       (defn _init (x)
+         (setq self:x x))
+       (defn double ()
+         (* self:x 2)))
+     (let ((foo (Foo:new 100)))
+       (print (foo:double))
+       (setq foo:x 101)
+       (print (foo:double))))
+  "#), "\n200\n202\n");
+}
+
+#[test]
+#[ignore]
+pub fn self_with_closure_run_class_test() {
+  assert_eq!(parse_and_run(r#"
+    ((defclass Foo (Reference)
+       (defvar x)
+       (defn _init ()
+         (setq self:x 1))
+       (defn increment ()
+         (lambda ()
+           (setq self:x (+ self:x 1)))))
+     (let ((fn (let ((tmp (Foo:new))) (tmp:increment))))
+       (print (funcall fn))
+       (print (funcall fn))
+       (print (funcall fn))))
+  "#), "\n2\n3\n4\n");
 }
