@@ -5,12 +5,12 @@ use super::common::{parse_compile_decl, parse_and_run};
 
 #[test]
 pub fn empty_class_test() {
-  assert_eq!(parse_compile_decl("((defclass ClassName (Node)))"), "extends Reference\nclass ClassName extends Node:\n    func _init():\n        return GDLisp.Nil\nstatic func run():\n    return GDLisp.Nil\n");
+  assert_eq!(parse_compile_decl("((defclass ClassName (Node)))"), "extends Reference\nclass ClassName extends Node:\n    func _init():\n        pass\nstatic func run():\n    return GDLisp.Nil\n");
 }
 
 #[test]
 pub fn simple_class_test() {
-  assert_eq!(parse_compile_decl("((defclass ClassName (Node) (defvar x) (defn _init (y)) (defn foo () 2)))"), "extends Reference\nclass ClassName extends Node:\n    func _init(y_0):\n        return GDLisp.Nil\n    var x\n    func foo():\n        return 2\nstatic func run():\n    return GDLisp.Nil\n");
+  assert_eq!(parse_compile_decl("((defclass ClassName (Node) (defvar x) (defn _init (y)) (defn foo () 2)))"), "extends Reference\nclass ClassName extends Node:\n    func _init(y_0):\n        pass\n    var x\n    func foo():\n        return 2\nstatic func run():\n    return GDLisp.Nil\n");
 }
 
 #[test]
@@ -19,7 +19,7 @@ pub fn member_var_class_test_1() {
              r#"extends Reference
 class ClassName extends Node:
     func _init():
-        return GDLisp.Nil
+        pass
     var x
     func get_x():
         return self.x
@@ -35,7 +35,6 @@ pub fn member_var_class_test_2() {
 class ClassName extends Node:
     func _init(x_0):
         self.x = x_0
-        return self.x
     var x
     func get_x():
         return self.x
@@ -64,7 +63,7 @@ class _LambdaBlock_1 extends GDLisp.Function:
             push_error("Too many arguments")
 class Foo extends Node:
     func _init():
-        return GDLisp.Nil
+        pass
     func test():
         return _LambdaBlock_1.new(self)
 static func run():
@@ -84,7 +83,7 @@ class _Labels_0 extends Reference:
         return _fn_foo_3(_self_1)
 class Foo extends Node:
     func _init():
-        return GDLisp.Nil
+        pass
     func test():
         var _locals_2 = _Labels_0.new(self)
         return _locals_2._fn_foo_3(76)
@@ -134,15 +133,18 @@ pub fn macro_in_class_test_1() {
   assert_eq!(parse_compile_decl(r#"
     ((defmacro add-one (x)
        (+ x 1))
+     (defn example (x) x)
      (defclass Foo (Reference)
        (defn _init ()
-         (add-one 2))))"#),
+         (example (add-one 2)))))"#),
              r#"extends Reference
 static func add_one(x_0):
     return x_0 + 1
+static func example(x_1):
+    return x_1
 class Foo extends Reference:
     func _init():
-        return 3
+        example(3)
 static func run():
     return GDLisp.Nil
 "#);
@@ -196,7 +198,7 @@ pub fn main_class_test_1() {
   assert_eq!(parse_compile_decl("((defclass Foo (Node2D) main))"),
              r#"extends Node2D
 func _init():
-    return GDLisp.Nil
+    pass
 static func run():
     return GDLisp.Nil
 "#);
@@ -207,7 +209,7 @@ pub fn main_class_test_2() {
   assert_eq!(parse_compile_decl("((defclass Foo (Node2D) main (defn foo () 1)))"),
              r#"extends Node2D
 func _init():
-    return GDLisp.Nil
+    pass
 func foo():
     return 1
 static func run():
@@ -220,7 +222,7 @@ pub fn main_class_test_3() {
   assert_eq!(parse_compile_decl("((defclass Foo (Node2D) main (defn foo () 1)) Foo)"),
              r#"extends Node2D
 func _init():
-    return GDLisp.Nil
+    pass
 func foo():
     return 1
 static func run():

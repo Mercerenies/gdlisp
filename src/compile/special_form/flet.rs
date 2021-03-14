@@ -6,6 +6,7 @@ use crate::compile::symbol_table::{HasSymbolTable, SymbolTable};
 use crate::compile::symbol_table::function_call::{FnCall, FnSpecs, FnScope};
 use crate::compile::error::Error;
 use crate::compile::stateful::{StExpr, NeedsResult};
+use crate::compile::stmt_wrapper;
 use crate::gdscript::decl::{self, Decl};
 use crate::gdscript::expr::Expr;
 use crate::graph::Graph;
@@ -44,7 +45,7 @@ fn compile_flet_call<'a>(compiler: &mut Compiler<'a>,
     // No closure vars and any closure fns (if there are any) are
     // free of closures, so we can compile to SemiGlobal.
     let gd_name = compiler.name_generator().generate_with("_flet");
-    let func = compiler.declare_function(builder, table, gd_name.clone(), args.clone(), body)?;
+    let func = compiler.declare_function(builder, table, gd_name.clone(), args.clone(), body, &stmt_wrapper::Return)?;
     builder.add_helper(Decl::FnDecl(decl::Static::IsStatic, func));
     let specs = FnSpecs::from(args);
     Ok(FnCall {

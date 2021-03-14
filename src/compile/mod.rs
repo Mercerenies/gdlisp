@@ -268,7 +268,7 @@ impl<'a> Compiler<'a> {
     match decl {
       IRDecl::FnDecl(ir::decl::FnDecl { name, args, body }) => {
         let gd_name = names::lisp_to_gd(&name);
-        let function = self.declare_function(builder, table, gd_name, args.clone(), body)?;
+        let function = self.declare_function(builder, table, gd_name, args.clone(), body, &stmt_wrapper::Return)?;
         builder.add_decl(Decl::FnDecl(decl::Static::IsStatic, function));
         Ok(())
       }
@@ -277,7 +277,7 @@ impl<'a> Compiler<'a> {
         // this stage of compilation is concerned. They'll be resolved
         // and then purged during the IR phase.
         let gd_name = names::lisp_to_gd(&name);
-        let function = self.declare_function(builder, table, gd_name, args.clone(), body)?;
+        let function = self.declare_function(builder, table, gd_name, args.clone(), body, &stmt_wrapper::Return)?;
         builder.add_decl(Decl::FnDecl(decl::Static::IsStatic, function));
         Ok(())
       }
@@ -342,7 +342,8 @@ impl<'a> Compiler<'a> {
                           table: &mut SymbolTable,
                           gd_name: String,
                           args: IRArgList,
-                          body: &IRExpr)
+                          body: &IRExpr,
+                          result_destination: &impl StmtWrapper)
                           -> Result<decl::FnDecl, Error> {
     let local_vars = body.get_locals();
     let (arglist, gd_args) = args.into_gd_arglist(&mut self.gen);
@@ -356,7 +357,7 @@ impl<'a> Compiler<'a> {
       }
     }
     table.with_local_vars(&mut gd_args.into_iter().map(|x| (x.0.to_owned(), LocalVar::local(x.1, local_vars.get(&x.0)))), |table| {
-      self.compile_stmt(&mut stmt_builder, table, &stmt_wrapper::Return, body)
+      self.compile_stmt(&mut stmt_builder, table, result_destination, body)
     })?;
     Ok(decl::FnDecl {
       name: gd_name,
@@ -403,12 +404,12 @@ impl<'a> Compiler<'a> {
                              table: &mut SymbolTable,
                              constructor: &ir::decl::ConstructorDecl)
                              -> Result<decl::FnDecl, Error> {
-    // TODO No implicit return on constructor
     self.declare_function(builder,
                           table,
                           String::from(library::CONSTRUCTOR_NAME),
                           IRArgList::from(constructor.args.clone()),
-                          &constructor.body)
+                          &constructor.body,
+                          &stmt_wrapper::Vacuous)
   }
 
 
@@ -428,7 +429,8 @@ impl<'a> Compiler<'a> {
                                          table,
                                          gd_name,
                                          IRArgList::from(f.args.clone()),
-                                         &f.body)?;
+                                         &f.body,
+                                         &stmt_wrapper::Return)?;
         Ok(Decl::FnDecl(decl::Static::NonStatic, func))
       }
     }
