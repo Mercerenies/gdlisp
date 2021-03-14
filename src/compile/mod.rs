@@ -175,7 +175,7 @@ impl<'a> Compiler<'a> {
       IRExpr::Assign(AssignTarget::Variable(name), expr) => {
         let var = table.get_var(name).ok_or_else(|| Error::NoSuchVar(name.clone()))?.to_owned();
         if !var.assignable {
-          return Err(Error::CannotAssignTo(var.name.clone().join(".")));
+          return Err(Error::CannotAssignTo(var.name.to_gd()));
         }
         self.compile_stmt(builder, table, &stmt_wrapper::AssignToExpr(var.expr()), expr)?;
         Ok(StExpr(var.expr(), SideEffects::from(var.access_type)))
@@ -296,6 +296,7 @@ impl<'a> Compiler<'a> {
       IRDecl::ClassDecl(ir::decl::ClassDecl { name, extends, main_class, constructor, decls }) => {
         let gd_name = names::lisp_to_gd(&name);
         let extends = table.get_var(&extends).ok_or_else(|| Error::NoSuchVar(extends.clone()))?.name.clone();
+        let extends = Compiler::expr_to_extends(extends)?;
         let class = self.declare_class(builder, table, gd_name, extends, constructor, decls)?;
         if *main_class {
           self.flatten_class_into_main(builder, class);
@@ -304,6 +305,22 @@ impl<'a> Compiler<'a> {
           builder.add_decl(Decl::ClassDecl(class));
           Ok(())
         }
+      }
+    }
+  }
+
+  fn expr_to_extends(expr: Expr) -> Result<Vec<String>, Error> {
+    match expr {
+      Expr::Var(v) => {
+        Ok(vec!(v))
+      }
+      Expr::Attribute(lhs, v) => {
+        let mut vec = Compiler::expr_to_extends(*lhs)?;
+        vec.push(v);
+        Ok(vec)
+      }
+      e => {
+        Err(Error::CannotExtend(e.to_gd()))
       }
     }
   }
@@ -358,7 +375,7 @@ impl<'a> Compiler<'a> {
                        -> Result<decl::ClassDecl, Error> {
 
     let self_var = LocalVar {
-      name: vec!(String::from("self")),
+      name: Expr::var("self"),
       access_type: AccessType::ClosedRead,
       scope: VarScope::LocalVar,
       assignable: false, // Cannot assign to self
@@ -540,7 +557,7 @@ impl<'a> Compiler<'a> {
         }
         Namespace::Value => {
           let mut var = unit_table.get_var(&export_name).ok_or(Error::NoSuchVar(export_name))?.clone();
-          var.name.insert(0, preload_name.clone());
+          var.name = Compiler::insert_object_into_call(preload_name.clone(), var.name);
           table.set_var(import_name.clone(), var);
         }
       }

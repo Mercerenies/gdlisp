@@ -30,6 +30,7 @@ pub enum Error {
   AmbiguousNamespace(String),
   NotConstantEnough(String),
   CannotAssignTo(String),
+  CannotExtend(String),
 }
 
 impl fmt::Display for Error {
@@ -82,6 +83,9 @@ impl fmt::Display for Error {
       }
       Error::CannotAssignTo(s) => {
         write!(f, "Cannot assign to immutable variable {}", s)
+      }
+      Error::CannotExtend(s) => {
+        write!(f, "Cannot extend expression {}", s)
       }
     }
   }

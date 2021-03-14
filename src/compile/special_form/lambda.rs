@@ -194,13 +194,13 @@ pub fn compile_labels_scc<'a>(compiler: &mut Compiler<'a>,
     let var = lambda_table.get_var(&ast_name).unwrap_or_else(|| {
       panic!("Internal error compiling lambda variable {}", ast_name)
     }).to_owned();
-    if let [name] = &*var.name {
+    if let Expr::Var(name) = var.name {
       gd_closure_vars.push(name.to_owned());
     }
     let src_var = table.get_var(&ast_name).unwrap_or_else(|| {
       panic!("Internal error compiling lambda variable {}", ast_name)
     }).to_owned();
-    if let [name] = &*src_var.name {
+    if let Expr::Var(name) = src_var.name {
       gd_src_closure_vars.push(name.to_owned());
     }
   }
@@ -314,8 +314,8 @@ where I : Iterator<Item=&'a U>,
       Some(gdvar) => {
         let mut new_var = gdvar.to_owned();
         // Ad-hoc rule for closing around self (TODO Generalize?)
-        if new_var.name == vec!(String::from("self")) {
-          new_var.name = vec!(compiler.name_generator().generate_with("_self"));
+        if new_var.name == Expr::Var(String::from("self")) {
+          new_var.name = Expr::Var(compiler.name_generator().generate_with("_self"));
         }
         lambda_table.set_var(var.borrow().to_owned(), new_var);
       }
@@ -408,13 +408,13 @@ pub fn compile_lambda_stmt<'a>(compiler: &mut Compiler<'a>,
     let var = lambda_table.get_var(&ast_name).unwrap_or_else(|| {
       panic!("Internal error compiling lambda variable {}", ast_name)
     }).to_owned();
-    if let [name] = &*var.name {
+    if let Expr::Var(name) = var.name {
       gd_closure_vars.push(name.to_owned());
     }
     let src_var = table.get_var(&ast_name).unwrap_or_else(|| {
       panic!("Internal error compiling lambda variable {}", ast_name)
     }).to_owned();
-    if let [name] = &*src_var.name {
+    if let Expr::Var(name) = src_var.name {
       gd_src_closure_vars.push(name.to_owned());
     }
   }
