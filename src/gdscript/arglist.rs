@@ -16,6 +16,10 @@ impl ArgList {
     ArgList { args }
   }
 
+  pub fn is_empty(&self) -> bool {
+    self.args.is_empty()
+  }
+
   pub fn to_gd(&self) -> String {
     self.args.join(", ")
   }
