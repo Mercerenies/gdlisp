@@ -123,10 +123,11 @@ pub trait HasSymbolTable {
 
   fn get_symbol_table_mut(&mut self) -> &mut SymbolTable;
 
-  fn with_local_var<B>(&mut self,
-                       name: String,
-                       value: LocalVar,
-                       block: impl FnOnce(&mut Self) -> B) -> B {
+  fn with_local_var<B, F>(&mut self,
+                          name: String,
+                          value: LocalVar,
+                          block: F) -> B
+  where F : FnOnce(&mut Self) -> B {
     let previous = self.get_symbol_table_mut().set_var(name.clone(), value);
     let result = block(self);
     if let Some(previous) = previous {
