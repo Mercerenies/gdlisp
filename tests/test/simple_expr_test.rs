@@ -1,5 +1,5 @@
 
-use super::common::parse_compile_and_output;
+use super::common::{parse_compile_and_output, parse_compile_decl};
 
 #[test]
 pub fn expr_tests() {
@@ -49,4 +49,16 @@ pub fn assignment_test() {
   let result5 = parse_compile_and_output("(let ((x 1)) (lambda () (setq x 1)) x)");
   assert_eq!(result5, "var x_0 = GDLisp.Cell.new(1)\nreturn x_0.contents\n");
 
+}
+
+#[test]
+#[should_panic]
+pub fn assign_to_self_test() {
+  parse_compile_decl("((defclass Foo (Node) (defn _init () (setq self 1))))");
+}
+
+#[test]
+#[should_panic]
+pub fn assign_to_const_test() {
+  parse_compile_decl("((defconst CONSTANT 1) (setq CONSTANT 2))");
 }

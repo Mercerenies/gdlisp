@@ -174,6 +174,9 @@ impl<'a> Compiler<'a> {
       }
       IRExpr::Assign(AssignTarget::Variable(name), expr) => {
         let var = table.get_var(name).ok_or_else(|| Error::NoSuchVar(name.clone()))?.to_owned();
+        if !var.assignable {
+          return Err(Error::CannotAssignTo(var.name.clone().join(".")));
+        }
         self.compile_stmt(builder, table, &stmt_wrapper::AssignToExpr(var.expr()), expr)?;
         Ok(StExpr(var.expr(), SideEffects::from(var.access_type)))
       }
@@ -341,6 +344,7 @@ impl<'a> Compiler<'a> {
       name: vec!(String::from("self")),
       access_type: AccessType::ClosedRead,
       scope: VarScope::LocalVar,
+      assignable: false, // Cannot assign to self
     };
 
     let mut body = vec!();
@@ -420,7 +424,8 @@ impl<'a> Compiler<'a> {
         table.set_fn(name.clone(), func, Box::new(DefaultCall));
       }
       IRDecl::ConstDecl(ir::decl::ConstDecl { name, value: _ }) => {
-        let var = LocalVar::global(names::lisp_to_gd(name));
+        let mut var = LocalVar::global(names::lisp_to_gd(name));
+        var.assignable = false; // Can't assign to constants
         table.set_var(name.clone(), var);
       }
       IRDecl::ClassDecl(ir::decl::ClassDecl { name, .. }) => {

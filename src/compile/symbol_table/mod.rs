@@ -23,6 +23,7 @@ pub struct LocalVar {
   pub name: Vec<String>, // Qualified name
   pub access_type: AccessType,
   pub scope: VarScope,
+  pub assignable: bool,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
@@ -75,27 +76,27 @@ impl SymbolTable {
 impl LocalVar {
 
   pub fn read(name: String) -> LocalVar {
-    LocalVar { name: vec!(name), access_type: AccessType::Read, scope: VarScope::LocalVar }
+    LocalVar { name: vec!(name), access_type: AccessType::Read, scope: VarScope::LocalVar, assignable: true }
   }
 
   pub fn rw(name: String) -> LocalVar {
-    LocalVar { name: vec!(name), access_type: AccessType::RW, scope: VarScope::LocalVar }
+    LocalVar { name: vec!(name), access_type: AccessType::RW, scope: VarScope::LocalVar, assignable: true }
   }
 
   pub fn closed_rw(name: String) -> LocalVar {
-    LocalVar { name: vec!(name), access_type: AccessType::ClosedRW, scope: VarScope::LocalVar }
+    LocalVar { name: vec!(name), access_type: AccessType::ClosedRW, scope: VarScope::LocalVar, assignable: true }
   }
 
   pub fn global(name: String) -> LocalVar {
-    LocalVar { name: vec!(name), access_type: AccessType::Read, scope: VarScope::GlobalVar }
+    LocalVar { name: vec!(name), access_type: AccessType::Read, scope: VarScope::GlobalVar, assignable: true }
   }
 
-  pub fn new(name: String, access_type: AccessType, scope: VarScope) -> LocalVar {
-    LocalVar { name: vec!(name), access_type, scope }
+  pub fn new(name: String, access_type: AccessType, scope: VarScope, assignable: bool) -> LocalVar {
+    LocalVar { name: vec!(name), access_type, scope, assignable }
   }
 
   pub fn local(name: String, access_type: AccessType) -> LocalVar {
-    LocalVar { name: vec!(name), access_type, scope: VarScope::LocalVar }
+    LocalVar { name: vec!(name), access_type, scope: VarScope::LocalVar, assignable: true }
   }
 
   pub fn expr(&self) -> Expr {

@@ -29,6 +29,7 @@ pub enum Error {
   NoSuchFile(RPathBuf),
   AmbiguousNamespace(String),
   NotConstantEnough(String),
+  CannotAssignTo(String),
 }
 
 impl fmt::Display for Error {
@@ -78,6 +79,9 @@ impl fmt::Display for Error {
       }
       Error::NotConstantEnough(s) => {
         write!(f, "Expression for constant declaration {} is not constant enough", s)
+      }
+      Error::CannotAssignTo(s) => {
+        write!(f, "Cannot assign to immutable variable {}", s)
       }
     }
   }
