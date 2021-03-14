@@ -1,7 +1,7 @@
 
 use crate::sxp::ast::AST;
 use crate::sxp::dotted::DottedExpr;
-use super::expr::{Expr, FuncRefTarget};
+use super::expr::{Expr, FuncRefTarget, AssignTarget};
 use super::arglist::ArgList;
 use super::quasiquote::quasiquote;
 use crate::pipeline::error::Error;
@@ -178,12 +178,25 @@ pub fn assign_form(icompiler: &mut IncCompiler,
   if tail.len() > 2 {
     return Err(Error::from(GDError::TooManyArgs(String::from("setq"), 2)))
   }
-  let var_name = match tail[0] {
-    AST::Symbol(s) => s,
-    x => return Err(Error::from(GDError::InvalidArg(String::from("setq"), x.clone(), String::from("symbol")))),
+  let assign_target = match tail[0] {
+    AST::Symbol(s) => {
+      AssignTarget::Variable(s.to_owned())
+    }
+    x => {
+      let inner: Vec<_> = DottedExpr::new(x).try_into()?;
+      if inner[0] == &AST::Symbol(String::from("access-slot")) {
+        if let Expr::FieldAccess(lhs, slot_name) = access_slot_form(icompiler, pipeline, &inner[1..])? {
+          AssignTarget::InstanceField(lhs, slot_name)
+        } else {
+          return Err(Error::from(GDError::InvalidArg(String::from("setq"), x.clone(), String::from("symbol"))));
+        }
+      } else {
+        return Err(Error::from(GDError::InvalidArg(String::from("setq"), x.clone(), String::from("symbol"))));
+      }
+    }
   };
   let value = icompiler.compile_expr(pipeline, tail[1])?;
-  Ok(Expr::Assign(var_name.clone(), Box::new(value)))
+  Ok(Expr::Assign(assign_target, Box::new(value)))
 }
 
 pub fn flet_form(icompiler: &mut IncCompiler,
@@ -224,7 +237,8 @@ pub fn quote_form(tail: &[&AST]) -> Result<Expr, Error> {
 }
 
 pub fn quasiquote_form(icompiler: &mut IncCompiler,
-                       pipeline: &mut Pipeline,tail: &[&AST]) -> Result<Expr, Error> {
+                       pipeline: &mut Pipeline,
+                       tail: &[&AST]) -> Result<Expr, Error> {
   if tail.is_empty() {
     return Err(Error::from(GDError::TooFewArgs(String::from("quasiquote"), 1)))
   }
@@ -235,7 +249,8 @@ pub fn quasiquote_form(icompiler: &mut IncCompiler,
 }
 
 pub fn access_slot_form(icompiler: &mut IncCompiler,
-                        pipeline: &mut Pipeline,tail: &[&AST]) -> Result<Expr, Error> {
+                        pipeline: &mut Pipeline,
+                        tail: &[&AST]) -> Result<Expr, Error> {
   if tail.len() < 2 {
     return Err(Error::from(GDError::TooFewArgs(String::from("access-slot"), 2)))
   }

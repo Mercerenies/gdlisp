@@ -23,7 +23,7 @@ use symbol_table::{HasSymbolTable, SymbolTable, LocalVar, VarScope};
 use symbol_table::function_call;
 use symbol_table::call_magic::DefaultCall;
 use crate::ir;
-use crate::ir::expr::FuncRefTarget;
+use crate::ir::expr::{FuncRefTarget, AssignTarget};
 use crate::ir::import::{ImportName, ImportDecl, ImportDetails};
 use crate::ir::identifier::Namespace;
 use crate::ir::locals::AccessType;
@@ -172,10 +172,19 @@ impl<'a> Compiler<'a> {
           }
         }
       }
-      IRExpr::Assign(name, expr) => {
+      IRExpr::Assign(AssignTarget::Variable(name), expr) => {
         let var = table.get_var(name).ok_or_else(|| Error::NoSuchVar(name.clone()))?.to_owned();
         self.compile_stmt(builder, table, &stmt_wrapper::AssignToExpr(var.expr()), expr)?;
         Ok(StExpr(var.expr(), SideEffects::from(var.access_type)))
+      }
+      IRExpr::Assign(AssignTarget::InstanceField(lhs, name), expr) => {
+        // TODO Weirdness with setget makes this stateful flag not
+        // always right? I mean, foo:bar can have side effects if bar
+        // is protected by a setget.
+        let StExpr(lhs, stateful) = self.compile_expr(builder, table, lhs, NeedsResult::Yes)?;
+        let lhs = Expr::Attribute(Box::new(lhs), name.to_owned());
+        self.compile_stmt(builder, table, &stmt_wrapper::AssignToExpr(lhs.clone()), expr)?;
+        Ok(StExpr(lhs, stateful))
       }
       IRExpr::Array(vec) => {
         let mut side_effects = SideEffects::None;

@@ -57,7 +57,7 @@ mod tests {
   use super::*;
   use crate::sxp::ast;
   use crate::ir::literal::Literal;
-  use crate::ir::expr::Expr;
+  use crate::ir::expr::{Expr, AssignTarget};
   use crate::ir::arglist::ArgList;
   use crate::pipeline::Pipeline;
   use crate::pipeline::config::ProjectConfig;
@@ -146,7 +146,7 @@ mod tests {
     assert_eq!(do_compile_expr(&ast::list(vec!(AST::Symbol(String::from("setq")),
                                                AST::Symbol(String::from("foobar")),
                                                AST::Int(1)))).unwrap(),
-               Expr::Assign(String::from("foobar"), Box::new(Expr::Literal(Literal::Int(1)))));
+               Expr::Assign(AssignTarget::Variable(String::from("foobar")), Box::new(Expr::Literal(Literal::Int(1)))));
   }
 
 }

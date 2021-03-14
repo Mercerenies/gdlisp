@@ -27,3 +27,21 @@ static func run():
     return GDLisp.Nil
 "#);
 }
+
+#[test]
+pub fn member_var_class_test_2() {
+  assert_eq!(parse_compile_decl("((defclass ClassName (Node) (defvar x) (defn _init (x) (setq self:x x)) (defn get-x () self:x)))"),
+             r#"extends Reference
+class ClassName extends Node:
+    func _init(x_0):
+        self.x = x_0
+        return self.x
+    var x
+    func get_x():
+        return self.x
+static func run():
+    return GDLisp.Nil
+"#);
+}
+
+///// Closure on self

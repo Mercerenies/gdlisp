@@ -25,13 +25,19 @@ pub enum Expr {
   Labels(Vec<(String, ArgList, Expr)>, Box<Expr>),
   Lambda(ArgList, Box<Expr>),
   FuncRef(FuncRefTarget),
-  Assign(String, Box<Expr>),
+  Assign(AssignTarget, Box<Expr>),
   Array(Vec<Expr>),
   Quote(AST),
   FieldAccess(Box<Expr>, String),
   MethodCall(Box<Expr>, String, Vec<Expr>),
   Vector2(Box<Expr>, Box<Expr>),
   Vector3(Box<Expr>, Box<Expr>, Box<Expr>),
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum AssignTarget {
+  Variable(String),
+  InstanceField(Box<Expr>, String),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -159,8 +165,15 @@ impl Expr {
           }
         }
       }
-      Expr::Assign(s, expr) => {
-        acc_vars.visited(s, AccessType::RW);
+      Expr::Assign(target, expr) => {
+        match target {
+          AssignTarget::Variable(s) => {
+            acc_vars.visited(s, AccessType::RW);
+          }
+          AssignTarget::InstanceField(lhs, _) => {
+            lhs.walk_locals(acc_vars, acc_fns);
+          }
+        }
         expr.walk_locals(acc_vars, acc_fns);
       }
       Expr::FuncRef(target) => {
@@ -295,16 +308,16 @@ mod tests {
   fn test_locals_assignment() {
 
     // Simple assignment
-    let e1 = Expr::Assign(String::from("var"), Box::new(Expr::Literal(Literal::Nil)));
+    let e1 = Expr::Assign(AssignTarget::Variable(String::from("var")), Box::new(Expr::Literal(Literal::Nil)));
     assert_eq!(e1.get_locals(), lhash_rw(vec!(("var".to_owned(), AccessType::RW))));
 
     // Assignment including RHS
-    let e2 = Expr::Assign(String::from("var1"), Box::new(Expr::LocalVar("var2".to_owned())));
+    let e2 = Expr::Assign(AssignTarget::Variable(String::from("var1")), Box::new(Expr::LocalVar("var2".to_owned())));
     assert_eq!(e2.get_locals(), lhash_rw(vec!(("var1".to_owned(), AccessType::RW), ("var2".to_owned(), AccessType::Read))));
 
     // Reading and writing (I)
     let e3 = Expr::Progn(vec!(
-      Expr::Assign(String::from("var"), Box::new(Expr::Literal(Literal::Nil))),
+      Expr::Assign(AssignTarget::Variable(String::from("var")), Box::new(Expr::Literal(Literal::Nil))),
       Expr::LocalVar("var".to_owned()),
     ));
     assert_eq!(e3.get_locals(), lhash_rw(vec!(("var".to_owned(), AccessType::RW))));
@@ -312,7 +325,7 @@ mod tests {
     // Reading and writing (II)
     let e4 = Expr::Progn(vec!(
       Expr::LocalVar("var".to_owned()),
-      Expr::Assign(String::from("var"), Box::new(Expr::Literal(Literal::Nil))),
+      Expr::Assign(AssignTarget::Variable(String::from("var")), Box::new(Expr::Literal(Literal::Nil))),
     ));
     assert_eq!(e4.get_locals(), lhash_rw(vec!(("var".to_owned(), AccessType::RW))));
 
