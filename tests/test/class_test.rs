@@ -176,3 +176,17 @@ pub fn macro_in_class_test_3() {
        (print (foo:b))))"#),
              "\n1\n2\n");
 }
+
+#[test]
+#[ignore]
+pub fn macro_uses_class_test() {
+  assert_eq!(parse_and_run(r#"
+    ((defclass Foo (Reference)
+       (defvar x))
+     (defmacro through-foo ()
+       (let ((foo (Foo:new)))
+         (setq foo:x 5)
+         foo:x))
+     (print (through-foo)))"#),
+             "\n5\n");
+}
