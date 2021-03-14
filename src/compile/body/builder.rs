@@ -33,6 +33,10 @@ impl CodeBuilder {
     self.toplevel.name = Some(name);
   }
 
+  pub fn extends(&mut self, extends: decl::ClassExtends) {
+    self.toplevel.extends = extends;
+  }
+
   pub fn build(self) -> decl::TopLevelClass {
     self.toplevel
   }
