@@ -180,3 +180,33 @@ static func run():
     return 91
 "#);
 }
+
+#[test]
+#[ignore]
+fn main_class_import_test_1() {
+  let mut loader = MockFileLoader::new();
+  loader.add_file("a.lisp", "(defclass Foo (Reference) main)");
+  loader.add_file("main.lisp", r#"(use "res://a.lisp" open) Foo"#);
+  let mut pipeline = Pipeline::with_resolver(dummy_config(), Box::new(loader));
+  let result = pipeline.load_file("main.lisp").unwrap().gdscript.to_gd();
+  assert_eq!(result, r#"extends Node
+const _Import_0 = preload("res://a.gd")
+static func run():
+    return _Import_0
+"#);
+}
+
+#[test]
+#[ignore]
+fn main_class_import_test_2() {
+  let mut loader = MockFileLoader::new();
+  loader.add_file("a.lisp", "(defclass Foo (Reference) main) (defconst VALUE 1)");
+  loader.add_file("main.lisp", r#"(use "res://a.lisp" open) [Foo VALUE]"#);
+  let mut pipeline = Pipeline::with_resolver(dummy_config(), Box::new(loader));
+  let result = pipeline.load_file("main.lisp").unwrap().gdscript.to_gd();
+  assert_eq!(result, r#"extends Node
+const _Import_0 = preload("res://a.gd")
+static func run():
+    return [_Import_0, _Import_0.VALUE]
+"#);
+}

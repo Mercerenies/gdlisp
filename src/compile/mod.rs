@@ -559,9 +559,19 @@ impl<'a> Compiler<'a> {
           table.set_fn(import_name.clone(), call, Box::new(DefaultCall));
         }
         Namespace::Value => {
-          let mut var = unit_table.get_var(&export_name).ok_or(Error::NoSuchVar(export_name))?.clone();
-          var.name = Compiler::insert_object_into_call(preload_name.clone(), var.name);
-          table.set_var(import_name.clone(), var);
+          // We have a special rule if we're importing the main class
+          // into scope, as it's wonky and needs to be treated
+          // differently.
+          let matching_ir = unit.ir.decls.iter().find(|x| x.name() == &export_name && matches!(x, IRDecl::ClassDecl(ir::decl::ClassDecl { main_class: true, .. })));
+          if matching_ir.is_some() {
+            let mut var = LocalVar::global(preload_name.clone());
+            var.assignable = false;
+            table.set_var(import_name.clone(), var);
+          } else {
+            let mut var = unit_table.get_var(&export_name).ok_or(Error::NoSuchVar(export_name))?.clone();
+            var.name = Compiler::insert_object_into_call(preload_name.clone(), var.name);
+            table.set_var(import_name.clone(), var);
+          }
         }
       }
     }
