@@ -44,4 +44,51 @@ static func run():
 "#);
 }
 
-///// Closure on self
+#[test]
+pub fn simple_self_closure_class_test() {
+  assert_eq!(parse_compile_decl("((defclass Foo (Node) (defn test () (lambda () self))))"),
+             r#"extends Reference
+class _LambdaBlock_1 extends GDLisp.Function:
+    var _self_0
+    func _init(_self_0):
+        self._self_0 = _self_0
+        self.__gdlisp_required = 0
+        self.__gdlisp_optional = 0
+        self.__gdlisp_rest = 0
+    func call_func():
+        return _self_0
+    func call_funcv(args):
+        if args is GDLisp.NilClass:
+            return call_func()
+        else:
+            push_error("Too many arguments")
+class Foo extends Node:
+    func _init():
+        return GDLisp.Nil
+    func test():
+        return _LambdaBlock_1.new(self)
+static func run():
+    return GDLisp.Nil
+"#);
+}
+
+#[test]
+pub fn labels_self_closure_class_test() {
+  assert_eq!(parse_compile_decl("((defclass Foo (Node) (defn test () (labels ((foo (x) (foo self))) (foo 76)))))"),
+             r#"extends Reference
+class _Labels_0 extends Reference:
+    var _self_1
+    func _init(_self_1):
+        self._self_1 = _self_1
+    func _fn_foo_3(x_4):
+        return _fn_foo_3(_self_1)
+class Foo extends Node:
+    func _init():
+        return GDLisp.Nil
+    func test():
+        var _locals_2 = _Labels_0.new(self)
+        return _locals_2._fn_foo_3(76)
+static func run():
+    return GDLisp.Nil
+"#);
+}

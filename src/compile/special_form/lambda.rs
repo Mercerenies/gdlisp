@@ -184,10 +184,11 @@ pub fn compile_labels_scc<'a>(compiler: &mut Compiler<'a>,
   purge_globals(&mut closure_vars, table);
 
   let mut lambda_table = SymbolTable::new();
-  locally_bind_vars(table, &mut lambda_table, closure_vars.names())?;
-  locally_bind_fns(table, &mut lambda_table, closure_fns.names())?;
+  locally_bind_vars(compiler, table, &mut lambda_table, closure_vars.names())?;
+  locally_bind_fns(compiler, table, &mut lambda_table, closure_fns.names())?;
   copy_global_vars(table, &mut lambda_table);
 
+  let mut gd_src_closure_vars = Vec::new();
   let mut gd_closure_vars = Vec::new();
   for ast_name in closure_vars.names() {
     let var = lambda_table.get_var(&ast_name).unwrap_or_else(|| {
@@ -196,13 +197,20 @@ pub fn compile_labels_scc<'a>(compiler: &mut Compiler<'a>,
     if let [name] = &*var.name {
       gd_closure_vars.push(name.to_owned());
     }
+    let src_var = table.get_var(&ast_name).unwrap_or_else(|| {
+      panic!("Internal error compiling lambda variable {}", ast_name)
+    }).to_owned();
+    if let [name] = &*src_var.name {
+      gd_src_closure_vars.push(name.to_owned());
+    }
   }
   for func in closure_fns.names() {
     match table.get_fn(func) {
       None => { return Err(Error::NoSuchFn(func.to_owned())) }
       Some((call, _)) => {
         if let Some(var) = closure_fn_to_gd_var(call) {
-          gd_closure_vars.push(var);
+          gd_closure_vars.push(var.to_owned());
+          gd_src_closure_vars.push(var);
         }
       }
     }
@@ -274,7 +282,7 @@ pub fn compile_labels_scc<'a>(compiler: &mut Compiler<'a>,
     body: class_body,
   };
   builder.add_helper(Decl::ClassDecl(class));
-  let constructor_args: Vec<_> = gd_closure_vars.into_iter().map(Expr::Var).collect();
+  let constructor_args: Vec<_> = gd_src_closure_vars.into_iter().map(Expr::Var).collect();
   let expr = Expr::Call(Some(Box::new(Expr::Var(class_name))), String::from("new"), constructor_args);
   builder.append(Stmt::VarDecl(local_var_name, expr));
 
@@ -291,10 +299,11 @@ fn assign_expr_to_compiler(inst_var: String, expr: Expr) -> Stmt {
   Stmt::Assign(self_target, op::AssignOp::Eq, value)
 }
 
-fn locally_bind_vars<'a, I, U>(table: &SymbolTable,
-                               lambda_table: &mut SymbolTable,
-                               closure_vars: I)
-                               -> Result<(), Error>
+fn locally_bind_vars<'a, 'b, I, U>(compiler: &mut Compiler<'b>,
+                                   table: &SymbolTable,
+                                   lambda_table: &mut SymbolTable,
+                                   closure_vars: I)
+                                   -> Result<(), Error>
 where I : Iterator<Item=&'a U>,
       U : Borrow<str>,
       U : 'a {
@@ -302,16 +311,24 @@ where I : Iterator<Item=&'a U>,
     // Ensure the variable actually exists
     match table.get_var(var.borrow()) {
       None => return Err(Error::NoSuchVar(var.borrow().to_owned())),
-      Some(gdvar) => lambda_table.set_var(var.borrow().to_owned(), gdvar.to_owned()), // TODO Generate new names here
+      Some(gdvar) => {
+        let mut new_var = gdvar.to_owned();
+        // Ad-hoc rule for closing around self (TODO Generalize?)
+        if new_var.name == vec!(String::from("self")) {
+          new_var.name = vec!(compiler.name_generator().generate_with("_self"));
+        }
+        lambda_table.set_var(var.borrow().to_owned(), new_var);
+      }
     };
   }
   Ok(())
 }
 
-fn locally_bind_fns<'a, I, U>(table: &SymbolTable,
-                              lambda_table: &mut SymbolTable,
-                              closure_fns: I)
-                              -> Result<(), Error>
+fn locally_bind_fns<'a, 'b, I, U>(_compiler: &mut Compiler<'b>,
+                                  table: &SymbolTable,
+                                  lambda_table: &mut SymbolTable,
+                                  closure_fns: I)
+                                  -> Result<(), Error>
 where I : Iterator<Item=&'a U>,
       U : Borrow<str>,
       U : 'a {
@@ -381,10 +398,11 @@ pub fn compile_lambda_stmt<'a>(compiler: &mut Compiler<'a>,
   // No need to close around global variables, as they're available everywhere
   purge_globals(&mut closure_vars, table);
 
-  locally_bind_vars(table, &mut lambda_table, closure_vars.names())?;
-  locally_bind_fns(table, &mut lambda_table, closure_fns.names())?;
+  locally_bind_vars(compiler, table, &mut lambda_table, closure_vars.names())?;
+  locally_bind_fns(compiler, table, &mut lambda_table, closure_fns.names())?;
   copy_global_vars(table, &mut lambda_table);
 
+  let mut gd_src_closure_vars = Vec::new();
   let mut gd_closure_vars = Vec::new();
   for ast_name in closure_vars.names() {
     let var = lambda_table.get_var(&ast_name).unwrap_or_else(|| {
@@ -393,13 +411,20 @@ pub fn compile_lambda_stmt<'a>(compiler: &mut Compiler<'a>,
     if let [name] = &*var.name {
       gd_closure_vars.push(name.to_owned());
     }
+    let src_var = table.get_var(&ast_name).unwrap_or_else(|| {
+      panic!("Internal error compiling lambda variable {}", ast_name)
+    }).to_owned();
+    if let [name] = &*src_var.name {
+      gd_src_closure_vars.push(name.to_owned());
+    }
   }
   for func in closure_fns.names() {
     match table.get_fn(func) {
       None => { return Err(Error::NoSuchFn(func.to_owned())) }
       Some((call, _)) => {
         if let Some(var) = closure_fn_to_gd_var(call) {
-          gd_closure_vars.push(var);
+          gd_closure_vars.push(var.to_owned());
+          gd_src_closure_vars.push(var);
         }
       }
     }
@@ -413,7 +438,7 @@ pub fn compile_lambda_stmt<'a>(compiler: &mut Compiler<'a>,
   let class = generate_lambda_class(compiler, args.clone().into(), arglist, &gd_closure_vars, lambda_body, "_LambdaBlock");
   let class_name = class.name.clone();
   builder.add_helper(Decl::ClassDecl(class));
-  let constructor_args = gd_closure_vars.into_iter().map(|s| Expr::Var(s)).collect();
+  let constructor_args = gd_src_closure_vars.into_iter().map(|s| Expr::Var(s)).collect();
   let expr = Expr::Call(Some(Box::new(Expr::Var(class_name))), String::from("new"), constructor_args);
   Ok(StExpr(expr, SideEffects::None))
 }
