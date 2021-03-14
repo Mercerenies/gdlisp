@@ -13,6 +13,7 @@ pub enum Decl {
   ConstDecl(String, Expr),
   ClassDecl(ClassDecl),
   FnDecl(Static, FnDecl),
+  SignalDecl(String, ArgList),
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -80,6 +81,13 @@ impl Decl {
         }
         writeln!(w, "func {}({}):", name, args.to_gd())?;
         Stmt::write_gd_stmts(body, w, ind + 4)
+      }
+      Decl::SignalDecl(name, args) => {
+        if args.is_empty() {
+          writeln!(w, "signal {}", name)
+        } else {
+          writeln!(w, "signal {}({})", name, args.to_gd())
+        }
       }
     }
   }
@@ -151,6 +159,12 @@ mod tests {
     assert_eq!(Decl::VarDecl(String::from("foo"), None).to_gd(0), "var foo\n");
     assert_eq!(Decl::VarDecl(String::from("foo"), Some(expr.clone())).to_gd(0), "var foo = 10\n");
     assert_eq!(Decl::ConstDecl(String::from("FOO"), expr.clone()).to_gd(0), "const FOO = 10\n");
+  }
+
+  #[test]
+  fn signal() {
+    assert_eq!(Decl::SignalDecl(String::from("signal_name"), ArgList::empty()).to_gd(0), "signal signal_name\n");
+    assert_eq!(Decl::SignalDecl(String::from("signal_name"), ArgList::required(vec!(String::from("a"), String::from("b")))).to_gd(0), "signal signal_name(a, b)\n");
   }
 
   #[test]
