@@ -127,3 +127,52 @@ pub fn self_with_closure_run_class_test() {
        (print (funcall fn))))
   "#), "\n2\n3\n4\n");
 }
+
+#[test]
+#[ignore]
+pub fn macro_in_class_test_1() {
+  assert_eq!(parse_compile_decl(r#"
+    ((defmacro add-one (x)
+       (+ x 1))
+     (defclass Foo (Reference)
+       (defn _init ()
+         (add-one 2))))"#),
+             r#"extends Reference
+static func add_one(x_0):
+    return x_0 + 1
+class Foo extends Reference:
+    func _init():
+        return 3
+static func run():
+    return GDLisp.Nil
+"#);
+}
+
+#[test]
+#[ignore]
+pub fn macro_in_class_test_2() {
+  assert_eq!(parse_and_run(r#"
+    ((defmacro declare-function (name)
+       `(defn ,name () 99))
+     (defclass Foo (Reference)
+       (declare-function fn1)
+       (declare-function fn2))
+     (let ((foo (Foo:new)))
+       (print (foo:fn1))
+       (print (foo:fn2))))"#),
+             "\n99\n99\n");
+}
+
+#[test]
+#[ignore]
+pub fn macro_in_class_test_3() {
+  assert_eq!(parse_and_run(r#"
+    ((defmacro declare-functions ()
+       '(progn (defn a () 1) (defn b () 2)))
+     (defclass Foo (Reference)
+       (declare-functions))
+     (let ((foo (Foo:new)))
+       (print (foo:a))
+       (print (foo:b))))"#),
+             "\n1\n2\n");
+}
