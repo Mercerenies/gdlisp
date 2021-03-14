@@ -17,6 +17,7 @@ use crate::gdscript::stmt::Stmt;
 use crate::gdscript::decl::{self, Decl};
 use crate::gdscript::op;
 use crate::gdscript::library;
+use crate::gdscript::arglist::ArgList;
 use error::Error;
 use stmt_wrapper::StmtWrapper;
 use symbol_table::{HasSymbolTable, SymbolTable, LocalVar, VarScope};
@@ -419,6 +420,11 @@ impl<'a> Compiler<'a> {
                                   decl: &ir::decl::ClassInnerDecl)
                                   -> Result<Decl, Error> {
     match decl {
+      ir::decl::ClassInnerDecl::ClassSignalDecl(s) => {
+        let name = names::lisp_to_gd(&s.name);
+        let args = s.args.args.iter().map(|x| names::lisp_to_gd(&x)).collect();
+        Ok(Decl::SignalDecl(name, ArgList::required(args)))
+      }
       ir::decl::ClassInnerDecl::ClassVarDecl(v) => {
         let name = names::lisp_to_gd(&v.name);
         Ok(Decl::VarDecl(name, None))

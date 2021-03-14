@@ -58,8 +58,15 @@ pub struct ConstructorDecl { // TODO Super
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum ClassInnerDecl {
+  ClassSignalDecl(ClassSignalDecl),
   ClassVarDecl(ClassVarDecl),
   ClassFnDecl(ClassFnDecl),
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ClassSignalDecl {
+  pub name: String,
+  pub args: SimpleArgList,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -178,6 +185,7 @@ impl ClassInnerDecl {
 
   pub fn dependencies(&self) -> HashSet<Id> {
     match self {
+      ClassInnerDecl::ClassSignalDecl(_) => HashSet::new(),
       ClassInnerDecl::ClassVarDecl(_) => HashSet::new(),
       ClassInnerDecl::ClassFnDecl(func) => {
         let mut ids: HashSet<Id> = func.body.get_ids().collect();
