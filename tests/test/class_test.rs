@@ -190,3 +190,54 @@ pub fn macro_uses_class_test() {
      (print (through-foo)))"#),
              "\n5\n");
 }
+
+#[test]
+pub fn main_class_test_1() {
+  assert_eq!(parse_compile_decl("((defclass Foo (Node2D) main))"),
+             r#"extends Node2D
+func _init():
+    return GDLisp.Nil
+static func run():
+    return GDLisp.Nil
+"#);
+}
+
+#[test]
+pub fn main_class_test_2() {
+  assert_eq!(parse_compile_decl("((defclass Foo (Node2D) main (defn foo () 1)))"),
+             r#"extends Node2D
+func _init():
+    return GDLisp.Nil
+func foo():
+    return 1
+static func run():
+    return GDLisp.Nil
+"#);
+}
+
+#[test]
+pub fn main_class_test_3() {
+  assert_eq!(parse_compile_decl("((defclass Foo (Node2D) main (defn foo () 1)) Foo)"),
+             r#"extends Node2D
+func _init():
+    return GDLisp.Nil
+func foo():
+    return 1
+static func run():
+    return load("res://TEST.gd")
+"#);
+}
+
+#[test]
+#[ignore]
+pub fn macro_uses_main_class_test() {
+  assert_eq!(parse_and_run(r#"
+    ((defclass Foo (Reference) main
+       (defvar x))
+     (defmacro through-foo ()
+       (let ((foo (Foo:new)))
+         (setq foo:x 5)
+         foo:x))
+     (print (through-foo)))"#),
+             "\n5\n");
+}

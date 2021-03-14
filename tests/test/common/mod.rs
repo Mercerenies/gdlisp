@@ -15,6 +15,7 @@ use gdlisp::compile::symbol_table::call_magic::DefaultCall;
 use gdlisp::compile::preload_resolver::DefaultPreloadResolver;
 use gdlisp::runner;
 use gdlisp::runner::into_gd_file::IntoGDFile;
+use gdlisp::runner::path::{RPathBuf, PathSrc};
 use gdlisp::parser;
 use gdlisp::ir;
 use gdlisp::gdscript::library;
@@ -68,7 +69,10 @@ pub fn dummy_config() -> ProjectConfig {
 }
 
 pub fn dummy_pipeline() -> Pipeline {
-  Pipeline::new(dummy_config())
+  let mut pipeline = Pipeline::new(dummy_config());
+  let path = RPathBuf::new(PathSrc::Res, PathBuf::from("TEST.lisp")).unwrap();
+  pipeline.set_currently_loading_file(path);
+  pipeline
 }
 
 fn bind_helper_symbols(table: &mut SymbolTable) {

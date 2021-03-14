@@ -26,7 +26,7 @@ fn run_pseudo_repl() {
   let mut pipeline = Pipeline::new(ProjectConfig { root_directory: PathBuf::from_str(".").unwrap() }); // Infallible
 
   for line in stdin.lock().lines() {
-    match pipeline.compile_code("(eval)", &line.unwrap()) {
+    match pipeline.compile_code("./REPL.lisp", &line.unwrap()) {
       Err(err) => {
         println!("Error: {}", err);
       }

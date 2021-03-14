@@ -171,6 +171,13 @@ impl Pipeline {
     self.current_file_path.as_ref()
   }
 
+  // This is done automatically if you use any of the built-in compile
+  // functions above. You can do it yourself manually with this
+  // function for testing purposes.
+  pub fn set_currently_loading_file(&mut self, path: RPathBuf) {
+    self.current_file_path = Some(path);
+  }
+
 }
 
 pub fn input_to_output_filename<P : AsRef<Path> + ?Sized>(input: &P) -> PathBuf {
