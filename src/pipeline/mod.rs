@@ -178,6 +178,10 @@ impl Pipeline {
     self.current_file_path = Some(path);
   }
 
+  pub fn config(&self) -> &ProjectConfig {
+    &self.config
+  }
+
 }
 
 pub fn input_to_output_filename<P : AsRef<Path> + ?Sized>(input: &P) -> PathBuf {
