@@ -92,6 +92,10 @@ impl Pipeline {
     let unit = self.compile_code(&input_path, &contents)?;
     write!(output_file, "{}", unit.gdscript.to_gd())?;
 
+    let file_path = input_path.strip_prefix(&self.config.root_directory).expect("Non-local file load detected").to_owned(); // TODO Expect
+    let mut old_file_path = Some(RPathBuf::new(PathSrc::Res, file_path).expect("Non-local file load detected")); // TODO Expect
+    mem::swap(&mut old_file_path, &mut self.current_file_path);
+
     // Also output to a temporary file
     let mut tmpfile = Builder::new()
       .prefix("__gdlisp_file")
@@ -116,6 +120,8 @@ impl Pipeline {
     tmpfile.flush()?;
     self.known_files_paths.insert(input_path_store_name, tmpfile.path().to_owned());
     self.server.stand_up_file(String::from("(standalone file)"), tmpfile)?;
+
+    mem::swap(&mut old_file_path, &mut self.current_file_path);
 
     self.known_files.insert(input_path.to_owned(), unit);
     Ok(self.known_files.get(input_path).expect("Path not present in load_file"))
