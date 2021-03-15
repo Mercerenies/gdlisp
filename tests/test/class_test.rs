@@ -44,6 +44,45 @@ static func run():
 }
 
 #[test]
+pub fn signal_class_test_1() {
+  assert_eq!(parse_compile_decl("((defclass ClassName (Node) (defsignal my-signal)))"),
+             r#"extends Reference
+class ClassName extends Node:
+    func _init():
+        pass
+    signal my_signal
+static func run():
+    return GDLisp.Nil
+"#);
+}
+
+#[test]
+pub fn signal_class_test_2() {
+  assert_eq!(parse_compile_decl("((defclass ClassName (Node) (defsignal my-signal ())))"),
+             r#"extends Reference
+class ClassName extends Node:
+    func _init():
+        pass
+    signal my_signal
+static func run():
+    return GDLisp.Nil
+"#);
+}
+
+#[test]
+pub fn signal_class_test_3() {
+  assert_eq!(parse_compile_decl("((defclass ClassName (Node) (defsignal my-signal (foo bar))))"),
+             r#"extends Reference
+class ClassName extends Node:
+    func _init():
+        pass
+    signal my_signal(foo, bar)
+static func run():
+    return GDLisp.Nil
+"#);
+}
+
+#[test]
 pub fn simple_self_closure_class_test() {
   assert_eq!(parse_compile_decl("((defclass Foo (Node) (defn test () (lambda () self))))"),
              r#"extends Reference

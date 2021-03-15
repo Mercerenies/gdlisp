@@ -256,7 +256,6 @@ impl IncCompiler {
     }
   }
 
-  ///// Test test test test test test
   fn compile_class_inner_decl(&mut self,
                               pipeline: &mut Pipeline,
                               acc: &mut decl::ClassDecl,
@@ -317,6 +316,21 @@ impl IncCompiler {
           } else {
             Err(PError::from(Error::InvalidDecl(curr.clone())))
           }
+        }
+        "defsignal" => {
+          if vec.len() < 2 || vec.len() > 3 {
+            return Err(PError::from(Error::InvalidDecl(curr.clone())));
+          }
+          let name = match vec[1] {
+            AST::Symbol(s) => s.to_owned(),
+            _ => return Err(PError::from(Error::InvalidDecl(curr.clone()))),
+          };
+          let nil = AST::Nil;
+          let args = vec.get(2).map_or(&nil, |x| *x);
+          let args: Vec<_> = DottedExpr::new(args).try_into()?;
+          let args = SimpleArgList::parse(args)?;
+          acc.decls.push(decl::ClassInnerDecl::ClassSignalDecl(decl::ClassSignalDecl { name, args }));
+          Ok(())
         }
         _ => {
           Err(PError::from(Error::InvalidDecl(curr.clone())))
