@@ -282,3 +282,33 @@ pub fn macro_uses_main_class_test() {
      (print (through-foo)))"#),
              "\n5\n");
 }
+
+#[test]
+pub fn get_node_on_self_class_test() {
+  assert_eq!(parse_compile_decl(r#"
+    ((defclass Foo (Spatial) main
+       (defn test () $Target/Node)))
+    "#), r#"extends Spatial
+func _init():
+    pass
+func test():
+    return self.get_node("Target/Node")
+static func run():
+    return GDLisp.Nil
+"#);
+}
+
+#[test]
+pub fn get_node_on_explicit_target_class_test() {
+  assert_eq!(parse_compile_decl(r#"
+    ((defclass Foo (Spatial) main
+       (defn test (x) x:$Target/Node)))
+    "#), r#"extends Spatial
+func _init():
+    pass
+func test(x_0):
+    return x_0.get_node("Target/Node")
+static func run():
+    return GDLisp.Nil
+"#);
+}

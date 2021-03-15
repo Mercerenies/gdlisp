@@ -13,6 +13,7 @@ String: String = <s:STRING> => {
   string::parse_escapes(t).unwrap()
 };
 Symbol: String = <s:SYMBOL> => String::from(s);
+NodePath: String = <s:PATH> => String::from(&s[1..]);
 
 // TODO Comments (Also probably a custom lexer :( )
 
@@ -23,9 +24,10 @@ match {
   r"[+-]?[0-9]+" => INT,
   r"[+-]?[0-9]+((\.[0-9]+)([eE][+-]?[0-9]+)?|(\.[0-9]+)?([eE][+-]?[0-9]+))" => FLOAT,
   r#""([^\\"]|\\[\\"])*""# => STRING,
+  r"\$[A-Za-z0-9_~+=\-\\!@$%^&*<>/]+" => PATH,
   "(", ")", ".", "[", "]", "'", "#'", "`", ",", ":", "V{", "}",
 } else {
-  r"[A-Za-z_~+=\-\\!@$%^&*<>/][A-Za-z0-9_~+=\-\\!@$%^&*<>/]*(\.[A-Za-z0-9_~+=\-\\!@$%^&*<>/]+)*" => SYMBOL,
+  r"[A-Za-z_~+=\-\\!@%^&*<>/][A-Za-z0-9_~+=\-\\!@$%^&*<>/]*(\.[A-Za-z0-9_~+=\-\\!@$%^&*<>/]+)*" => SYMBOL,
 }
 
 pub AST: AST = {
@@ -61,6 +63,8 @@ pub LiteralOrNestedAST: AST = {
   "V{" <x: AST> <y: AST> "}" => AST::Vector2(Box::new(x), Box::new(y)),
   "V{" <x: AST> <y: AST> <z: AST> "}" => AST::Vector3(Box::new(x), Box::new(y), Box::new(z)),
   <body: LiteralOrNestedAST> ":" <name: Symbol> => ast::list(vec!(AST::Symbol(String::from("access-slot")), body, AST::Symbol(name))),
+  <body: LiteralOrNestedAST> ":" <path: NodePath> => ast::list(vec!(ast::list(vec!(AST::Symbol(String::from("access-slot")), body, AST::Symbol(String::from("get-node")))), AST::String(path))),
+  <path: NodePath> => ast::list(vec!(ast::list(vec!(AST::Symbol(String::from("access-slot")), AST::Symbol(String::from("self")), AST::Symbol(String::from("get-node")))), AST::String(path))),
 }
 
 Cdr: AST = {
