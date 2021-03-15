@@ -285,11 +285,17 @@ impl IncCompiler {
           Ok(())
         }
         "defvar" => {
-          if vec.len() != 2 {
+          if vec.len() < 2 || vec.len() > 3 {
             return Err(PError::from(Error::InvalidDecl(curr.clone())));
           }
           if let AST::Symbol(vname) = vec[1] {
-            let decl = decl::ClassVarDecl { name: vname.to_owned() };
+            let name = vname.to_owned();
+            let value = vec.get(2).map::<Result<_, PError>, _>(|v| {
+              let e = self.compile_expr(pipeline, v)?;
+              e.validate_const_expr(&name)?;
+              Ok(e)
+            }).transpose()?;
+            let decl = decl::ClassVarDecl { name, value };
             acc.decls.push(decl::ClassInnerDecl::ClassVarDecl(decl));
             Ok(())
           } else {

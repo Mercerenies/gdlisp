@@ -72,6 +72,7 @@ pub struct ClassSignalDecl {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ClassVarDecl {
   pub name: String,
+  pub value: Option<Expr>,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]

@@ -44,6 +44,27 @@ static func run():
 }
 
 #[test]
+pub fn member_var_class_test_3() {
+  assert_eq!(parse_compile_decl("((defclass ClassName (Node) (defvar x 999) (defn _init (x) (setq self:x x)) (defn get-x () self:x)))"),
+             r#"extends Reference
+class ClassName extends Node:
+    func _init(x_0):
+        self.x = x_0
+    var x = 999
+    func get_x():
+        return self.x
+static func run():
+    return GDLisp.Nil
+"#);
+}
+
+#[test]
+#[should_panic]
+pub fn bad_member_var_class_test() {
+  parse_compile_decl("((defclass ClassName (Node) (defvar x (if 1 2 3)) (defn _init (x) (setq self:x x)) (defn get-x () self:x)))");
+}
+
+#[test]
 pub fn signal_class_test_1() {
   assert_eq!(parse_compile_decl("((defclass ClassName (Node) (defsignal my-signal)))"),
              r#"extends Reference

@@ -436,7 +436,17 @@ impl<'a> Compiler<'a> {
       }
       ir::decl::ClassInnerDecl::ClassVarDecl(v) => {
         let name = names::lisp_to_gd(&v.name);
-        Ok(Decl::VarDecl(name, None))
+        let value = v.value.as_ref().map(|expr| {
+          let mut tmp_builder = StmtBuilder::new();
+          let value = self.compile_expr(&mut tmp_builder, table, expr, NeedsResult::Yes)?.0;
+          let (stmts, decls) = tmp_builder.build();
+          if stmts.is_empty() && decls.is_empty() {
+            Ok(value)
+          } else {
+            Err(Error::NotConstantEnough(name.to_owned()))
+          }
+        }).transpose()?;
+        Ok(Decl::VarDecl(name, value))
       }
       ir::decl::ClassInnerDecl::ClassFnDecl(f) => {
         let gd_name = names::lisp_to_gd(&f.name);
