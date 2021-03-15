@@ -186,6 +186,28 @@ pub fn bind_builtins(table: &mut SymbolTable) {
                FnCall::unqualified(FnSpecs::new(1, 0, None), FnScope::Global, "str".to_owned()),
                Box::new(call_magic::DefaultCall));
 
+  // randomize
+  table.set_fn("randomize".to_owned(),
+               FnCall::unqualified(FnSpecs::new(0, 0, None), FnScope::Global, "randomize".to_owned()),
+               Box::new(call_magic::DefaultCall));
+
+  // randi (TODO Should we wrap this and the other random functions and make a nice interface to them?)
+  table.set_fn("randi".to_owned(),
+               FnCall::unqualified(FnSpecs::new(0, 0, None), FnScope::Global, "randi".to_owned()),
+               Box::new(call_magic::DefaultCall));
+
+  // rand_range
+  table.set_fn("rand-range".to_owned(),
+               FnCall::unqualified(FnSpecs::new(2, 0, None), FnScope::Global, "rand_range".to_owned()),
+               Box::new(call_magic::DefaultCall));
+
+  // clamp
+  table.set_fn("clamp".to_owned(),
+               FnCall::unqualified(FnSpecs::new(3, 0, None), FnScope::Global, "clamp".to_owned()),
+               Box::new(call_magic::DefaultCall));
+
+  table.set_var("PI".to_owned(), LocalVar::global("PI".to_owned()));
+
 }
 
 pub fn all_builtin_names() -> HashSet<Id> {
