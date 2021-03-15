@@ -62,3 +62,9 @@ pub fn assign_to_self_test() {
 pub fn assign_to_const_test() {
   parse_compile_decl("((defconst CONSTANT 1) (setq CONSTANT 2))");
 }
+
+#[test]
+pub fn weird_name_test() {
+  assert_eq!(parse_compile_and_output("(let ((a-b-c 1)) (a-b-c:d-e-f))"),
+             "var a_b_c_0 = 1\nreturn a_b_c_0.d_e_f()\n");
+}
