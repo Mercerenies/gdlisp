@@ -134,7 +134,7 @@ fn generate_lambda_class<'a, 'b>(compiler: &mut Compiler<'a>,
     };
   let mut class_body = vec!();
   for var in closed_vars {
-    class_body.push(Decl::VarDecl(var.to_owned(), None));
+    class_body.push(Decl::VarDecl(None, var.to_owned(), None));
   }
   class_body.append(&mut vec!(
     Decl::FnDecl(decl::Static::NonStatic, constructor),
@@ -270,7 +270,7 @@ pub fn compile_labels_scc<'a>(compiler: &mut Compiler<'a>,
   };
   let mut class_body = vec!();
   for var in &gd_closure_vars {
-    class_body.push(Decl::VarDecl(var.clone(), None));
+    class_body.push(Decl::VarDecl(None, var.clone(), None));
   }
   class_body.push(Decl::FnDecl(decl::Static::NonStatic, constructor));
   for func in functions {

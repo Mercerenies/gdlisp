@@ -9,7 +9,7 @@ use std::fmt::{self, Write};
 // TODO _init has some special syntax that we need to be prepared to handle.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum Decl {
-  VarDecl(String, Option<Expr>),
+  VarDecl(Option<Export>, String, Option<Expr>),
   ConstDecl(String, Expr),
   ClassDecl(ClassDecl),
   FnDecl(Static, FnDecl),
@@ -43,6 +43,11 @@ pub struct FnDecl {
   pub body: Vec<Stmt>,
 }
 
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct Export {
+  args: Vec<Expr>,
+}
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum Static {
   NonStatic, IsStatic,
@@ -61,7 +66,14 @@ impl Decl {
   pub fn write_gd<W : fmt::Write>(&self, w: &mut W, ind: u32) -> Result<(), fmt::Error> {
     indent(w, ind)?;
     match self {
-      Decl::VarDecl(name, value) => {
+      Decl::VarDecl(export, name, value) => {
+        if let Some(export) = export {
+          if export.args.is_empty() {
+            write!(w, "export ")?;
+          } else {
+            write!(w, "export({}) ", export.args.iter().map(|x| x.to_gd()).collect::<Vec<_>>().join(", "))?;
+          }
+        }
         write!(w, "var {}", name)?;
         match value {
           None => writeln!(w),
@@ -156,9 +168,23 @@ mod tests {
   #[test]
   fn var_and_const() {
     let expr = Expr::from(10);
-    assert_eq!(Decl::VarDecl(String::from("foo"), None).to_gd(0), "var foo\n");
-    assert_eq!(Decl::VarDecl(String::from("foo"), Some(expr.clone())).to_gd(0), "var foo = 10\n");
+    assert_eq!(Decl::VarDecl(None, String::from("foo"), None).to_gd(0), "var foo\n");
+    assert_eq!(Decl::VarDecl(None, String::from("foo"), Some(expr.clone())).to_gd(0), "var foo = 10\n");
     assert_eq!(Decl::ConstDecl(String::from("FOO"), expr.clone()).to_gd(0), "const FOO = 10\n");
+  }
+
+  #[test]
+  fn exported_var() {
+    let expr = Expr::from(10);
+
+    let export1 = Export { args: vec!(Expr::var("int")) };
+    assert_eq!(Decl::VarDecl(Some(export1), String::from("foo"), None).to_gd(0), "export(int) var foo\n");
+
+    let export2 = Export { args: vec!() };
+    assert_eq!(Decl::VarDecl(Some(export2), String::from("foo"), None).to_gd(0), "export var foo\n");
+
+    let export3 = Export { args: vec!(Expr::var("int"), Expr::from(1), Expr::from(10)) };
+    assert_eq!(Decl::VarDecl(Some(export3), String::from("foo"), Some(expr.clone())).to_gd(0), "export(int, 1, 10) var foo = 10\n");
   }
 
   #[test]
@@ -227,7 +253,7 @@ mod tests {
       name: String::from("MyClass"),
       extends: ClassExtends::named(String::from("ParentClass")),
       body: vec!(
-        Decl::VarDecl(String::from("variable"), None),
+        Decl::VarDecl(None, String::from("variable"), None),
       ),
     });
     assert_eq!(decl2.to_gd(0), "class MyClass extends ParentClass:\n    var variable\n");
@@ -236,7 +262,7 @@ mod tests {
       name: String::from("MyClass"),
       extends: ClassExtends::named(String::from("ParentClass")),
       body: vec!(
-        Decl::VarDecl(String::from("variable"), None),
+        Decl::VarDecl(None, String::from("variable"), None),
         sample_function.clone(),
       ),
     });

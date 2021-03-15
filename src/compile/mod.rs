@@ -446,7 +446,7 @@ impl<'a> Compiler<'a> {
             Err(Error::NotConstantEnough(name.to_owned()))
           }
         }).transpose()?;
-        Ok(Decl::VarDecl(name, value))
+        Ok(Decl::VarDecl(None, name, value))
       }
       ir::decl::ClassInnerDecl::ClassFnDecl(f) => {
         let gd_name = names::lisp_to_gd(&f.name);
