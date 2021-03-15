@@ -185,10 +185,19 @@ impl<'a> Compiler<'a> {
         // TODO Weirdness with setget makes this stateful flag not
         // always right? I mean, foo:bar can have side effects if bar
         // is protected by a setget.
-        let StExpr(lhs, stateful) = self.compile_expr(builder, table, lhs, NeedsResult::Yes)?;
+        let StExpr(mut lhs, stateful) = self.compile_expr(builder, table, lhs, NeedsResult::Yes)?;
+        // Assign to a temp if it's stateful
+        if needs_result == NeedsResult::Yes && stateful.modifies_state() {
+          let var = self.declare_var(builder, "_assign", Some(lhs));
+          lhs = Expr::Var(var);
+        }
         let lhs = Expr::Attribute(Box::new(lhs), names::lisp_to_gd(name));
         self.compile_stmt(builder, table, &stmt_wrapper::AssignToExpr(lhs.clone()), expr)?;
-        Ok(StExpr(lhs, stateful)) // TODO The statefulness here is just wrong, because the stateful part of the thing has already been done. I think we need to use NeedsResult and make a temp in this case if we do need it
+        if needs_result == NeedsResult::Yes {
+          Ok(StExpr(lhs, SideEffects::None))
+        } else {
+          Ok(Compiler::nil_expr())
+        }
       }
       IRExpr::Array(vec) => {
         let mut side_effects = SideEffects::None;

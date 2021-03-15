@@ -68,3 +68,15 @@ pub fn weird_name_test() {
   assert_eq!(parse_compile_and_output("(let ((a-b-c 1)) (a-b-c:d-e-f))"),
              "var a_b_c_0 = 1\nreturn a_b_c_0.d_e_f()\n");
 }
+
+#[test]
+pub fn assign_to_slot_test() {
+  assert_eq!(parse_compile_and_output("(let ((x 1)) (setq x:foo 100) 2)"),
+             "var x_0 = 1\nx_0.foo = 100\nreturn 2\n");
+  assert_eq!(parse_compile_and_output("(let ((x 1)) (setq x:foo 100))"),
+             "var x_0 = 1\nx_0.foo = 100\nreturn x_0.foo\n");
+  assert_eq!(parse_compile_and_output("(flet ((f () 1)) (setq (f):foo 100) 2)"),
+             "_flet_0().foo = 100\nreturn 2\n");
+  assert_eq!(parse_compile_and_output("(flet ((f () 1)) (setq (f):foo 100))"),
+             "var _assign_1 = _flet_0()\n_assign_1.foo = 100\nreturn _assign_1.foo\n");
+}
