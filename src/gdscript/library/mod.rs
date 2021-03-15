@@ -179,6 +179,13 @@ pub fn bind_builtins(table: &mut SymbolTable) {
                FnCall::qualified(FnSpecs::new(2, 0, None), FnScope::Global, gdlisp_root(), "elt".to_owned()),
                Box::new(call_magic::ArraySubscript));
 
+  // ---- GDScript built-ins that we use unmodified ----
+
+  // str
+  table.set_fn("str".to_owned(),
+               FnCall::unqualified(FnSpecs::new(1, 0, None), FnScope::Global, "str".to_owned()),
+               Box::new(call_magic::DefaultCall));
+
 }
 
 pub fn all_builtin_names() -> HashSet<Id> {
