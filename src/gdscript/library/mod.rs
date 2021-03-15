@@ -5,11 +5,12 @@ pub mod classes;
 
 use super::expr::Expr;
 use super::op;
-use crate::compile::symbol_table::{SymbolTable, LocalVar};
+use crate::compile::symbol_table::{SymbolTable, LocalVar, VarScope};
 use crate::compile::symbol_table::function_call::{FnCall, FnScope, FnSpecs};
 use crate::compile::symbol_table::call_magic;
 use crate::ir::arglist::VarArg;
 use crate::ir::identifier::{Id, Namespace};
+use crate::ir::locals::AccessType;
 use classes::GDSCRIPT_CLASS_NAMES;
 
 use std::collections::HashSet;
@@ -58,6 +59,15 @@ pub fn bind_builtins(table: &mut SymbolTable) {
   for name in &GDSCRIPT_CLASS_NAMES {
     table.set_var((*name).to_owned(), LocalVar::global((*name).to_owned()));
   }
+
+  // nil
+  table.set_var("nil".to_owned(),
+                LocalVar {
+                  name: nil(),
+                  access_type: AccessType::ClosedRead,
+                  scope: VarScope::GlobalVar,
+                  assignable: false
+                });
 
   // Cons
   table.set_fn("cons".to_owned(),
