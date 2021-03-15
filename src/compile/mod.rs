@@ -186,9 +186,9 @@ impl<'a> Compiler<'a> {
         // always right? I mean, foo:bar can have side effects if bar
         // is protected by a setget.
         let StExpr(lhs, stateful) = self.compile_expr(builder, table, lhs, NeedsResult::Yes)?;
-        let lhs = Expr::Attribute(Box::new(lhs), name.to_owned());
+        let lhs = Expr::Attribute(Box::new(lhs), names::lisp_to_gd(name));
         self.compile_stmt(builder, table, &stmt_wrapper::AssignToExpr(lhs.clone()), expr)?;
-        Ok(StExpr(lhs, stateful))
+        Ok(StExpr(lhs, stateful)) // TODO The statefulness here is just wrong, because the stateful part of the thing has already been done. I think we need to use NeedsResult and make a temp in this case if we do need it
       }
       IRExpr::Array(vec) => {
         let mut side_effects = SideEffects::None;
