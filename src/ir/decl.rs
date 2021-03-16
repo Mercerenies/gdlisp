@@ -71,6 +71,7 @@ pub struct ClassSignalDecl {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ClassVarDecl {
+  pub export: Option<Export>,
   pub name: String,
   pub value: Option<Expr>,
 }
@@ -80,6 +81,11 @@ pub struct ClassFnDecl {
   pub name: String,
   pub args: SimpleArgList,
   pub body: Expr,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct Export {
+  pub args: Vec<Expr>,
 }
 
 impl TopLevel {

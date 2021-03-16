@@ -285,17 +285,41 @@ impl IncCompiler {
           Ok(())
         }
         "defvar" => {
-          if vec.len() < 2 || vec.len() > 3 {
+          if vec.len() < 2 || vec.len() > 4 {
             return Err(PError::from(Error::InvalidDecl(curr.clone())));
           }
           if let AST::Symbol(vname) = vec[1] {
             let name = vname.to_owned();
-            let value = vec.get(2).map::<Result<_, PError>, _>(|v| {
-              let e = self.compile_expr(pipeline, v)?;
-              e.validate_const_expr(&name)?;
-              Ok(e)
-            }).transpose()?;
-            let decl = decl::ClassVarDecl { name, value };
+
+            // Parse value and export
+            let mut value = None;
+            let mut export = None;
+            let mut idx = 2;
+            // Value
+            if let Some(v) = vec.get(idx) {
+              if !(matches!(v, AST::Cons(car, _) if **car == AST::Symbol(String::from("export")))) {
+                let e = self.compile_expr(pipeline, v)?;
+                e.validate_const_expr(&name)?;
+                value = Some(e);
+                idx += 1;
+              }
+            };
+            // Export
+            if let Some(v) = vec.get(idx) {
+              if let DottedExpr { elements, terminal: AST::Nil } = DottedExpr::new(v) {
+                if elements.get(0) == Some(&&AST::Symbol(String::from("export"))) {
+                  let args = elements[1..].iter().map(|x| self.compile_expr(pipeline, x)).collect::<Result<_, _>>()?;
+                  export = Some(decl::Export { args });
+                  idx += 1;
+                }
+              }
+            }
+            // (Extra)
+            if idx < vec.len() {
+              return Err(PError::from(Error::InvalidDecl(curr.clone())));
+            }
+
+            let decl = decl::ClassVarDecl { export, name, value };
             acc.decls.push(decl::ClassInnerDecl::ClassVarDecl(decl));
             Ok(())
           } else {

@@ -45,7 +45,7 @@ pub struct FnDecl {
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Export {
-  args: Vec<Expr>,
+  pub args: Vec<Expr>,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]

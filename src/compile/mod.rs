@@ -28,6 +28,7 @@ use crate::ir::expr::{FuncRefTarget, AssignTarget};
 use crate::ir::import::{ImportName, ImportDecl, ImportDetails};
 use crate::ir::identifier::Namespace;
 use crate::ir::locals::AccessType;
+use crate::ir::constant::MaybeConstant;
 use crate::runner::path::RPathBuf;
 use crate::pipeline::error::{Error as PError};
 use crate::pipeline::Pipeline;
@@ -422,6 +423,29 @@ impl<'a> Compiler<'a> {
                           &stmt_wrapper::Vacuous)
   }
 
+  fn compile_export(&mut self,
+                    table: &mut SymbolTable,
+                    expr: &IRExpr) -> Result<Expr, Error> {
+    // Any expression valid as a const is valid here, but then so are
+    // Expr::LocalVar since we need to allow type names.
+    //
+    // TODO Validate that the local vars appearing here make sense.
+    match expr {
+      IRExpr::LocalVar(s) => Ok(Expr::Var(s.to_owned())),
+      _ => {
+        expr.validate_const_expr("export")?;
+        // TODO Abstract this pattern of "compile with fake builder then verify it's empty"
+        let mut tmp_builder = StmtBuilder::new();
+        let value = self.compile_expr(&mut tmp_builder, table, expr, NeedsResult::Yes)?.0;
+        let (stmts, decls) = tmp_builder.build();
+        if stmts.is_empty() && decls.is_empty() {
+          Ok(value)
+        } else {
+          Err(Error::NotConstantEnough(String::from("export")))
+        }
+      }
+    }
+  }
 
   pub fn compile_class_inner_decl(&mut self,
                                   builder: &mut impl HasDecls,
@@ -435,6 +459,10 @@ impl<'a> Compiler<'a> {
         Ok(Decl::SignalDecl(name, ArgList::required(args)))
       }
       ir::decl::ClassInnerDecl::ClassVarDecl(v) => {
+        let exports = v.export.as_ref().map(|export| {
+          export.args.iter().map(|expr| self.compile_export(table, expr)).collect::<Result<Vec<_>, _>>()
+        }).transpose()?;
+        let exports = exports.map(|args| decl::Export { args });
         let name = names::lisp_to_gd(&v.name);
         let value = v.value.as_ref().map(|expr| {
           let mut tmp_builder = StmtBuilder::new();
@@ -446,7 +474,7 @@ impl<'a> Compiler<'a> {
             Err(Error::NotConstantEnough(name.to_owned()))
           }
         }).transpose()?;
-        Ok(Decl::VarDecl(None, name, value))
+        Ok(Decl::VarDecl(exports, name, value))
       }
       ir::decl::ClassInnerDecl::ClassFnDecl(f) => {
         let gd_name = names::lisp_to_gd(&f.name);
