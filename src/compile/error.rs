@@ -31,6 +31,7 @@ pub enum Error {
   NotConstantEnough(String),
   CannotAssignTo(String),
   CannotExtend(String),
+  ExportOnInnerClassVar(String),
 }
 
 impl fmt::Display for Error {
@@ -86,6 +87,9 @@ impl fmt::Display for Error {
       }
       Error::CannotExtend(s) => {
         write!(f, "Cannot extend expression {}", s)
+      }
+      Error::ExportOnInnerClassVar(v) => {
+        write!(f, "Export declarations can only be used on a file's main class, but one was found on {}", v)
       }
     }
   }

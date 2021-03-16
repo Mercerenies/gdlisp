@@ -60,14 +60,13 @@ static func run():
 
 #[test]
 pub fn member_var_class_test_4() {
-  assert_eq!(parse_compile_decl("((defclass ClassName (Node) (defvar x (export int 1 2)) (defn _init (x) (setq self:x x)) (defn get-x () self:x)))"),
-             r#"extends Reference
-class ClassName extends Node:
-    func _init(x_0):
-        self.x = x_0
-    export(int, 1, 2) var x
-    func get_x():
-        return self.x
+  assert_eq!(parse_compile_decl("((defclass ClassName (Node) main (defvar x (export int 1 2)) (defn _init (x) (setq self:x x)) (defn get-x () self:x)))"),
+             r#"extends Node
+func _init(x_0):
+    self.x = x_0
+export(int, 1, 2) var x
+func get_x():
+    return self.x
 static func run():
     return GDLisp.Nil
 "#);
@@ -75,14 +74,13 @@ static func run():
 
 #[test]
 pub fn member_var_class_test_5() {
-  assert_eq!(parse_compile_decl(r#"((defclass ClassName (Node) (defvar x "foo" (export String "foo" "bar")) (defn _init (x) (setq self:x x)) (defn get-x () self:x)))"#),
-             r#"extends Reference
-class ClassName extends Node:
-    func _init(x_0):
-        self.x = x_0
-    export(String, "foo", "bar") var x = "foo"
-    func get_x():
-        return self.x
+  assert_eq!(parse_compile_decl(r#"((defclass ClassName (Node) main (defvar x "foo" (export String "foo" "bar")) (defn _init (x) (setq self:x x)) (defn get-x () self:x)))"#),
+             r#"extends Node
+func _init(x_0):
+    self.x = x_0
+export(String, "foo", "bar") var x = "foo"
+func get_x():
+    return self.x
 static func run():
     return GDLisp.Nil
 "#);
@@ -90,8 +88,15 @@ static func run():
 
 #[test]
 #[should_panic]
-pub fn bad_member_var_class_test() {
+pub fn bad_member_var_class_test_1() {
   parse_compile_decl("((defclass ClassName (Node) (defvar x (if 1 2 3)) (defn _init (x) (setq self:x x)) (defn get-x () self:x)))");
+}
+
+#[test]
+#[should_panic]
+pub fn bad_member_var_class_test_2() {
+  // Can't have export on inner class
+  parse_compile_decl("((defclass ClassName (Node) (defvar x (export int)) (defn _init (x) (setq self:x x)) (defn get-x () self:x)))");
 }
 
 #[test]

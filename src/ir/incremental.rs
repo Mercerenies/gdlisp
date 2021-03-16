@@ -319,6 +319,11 @@ impl IncCompiler {
               return Err(PError::from(Error::InvalidDecl(curr.clone())));
             }
 
+            // Exports are only allowed on the main class
+            if export.is_some() && !acc.main_class {
+              return Err(PError::from(Error::ExportOnInnerClassVar(vname.clone())));
+            }
+
             let decl = decl::ClassVarDecl { export, name, value };
             acc.decls.push(decl::ClassInnerDecl::ClassVarDecl(decl));
             Ok(())
