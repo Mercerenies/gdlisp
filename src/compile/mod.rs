@@ -694,7 +694,7 @@ mod tests {
 
   fn compile_stmt(ast: &AST) -> Result<(Vec<Stmt>, Vec<Decl>), PError> {
 
-    let mut pipeline = Pipeline::new(ProjectConfig { root_directory: PathBuf::from(".") });
+    let mut pipeline = Pipeline::new(ProjectConfig { root_directory: PathBuf::from("."), optimizations: false });
 
     let used_names = ast.all_symbols();
     let mut compiler = Compiler::new(FreshNameGenerator::new(used_names), Box::new(DefaultPreloadResolver));

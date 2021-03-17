@@ -65,12 +65,12 @@ mod tests {
   use std::path::PathBuf;
 
   fn do_compile_expr(expr: &AST) -> Result<Expr, PError> {
-    let mut pipeline = Pipeline::new(ProjectConfig { root_directory: PathBuf::from(".") });
+    let mut pipeline = Pipeline::new(ProjectConfig { root_directory: PathBuf::from("."), optimizations: false });
     compile_expr(&mut pipeline, &expr)
   }
 
   fn do_compile_decl(decl: &AST) -> Result<Decl, PError> {
-    let mut pipeline = Pipeline::new(ProjectConfig { root_directory: PathBuf::from(".") });
+    let mut pipeline = Pipeline::new(ProjectConfig { root_directory: PathBuf::from("."), optimizations: false });
     compile_decl(&mut pipeline, &decl)
   }
 

@@ -65,7 +65,7 @@ where T : IntoGDFile + ?Sized {
 */
 
 pub fn dummy_config() -> ProjectConfig {
-  ProjectConfig { root_directory: PathBuf::from_str(".").unwrap() } // Infallible
+  ProjectConfig { root_directory: PathBuf::from_str(".").unwrap(), optimizations: false } // Infallible
 }
 
 pub fn dummy_pipeline() -> Pipeline {

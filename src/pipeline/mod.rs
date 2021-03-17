@@ -21,6 +21,7 @@ use crate::gdscript::decl;
 use crate::util;
 use crate::runner::macro_server::named_file_server::NamedFileServer;
 use crate::runner::path::{RPathBuf, PathSrc};
+use crate::optimize::gdscript::run_standard_passes;
 
 use tempfile::Builder;
 
@@ -72,7 +73,10 @@ impl Pipeline {
     let (ir, macros) = ir::compile_toplevel(self, &ast)?;
     let mut builder = CodeBuilder::new(decl::ClassExtends::named("Node".to_owned()));
     compiler.compile_toplevel(self, &mut builder, &mut table, &ir)?;
-    let result = builder.build();
+    let mut result = builder.build();
+    if self.config.optimizations {
+      run_standard_passes(&mut result)?;
+    }
 
     mem::swap(&mut old_file_path, &mut self.current_file_path);
 
@@ -112,7 +116,10 @@ impl Pipeline {
 
     let mut builder = CodeBuilder::new(decl::ClassExtends::named("Node".to_owned()));
     compiler.compile_toplevel(self, &mut builder, &mut table, &unit.ir)?;
-    let tmpresult = builder.build();
+    let mut tmpresult = builder.build();
+    if self.config.optimizations {
+      run_standard_passes(&mut tmpresult)?;
+    }
 
     write!(tmpfile, "{}", tmpresult.to_gd())?;
     let mut input_path_store_name = input_path.strip_prefix(&self.config.root_directory).expect("Non-local file load detected").to_owned(); // TODO Expect

@@ -26,7 +26,7 @@ use std::str::FromStr;
 
 fn run_pseudo_repl() {
   let stdin = io::stdin();
-  let mut pipeline = Pipeline::new(ProjectConfig { root_directory: PathBuf::from_str(".").unwrap() }); // Infallible
+  let mut pipeline = Pipeline::new(ProjectConfig { root_directory: PathBuf::from_str(".").unwrap(), optimizations: true }); // Infallible
 
   for line in stdin.lock().lines() {
     match pipeline.compile_code("./REPL.lisp", &line.unwrap()) {
@@ -44,7 +44,7 @@ fn run_pseudo_repl() {
 
 fn compile_file<P : AsRef<Path> + ?Sized>(input: &P) {
   let input = input.as_ref();
-  let mut pipeline = Pipeline::new(ProjectConfig { root_directory: input.parent().unwrap_or(input).to_owned() });
+  let mut pipeline = Pipeline::new(ProjectConfig { root_directory: input.parent().unwrap_or(input).to_owned(), optimizations: true });
   match pipeline.load_file(input.file_name().unwrap()) {
     Err(err) => {
       println!("Error: {}", err);
@@ -55,7 +55,7 @@ fn compile_file<P : AsRef<Path> + ?Sized>(input: &P) {
 
 fn compile_all_files<P : AsRef<Path> + ?Sized>(input: &P) {
   let input = input.as_ref();
-  let mut pipeline = Pipeline::new(ProjectConfig { root_directory: input.to_owned() });
+  let mut pipeline = Pipeline::new(ProjectConfig { root_directory: input.to_owned(), optimizations: true });
   for entry in WalkDir::new(input).into_iter().filter_map(|e| e.ok()) {
     if entry.path().is_file() && entry.path().extension() == Some("lisp".as_ref()) {
       println!("Compiling {} ...", entry.path().to_string_lossy());

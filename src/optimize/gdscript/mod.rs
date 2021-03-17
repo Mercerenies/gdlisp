@@ -61,7 +61,7 @@ impl DeadCodeElimination {
           }
         }
       }
-      _ => {} ////
+      _ => {} // TODO Other cases (/////)
     }
     Ok(vec!(stmt))
   }
@@ -73,6 +73,12 @@ impl FunctionOptimization for DeadCodeElimination {
     function.body = walker::walk_stmts(&function.body, DeadCodeElimination::eliminate)?;
     Ok(())
   }
+}
+
+// TODO We'll refine this a lot. Right now, it's hard coded.
+pub fn run_standard_passes(file: &mut decl::TopLevelClass) -> Result<(), Error> {
+  DeadCodeElimination.run_on_file(file)?;
+  Ok(())
 }
 
 #[cfg(test)]
