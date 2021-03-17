@@ -6,20 +6,28 @@ use crate::compile::symbol_table::SymbolTable;
 use crate::gdscript::decl;
 use crate::gdscript::library;
 use crate::runner::into_gd_file::IntoGDFile;
+use crate::runner::macro_server::named_file_server::MacroID;
 use crate::pipeline::error::{Error as PError};
 use crate::pipeline::Pipeline;
 use crate::ir;
 use crate::ir::import::ImportDecl;
 use crate::ir::decl::TopLevel;
 use crate::ir::identifier::Id;
+use crate::ir::arglist::ArgList;
 
 use tempfile::{NamedTempFile, Builder};
 
 use std::io::{self, Write};
+use std::collections::HashSet;
 
 type IRSymbolTable = super::symbol_table::SymbolTable;
 
-use std::collections::HashSet;
+#[derive(Clone, Debug)]
+pub struct MacroData {
+  pub id: MacroID,
+  pub args: ArgList,
+  pub imported: bool,
+}
 
 fn make_tmp() -> io::Result<NamedTempFile> {
   Builder::new()
@@ -27,6 +35,16 @@ fn make_tmp() -> io::Result<NamedTempFile> {
     .suffix(".gd")
     .rand_bytes(5)
     .tempfile()
+}
+
+impl MacroData {
+
+  pub fn to_imported(&self) -> MacroData {
+    let mut result = self.clone();
+    result.imported = true;
+    result
+  }
+
 }
 
 pub fn create_macro_file(pipeline: &mut Pipeline, imports: Vec<ImportDecl>, src_table: &IRSymbolTable, names: HashSet<Id>) -> Result<NamedTempFile, PError> {

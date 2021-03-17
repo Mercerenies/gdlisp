@@ -2,9 +2,8 @@
 use crate::compile::symbol_table::SymbolTable;
 use crate::ir::decl::TopLevel;
 use crate::ir::identifier::Id;
-use crate::ir::arglist::ArgList;
+use crate::ir::macros::MacroData;
 use crate::gdscript::decl::TopLevelClass;
-use crate::runner::macro_server::named_file_server::MacroID;
 
 use std::path::PathBuf;
 use std::collections::HashMap;
@@ -15,7 +14,7 @@ pub struct TranslationUnit {
   pub ir: TopLevel,
   pub gdscript: TopLevelClass,
   pub exports: Vec<Id>,
-  pub macros: HashMap<String, (MacroID, ArgList)>,
+  pub macros: HashMap<String, MacroData>,
 }
 
 impl TranslationUnit {
@@ -25,7 +24,7 @@ impl TranslationUnit {
              ir: TopLevel,
              gdscript: TopLevelClass,
              exports: Vec<Id>,
-             macros: HashMap<String, (MacroID, ArgList)>)
+             macros: HashMap<String, MacroData>)
              -> TranslationUnit {
     TranslationUnit { filename, table, ir, gdscript, exports, macros }
   }

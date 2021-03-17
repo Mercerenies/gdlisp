@@ -11,7 +11,7 @@ use super::expr::Expr;
 use super::special_form;
 use super::depends::Dependencies;
 use super::decl::{self, Decl};
-use super::macros;
+use super::macros::{self, MacroData};
 use super::constant::MaybeConstant;
 use super::identifier::{Id, IdLike, Namespace};
 use crate::sxp::dotted::{DottedExpr, TryFromDottedExprError};
@@ -19,7 +19,7 @@ use crate::sxp::ast::{self, AST};
 use crate::sxp::reify::Reify;
 use crate::compile::error::Error;
 use crate::gdscript::library;
-use crate::runner::macro_server::named_file_server::{MacroCall, MacroID};
+use crate::runner::macro_server::named_file_server::MacroCall;
 use crate::pipeline::error::{Error as PError};
 use crate::pipeline::Pipeline;
 use crate::pipeline::translation_unit::TranslationUnit;
@@ -30,7 +30,7 @@ use std::collections::{HashMap, HashSet};
 
 pub struct IncCompiler {
   symbols: SymbolTable,
-  macros: HashMap<String, (MacroID, ArgList, bool)>, // bool is true if imported
+  macros: HashMap<String, MacroData>,
   imports: Vec<ImportDecl>,
 }
 
@@ -48,7 +48,7 @@ impl IncCompiler {
   fn resolve_macro_call(&mut self, pipeline: &mut Pipeline, call: &MacroCall, head: &str, tail: &[&AST])
                         -> Result<AST, PError> {
     match self.macros.get(head) {
-      Some((_, parms, _)) => {
+      Some(MacroData { args: parms, .. }) => {
         let args: Vec<_> = tail.iter().map(|x| x.reify()).collect();
         let ast = pipeline.get_server_mut().run_server_file(call, parms.clone(), args)?;
         Ok(ast)
@@ -60,7 +60,7 @@ impl IncCompiler {
   }
 
   fn get_macro_file<'a, 'b, 'c>(&'a self, pipeline: &'b Pipeline, head: &'c str) -> Option<&'b MacroCall> {
-    self.macros.get(head).map(|x| x.0).and_then(|id| pipeline.get_server().get_file(id))
+    self.macros.get(head).map(|x| x.id).and_then(|id| pipeline.get_server().get_file(id))
   }
 
   fn try_resolve_macro_call(&mut self, pipeline: &mut Pipeline, ast: &AST) -> Result<Option<AST>, PError> {
@@ -389,8 +389,8 @@ impl IncCompiler {
     for imp in import.names(&unit.exports) {
       let ImportName { namespace: namespace, in_name: import_name, out_name: export_name } = imp;
       if namespace == Namespace::Function { // Macros are always in the function namespace
-        if let Some(x) = unit.macros.get(&export_name) {
-          self.macros.insert(import_name, (x.0, x.1.clone(), true));
+        if let Some(data) = unit.macros.get(&export_name) {
+          self.macros.insert(import_name, data.to_imported());
         }
       }
     }
@@ -439,7 +439,7 @@ impl IncCompiler {
   }
 
   pub fn compile_toplevel(mut self, pipeline: &mut Pipeline, body: &AST)
-                          -> Result<(decl::TopLevel, HashMap<String, (MacroID, ArgList)>), PError> {
+                          -> Result<(decl::TopLevel, HashMap<String, MacroData>), PError> {
     let body: Result<Vec<_>, TryFromDottedExprError> = DottedExpr::new(body).try_into();
     let body: Vec<_> = body?; // *sigh* Sometimes the type checker just doesn't get it ...
     let mut main: Vec<Expr> = Vec::new();
@@ -474,7 +474,7 @@ impl IncCompiler {
     let names = deps.try_into_knowns().map_err(Error::from)?;
     let tmpfile = macros::create_macro_file(pipeline, self.imports.clone(), &self.symbols, names)?;
     let m_id = pipeline.get_server_mut().stand_up_file(name.to_owned(), tmpfile)?;
-    self.macros.insert(name.to_owned(), (m_id, decl.args, false));
+    self.macros.insert(name.to_owned(), MacroData { id: m_id, args: decl.args, imported: false });
 
     Ok(())
   }
@@ -489,14 +489,14 @@ impl Default for IncCompiler {
 
 }
 
-impl From<IncCompiler> for (decl::TopLevel, HashMap<String, (MacroID, ArgList)>) {
+impl From<IncCompiler> for (decl::TopLevel, HashMap<String, MacroData>) {
 
-  fn from(compiler: IncCompiler) -> (decl::TopLevel, HashMap<String, (MacroID, ArgList)>) {
+  fn from(compiler: IncCompiler) -> (decl::TopLevel, HashMap<String, MacroData>) {
     let toplevel = decl::TopLevel {
       imports: compiler.imports,
       decls: compiler.symbols.into(),
     };
-    let macros: HashMap<_, _> = compiler.macros.into_iter().filter(|(_, x)| !x.2).map(|(s, x)| (s, (x.0, x.1))).collect();
+    let macros: HashMap<_, _> = compiler.macros.into_iter().filter(|(_, x)| !x.imported).collect();
     (toplevel, macros)
   }
 
