@@ -438,7 +438,7 @@ pub fn compile_lambda_stmt<'a>(compiler: &mut Compiler<'a>,
   let class = generate_lambda_class(compiler, args.clone().into(), arglist, &gd_closure_vars, lambda_body, "_LambdaBlock");
   let class_name = class.name.clone();
   builder.add_helper(Decl::ClassDecl(class));
-  let constructor_args = gd_src_closure_vars.into_iter().map(|s| Expr::Var(s)).collect();
+  let constructor_args = gd_src_closure_vars.into_iter().map(Expr::Var).collect();
   let expr = Expr::Call(Some(Box::new(Expr::Var(class_name))), String::from("new"), constructor_args);
   Ok(StExpr(expr, SideEffects::None))
 }

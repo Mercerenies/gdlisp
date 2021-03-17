@@ -339,8 +339,7 @@ impl<'a> Compiler<'a> {
   // TODO It's an error to have multiple main classes in one file, but we don't currently report this.
   fn flatten_class_into_main(&mut self,
                              builder: &mut CodeBuilder,
-                             class: decl::ClassDecl)
-                             -> () {
+                             class: decl::ClassDecl) {
     let decl::ClassDecl { name: _, extends, body } = class;
     builder.extends(extends);
     for decl in body {
@@ -617,7 +616,7 @@ impl<'a> Compiler<'a> {
           // We have a special rule if we're importing the main class
           // into scope, as it's wonky and needs to be treated
           // differently.
-          let matching_ir = unit.ir.decls.iter().find(|x| x.name() == &export_name && matches!(x, IRDecl::ClassDecl(ir::decl::ClassDecl { main_class: true, .. })));
+          let matching_ir = unit.ir.decls.iter().find(|x| x.name() == export_name && matches!(x, IRDecl::ClassDecl(ir::decl::ClassDecl { main_class: true, .. })));
           if matching_ir.is_some() {
             let mut var = LocalVar::global(preload_name.clone());
             var.assignable = false;
