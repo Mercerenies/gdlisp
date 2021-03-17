@@ -27,6 +27,7 @@ pub mod constant;
 
 use expr::Expr;
 use decl::Decl;
+use arglist::ArgList;
 use crate::sxp::ast::AST;
 use crate::pipeline::error::{Error as PError};
 use crate::pipeline::Pipeline;
@@ -47,7 +48,7 @@ pub fn compile_decl(pipeline: &mut Pipeline, decl: &AST)
 }
 
 pub fn compile_toplevel(pipeline: &mut Pipeline, body: &AST)
-                        -> Result<(decl::TopLevel, HashMap<String, (MacroID, decl::MacroDecl)>), PError> {
+                        -> Result<(decl::TopLevel, HashMap<String, (MacroID, ArgList)>), PError> {
   let compiler = incremental::IncCompiler::new();
   compiler.compile_toplevel(pipeline, body)
 }

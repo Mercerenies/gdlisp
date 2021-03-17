@@ -30,7 +30,7 @@ use std::collections::{HashMap, HashSet};
 
 pub struct IncCompiler {
   symbols: SymbolTable,
-  macros: HashMap<String, (MacroID, decl::MacroDecl, bool)>, // bool is true if imported
+  macros: HashMap<String, (MacroID, ArgList, bool)>, // bool is true if imported
   imports: Vec<ImportDecl>,
 }
 
@@ -48,9 +48,9 @@ impl IncCompiler {
   fn resolve_macro_call(&mut self, pipeline: &mut Pipeline, call: &MacroCall, head: &str, tail: &[&AST])
                         -> Result<AST, PError> {
     match self.macros.get(head) {
-      Some((_, mdecl, _)) => {
+      Some((_, parms, _)) => {
         let args: Vec<_> = tail.iter().map(|x| x.reify()).collect();
-        let ast = pipeline.get_server_mut().run_server_file(call, mdecl.args.clone(), args)?;
+        let ast = pipeline.get_server_mut().run_server_file(call, parms.clone(), args)?;
         Ok(ast)
       }
       _ => {
@@ -439,7 +439,7 @@ impl IncCompiler {
   }
 
   pub fn compile_toplevel(mut self, pipeline: &mut Pipeline, body: &AST)
-                          -> Result<(decl::TopLevel, HashMap<String, (MacroID, decl::MacroDecl)>), PError> {
+                          -> Result<(decl::TopLevel, HashMap<String, (MacroID, ArgList)>), PError> {
     let body: Result<Vec<_>, TryFromDottedExprError> = DottedExpr::new(body).try_into();
     let body: Vec<_> = body?; // *sigh* Sometimes the type checker just doesn't get it ...
     let mut main: Vec<Expr> = Vec::new();
@@ -474,7 +474,7 @@ impl IncCompiler {
     let names = deps.try_into_knowns().map_err(Error::from)?;
     let tmpfile = macros::create_macro_file(pipeline, self.imports.clone(), &self.symbols, names)?;
     let m_id = pipeline.get_server_mut().stand_up_file(name.to_owned(), tmpfile)?;
-    self.macros.insert(name.to_owned(), (m_id, decl, false));
+    self.macros.insert(name.to_owned(), (m_id, decl.args, false));
 
     Ok(())
   }
@@ -489,9 +489,9 @@ impl Default for IncCompiler {
 
 }
 
-impl From<IncCompiler> for (decl::TopLevel, HashMap<String, (MacroID, decl::MacroDecl)>) {
+impl From<IncCompiler> for (decl::TopLevel, HashMap<String, (MacroID, ArgList)>) {
 
-  fn from(compiler: IncCompiler) -> (decl::TopLevel, HashMap<String, (MacroID, decl::MacroDecl)>) {
+  fn from(compiler: IncCompiler) -> (decl::TopLevel, HashMap<String, (MacroID, ArgList)>) {
     let toplevel = decl::TopLevel {
       imports: compiler.imports,
       decls: compiler.symbols.into(),
