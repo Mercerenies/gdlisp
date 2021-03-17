@@ -13,6 +13,7 @@ pub mod graph;
 pub mod util;
 pub mod command_line;
 pub mod pipeline;
+pub mod optimize;
 mod parser_test;
 
 lalrpop_mod!(#[allow(clippy::all)] pub parser);
