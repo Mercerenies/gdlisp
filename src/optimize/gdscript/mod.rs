@@ -2,7 +2,7 @@
 pub mod noop;
 pub mod walker;
 
-use crate::gdscript::decl;
+use crate::gdscript::decl::{self, Decl};
 use crate::gdscript::stmt::Stmt;
 use crate::compile::error::Error;
 
@@ -12,8 +12,41 @@ pub struct DeadCodeElimination;
 // to be in a valid, correct state. It may or may not be rolled back
 // to the way it started, but it should perform equivalently at
 // runtime.
+
 pub trait FunctionOptimization {
-  fn run(&self, function: &mut decl::FnDecl) -> Result<(), Error>;
+  fn run_on_function(&self, function: &mut decl::FnDecl) -> Result<(), Error>;
+}
+
+pub trait FileOptimization {
+  fn run_on_file(&self, file: &mut decl::TopLevelClass) -> Result<(), Error>;
+}
+
+fn on_decl(opt: &impl FunctionOptimization, decl: &mut Decl) -> Result<(), Error> {
+  match decl {
+    Decl::FnDecl(_, fndecl) => {
+      opt.run_on_function(fndecl)
+    }
+    Decl::ClassDecl(cdecl) => {
+      for d in &mut cdecl.body {
+        on_decl(opt, d)?;
+      }
+      Ok(())
+    }
+    Decl::VarDecl(_, _, _) | Decl::ConstDecl(_, _) | Decl::SignalDecl(_, _) => {
+      Ok(())
+    }
+  }
+}
+
+// Every FunctionOptimization is a FileOptimization by applying it to
+// each function in the file.
+impl<T> FileOptimization for T where T : FunctionOptimization {
+  fn run_on_file(&self, file: &mut decl::TopLevelClass) -> Result<(), Error> {
+    for d in &mut file.body {
+      on_decl(self, d)?;
+    }
+    Ok(())
+  }
 }
 
 impl DeadCodeElimination {
@@ -36,7 +69,7 @@ impl DeadCodeElimination {
 }
 
 impl FunctionOptimization for DeadCodeElimination {
-  fn run(&self, function: &mut decl::FnDecl) -> Result<(), Error> {
+  fn run_on_function(&self, function: &mut decl::FnDecl) -> Result<(), Error> {
     function.body = walker::walk_stmts(&function.body, DeadCodeElimination::eliminate)?;
     Ok(())
   }
@@ -54,7 +87,7 @@ mod tests {
     let stmt = stmt::if_else(Expr::from(0), vec!(Stmt::ReturnStmt(Expr::from(1))), vec!(Stmt::ReturnStmt(Expr::from(2))));
     let decl = decl::FnDecl { name: String::from("example"), args: ArgList::empty(), body: vec!(stmt) };
     let mut transformed_decl = decl.clone();
-    DeadCodeElimination.run(&mut transformed_decl).unwrap();
+    DeadCodeElimination.run_on_function(&mut transformed_decl).unwrap();
     assert_eq!(decl, transformed_decl);
   }
 
@@ -68,7 +101,7 @@ mod tests {
     let decl1 = decl::FnDecl { name: String::from("example"), args: ArgList::empty(), body: vec!(stmt1) };
 
     let mut transformed_decl = decl0.clone();
-    DeadCodeElimination.run(&mut transformed_decl).unwrap();
+    DeadCodeElimination.run_on_function(&mut transformed_decl).unwrap();
     assert_eq!(decl1, transformed_decl);
   }
 
