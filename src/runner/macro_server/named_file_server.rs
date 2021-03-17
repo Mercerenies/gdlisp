@@ -40,7 +40,7 @@ impl NamedFileServer {
     NamedFileServer {
       server: LazyServer::new(),
       macro_files: HashMap::new(),
-      next_id: MacroID::default(),
+      next_id: MacroID::smallest_unreserved(),
     }
   }
 
@@ -90,6 +90,16 @@ impl NamedFileServer {
 }
 
 impl MacroID {
+
+  pub const RESERVED: u32 = 1024;
+
+  pub fn smallest_unreserved() -> MacroID {
+    MacroID(MacroID::RESERVED)
+  }
+
+  pub fn is_reserved(self) -> bool {
+    self.0 < MacroID::RESERVED
+  }
 
   pub fn next(self) -> MacroID {
     MacroID(self.0 + 1)

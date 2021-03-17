@@ -45,13 +45,22 @@ impl IncCompiler {
     }
   }
 
-  fn resolve_macro_call(&mut self, pipeline: &mut Pipeline, call: &MacroCall, head: &str, tail: &[&AST])
+  fn resolve_macro_call(&mut self, pipeline: &mut Pipeline, head: &str, tail: &[&AST])
                         -> Result<AST, PError> {
     match self.macros.get(head) {
-      Some(MacroData { args: parms, .. }) => {
-        let args: Vec<_> = tail.iter().map(|x| x.reify()).collect();
-        let ast = pipeline.get_server_mut().run_server_file(call, parms.clone(), args)?;
-        Ok(ast)
+      Some(MacroData { id, args: parms, .. }) => {
+        if id.is_reserved() {
+          // Reserved for built-in macros; it runs in Rust
+          let func = library::macros::get_builtin_macro(*id).ok_or_else(|| PError::from(Error::NoSuchFn(head.to_owned())))?;
+          let ast = func(tail)?;
+          Ok(ast)
+        } else {
+          // User-defined macro; runs in Godot
+          let call = self.get_macro_file(pipeline, &head).expect("Could not find macro file").clone();
+          let args: Vec<_> = tail.iter().map(|x| x.reify()).collect();
+          let ast = pipeline.get_server_mut().run_server_file(&call, parms.clone(), args)?;
+          Ok(ast)
+        }
       }
       _ => {
         Err(PError::from(Error::NoSuchFn(head.to_owned())))
@@ -72,9 +81,8 @@ impl IncCompiler {
       let head = self.resolve_call_name(pipeline, vec[0])?;
       if let CallName::SimpleName(head) = head {
         let tail = &vec[1..];
-        if let Some(call) = self.get_macro_file(pipeline, &head) {
-          let call = call.clone(); // Can't borrow self mutably below, so let's get rid of the immutable borrow above.
-          return self.resolve_macro_call(pipeline, &call, &head, tail).map(Some);
+        if self.macros.get(&head).is_some() {
+          return self.resolve_macro_call(pipeline, &head, tail).map(Some);
         }
       }
     }
@@ -97,9 +105,8 @@ impl IncCompiler {
                              -> Result<Expr, PError> {
     if let Some(sf) = special_form::dispatch_form(self, pipeline, head, tail)? {
       Ok(sf)
-    } else if let Some(call) = self.get_macro_file(pipeline, head) {
-      let call = call.clone(); // Can't borrow self mutably below, so let's get rid of the immutable borrow above.
-      let result = self.resolve_macro_call(pipeline, &call, head, tail)?;
+    } else if self.macros.get(head).is_some() {
+      let result = self.resolve_macro_call(pipeline, head, tail)?;
       self.compile_expr(pipeline, &result)
     } else {
       let args = tail.iter().map(|x| self.compile_expr(pipeline, x)).collect::<Result<Vec<_>, _>>()?;
@@ -477,6 +484,10 @@ impl IncCompiler {
     self.macros.insert(name.to_owned(), MacroData { id: m_id, args: decl.args, imported: false });
 
     Ok(())
+  }
+
+  pub fn bind_builtin_macros(&mut self) {
+    library::bind_builtin_macros(&mut self.macros);
   }
 
 }

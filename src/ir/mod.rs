@@ -48,7 +48,8 @@ pub fn compile_decl(pipeline: &mut Pipeline, decl: &AST)
 
 pub fn compile_toplevel(pipeline: &mut Pipeline, body: &AST)
                         -> Result<(decl::TopLevel, HashMap<String, MacroData>), PError> {
-  let compiler = incremental::IncCompiler::new();
+  let mut compiler = incremental::IncCompiler::new();
+  compiler.bind_builtin_macros();
   compiler.compile_toplevel(pipeline, body)
 }
 

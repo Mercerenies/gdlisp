@@ -2,18 +2,21 @@
 // Convenient access to the builtins in GDLisp.gd
 
 pub mod classes;
+pub mod macros;
 
 use super::expr::Expr;
 use super::op;
 use crate::compile::symbol_table::{SymbolTable, LocalVar, VarScope};
 use crate::compile::symbol_table::function_call::{FnCall, FnScope, FnSpecs};
 use crate::compile::symbol_table::call_magic;
-use crate::ir::arglist::VarArg;
+use crate::ir::arglist::{ArgList, VarArg};
 use crate::ir::identifier::{Id, Namespace};
 use crate::ir::locals::AccessType;
+use crate::ir::macros::MacroData;
+use crate::runner::macro_server::named_file_server::MacroID;
 use classes::GDSCRIPT_CLASS_NAMES;
 
-use std::collections::HashSet;
+use std::collections::{HashSet, HashMap};
 
 pub const GDLISP_NAME: &str = "GDLisp";
 pub const CELL_CONTENTS: &str = "contents";
@@ -59,6 +62,10 @@ pub fn bind_builtins(table: &mut SymbolTable) {
   for name in &GDSCRIPT_CLASS_NAMES {
     table.set_var((*name).to_owned(), LocalVar::global((*name).to_owned()));
   }
+
+  // TODO Do we need to bind built-in macros here? Macros should have
+  // no runtime presence so that makes me think no, but at the same
+  // time we do bind user-defined macros to the symbol table.
 
   // nil
   table.set_var("nil".to_owned(),
@@ -234,4 +241,16 @@ pub fn all_builtin_names() -> HashSet<Id> {
     names.insert(Id::new(Namespace::Value, var.to_owned()));
   }
   names
+}
+
+pub fn bind_builtin_macros(macros: &mut HashMap<String, MacroData>) {
+
+  // or
+  macros.insert(String::from("or"),
+                MacroData { id: MacroID(macros::ID_OR_FUNCTION), args: ArgList::rest(), imported: true });
+
+  // and
+  macros.insert(String::from("and"),
+                MacroData { id: MacroID(macros::ID_AND_FUNCTION), args: ArgList::rest(), imported: true });
+
 }
