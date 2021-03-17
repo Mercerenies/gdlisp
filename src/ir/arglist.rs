@@ -78,6 +78,14 @@ impl ArgList {
     }
   }
 
+  pub fn rest() -> ArgList {
+    ArgList {
+      required_args: vec!(),
+      optional_args: vec!(),
+      rest_arg: Some((String::from("rest-arg"), VarArg::RestArg)),
+    }
+  }
+
   pub fn required(args: Vec<String>) -> ArgList {
     ArgList {
       required_args: args,
