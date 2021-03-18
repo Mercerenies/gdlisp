@@ -73,3 +73,15 @@ impl ResourceType {
   }
 
 }
+
+impl From<&Path> for ResourceType {
+  fn from(path: &Path) -> ResourceType {
+    ResourceType::from_path(path)
+  }
+}
+
+impl From<&ImportDecl> for ResourceType {
+  fn from(imp: &ImportDecl) -> ResourceType {
+    ResourceType::from_path(imp.filename.path())
+  }
+}
