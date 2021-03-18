@@ -203,6 +203,16 @@ pub fn bind_builtins(table: &mut SymbolTable) {
                FnCall::unqualified(FnSpecs::new(1, 0, None), FnScope::Global, "str".to_owned()),
                Box::new(call_magic::DefaultCall));
 
+  // int
+  table.set_fn("int".to_owned(),
+               FnCall::unqualified(FnSpecs::new(1, 0, None), FnScope::Global, "int".to_owned()),
+               Box::new(call_magic::DefaultCall));
+
+  // bool
+  table.set_fn("bool".to_owned(),
+               FnCall::unqualified(FnSpecs::new(1, 0, None), FnScope::Global, "bool".to_owned()),
+               Box::new(call_magic::DefaultCall));
+
   // randomize
   table.set_fn("randomize".to_owned(),
                FnCall::unqualified(FnSpecs::new(0, 0, None), FnScope::Global, "randomize".to_owned()),

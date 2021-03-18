@@ -141,7 +141,7 @@ impl ConstantConditionalBranch {
 
 impl ElseThenIfFold {
   pub fn eliminate(stmt: &Stmt) -> Result<Vec<Stmt>, Error> {
-    // If we have an else: whose body is an if, we can flatten it.
+    // If we have an else whose body is an if, we can flatten it.
     // This comes up when compiling cond sometimes.
     if let Stmt::IfStmt(if_stmt) = &stmt {
       if let Some(else_stmt) = &if_stmt.else_clause {
