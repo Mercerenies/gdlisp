@@ -1,10 +1,14 @@
 
 use crate::runner::macro_server::named_file_server::MacroID;
 use crate::sxp::ast::{self, AST};
+use crate::sxp::dotted::DottedExpr;
 use crate::compile::error::Error;
 
-pub const ID_AND_FUNCTION: u32 = 0;
-pub const ID_OR_FUNCTION:  u32 = 1;
+use std::convert::TryInto;
+
+pub const ID_AND_FUNCTION:      u32 = 0;
+pub const ID_OR_FUNCTION:       u32 = 1;
+pub const ID_LETSTAR_FUNCTION:  u32 = 2;
 
 pub fn get_builtin_macro(id: MacroID) -> Option<fn(&[&AST]) -> Result<AST, Error>> {
   match id.0 {
@@ -13,6 +17,9 @@ pub fn get_builtin_macro(id: MacroID) -> Option<fn(&[&AST]) -> Result<AST, Error
     }
     1 => {
       Some(or_function)
+    }
+    2 => {
+      Some(let_star_function)
     }
     _ => {
       None
@@ -51,4 +58,19 @@ pub fn and_function(arg: &[&AST]) -> Result<AST, Error> {
     // No arguments provided
     Ok(AST::Bool(true))
   }
+}
+
+pub fn let_star_function(arg: &[&AST]) -> Result<AST, Error> {
+  if arg.is_empty() {
+    return Err(Error::TooFewArgs(String::from("let*"), arg.len()));
+  }
+  let vars: Vec<_> = DottedExpr::new(arg[0]).try_into()?;
+  let body: Vec<_> = arg[1..].iter().map(|x| (*x).clone()).collect();
+  let mut body = ast::cons(AST::Symbol(String::from("progn")), ast::list(body));
+  for var in vars.into_iter().rev() {
+    body = ast::list(vec!(AST::Symbol(String::from("let")),
+                          ast::list(vec!(var.clone())),
+                          body));
+  }
+  Ok(body)
 }

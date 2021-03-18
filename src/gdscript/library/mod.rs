@@ -273,4 +273,8 @@ pub fn bind_builtin_macros(macros: &mut HashMap<String, MacroData>) {
   macros.insert(String::from("and"),
                 MacroData { id: MacroID(macros::ID_AND_FUNCTION), args: ArgList::rest(), imported: true });
 
+  // let*
+  macros.insert(String::from("let*"),
+                MacroData { id: MacroID(macros::ID_LETSTAR_FUNCTION), args: ArgList::rest(), imported: true });
+
 }
