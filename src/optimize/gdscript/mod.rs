@@ -9,6 +9,7 @@ use crate::compile::error::Error;
 
 pub struct DeadCodeElimination;
 pub struct ConstantConditionalBranch;
+pub struct ElseThenIfFold;
 
 // Note: If optimization results in an error, the code is guaranteed
 // to be in a valid, correct state. It may or may not be rolled back
@@ -138,6 +139,27 @@ impl ConstantConditionalBranch {
 
 }
 
+impl ElseThenIfFold {
+  pub fn eliminate(stmt: &Stmt) -> Result<Vec<Stmt>, Error> {
+    // If we have an else: whose body is an if, we can flatten it.
+    // This comes up when compiling cond sometimes.
+    if let Stmt::IfStmt(if_stmt) = &stmt {
+      if let Some(else_stmt) = &if_stmt.else_clause {
+        if let [Stmt::IfStmt(inner_if_stmt)] = &else_stmt[..] {
+          let mut new_if_stmt = if_stmt.clone();
+          new_if_stmt.elif_clauses.push(inner_if_stmt.if_clause.clone());
+          for elif in &inner_if_stmt.elif_clauses {
+            new_if_stmt.elif_clauses.push(elif.clone());
+          }
+          new_if_stmt.else_clause = inner_if_stmt.else_clause.clone();
+          return Ok(vec!(Stmt::IfStmt(new_if_stmt)));
+        }
+      }
+    }
+    Ok(vec!(stmt.clone()))
+  }
+}
+
 impl FunctionOptimization for DeadCodeElimination {
   fn run_on_function(&self, function: &mut decl::FnDecl) -> Result<(), Error> {
     function.body = walker::walk_stmts(&function.body, DeadCodeElimination::eliminate)?;
@@ -152,10 +174,18 @@ impl FunctionOptimization for ConstantConditionalBranch {
   }
 }
 
+impl FunctionOptimization for ElseThenIfFold {
+  fn run_on_function(&self, function: &mut decl::FnDecl) -> Result<(), Error> {
+    function.body = walker::walk_stmts(&function.body, ElseThenIfFold::eliminate)?;
+    Ok(())
+  }
+}
+
 // TODO We'll refine this a lot. Right now, it's hard coded.
 pub fn run_standard_passes(file: &mut decl::TopLevelClass) -> Result<(), Error> {
   ConstantConditionalBranch.run_on_file(file)?;
   DeadCodeElimination.run_on_file(file)?;
+  ElseThenIfFold.run_on_file(file)?;
   Ok(())
 }
 
