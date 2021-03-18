@@ -38,7 +38,7 @@ impl ResourceType {
       ResourceType::GDLispSource
     } else if ext == "gd" {
       ResourceType::GDScriptSource
-    } else if ext == "tres" {
+    } else if ext == "tscn" {
       ResourceType::PackedScene
     } else {
       ResourceType::Miscellaneous
