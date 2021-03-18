@@ -16,6 +16,10 @@ pub struct ElseThenIfFold;
 // to the way it started, but it should perform equivalently at
 // runtime.
 
+pub trait StatementLevelPass {
+  fn eliminate(&self, stmt: &Stmt) -> Result<Vec<Stmt>, Error>;
+}
+
 pub trait FunctionOptimization {
   fn run_on_function(&self, function: &mut decl::FnDecl) -> Result<(), Error>;
 }
@@ -52,9 +56,17 @@ impl<T> FileOptimization for T where T : FunctionOptimization {
   }
 }
 
-impl DeadCodeElimination {
+// A StatementLevelPass is just a local FunctionOptimization
+impl<T> FunctionOptimization for T where T : StatementLevelPass {
+  fn run_on_function(&self, function: &mut decl::FnDecl) -> Result<(), Error> {
+    function.body = walker::walk_stmts(&function.body, |x| self.eliminate(x))?;
+    Ok(())
+  }
+}
 
-  pub fn eliminate(stmt: &Stmt) -> Result<Vec<Stmt>, Error> {
+impl StatementLevelPass for DeadCodeElimination {
+
+  fn eliminate(&self, stmt: &Stmt) -> Result<Vec<Stmt>, Error> {
     let mut stmt = stmt.clone();
 
     // Check for empty else clause
@@ -73,50 +85,10 @@ impl DeadCodeElimination {
 
 impl ConstantConditionalBranch {
 
-  pub fn eliminate(stmt: &Stmt) -> Result<Vec<Stmt>, Error> {
-    // Check for obviously true or false cases
-    if let Stmt::IfStmt(if_stmt) = &stmt {
-
-      // If branch
-      if let Some(b) = constant::deduce_bool(&if_stmt.if_clause.0) {
-        if b {
-          // Definitely true case
-          return ConstantConditionalBranch::eliminate_acc(&if_stmt.if_clause.1);
-        } else {
-          // Definitely false case
-          let rest_of_stmt = ConstantConditionalBranch::kill_if_branch(&if_stmt);
-          return ConstantConditionalBranch::eliminate_acc(&rest_of_stmt);
-        }
-      }
-
-      // Elif branches
-
-      // If any are definitely false, we can eliminate them
-      let mut v = if_stmt.elif_clauses.clone();
-      v.retain(|(e, _)| constant::deduce_bool(e) != Some(false));
-      if v != if_stmt.elif_clauses.clone() {
-        let mut new_if_stmt = if_stmt.clone();
-        new_if_stmt.elif_clauses = v;
-        return ConstantConditionalBranch::eliminate(&Stmt::IfStmt(new_if_stmt));
-      }
-
-      // If any are definitely true, then they become the else branch
-      let match_index = if_stmt.elif_clauses.iter().position(|(e, _)| constant::deduce_bool(e) == Some(true));
-      if let Some(match_index) = match_index {
-        let mut new_if_stmt = if_stmt.clone();
-        new_if_stmt.elif_clauses = if_stmt.elif_clauses[0..match_index].to_vec();
-        new_if_stmt.else_clause = Some(if_stmt.elif_clauses[match_index].1.clone());
-        return ConstantConditionalBranch::eliminate(&Stmt::IfStmt(new_if_stmt));
-      }
-
-    }
-    Ok(vec!(stmt.clone()))
-  }
-
-  pub fn eliminate_acc(stmts: &[Stmt]) -> Result<Vec<Stmt>, Error> {
+  pub fn eliminate_acc(&self, stmts: &[Stmt]) -> Result<Vec<Stmt>, Error> {
     let mut result = Vec::new();
     for stmt in stmts {
-      result.extend(ConstantConditionalBranch::eliminate(stmt)?);
+      result.extend(self.eliminate(stmt)?);
     }
     Ok(result)
   }
@@ -139,8 +111,52 @@ impl ConstantConditionalBranch {
 
 }
 
-impl ElseThenIfFold {
-  pub fn eliminate(stmt: &Stmt) -> Result<Vec<Stmt>, Error> {
+impl StatementLevelPass for ConstantConditionalBranch {
+
+  fn eliminate(&self, stmt: &Stmt) -> Result<Vec<Stmt>, Error> {
+    // Check for obviously true or false cases
+    if let Stmt::IfStmt(if_stmt) = &stmt {
+
+      // If branch
+      if let Some(b) = constant::deduce_bool(&if_stmt.if_clause.0) {
+        if b {
+          // Definitely true case
+          return self.eliminate_acc(&if_stmt.if_clause.1);
+        } else {
+          // Definitely false case
+          let rest_of_stmt = ConstantConditionalBranch::kill_if_branch(&if_stmt);
+          return self.eliminate_acc(&rest_of_stmt);
+        }
+      }
+
+      // Elif branches
+
+      // If any are definitely false, we can eliminate them
+      let mut v = if_stmt.elif_clauses.clone();
+      v.retain(|(e, _)| constant::deduce_bool(e) != Some(false));
+      if v != if_stmt.elif_clauses.clone() {
+        let mut new_if_stmt = if_stmt.clone();
+        new_if_stmt.elif_clauses = v;
+        return self.eliminate(&Stmt::IfStmt(new_if_stmt));
+      }
+
+      // If any are definitely true, then they become the else branch
+      let match_index = if_stmt.elif_clauses.iter().position(|(e, _)| constant::deduce_bool(e) == Some(true));
+      if let Some(match_index) = match_index {
+        let mut new_if_stmt = if_stmt.clone();
+        new_if_stmt.elif_clauses = if_stmt.elif_clauses[0..match_index].to_vec();
+        new_if_stmt.else_clause = Some(if_stmt.elif_clauses[match_index].1.clone());
+        return self.eliminate(&Stmt::IfStmt(new_if_stmt));
+      }
+
+    }
+    Ok(vec!(stmt.clone()))
+  }
+
+}
+
+impl StatementLevelPass for ElseThenIfFold {
+  fn eliminate(&self, stmt: &Stmt) -> Result<Vec<Stmt>, Error> {
     // If we have an else whose body is an if, we can flatten it.
     // This comes up when compiling cond sometimes.
     if let Stmt::IfStmt(if_stmt) = &stmt {
@@ -157,27 +173,6 @@ impl ElseThenIfFold {
       }
     }
     Ok(vec!(stmt.clone()))
-  }
-}
-
-impl FunctionOptimization for DeadCodeElimination {
-  fn run_on_function(&self, function: &mut decl::FnDecl) -> Result<(), Error> {
-    function.body = walker::walk_stmts(&function.body, DeadCodeElimination::eliminate)?;
-    Ok(())
-  }
-}
-
-impl FunctionOptimization for ConstantConditionalBranch {
-  fn run_on_function(&self, function: &mut decl::FnDecl) -> Result<(), Error> {
-    function.body = walker::walk_stmts(&function.body, ConstantConditionalBranch::eliminate)?;
-    Ok(())
-  }
-}
-
-impl FunctionOptimization for ElseThenIfFold {
-  fn run_on_function(&self, function: &mut decl::FnDecl) -> Result<(), Error> {
-    function.body = walker::walk_stmts(&function.body, ElseThenIfFold::eliminate)?;
-    Ok(())
   }
 }
 
