@@ -18,6 +18,7 @@ use crate::sxp::dotted::{DottedExpr, TryFromDottedExprError};
 use crate::sxp::ast::{self, AST};
 use crate::sxp::reify::Reify;
 use crate::compile::error::Error;
+use crate::compile::resource_type::ResourceType;
 use crate::gdscript::library;
 use crate::runner::macro_server::named_file_server::MacroCall;
 use crate::pipeline::error::{Error as PError};
@@ -438,8 +439,11 @@ impl IncCompiler {
     }
     let imp = self.compile_import(curr)?;
     if let Some(imp) = imp {
-      let file = pipeline.load_file(imp.filename.path())?;
-      self.import_macros_from(&file, &imp);
+      let res_type = ResourceType::from(&imp);
+      if res_type.can_have_macros() {
+        let file = pipeline.load_file(imp.filename.path())?;
+        self.import_macros_from(&file, &imp);
+      }
       self.imports.push(imp);
     } else {
       // TODO The intention of catching DottedListError here is to

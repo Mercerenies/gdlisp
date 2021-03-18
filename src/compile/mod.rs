@@ -36,7 +36,9 @@ use crate::pipeline::Pipeline;
 use special_form::lambda;
 use special_form::flet;
 use stateful::{StExpr, NeedsResult, SideEffects};
+use resource_type::ResourceType;
 
+use std::ffi::OsStr;
 use std::cmp::max;
 
 type IRDecl = ir::decl::Decl;
@@ -537,7 +539,9 @@ impl<'a> Compiler<'a> {
 
   fn make_preload_line(&self, var: String, path: &RPathBuf) -> Result<Decl, Error> {
     let mut path = path.clone();
-    path.path_mut().set_extension("gd");
+    if path.path().extension() == Some(OsStr::new("lisp")) {
+      path.path_mut().set_extension("gd");
+    }
     let path = self.resolver.resolve_preload(&path).ok_or_else(|| Error::NoSuchFile(path.clone()))?;
     Ok(Decl::ConstDecl(var, Expr::Call(None, String::from("preload"), vec!(Expr::from(path)))))
   }
@@ -599,43 +603,58 @@ impl<'a> Compiler<'a> {
                         -> Result<(), PError> {
     let preload_name = self.import_name(import);
     builder.add_decl(self.make_preload_line(preload_name.clone(), &import.filename)?);
+    let res_type = ResourceType::from(import);
 
-    // Now add the pertinent symbols to the symbol table
-    let unit = pipeline.load_file(&import.filename.path())?;
-    let unit_table = &unit.table;
-    let exports = &unit.exports;
-    let names = import.names(&unit.exports);
-    for imp in names {
-      let ImportName { namespace: namespace, in_name: import_name, out_name: export_name } = imp;
-      match namespace {
-        Namespace::Function => {
-          let (call, _) = unit_table.get_fn(&export_name).ok_or(Error::NoSuchFn(export_name))?;
-          let call = Compiler::translate_call(preload_name.clone(), call.clone());
-          table.set_fn(import_name.clone(), call, Box::new(DefaultCall));
-        }
-        Namespace::Value => {
-          // We have a special rule if we're importing the main class
-          // into scope, as it's wonky and needs to be treated
-          // differently.
-          let matching_ir = unit.ir.decls.iter().find(|x| x.name() == export_name && matches!(x, IRDecl::ClassDecl(ir::decl::ClassDecl { main_class: true, .. })));
-          if matching_ir.is_some() {
-            let mut var = LocalVar::global(preload_name.clone());
-            var.assignable = false;
-            table.set_var(import_name.clone(), var);
-          } else {
-            let mut var = unit_table.get_var(&export_name).ok_or(Error::NoSuchVar(export_name))?.clone();
-            var.name = Compiler::insert_object_into_call(preload_name.clone(), var.name);
-            table.set_var(import_name.clone(), var);
+    ResourceType::check_import(pipeline, import)?;
+
+    if res_type == ResourceType::GDLispSource {
+      // Now add the pertinent symbols to the symbol table
+      let unit = pipeline.load_file(&import.filename.path())?;
+      let unit_table = &unit.table;
+      let exports = &unit.exports;
+      let names = import.names(&unit.exports);
+      for imp in names {
+        let ImportName { namespace: namespace, in_name: import_name, out_name: export_name } = imp;
+        match namespace {
+          Namespace::Function => {
+            let (call, _) = unit_table.get_fn(&export_name).ok_or(Error::NoSuchFn(export_name))?;
+            let call = Compiler::translate_call(preload_name.clone(), call.clone());
+            table.set_fn(import_name.clone(), call, Box::new(DefaultCall));
           }
+          Namespace::Value => {
+            // We have a special rule if we're importing the main class
+            // into scope, as it's wonky and needs to be treated
+            // differently.
+            let matching_ir = unit.ir.decls.iter().find(|x| x.name() == export_name && matches!(x, IRDecl::ClassDecl(ir::decl::ClassDecl { main_class: true, .. })));
+            if matching_ir.is_some() {
+              let mut var = LocalVar::global(preload_name.clone());
+              var.assignable = false;
+              table.set_var(import_name.clone(), var);
+            } else {
+              let mut var = unit_table.get_var(&export_name).ok_or(Error::NoSuchVar(export_name))?.clone();
+              var.name = Compiler::insert_object_into_call(preload_name.clone(), var.name);
+              table.set_var(import_name.clone(), var);
+            }
+        }
         }
       }
-    }
 
-    // If it was a restricted import list, validate the import names
-    if let ImportDetails::Restricted(vec) = &import.details {
-      for imp in vec {
-        imp.refine(exports).map_err(Error::from)?;
+      // If it was a restricted import list, validate the import names
+      if let ImportDetails::Restricted(vec) = &import.details {
+        for imp in vec {
+          imp.refine(exports).map_err(Error::from)?;
+        }
       }
+    } else {
+      // Simple resource import
+      pipeline.load_resource(&import.filename.path())?;
+      let name = match &import.details {
+        ImportDetails::Named(s) => s.to_owned(),
+        _ => return Err(PError::from(Error::InvalidImportOnResource(import.filename.to_string()))),
+      };
+      let mut var = LocalVar::global(preload_name.clone());
+      var.assignable = false;
+      table.set_var(name, var);
     }
 
     Ok(())

@@ -52,6 +52,8 @@ impl NamedFileServer {
   }
 
   pub fn stand_up_file(&mut self, name: String, file: NamedTempFile) -> io::Result<MacroID> {
+    //let mut buf = String::new();
+    //std::io::stdin().read_line(&mut buf).expect("Failed");
     let idx = self.load_file_on_server(file.path())?;
     let gdname = names::lisp_to_gd(&name);
     let call = MacroCall { index: idx, original_name: name, name: gdname };
