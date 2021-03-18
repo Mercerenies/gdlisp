@@ -1,6 +1,7 @@
 
 pub mod noop;
 pub mod walker;
+pub mod constant;
 
 use crate::gdscript::decl::{self, Decl};
 use crate::gdscript::stmt::Stmt;
@@ -55,11 +56,13 @@ impl DeadCodeElimination {
     let mut stmt = stmt.clone();
     match &mut stmt {
       Stmt::IfStmt(if_stmt) => {
+        // Check for empty else clause
         if let Some(else_clause) = &if_stmt.else_clause {
           if noop::is_code_seq_noop(&else_clause) {
             if_stmt.else_clause = None;
           }
         }
+        // Check for obviously true or false cases
       }
       _ => {} // TODO Other cases (/////)
     }
