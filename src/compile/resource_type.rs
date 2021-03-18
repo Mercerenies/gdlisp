@@ -16,6 +16,10 @@ pub enum ResourceType {
   // be a simple import or an aliased import. Open or restricted
   // imports are not allowed.
   GDScriptSource,
+  // A packed scene file. The file must exist, and the import must be
+  // a simple import or an aliased import. Open or restricted imports
+  // are not allowed.
+  PackedScene,
   // Any other resource file. The file must exist, and the import must
   // be a simple import or an aliased import. Open or restricted
   // imports are not allowed.
@@ -34,6 +38,8 @@ impl ResourceType {
       ResourceType::GDLispSource
     } else if ext == "gd" {
       ResourceType::GDScriptSource
+    } else if ext == "tres" {
+      ResourceType::PackedScene
     } else {
       ResourceType::Miscellaneous
     }
