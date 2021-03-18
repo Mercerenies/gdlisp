@@ -32,6 +32,8 @@ pub enum Error {
   CannotAssignTo(String),
   CannotExtend(String),
   ExportOnInnerClassVar(String),
+  ResourceDoesNotExist(String),
+  InvalidImportOnResource(String),
 }
 
 impl fmt::Display for Error {
@@ -90,6 +92,12 @@ impl fmt::Display for Error {
       }
       Error::ExportOnInnerClassVar(v) => {
         write!(f, "Export declarations can only be used on a file's main class, but one was found on {}", v)
+      }
+      Error::ResourceDoesNotExist(s) => {
+        write!(f, "Resource {} does not exist", s)
+      }
+      Error::InvalidImportOnResource(s) => {
+        write!(f, "Cannot use restricted or open import lists on resource import at {}", s)
       }
     }
   }
