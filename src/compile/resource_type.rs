@@ -52,11 +52,11 @@ impl ResourceType {
     }
   }
 
-  pub fn check_import(pipeline: &Pipeline, import: &ImportDecl) -> Result<(), Error> {
+  pub fn check_import(_pipeline: &Pipeline, import: &ImportDecl) -> Result<(), Error> {
 
-    if !pipeline.file_exists(import.filename.path()) {
-      return Err(Error::ResourceDoesNotExist(import.filename.to_string()));
-    }
+    // if !pipeline.file_exists(import.filename.path()) {
+    //   return Err(Error::ResourceDoesNotExist(import.filename.to_string()));
+    // }
 
     let res_type = ResourceType::from_path(import.filename.path());
     if !res_type.is_import_allowed(import) {
