@@ -11,7 +11,7 @@ use std::fmt;
 //
 // (1) Qualified import
 // (use "res://example/foo.lisp")
-// Imports "example/foo.lisp" as example.foo
+// Imports "example/foo.lisp" as example/foo
 //
 // (2) Qualified import (aliased)
 // (use "res://example/foo.lisp" as renamed-foo)
@@ -73,7 +73,7 @@ impl ImportDecl {
       .components_no_root()
       .filter_map(|x| x.as_os_str().to_str())
       .collect::<Vec<_>>()
-      .join(".")
+      .join("/")
   }
 
   pub fn parse_path_param(arg: &str) -> Option<RPathBuf> {
@@ -110,7 +110,7 @@ impl ImportDecl {
       let Id { namespace: export_namespace, name: export_name } = export;
       let import_name = match &self.details {
         ImportDetails::Named(s) => {
-          Some(format!("{}.{}", s, export_name))
+          Some(format!("{}/{}", s, export_name))
         }
         ImportDetails::Open => {
           Some(export_name.clone())
@@ -336,11 +336,11 @@ mod tests {
 
   #[test]
   fn default_import_name_test() {
-    assert_eq!(ImportDecl::default_import_name(&str_to_rpathbuf("/a/b/c")), "a.b.c");
+    assert_eq!(ImportDecl::default_import_name(&str_to_rpathbuf("/a/b/c")), "a/b/c");
     assert_eq!(ImportDecl::default_import_name(&str_to_rpathbuf("/abcd")), "abcd");
-    assert_eq!(ImportDecl::default_import_name(&str_to_rpathbuf("res://foo/bar")), "foo.bar");
-    assert_eq!(ImportDecl::default_import_name(&str_to_rpathbuf("res://foo/bar.lisp")), "foo.bar");
-    assert_eq!(ImportDecl::default_import_name(&str_to_rpathbuf("res://foo/bar.gd")), "foo.bar");
+    assert_eq!(ImportDecl::default_import_name(&str_to_rpathbuf("res://foo/bar")), "foo/bar");
+    assert_eq!(ImportDecl::default_import_name(&str_to_rpathbuf("res://foo/bar.lisp")), "foo/bar");
+    assert_eq!(ImportDecl::default_import_name(&str_to_rpathbuf("res://foo/bar.gd")), "foo/bar");
   }
 
   #[test]
@@ -348,7 +348,7 @@ mod tests {
     assert_eq!(parse_import(r#"("res://foo/bar")"#).unwrap(),
                ImportDecl::named(str_to_rpathbuf("res://foo/bar"), None));
     assert_eq!(parse_import(r#"("res://foo/bar")"#).unwrap(),
-               ImportDecl::named(str_to_rpathbuf("res://foo/bar"), Some(String::from("foo.bar"))));
+               ImportDecl::named(str_to_rpathbuf("res://foo/bar"), Some(String::from("foo/bar"))));
     assert_eq!(parse_import(r#"("res://foo/bar" as foo)"#).unwrap(),
                ImportDecl::named(str_to_rpathbuf("res://foo/bar"), Some(String::from("foo"))));
     assert_eq!(parse_import(r#"("res://foo/bar" as foo.baz)"#).unwrap(),

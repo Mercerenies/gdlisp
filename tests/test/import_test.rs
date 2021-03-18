@@ -27,8 +27,8 @@ fn load_and_output_simple_file(input: &str) -> String {
 fn qualified_import_test() {
   assert_eq!(load_and_output_simple_file(r#"
     (use "res://example.lisp")
-    (example.one)
-    (example.two)
+    (example/one)
+    (example/two)
   "#), r#"extends Node
 const example_0 = preload("res://example.gd")
 static func run():
@@ -42,8 +42,8 @@ static func run():
 fn aliased_import_test() {
   assert_eq!(load_and_output_simple_file(r#"
     (use "res://example.lisp" as example-name)
-    (example-name.one)
-    (example-name.two)
+    (example-name/one)
+    (example-name/two)
   "#), r#"extends Node
 const example_name_0 = preload("res://example.gd")
 static func run():
@@ -170,7 +170,7 @@ fn macro_several_files_import_test() {
   loader.add_file("c.lisp", r#"(use "res://b.lisp" open) (defmacro g (x) (+ x (f 87)))"#);
   loader.add_file("main.lisp", r#"
     (use "res://c.lisp")
-    (c.g 3)
+    (c/g 3)
   "#);
   let mut pipeline = Pipeline::with_resolver(dummy_config(), Box::new(loader));
   let result = pipeline.load_file("main.lisp").unwrap().gdscript.to_gd();
