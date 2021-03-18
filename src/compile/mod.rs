@@ -7,6 +7,7 @@ pub mod symbol_table;
 pub mod special_form;
 pub mod stateful;
 pub mod preload_resolver;
+pub mod resource_type;
 
 use body::builder::{CodeBuilder, StmtBuilder, HasDecls};
 use names::fresh::FreshNameGenerator;
