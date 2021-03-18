@@ -56,6 +56,8 @@ pub struct DivOperation;
 #[derive(Clone)]
 pub struct IntDivOperation;
 #[derive(Clone)]
+pub struct ModOperation;
+#[derive(Clone)]
 pub struct NEqOperation { pub fallback: Box<dyn CallMagic> }
 #[derive(Clone)]
 pub struct BooleanNotOperation;
@@ -286,6 +288,26 @@ impl CallMagic for IntDivOperation {
         Ok(*result)
       }
     }
+  }
+}
+
+impl CallMagic for ModOperation {
+  fn compile<'a>(&self,
+                 call: FnCall,
+                 _compiler: &mut Compiler<'a>,
+                 _builder: &mut StmtBuilder,
+                 _table: &mut SymbolTable,
+                 args: Vec<StExpr>) -> Result<Expr, Error> {
+    let mut args = strip_st(args);
+    if args.len() < 2 {
+      return Err(Error::TooFewArgs(call.function, args.len()));
+    }
+    if args.len() > 2 {
+      return Err(Error::TooManyArgs(call.function, args.len()));
+    }
+    let y = args.pop().expect("Internal error in VectorOperation");
+    let x = args.pop().expect("Internal error in VectorOperation");
+    Ok(Expr::Binary(Box::new(x), op::BinaryOp::Mod, Box::new(y)))
   }
 }
 

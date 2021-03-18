@@ -109,6 +109,9 @@ func intdiv(x, args):
             args = args.cdr
         return result
 
+func mod(x, y):
+    return x % y
+
 func eq(x, args):
     while args is Cons:
         if not (x == args.car):
