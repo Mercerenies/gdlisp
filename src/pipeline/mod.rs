@@ -25,11 +25,10 @@ use crate::optimize::gdscript::run_standard_passes;
 
 use tempfile::Builder;
 
-use std::io::{self, Write};
+use std::io::Write;
 use std::path::{Path, PathBuf};
 use std::collections::HashMap;
 use std::mem;
-use std::borrow::Cow;
 
 pub struct Pipeline {
   config: ProjectConfig,
@@ -148,29 +147,6 @@ impl Pipeline {
       input_path.to_owned()
     } else {
       self.config.root_directory.join(input_path)
-    }
-  }
-
-  pub fn load_resource<P>(&mut self, input_path: &P)
-                          -> Result<(), Error>
-  where P : AsRef<Path> + ?Sized {
-    let input_path = input_path.as_ref();
-    if self.known_files_paths.contains_key(input_path) {
-      Ok(())
-    } else {
-      let input_path = self.to_absolute_path(input_path);
-      let mut tmpfile = Builder::new()
-        .prefix("__gdlisp_resource")
-        .suffix(&format!(".{}", input_path.extension().map_or_else(|| Cow::Borrowed("txt"), |s| s.to_string_lossy())))
-        .rand_bytes(5)
-        .tempfile()?;
-      let mut input = self.resolver.resolve_input_path(&input_path)?;
-      io::copy(&mut input, &mut tmpfile)?;
-      tmpfile.flush()?;
-      let input_path_store_name = input_path.strip_prefix(&self.config.root_directory).expect("Non-local file load detected").to_owned(); // TODO Expect
-      self.known_files_paths.insert(input_path_store_name, tmpfile.path().to_owned());
-      self.server.stand_up_file(String::from("(standalone resource)"), tmpfile)?;
-      Ok(())
     }
   }
 

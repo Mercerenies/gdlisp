@@ -13,6 +13,7 @@ use body::builder::{CodeBuilder, StmtBuilder, HasDecls};
 use names::fresh::FreshNameGenerator;
 use preload_resolver::PreloadResolver;
 use crate::sxp::reify::Reify;
+use crate::gdscript::literal::Literal;
 use crate::gdscript::expr::Expr;
 use crate::gdscript::stmt::Stmt;
 use crate::gdscript::decl::{self, Decl};
@@ -538,12 +539,23 @@ impl<'a> Compiler<'a> {
   }
 
   fn make_preload_line(&self, var: String, path: &RPathBuf) -> Result<Decl, Error> {
-    let mut path = path.clone();
-    if path.path().extension() == Some(OsStr::new("lisp")) {
-      path.path_mut().set_extension("gd");
+    if self.resolver.include_resource(ResourceType::from(path.path())) {
+      let mut path = path.clone();
+      if path.path().extension() == Some(OsStr::new("lisp")) {
+        path.path_mut().set_extension("gd");
+      }
+      let path = self.resolver.resolve_preload(&path).ok_or_else(|| Error::NoSuchFile(path.clone()))?;
+      Ok(Decl::ConstDecl(var, Expr::Call(None, String::from("preload"), vec!(Expr::from(path)))))
+    } else {
+      // We null out any resources we don't understand. This means
+      // that GDScript source files (those NOT written in GDLisp) and
+      // other resources like PackedScene instances cannot be used in
+      // macros, as they'll just be seen as "null" during macro
+      // resolution. I do not verify that you follow this rule; you
+      // are expected to be responsible with your macro resource
+      // usage.
+      Ok(Decl::ConstDecl(var, Expr::Literal(Literal::Null)))
     }
-    let path = self.resolver.resolve_preload(&path).ok_or_else(|| Error::NoSuchFile(path.clone()))?;
-    Ok(Decl::ConstDecl(var, Expr::Call(None, String::from("preload"), vec!(Expr::from(path)))))
   }
 
   fn import_name(&mut self, import: &ImportDecl) -> String {
@@ -647,7 +659,6 @@ impl<'a> Compiler<'a> {
       }
     } else {
       // Simple resource import
-      pipeline.load_resource(&import.filename.path())?;
       let name = match &import.details {
         ImportDetails::Named(s) => s.to_owned(),
         _ => return Err(PError::from(Error::InvalidImportOnResource(import.filename.to_string()))),

@@ -5,6 +5,7 @@
 // directory.
 
 use crate::runner::path::RPathBuf;
+use crate::compile::resource_type::ResourceType;
 
 use std::collections::HashMap;
 use std::path::PathBuf;
@@ -17,6 +18,7 @@ pub struct LookupPreloadResolver(pub HashMap<PathBuf, PathBuf>);
 
 pub trait PreloadResolver {
   fn resolve_preload(&self, path: &RPathBuf) -> Option<String>;
+  fn include_resource(&self, res: ResourceType) -> bool;
 }
 
 impl PreloadResolver for DefaultPreloadResolver {
@@ -25,12 +27,20 @@ impl PreloadResolver for DefaultPreloadResolver {
     Some(path.to_string())
   }
 
+  fn include_resource(&self, _res: ResourceType) -> bool {
+    true
+  }
+
 }
 
 impl PreloadResolver for LookupPreloadResolver {
 
   fn resolve_preload(&self, path: &RPathBuf) -> Option<String> {
     self.0.get(path.path()).map(RPathBuf::path_to_string)
+  }
+
+  fn include_resource(&self, res: ResourceType) -> bool {
+    res == ResourceType::GDLispSource
   }
 
 }
