@@ -4,10 +4,11 @@ pub mod walker;
 pub mod constant;
 
 use crate::gdscript::decl::{self, Decl};
-use crate::gdscript::stmt::Stmt;
+use crate::gdscript::stmt::{self, Stmt};
 use crate::compile::error::Error;
 
 pub struct DeadCodeElimination;
+pub struct ConstantConditionalBranch;
 
 // Note: If optimization results in an error, the code is guaranteed
 // to be in a valid, correct state. It may or may not be rolled back
@@ -54,19 +55,85 @@ impl DeadCodeElimination {
 
   pub fn eliminate(stmt: &Stmt) -> Result<Vec<Stmt>, Error> {
     let mut stmt = stmt.clone();
-    match &mut stmt {
-      Stmt::IfStmt(if_stmt) => {
-        // Check for empty else clause
-        if let Some(else_clause) = &if_stmt.else_clause {
-          if noop::is_code_seq_noop(&else_clause) {
-            if_stmt.else_clause = None;
-          }
+
+    // Check for empty else clause
+    if let Stmt::IfStmt(if_stmt) = &mut stmt {
+      if let Some(else_clause) = &if_stmt.else_clause {
+        if noop::is_code_seq_noop(&else_clause) {
+          if_stmt.else_clause = None;
         }
-        // Check for obviously true or false cases
       }
-      _ => {} // TODO Other cases (/////)
     }
+
     Ok(vec!(stmt))
+  }
+
+}
+
+impl ConstantConditionalBranch {
+
+  pub fn eliminate(stmt: &Stmt) -> Result<Vec<Stmt>, Error> {
+    // Check for obviously true or false cases
+    if let Stmt::IfStmt(if_stmt) = &stmt {
+
+      // If branch
+      if let Some(b) = constant::deduce_bool(&if_stmt.if_clause.0) {
+        if b {
+          // Definitely true case
+          return ConstantConditionalBranch::eliminate_acc(&if_stmt.if_clause.1);
+        } else {
+          // Definitely false case
+          let rest_of_stmt = ConstantConditionalBranch::kill_if_branch(&if_stmt);
+          return ConstantConditionalBranch::eliminate_acc(&rest_of_stmt);
+        }
+      }
+
+      // Elif branches
+
+      // If any are definitely false, we can eliminate them
+      let mut v = if_stmt.elif_clauses.clone();
+      v.retain(|(e, _)| constant::deduce_bool(e) != Some(false));
+      if v != if_stmt.elif_clauses.clone() {
+        let mut new_if_stmt = if_stmt.clone();
+        new_if_stmt.elif_clauses = v;
+        return ConstantConditionalBranch::eliminate(&Stmt::IfStmt(new_if_stmt));
+      }
+
+      // If any are definitely true, then they become the else branch
+      let match_index = if_stmt.elif_clauses.iter().position(|(e, _)| constant::deduce_bool(e) == Some(true));
+      if let Some(match_index) = match_index {
+        let mut new_if_stmt = if_stmt.clone();
+        new_if_stmt.elif_clauses = if_stmt.elif_clauses[0..match_index].to_vec();
+        new_if_stmt.else_clause = Some(if_stmt.elif_clauses[match_index].1.clone());
+        return ConstantConditionalBranch::eliminate(&Stmt::IfStmt(new_if_stmt));
+      }
+
+    }
+    Ok(vec!(stmt.clone()))
+  }
+
+  pub fn eliminate_acc(stmts: &[Stmt]) -> Result<Vec<Stmt>, Error> {
+    let mut result = Vec::new();
+    for stmt in stmts {
+      result.extend(ConstantConditionalBranch::eliminate(stmt)?);
+    }
+    Ok(result)
+  }
+
+  // Eliminate the "if" part of the conditional
+  fn kill_if_branch(if_stmt: &stmt::IfStmt) -> Vec<Stmt> {
+    if if_stmt.elif_clauses.is_empty() {
+      // No elif, so the else clause becomes the whole conditional
+      if_stmt.else_clause.clone().unwrap_or(vec!())
+    } else {
+      // Use the first elif
+      let new_if_stmt = stmt::IfStmt {
+        if_clause: if_stmt.elif_clauses[0].clone(),
+        elif_clauses: if_stmt.elif_clauses[1..].iter().cloned().collect(),
+        else_clause: if_stmt.else_clause.clone(),
+      };
+      vec!(Stmt::IfStmt(new_if_stmt))
+    }
   }
 
 }
@@ -78,8 +145,16 @@ impl FunctionOptimization for DeadCodeElimination {
   }
 }
 
+impl FunctionOptimization for ConstantConditionalBranch {
+  fn run_on_function(&self, function: &mut decl::FnDecl) -> Result<(), Error> {
+    function.body = walker::walk_stmts(&function.body, ConstantConditionalBranch::eliminate)?;
+    Ok(())
+  }
+}
+
 // TODO We'll refine this a lot. Right now, it's hard coded.
 pub fn run_standard_passes(file: &mut decl::TopLevelClass) -> Result<(), Error> {
+  ConstantConditionalBranch.run_on_file(file)?;
   DeadCodeElimination.run_on_file(file)?;
   Ok(())
 }
