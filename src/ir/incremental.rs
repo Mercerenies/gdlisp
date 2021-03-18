@@ -28,6 +28,22 @@ use std::convert::{TryFrom, TryInto};
 use std::borrow::Borrow;
 use std::collections::{HashMap, HashSet};
 
+// TODO If a macro (from GDLisp) needs to use a GDScript resource,
+// what do we even do? I can't trace dependencies on the GDScript
+// side.
+
+// TODO More immediately, I think the system just vomits if we use a
+// preload that goes to a non-GDLisp resource in a macro. We need to
+// at the very least explicitly disallow this with an error. (/////)
+
+// TODO Actually, just... imports of non-GDLisp resources are a mess
+// because we try to load the GDLisp into the runner server and it
+// will probably fail hilariously. (/////)
+
+// TODO Oh god I started writing todo's and I can't stop help (/////)
+
+// TODO Aaaaaahhhhhhh (/////)
+
 pub struct IncCompiler {
   symbols: SymbolTable,
   macros: HashMap<String, MacroData>,
