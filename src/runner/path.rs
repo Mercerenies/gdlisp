@@ -5,6 +5,7 @@ use std::path::{PathBuf, Path, Components};
 use std::convert::TryFrom;
 use std::str::FromStr;
 use std::fmt;
+use std::ffi::OsStr;
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct RPathBuf {
@@ -46,6 +47,10 @@ impl RPathBuf {
 
   pub fn components(&self) -> Components<'_> {
     self.path().components()
+  }
+
+  pub fn extension(&self) -> Option<&OsStr> {
+    self.path().extension()
   }
 
   pub fn components_no_root(&self) -> Components<'_> {
