@@ -243,6 +243,12 @@ pub fn bind_builtins(table: &mut SymbolTable) {
                FnCall::unqualified(FnSpecs::new(1, 0, None), FnScope::Global, "abs".to_owned()),
                Box::new(call_magic::DefaultCall));
 
+  // TODO Eventually we'll want this to be a multimethod which works
+  // on lists as well as arrays. (And possibly elt as well?)
+  table.set_fn("len".to_owned(),
+               FnCall::unqualified(FnSpecs::new(1, 0, None), FnScope::Global, "len".to_owned()),
+               Box::new(call_magic::DefaultCall));
+
   table.set_var("PI".to_owned(), LocalVar::global("PI".to_owned()));
 
 }
