@@ -1,0 +1,99 @@
+
+use crate::ir::expr::LambdaClass;
+use crate::compile::error::Error;
+use crate::compile::Compiler;
+use crate::compile::stateful::{SideEffects, StExpr};
+use crate::compile::body::builder::StmtBuilder;
+use crate::compile::symbol_table::{SymbolTable, VarScope, LocalVar};
+use crate::gdscript::expr::Expr;
+use crate::gdscript::decl::{self, Decl};
+use super::lambda;
+
+pub fn compile_lambda_class<'a>(compiler: &mut Compiler<'a>,
+                                builder: &mut StmtBuilder,
+                                table: &mut SymbolTable,
+                                class: &LambdaClass)
+                                -> Result<StExpr, Error> {
+  let LambdaClass { extends, constructor, decls } = class.clone();
+
+  // Validate the extends declaration (must be a global variable)
+  let extends_var = table.get_var(&extends).ok_or_else(|| Error::NoSuchVar(extends.clone()))?;
+  if extends_var.scope != VarScope::GlobalVar {
+    return Err(Error::CannotExtend(extends.clone()));
+  }
+  let extends = extends_var.name.clone();
+  let extends = Compiler::expr_to_extends(extends)?;
+
+  // New GD name
+  let gd_class_name = compiler.name_generator().generate_with("_AnonymousClass");
+
+  let (mut closure_vars, mut closure_fns) = constructor.get_names();
+  for d in &decls {
+    let (decl_vars, decl_fns) = d.get_names();
+    closure_vars.merge_with(decl_vars);
+    closure_fns.merge_with(decl_fns);
+  }
+
+  let mut lambda_table = SymbolTable::new();
+  lambda_table.set_var(String::from("self"), LocalVar::self_var());
+
+  lambda::purge_globals(&mut closure_vars, table);
+  lambda::locally_bind_vars(compiler, table, &mut lambda_table, closure_vars.names())?;
+  lambda::locally_bind_fns(compiler, table, &mut lambda_table, closure_fns.names())?;
+  lambda::copy_global_vars(table, &mut lambda_table);
+
+  let mut gd_src_closure_vars = Vec::new();
+  let mut gd_closure_vars = Vec::new();
+  for ast_name in closure_vars.names() {
+    let var = lambda_table.get_var(&ast_name).unwrap_or_else(|| {
+      panic!("Internal error compiling lambda class variable {}", ast_name)
+    }).to_owned();
+    if let Expr::Var(name) = var.name {
+      gd_closure_vars.push(name.to_owned());
+    }
+    let src_var = table.get_var(&ast_name).unwrap_or_else(|| {
+      panic!("Internal error compiling lambda class variable {}", ast_name)
+    }).to_owned();
+    if let Expr::Var(name) = src_var.name {
+      gd_src_closure_vars.push(name.to_owned());
+    }
+  }
+  for func in closure_fns.names() {
+    match table.get_fn(func) {
+      None => { return Err(Error::NoSuchFn(func.to_owned())) }
+      Some((call, _)) => {
+        if let Some(var) = lambda::closure_fn_to_gd_var(call) {
+          gd_closure_vars.push(var.to_owned());
+          gd_src_closure_vars.push(var);
+        }
+      }
+    }
+  }
+
+  let mut constructor = compiler.compile_constructor(builder, &mut lambda_table, &constructor)?;
+  let original_args = constructor.args.args;
+  constructor.args.args = gd_closure_vars.to_vec();
+  constructor.args.args.extend(original_args);
+  for name in gd_closure_vars.iter().rev() {
+    constructor.body.insert(0, lambda::assign_to_compiler(name.to_string(), name.to_string()));
+  }
+  let mut class_body = vec!();
+  class_body.push(Decl::FnDecl(decl::Static::NonStatic, constructor));
+  for name in gd_closure_vars.iter() {
+    class_body.push(Decl::VarDecl(None, name.clone(), None));
+  }
+  for d in &decls {
+    class_body.push(compiler.compile_class_inner_decl(builder, &mut lambda_table, d)?);
+  }
+  let class = decl::ClassDecl {
+    name: gd_class_name.clone(),
+    extends: decl::ClassExtends::Qualified(extends),
+    body: class_body,
+  };
+  builder.add_helper(Decl::ClassDecl(class));
+
+  // TODO Allow the user to supply additional constructor arguments?
+  let constructor_args: Vec<_> = gd_src_closure_vars.into_iter().map(Expr::Var).collect();
+  let expr = Expr::Call(Some(Box::new(Expr::Var(gd_class_name))), String::from("new"), constructor_args);
+  Ok(StExpr(expr, SideEffects::None))
+}

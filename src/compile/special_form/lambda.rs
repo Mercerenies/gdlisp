@@ -289,21 +289,21 @@ pub fn compile_labels_scc<'a>(compiler: &mut Compiler<'a>,
   Ok(bound_calls)
 }
 
-fn assign_to_compiler(inst_var: String, local_var: String) -> Stmt {
+pub fn assign_to_compiler(inst_var: String, local_var: String) -> Stmt {
   assign_expr_to_compiler(inst_var, Expr::Var(local_var))
 }
 
-fn assign_expr_to_compiler(inst_var: String, expr: Expr) -> Stmt {
+pub fn assign_expr_to_compiler(inst_var: String, expr: Expr) -> Stmt {
   let self_target = Box::new(Expr::Attribute(Box::new(Expr::Var(String::from("self"))), inst_var));
   let value = Box::new(expr);
   Stmt::Assign(self_target, op::AssignOp::Eq, value)
 }
 
-fn locally_bind_vars<'a, 'b, I, U>(compiler: &mut Compiler<'b>,
-                                   table: &SymbolTable,
-                                   lambda_table: &mut SymbolTable,
-                                   closure_vars: I)
-                                   -> Result<(), Error>
+pub fn locally_bind_vars<'a, 'b, I, U>(compiler: &mut Compiler<'b>,
+                                       table: &SymbolTable,
+                                       lambda_table: &mut SymbolTable,
+                                       closure_vars: I)
+                                       -> Result<(), Error>
 where I : Iterator<Item=&'a U>,
       U : Borrow<str>,
       U : 'a {
@@ -324,11 +324,11 @@ where I : Iterator<Item=&'a U>,
   Ok(())
 }
 
-fn locally_bind_fns<'a, 'b, I, U>(_compiler: &mut Compiler<'b>,
-                                  table: &SymbolTable,
-                                  lambda_table: &mut SymbolTable,
-                                  closure_fns: I)
-                                  -> Result<(), Error>
+pub fn locally_bind_fns<'a, 'b, I, U>(_compiler: &mut Compiler<'b>,
+                                      table: &SymbolTable,
+                                      lambda_table: &mut SymbolTable,
+                                      closure_fns: I)
+                                      -> Result<(), Error>
 where I : Iterator<Item=&'a U>,
       U : Borrow<str>,
       U : 'a {
@@ -348,7 +348,7 @@ where I : Iterator<Item=&'a U>,
   Ok(())
 }
 
-fn copy_global_vars(src_table: &SymbolTable, dest_table: &mut SymbolTable) {
+pub fn copy_global_vars(src_table: &SymbolTable, dest_table: &mut SymbolTable) {
   for (name, var) in src_table.vars() {
     if var.scope == VarScope::GlobalVar {
       dest_table.set_var(name.to_owned(), var.clone());
@@ -356,7 +356,7 @@ fn copy_global_vars(src_table: &SymbolTable, dest_table: &mut SymbolTable) {
   }
 }
 
-fn closure_fn_to_gd_var(call: &FnCall) -> Option<String> {
+pub fn closure_fn_to_gd_var(call: &FnCall) -> Option<String> {
   match &call.scope {
     FnScope::Local(name) | FnScope::SpecialLocal(name) => {
       Some(name.to_owned())

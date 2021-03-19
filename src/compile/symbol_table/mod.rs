@@ -99,6 +99,15 @@ impl LocalVar {
     LocalVar { name: Expr::Var(name), access_type, scope: VarScope::LocalVar, assignable: true }
   }
 
+  pub fn self_var() -> LocalVar {
+    LocalVar {
+      name: Expr::var("self"),
+      access_type: AccessType::ClosedRead,
+      scope: VarScope::LocalVar,
+      assignable: false, // Cannot assign to self
+    }
+  }
+
   pub fn expr(&self) -> Expr {
     let inner = self.name.clone();
     if self.access_type.requires_cell() {

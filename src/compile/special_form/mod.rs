@@ -1,6 +1,7 @@
 
 pub mod lambda;
 pub mod flet;
+pub mod lambda_class;
 
 use crate::ir;
 use crate::compile::{Compiler, StExpr, NeedsResult};

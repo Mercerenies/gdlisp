@@ -36,6 +36,7 @@ use crate::pipeline::error::{Error as PError};
 use crate::pipeline::Pipeline;
 use special_form::lambda;
 use special_form::flet;
+use special_form::lambda_class;
 use stateful::{StExpr, NeedsResult, SideEffects};
 use resource_type::ResourceType;
 
@@ -246,9 +247,7 @@ impl<'a> Compiler<'a> {
         Ok(StExpr(Expr::Call(None, String::from("Vector3"), vec!(x, y, z)), side_effects))
       }
       IRExpr::LambdaClass(cls) => {
-        let ir::expr::LambdaClass { extends, constructor, decls } = &**cls;
-        println!("{:?}", cls);
-        todo!() ////
+        lambda_class::compile_lambda_class(self, builder, table, cls)
       }
       /* // This will eventually be an optimization.
       IRExpr::Funcall(f, args) => {
@@ -394,12 +393,7 @@ impl<'a> Compiler<'a> {
                        decls: &[ir::decl::ClassInnerDecl])
                        -> Result<decl::ClassDecl, Error> {
 
-    let self_var = LocalVar {
-      name: Expr::var("self"),
-      access_type: AccessType::ClosedRead,
-      scope: VarScope::LocalVar,
-      assignable: false, // Cannot assign to self
-    };
+    let self_var = LocalVar::self_var();
 
     let mut body = vec!();
     table.with_local_var::<Result<(), Error>, _>(String::from("self"), self_var, |table| {

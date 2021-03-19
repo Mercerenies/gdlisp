@@ -185,6 +185,7 @@ impl ConstructorDecl {
     for name in self.args.iter_vars() {
       ids.remove(&*Id::build(Namespace::Value, name));
     }
+    ids.remove(&*Id::build(Namespace::Value, "self"));
     ids
   }
 
@@ -193,6 +194,7 @@ impl ConstructorDecl {
     for name in self.args.iter_vars() {
       loc.remove(name);
     }
+    loc.remove("self");
     (loc, func)
   }
 
@@ -209,6 +211,7 @@ impl ClassInnerDecl {
         for name in func.args.iter_vars() {
           ids.remove(&*Id::build(Namespace::Value, name));
         }
+        ids.remove(&*Id::build(Namespace::Value, "self"));
         ids
       }
     }
@@ -222,6 +225,7 @@ impl ClassInnerDecl {
         for name in fndecl.args.iter_vars() {
           loc.remove(name);
         }
+        loc.remove("self");
         (loc, func)
       }
     }
