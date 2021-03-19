@@ -14,6 +14,7 @@ pub mod floating_test;
 pub mod for_test;
 pub mod import_test;
 pub mod labels_test;
+pub mod lambda_class_test;
 pub mod lambda_test;
 pub mod let_var_test;
 pub mod macro_test;
