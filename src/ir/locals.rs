@@ -73,6 +73,13 @@ impl Locals {
     self.0.retain(|k, v| f(k, *v));
   }
 
+  pub fn closed(mut self) -> Self {
+    for (_, v) in self.0.iter_mut() {
+      *v = v.closed();
+    }
+    self
+  }
+
 }
 
 impl AccessType {

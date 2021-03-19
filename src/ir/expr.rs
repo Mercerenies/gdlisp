@@ -218,11 +218,11 @@ impl Expr {
         let LambdaClass { extends, constructor, decls } = &**cls;
         acc_vars.visited(extends, AccessType::ClosedRead);
         let (con_vars, con_fns) = constructor.get_names();
-        acc_vars.merge_with(con_vars);
+        acc_vars.merge_with(con_vars.closed());
         acc_fns.merge_with(con_fns);
         for decl in decls {
           let (decl_vars, decl_fns) = decl.get_names();
-          acc_vars.merge_with(decl_vars);
+          acc_vars.merge_with(decl_vars.closed());
           acc_fns.merge_with(decl_fns);
         }
       }

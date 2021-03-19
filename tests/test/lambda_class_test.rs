@@ -92,7 +92,8 @@ pub fn lambda_class_running_test_4() {
 
 #[test]
 #[ignore]
-pub fn lambda_class_running_test_5() { // Fails currently!
+pub fn lambda_class_running_test_5() {
+  // Note: This one requires x to be wrapped in a Cell.
   let output = parse_and_run(r#"
     ((let ((x 1))
        (let ((foo (new Reference (defn increment () (setq x (+ x 1))))))
