@@ -1,7 +1,8 @@
 
 use crate::sxp::ast::AST;
 use crate::sxp::dotted::DottedExpr;
-use super::expr::{Expr, FuncRefTarget, AssignTarget};
+use super::expr::{Expr, FuncRefTarget, AssignTarget, LambdaClass};
+use super::decl;
 use super::arglist::ArgList;
 use super::quasiquote::quasiquote;
 use crate::pipeline::error::Error;
@@ -32,6 +33,7 @@ pub fn dispatch_form(icompiler: &mut IncCompiler,
     "quasiquote" => quasiquote_form(icompiler, pipeline, tail).map(Some),
     "unquote" => Err(Error::from(GDError::UnquoteOutsideQuasiquote)),
     "access-slot" => access_slot_form(icompiler, pipeline, tail).map(Some),
+    "new" => new_form(icompiler, pipeline, tail).map(Some),
     _ => Ok(None),
   }
 }
@@ -263,4 +265,22 @@ pub fn access_slot_form(icompiler: &mut IncCompiler,
     _ => return Err(Error::from(GDError::InvalidArg(String::from("access-slot"), tail[1].clone(), String::from("symbol")))),
   };
   Ok(Expr::FieldAccess(Box::new(lhs), slot_name))
+}
+
+pub fn new_form(icompiler: &mut IncCompiler,
+                pipeline: &mut Pipeline,
+                tail: &[&AST]) -> Result<Expr, Error> {
+  if tail.len() < 1 {
+    return Err(Error::from(GDError::TooFewArgs(String::from("new"), 1)));
+  }
+  let superclass = match tail[0] {
+    AST::Symbol(superclass_name) => superclass_name.to_owned(),
+    _ => return Err(Error::from(GDError::InvalidArg(String::from("new"), tail[0].clone(), String::from("superclass declaration")))),
+  };
+  let mut cls = decl::ClassDecl::new(String::from("(local anonymous class)"), superclass);
+  for decl in &tail[1..] {
+    icompiler.compile_class_inner_decl(pipeline, &mut cls, decl)?;
+  }
+  let lambda_class = LambdaClass::from(cls);
+  Ok(Expr::LambdaClass(Box::new(lambda_class)))
 }

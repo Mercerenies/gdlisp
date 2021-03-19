@@ -268,11 +268,11 @@ impl IncCompiler {
     }
   }
 
-  fn compile_class_inner_decl(&mut self,
-                              pipeline: &mut Pipeline,
-                              acc: &mut decl::ClassDecl,
-                              curr: &AST)
-                              -> Result<(), PError> {
+  pub fn compile_class_inner_decl(&mut self,
+                                  pipeline: &mut Pipeline,
+                                  acc: &mut decl::ClassDecl,
+                                  curr: &AST)
+                                  -> Result<(), PError> {
     // TODO Error if we declare constructor twice
 
     // Deal with macros

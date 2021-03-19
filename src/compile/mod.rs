@@ -245,6 +245,11 @@ impl<'a> Compiler<'a> {
         let side_effects = max(xs, max(ys, zs));
         Ok(StExpr(Expr::Call(None, String::from("Vector3"), vec!(x, y, z)), side_effects))
       }
+      IRExpr::LambdaClass(cls) => {
+        let ir::expr::LambdaClass { extends, constructor, decls } = &**cls;
+        println!("{:?}", cls);
+        todo!() ////
+      }
       /* // This will eventually be an optimization.
       IRExpr::Funcall(f, args) => {
         let func_expr = self.compile_expr(builder, table, f, NeedsResult::Yes)?.0;

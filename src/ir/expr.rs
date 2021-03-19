@@ -1,5 +1,6 @@
 
 use super::literal;
+use super::decl;
 use super::arglist::ArgList;
 //use crate::gdscript::op::{self, UnaryOp, BinaryOp, OperatorHasInfo};
 use super::locals::{Locals, AccessType};
@@ -32,6 +33,7 @@ pub enum Expr {
   MethodCall(Box<Expr>, String, Vec<Expr>),
   Vector2(Box<Expr>, Box<Expr>),
   Vector3(Box<Expr>, Box<Expr>, Box<Expr>),
+  LambdaClass(Box<LambdaClass>),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -43,6 +45,13 @@ pub enum AssignTarget {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum FuncRefTarget {
   SimpleName(String),
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct LambdaClass {
+  pub extends: String,
+  pub constructor: decl::ConstructorDecl,
+  pub decls: Vec<decl::ClassInnerDecl>,
 }
 
 impl Expr {
@@ -204,6 +213,18 @@ impl Expr {
         x.walk_locals(acc_vars, acc_fns);
         y.walk_locals(acc_vars, acc_fns);
         z.walk_locals(acc_vars, acc_fns);
+      }
+      Expr::LambdaClass(cls) => {
+        let LambdaClass { extends, constructor, decls } = &**cls;
+        acc_vars.visited(extends, AccessType::ClosedRead);
+        let (con_vars, con_fns) = constructor.get_names();
+        acc_vars.merge_with(con_vars);
+        acc_fns.merge_with(con_fns);
+        for decl in decls {
+          let (decl_vars, decl_fns) = decl.get_names();
+          acc_vars.merge_with(decl_vars);
+          acc_fns.merge_with(decl_fns);
+        }
       }
     };
   }

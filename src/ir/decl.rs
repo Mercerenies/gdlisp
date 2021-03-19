@@ -1,9 +1,11 @@
 
 use super::arglist::{ArgList, SimpleArgList};
-use super::expr::Expr;
+use super::expr::{self, Expr};
 use super::literal::Literal;
 use super::import::ImportDecl;
 use super::identifier::{Namespace, Id, IdLike};
+use super::locals::Locals;
+use super::functions::Functions;
 
 use std::collections::HashSet;
 
@@ -186,6 +188,14 @@ impl ConstructorDecl {
     ids
   }
 
+  pub fn get_names(&self) -> (Locals, Functions) {
+    let (mut loc, func) = self.body.get_names();
+    for name in self.args.iter_vars() {
+      loc.remove(name);
+    }
+    (loc, func)
+  }
+
 }
 
 impl ClassInnerDecl {
@@ -204,6 +214,19 @@ impl ClassInnerDecl {
     }
   }
 
+  pub fn get_names(&self) -> (Locals, Functions) {
+    match self {
+      ClassInnerDecl::ClassSignalDecl(_) | ClassInnerDecl::ClassVarDecl(_) => (Locals::new(), Functions::new()),
+      ClassInnerDecl::ClassFnDecl(fndecl) => {
+        let (mut loc, func) = fndecl.body.get_names();
+        for name in fndecl.args.iter_vars() {
+          loc.remove(name);
+        }
+        (loc, func)
+      }
+    }
+  }
+
 }
 
 impl Default for ConstructorDecl {
@@ -215,4 +238,14 @@ impl Default for ConstructorDecl {
     }
   }
 
+}
+
+impl From<ClassDecl> for expr::LambdaClass {
+  fn from(decl: ClassDecl) -> expr::LambdaClass {
+    expr::LambdaClass {
+      extends: decl.extends,
+      constructor: decl.constructor,
+      decls: decl.decls,
+    }
+  }
 }

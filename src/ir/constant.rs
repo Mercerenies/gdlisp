@@ -86,7 +86,7 @@ impl MaybeConstant for Expr {
       }
       Expr::IfStmt(_, _, _) | Expr::CondStmt(_) | Expr::WhileStmt(_, _) | Expr::ForStmt(_, _, _) |
       Expr::Let(_, _) | Expr::FLet(_, _) | Expr::Labels(_, _) | Expr::Lambda(_, _) | Expr::FuncRef(_) |
-      Expr::Assign(_, _) | Expr::FieldAccess(_, _) | Expr::MethodCall(_, _, _) => {
+      Expr::Assign(_, _) | Expr::FieldAccess(_, _) | Expr::MethodCall(_, _, _) | Expr::LambdaClass(_) => {
         false
       }
     }
