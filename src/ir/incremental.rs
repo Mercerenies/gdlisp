@@ -15,7 +15,7 @@ use super::macros::{self, MacroData};
 use super::constant::MaybeConstant;
 use super::identifier::{Id, IdLike, Namespace};
 use crate::sxp::dotted::{DottedExpr, TryFromDottedExprError};
-use crate::sxp::ast::{self, AST};
+use crate::sxp::ast::AST;
 use crate::sxp::reify::Reify;
 use crate::compile::error::Error;
 use crate::compile::resource_type::ResourceType;
@@ -390,7 +390,7 @@ impl IncCompiler {
 
   pub fn compile_import(&mut self, curr: &AST) -> Result<Option<ImportDecl>, Error> {
     if let Ok(vec) = Vec::try_from(DottedExpr::new(curr)) {
-      if !vec.is_empty() && *vec[0] == ast::symbol("use") {
+      if !vec.is_empty() && *vec[0] == AST::symbol("use") {
         return ImportDecl::parse(&vec[1..]).map_err(Error::from).map(Some);
       }
     }

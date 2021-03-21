@@ -11,43 +11,43 @@ mod tests {
     let p = ASTParser::new();
     assert_eq!(p.parse("12").unwrap(), AST::Int(12));
     assert_eq!(p.parse("12.0").unwrap(), AST::Float((12.0).into()));
-    assert_eq!(p.parse("abc").unwrap(), ast::symbol("abc"));
-    assert_eq!(p.parse("abc.def").unwrap(), ast::symbol("abc.def"));
-    assert_eq!(p.parse("\"abc\"").unwrap(), ast::string("abc"));
+    assert_eq!(p.parse("abc").unwrap(), AST::symbol("abc"));
+    assert_eq!(p.parse("abc.def").unwrap(), AST::symbol("abc.def"));
+    assert_eq!(p.parse("\"abc\"").unwrap(), AST::string("abc"));
   }
 
   #[test]
   fn parser_string() {
     let p = ASTParser::new();
-    assert_eq!(p.parse("\"abcdef\"").unwrap(), ast::string("abcdef"));
-    assert_eq!(p.parse(r#""abc\"def""#).unwrap(), ast::string("abc\"def"));
-    assert_eq!(p.parse(r#""abc\\def\\""#).unwrap(), ast::string("abc\\def\\"));
+    assert_eq!(p.parse("\"abcdef\"").unwrap(), AST::string("abcdef"));
+    assert_eq!(p.parse(r#""abc\"def""#).unwrap(), AST::string("abc\"def"));
+    assert_eq!(p.parse(r#""abc\\def\\""#).unwrap(), AST::string("abc\\def\\"));
   }
 
   #[test]
   fn parser_list() {
     let p = ASTParser::new();
     assert_eq!(p.parse("()").unwrap(), AST::Nil);
-    assert_eq!(p.parse("(1)").unwrap(), ast::cons(AST::Int(1), AST::Nil));
-    assert_eq!(p.parse("(1 . 2)").unwrap(), ast::cons(AST::Int(1), AST::Int(2)));
-    assert_eq!(p.parse("(1 2)").unwrap(), ast::cons(AST::Int(1), ast::cons(AST::Int(2), AST::Nil)));
+    assert_eq!(p.parse("(1)").unwrap(), AST::cons(AST::Int(1), AST::Nil));
+    assert_eq!(p.parse("(1 . 2)").unwrap(), AST::cons(AST::Int(1), AST::Int(2)));
+    assert_eq!(p.parse("(1 2)").unwrap(), AST::cons(AST::Int(1), AST::cons(AST::Int(2), AST::Nil)));
   }
 
   #[test]
   fn parser_quoting() {
     let p = ASTParser::new();
-    assert_eq!(p.parse("'a").unwrap(), ast::list(vec!(ast::symbol("quote"), ast::symbol("a"))));
-    assert_eq!(p.parse("`a").unwrap(), ast::list(vec!(ast::symbol("quasiquote"), ast::symbol("a"))));
-    assert_eq!(p.parse(",a").unwrap(), ast::list(vec!(ast::symbol("unquote"), ast::symbol("a"))));
+    assert_eq!(p.parse("'a").unwrap(), ast::list(vec!(AST::symbol("quote"), AST::symbol("a"))));
+    assert_eq!(p.parse("`a").unwrap(), ast::list(vec!(AST::symbol("quasiquote"), AST::symbol("a"))));
+    assert_eq!(p.parse(",a").unwrap(), ast::list(vec!(AST::symbol("unquote"), AST::symbol("a"))));
   }
 
   #[test]
   fn parser_colon() {
     let p = ASTParser::new();
-    assert_eq!(p.parse("a:b").unwrap(), ast::list(vec!(ast::symbol("access-slot"), ast::symbol("a"), ast::symbol("b"))));
-    assert_eq!(p.parse("(1 . 2):b").unwrap(), ast::list(vec!(ast::symbol("access-slot"), ast::cons(AST::Int(1), AST::Int(2)), ast::symbol("b"))));
-    assert_eq!(p.parse("'a:b").unwrap(), ast::list(vec!(ast::symbol("quote"), ast::list(vec!(ast::symbol("access-slot"), ast::symbol("a"), ast::symbol("b"))))));
-    assert_eq!(p.parse("a:b:c").unwrap(), ast::list(vec!(ast::symbol("access-slot"), ast::list(vec!(ast::symbol("access-slot"), ast::symbol("a"), ast::symbol("b"))), ast::symbol("c"))));
+    assert_eq!(p.parse("a:b").unwrap(), ast::list(vec!(AST::symbol("access-slot"), AST::symbol("a"), AST::symbol("b"))));
+    assert_eq!(p.parse("(1 . 2):b").unwrap(), ast::list(vec!(AST::symbol("access-slot"), AST::cons(AST::Int(1), AST::Int(2)), AST::symbol("b"))));
+    assert_eq!(p.parse("'a:b").unwrap(), ast::list(vec!(AST::symbol("quote"), ast::list(vec!(AST::symbol("access-slot"), AST::symbol("a"), AST::symbol("b"))))));
+    assert_eq!(p.parse("a:b:c").unwrap(), ast::list(vec!(AST::symbol("access-slot"), ast::list(vec!(AST::symbol("access-slot"), AST::symbol("a"), AST::symbol("b"))), AST::symbol("c"))));
   }
 
   #[test]

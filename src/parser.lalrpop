@@ -39,8 +39,8 @@ pub AST: AST = {
 }
 
 pub SomeAST: AST = {
-  <one: AST> => ast::cons(one, AST::Nil),
-  <first: AST> <rest: SomeAST> => ast::cons(first, rest),
+  <one: AST> => AST::cons(one, AST::Nil),
+  <first: AST> <rest: SomeAST> => AST::cons(first, rest),
 }
 
 // This is here to fix an ambiguity with the grammar. Specifically, I

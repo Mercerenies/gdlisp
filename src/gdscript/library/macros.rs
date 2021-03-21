@@ -70,7 +70,7 @@ pub fn let_star_function(arg: &[&AST]) -> Result<AST, Error> {
   }
   let vars: Vec<_> = DottedExpr::new(arg[0]).try_into()?;
   let body: Vec<_> = arg[1..].iter().map(|x| (*x).clone()).collect();
-  let mut body = ast::cons(AST::Symbol(String::from("progn")), ast::list(body));
+  let mut body = AST::cons(AST::symbol("progn"), ast::list(body));
   for var in vars.into_iter().rev() {
     body = ast::list(vec!(AST::Symbol(String::from("let")),
                           ast::list(vec!(var.clone())),
@@ -81,6 +81,6 @@ pub fn let_star_function(arg: &[&AST]) -> Result<AST, Error> {
 
 pub fn defvars_function(arg: &[&AST]) -> Result<AST, Error> {
   let body: Vec<_> = arg[0..].iter().map(|x| ast::list(vec!(AST::Symbol(String::from("defvar")), (*x).clone()))).collect();
-  let body = ast::cons(AST::Symbol(String::from("progn")), ast::list(body));
+  let body = AST::cons(AST::symbol("progn"), ast::list(body));
   Ok(body)
 }

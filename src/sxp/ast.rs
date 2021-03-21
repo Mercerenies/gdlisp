@@ -18,20 +18,8 @@ pub enum AST {
   Vector3(Box<AST>, Box<AST>, Box<AST>),
 }
 
-pub fn cons(car: AST, cdr: AST) -> AST {
-  AST::Cons(Box::new(car), Box::new(cdr))
-}
-
-pub fn string(s: &str) -> AST {
-  AST::String(s.to_string())
-}
-
-pub fn symbol(s: &str) -> AST {
-  AST::Symbol(s.to_string())
-}
-
 pub fn dotted_list(vec: Vec<AST>, terminal: AST) -> AST {
-  vec.into_iter().rev().fold(terminal, |cdr, car| cons(car, cdr))
+  vec.into_iter().rev().fold(terminal, |cdr, car| AST::cons(car, cdr))
 }
 
 pub fn list(vec: Vec<AST>) -> AST {
@@ -55,6 +43,18 @@ fn fmt_list(a: &AST, b: &AST, f: &mut fmt::Formatter<'_>) -> fmt::Result {
 }
 
 impl AST {
+
+  pub fn cons(car: AST, cdr: AST) -> AST {
+    AST::Cons(Box::new(car), Box::new(cdr))
+  }
+
+  pub fn string(s: &str) -> AST {
+    AST::String(s.to_owned())
+  }
+
+  pub fn symbol(s: &str) -> AST {
+    AST::Symbol(s.to_string())
+  }
 
   fn _walk_preorder<'a, 'b, F, E>(&'a self, func: &mut F) -> Result<(), E>
   where F: FnMut(&'b AST) -> Result<(), E>,
@@ -200,22 +200,22 @@ mod tests {
 
   #[test]
   fn runtime_repr_string() {
-    assert_eq!(string("abc").to_string(), r#""abc""#);
-    assert_eq!(string("abc\"d").to_string(), r#""abc\"d""#);
-    assert_eq!(string("\\foo\"bar\\").to_string(), r#""\\foo\"bar\\""#);
+    assert_eq!(AST::string("abc").to_string(), r#""abc""#);
+    assert_eq!(AST::string("abc\"d").to_string(), r#""abc\"d""#);
+    assert_eq!(AST::string("\\foo\"bar\\").to_string(), r#""\\foo\"bar\\""#);
   }
 
   #[test]
   fn runtime_repr_symbol() {
-    assert_eq!(symbol("foo").to_string(), "foo");
-    assert_eq!(symbol("bar").to_string(), "bar");
+    assert_eq!(AST::symbol("foo").to_string(), "foo");
+    assert_eq!(AST::symbol("bar").to_string(), "bar");
   }
 
   #[test]
   fn runtime_repr_cons() {
-    assert_eq!(cons(AST::Int(1), AST::Int(2)).to_string(), "(1 . 2)");
-    assert_eq!(cons(AST::Int(1), cons(AST::Int(2), AST::Int(3))).to_string(), "(1 2 . 3)");
-    assert_eq!(cons(AST::Int(1), cons(AST::Int(2), cons(AST::Int(3), AST::Nil))).to_string(), "(1 2 3)");
+    assert_eq!(AST::cons(AST::Int(1), AST::Int(2)).to_string(), "(1 . 2)");
+    assert_eq!(AST::cons(AST::Int(1), AST::cons(AST::Int(2), AST::Int(3))).to_string(), "(1 2 . 3)");
+    assert_eq!(AST::cons(AST::Int(1), AST::cons(AST::Int(2), AST::cons(AST::Int(3), AST::Nil))).to_string(), "(1 2 3)");
   }
 
   #[test]
@@ -238,7 +238,7 @@ mod tests {
 
     let foo = AST::Symbol(String::from("foo"));
     let bar = AST::Symbol(String::from("bar"));
-    assert_eq!(cons(foo.clone(), bar.clone()).all_symbols(), vec!("foo", "bar"));
+    assert_eq!(AST::cons(foo.clone(), bar.clone()).all_symbols(), vec!("foo", "bar"));
     assert_eq!(list(vec!(foo.clone(), bar.clone())).all_symbols(), vec!("foo", "bar"));
   }
 

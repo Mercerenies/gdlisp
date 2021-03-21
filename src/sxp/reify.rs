@@ -75,16 +75,15 @@ impl Reify for AST {
 #[cfg(test)]
 mod tests {
   use super::*;
-  use crate::sxp::ast;
 
   #[test]
   fn reify_test() {
     assert_eq!(AST::Nil.reify().to_gd(), "null");
-    assert_eq!(ast::cons(AST::Int(1), AST::Int(2)).reify().to_gd(), "GDLisp.Cons.new(1, 2)");
+    assert_eq!(AST::cons(AST::Int(1), AST::Int(2)).reify().to_gd(), "GDLisp.Cons.new(1, 2)");
     assert_eq!(AST::Array(vec!(AST::Int(1), AST::Nil)).reify().to_gd(), "[1, null]");
     assert_eq!(AST::Bool(false).reify().to_gd(), "false");
     assert_eq!(AST::Bool(true).reify().to_gd(), "true");
-    assert_eq!(AST::Symbol(String::from("foo")).reify().to_gd(), "GDLisp.Symbol.new(\"foo\")");
+    assert_eq!(AST::symbol("foo").reify().to_gd(), "GDLisp.Symbol.new(\"foo\")");
   }
 
 }

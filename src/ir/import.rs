@@ -167,7 +167,7 @@ impl ImportDecl {
       }
       3 => {
         // (2) Qualified import (aliased)
-        if *tail[1] != ast::symbol("as") {
+        if *tail[1] != AST::symbol("as") {
           return Err(invalid_ending_err(&tail[1..]));
         }
         match tail[2] {
