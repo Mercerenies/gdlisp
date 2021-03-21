@@ -12,8 +12,8 @@ fn for_loop_test() {
 
 #[test]
 pub fn for_tests() {
-  assert_eq!(parse_compile_and_output("(for x 1)"), "for x_0 in 1:\n    pass\nreturn GDLisp.Nil\n");
-  assert_eq!(parse_compile_and_output("(for x 1 2)"), "for x_0 in 1:\n    pass\nreturn GDLisp.Nil\n");
-  assert_eq!(parse_compile_and_output("(for x 1 (foo))"), "for x_0 in 1:\n    foo()\nreturn GDLisp.Nil\n");
-  assert_eq!(parse_compile_and_output("(for x-y 1 (foo))"), "for x_y_0 in 1:\n    foo()\nreturn GDLisp.Nil\n");
+  assert_eq!(parse_compile_and_output("(for x 1)"), "for x_0 in 1:\n    pass\nreturn null\n");
+  assert_eq!(parse_compile_and_output("(for x 1 2)"), "for x_0 in 1:\n    pass\nreturn null\n");
+  assert_eq!(parse_compile_and_output("(for x 1 (foo))"), "for x_0 in 1:\n    foo()\nreturn null\n");
+  assert_eq!(parse_compile_and_output("(for x-y 1 (foo))"), "for x_y_0 in 1:\n    foo()\nreturn null\n");
 }

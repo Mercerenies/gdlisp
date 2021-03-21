@@ -6,7 +6,7 @@ use super::common::{parse_compile_decl, parse_and_run};
 #[test]
 #[ignore]
 pub fn simple_macro_test() {
-  assert_eq!(parse_compile_decl("((defmacro foo (x) x))"), "extends Reference\nstatic func foo(x_0):\n    return x_0\nstatic func run():\n    return GDLisp.Nil\n")
+  assert_eq!(parse_compile_decl("((defmacro foo (x) x))"), "extends Reference\nstatic func foo(x_0):\n    return x_0\nstatic func run():\n    return null\n")
 }
 
 #[test]
@@ -24,7 +24,7 @@ pub fn arithmetic_macro_test() {
 #[test]
 #[ignore]
 pub fn quote_macro_test() {
-  assert_eq!(parse_compile_decl("((defmacro my-quote (x) (cons 'quote (cons x ()))) (my-quote abc))"), "extends Reference\nstatic func my_quote(x_0):\n    return GDLisp.Cons.new(GDLisp.Symbol.new(\"quote\"), GDLisp.Cons.new(x_0, GDLisp.Nil))\nstatic func run():\n    return GDLisp.Symbol.new(\"abc\")\n");
+  assert_eq!(parse_compile_decl("((defmacro my-quote (x) (cons 'quote (cons x ()))) (my-quote abc))"), "extends Reference\nstatic func my_quote(x_0):\n    return GDLisp.Cons.new(GDLisp.Symbol.new(\"quote\"), GDLisp.Cons.new(x_0, null))\nstatic func run():\n    return GDLisp.Symbol.new(\"abc\")\n");
 }
 
 #[test]
@@ -36,7 +36,7 @@ pub fn macro_in_macro_test() {
 #[test]
 #[ignore]
 pub fn macro_from_macro_test() {
-  assert_eq!(parse_compile_decl("((defmacro foo (x) (+ x 1)) (defmacro bar (x) (cons 'foo (cons x ()))) (bar 2))"), "extends Reference\nstatic func foo(x_0):\n    return x_0 + 1\nstatic func bar(x_1):\n    return GDLisp.Cons.new(GDLisp.Symbol.new(\"foo\"), GDLisp.Cons.new(x_1, GDLisp.Nil))\nstatic func run():\n    return 3\n");
+  assert_eq!(parse_compile_decl("((defmacro foo (x) (+ x 1)) (defmacro bar (x) (cons 'foo (cons x ()))) (bar 2))"), "extends Reference\nstatic func foo(x_0):\n    return x_0 + 1\nstatic func bar(x_1):\n    return GDLisp.Cons.new(GDLisp.Symbol.new(\"foo\"), GDLisp.Cons.new(x_1, null))\nstatic func run():\n    return 3\n");
 }
 
 #[test]
@@ -61,13 +61,13 @@ pub fn optional_args_macro_test_1() {
 #[test]
 #[ignore]
 pub fn optional_args_macro_test_2() {
-  assert_eq!(parse_compile_decl("((defmacro foo (&opt x) x) (foo))"), "extends Reference\nstatic func foo(x_0):\n    return x_0\nstatic func run():\n    return GDLisp.Nil\n");
+  assert_eq!(parse_compile_decl("((defmacro foo (&opt x) x) (foo))"), "extends Reference\nstatic func foo(x_0):\n    return x_0\nstatic func run():\n    return null\n");
 }
 
 #[test]
 #[ignore]
 pub fn to_decl_macro_test() {
-  assert_eq!(parse_compile_decl("((defmacro foo () '(defn bar () ())) (foo))"), "extends Reference\nstatic func foo():\n    return GDLisp.Cons.new(GDLisp.Symbol.new(\"defn\"), GDLisp.Cons.new(GDLisp.Symbol.new(\"bar\"), GDLisp.Cons.new(GDLisp.Nil, GDLisp.Cons.new(GDLisp.Nil, GDLisp.Nil))))\nstatic func bar():\n    return GDLisp.Nil\nstatic func run():\n    return GDLisp.Nil\n");
+  assert_eq!(parse_compile_decl("((defmacro foo () '(defn bar () ())) (foo))"), "extends Reference\nstatic func foo():\n    return GDLisp.Cons.new(GDLisp.Symbol.new(\"defn\"), GDLisp.Cons.new(GDLisp.Symbol.new(\"bar\"), GDLisp.Cons.new(null, GDLisp.Cons.new(null, null))))\nstatic func bar():\n    return null\nstatic func run():\n    return null\n");
 }
 
 #[test]

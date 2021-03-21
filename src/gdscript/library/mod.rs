@@ -31,7 +31,7 @@ pub fn on_gdlisp_root(name: String) -> Expr {
 }
 
 pub fn nil() -> Expr {
-  on_gdlisp_root(String::from("Nil"))
+  Expr::null()
 }
 
 pub fn cons_class() -> Expr {

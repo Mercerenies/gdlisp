@@ -21,7 +21,7 @@ pub fn semiglobal_labels_test() {
 pub fn semiglobal_labels_test_indirect() {
 
   let result0 = parse_compile_and_output_h("(labels ((f (x) (+ x 1))) (funcall (function f) 10))");
-  assert_eq!(result0.0, "return GDLisp.funcall(_FunctionRefBlock_2.new(), GDLisp.Cons.new(10, GDLisp.Nil))\n");
+  assert_eq!(result0.0, "return GDLisp.funcall(_FunctionRefBlock_2.new(), GDLisp.Cons.new(10, null))\n");
   assert_eq!(result0.1, r#"static func _flet_0(x_1):
     return x_1 + 1
 class _FunctionRefBlock_2 extends GDLisp.Function:
@@ -33,12 +33,12 @@ class _FunctionRefBlock_2 extends GDLisp.Function:
         return _flet_0(arg0)
     func call_funcv(args):
         var required_0 = null
-        if args is GDLisp.NilClass:
+        if args == null:
             push_error("Not enough arguments")
         else:
             required_0 = args.car
             args = args.cdr
-        if args is GDLisp.NilClass:
+        if args == null:
             return call_func(required_0)
         else:
             push_error("Too many arguments")
@@ -106,12 +106,12 @@ class _LambdaBlock_5 extends GDLisp.Function:
         return _locals_1._fn_f_2(x_4)
     func call_funcv(args):
         var required_0 = null
-        if args is GDLisp.NilClass:
+        if args == null:
             push_error("Not enough arguments")
         else:
             required_0 = args.car
             args = args.cdr
-        if args is GDLisp.NilClass:
+        if args == null:
             return call_func(required_0)
         else:
             push_error("Too many arguments")
@@ -121,7 +121,7 @@ class _LambdaBlock_5 extends GDLisp.Function:
 #[test]
 pub fn recursive_single_indirect_labels_test() {
   let result0 = parse_compile_and_output_h("(labels ((f (x) (f x))) (funcall (function f) 1))");
-  assert_eq!(result0.0, "var _locals_1 = _Labels_0.new()\nreturn GDLisp.funcall(_FunctionRefBlock_4.new(_locals_1), GDLisp.Cons.new(1, GDLisp.Nil))\n");
+  assert_eq!(result0.0, "var _locals_1 = _Labels_0.new()\nreturn GDLisp.funcall(_FunctionRefBlock_4.new(_locals_1), GDLisp.Cons.new(1, null))\n");
   assert_eq!(result0.1, r#"class _Labels_0 extends Reference:
     func _init():
         pass
@@ -138,12 +138,12 @@ class _FunctionRefBlock_4 extends GDLisp.Function:
         return _locals_1._fn_f_2(arg0)
     func call_funcv(args):
         var required_0 = null
-        if args is GDLisp.NilClass:
+        if args == null:
             push_error("Not enough arguments")
         else:
             required_0 = args.car
             args = args.cdr
-        if args is GDLisp.NilClass:
+        if args == null:
             return call_func(required_0)
         else:
             push_error("Too many arguments")

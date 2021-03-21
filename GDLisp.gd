@@ -3,28 +3,12 @@ extends Node
 # Library file for GDLisp. This file must be included as a singleton
 # in any project which uses GDLisp compiled files.
 
-class NilClass:
-    func _iter_init(arg):
-        return false
-    func _iter_next(arg):
-        return false
-    func _iter_get(arg):
-        return self
-
 class Cons:
     var car
     var cdr
     func _init(car, cdr):
         self.car = car
         self.cdr = cdr
-    func _iter_init(arg):
-        arg[0] = self
-        return true
-    func _iter_next(arg):
-        arg[0] = arg[0].cdr
-        return (arg[0] is Cons)
-    func _iter_get(arg):
-        return arg.car
 
 class Function:
     var __is_gdlisp_function = true
@@ -46,8 +30,6 @@ class Symbol:
     var contents
     func _init(contents):
         self.contents = contents
-
-onready var Nil = NilClass.new()
 
 func length(x):
     var result = 0
@@ -173,7 +155,7 @@ func list(args):
     return args
 
 func vector(x, y, z):
-    if z is NilClass:
+    if z == null:
         return Vector2(x, y)
     else:
         return Vector3(x, y, z)
@@ -186,10 +168,10 @@ func list_to_array(list):
     return arr
 
 func array_to_list(arr):
-    var outer = Cons.new(Nil, Nil)
+    var outer = Cons.new(null, null)
     var curr = outer
     for elem in arr:
-        curr.cdr = Cons.new(elem, Nil)
+        curr.cdr = Cons.new(elem, null)
         curr = curr.cdr
     return outer.cdr
 

@@ -50,7 +50,7 @@ func eval(input):
 # I'll probably end up migrating this to GDLisp.gd proper at some
 # point, but for now, here it is.
 func pretty(value):
-    if value is GDLisp.NilClass:
+    if value == null:
         return "()"
     elif value is GDLisp.Cons:
         return "({} . {})".format([pretty(value.car), pretty(value.cdr)], "{}")

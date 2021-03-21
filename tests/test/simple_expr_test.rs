@@ -5,15 +5,15 @@ use super::common::{parse_compile_and_output, parse_compile_decl};
 pub fn expr_tests() {
   assert_eq!(parse_compile_and_output("100"), "return 100\n");
   assert_eq!(parse_compile_and_output("(progn 100 200 300)"), "return 300\n");
-  assert_eq!(parse_compile_and_output("()"), "return GDLisp.Nil\n");
+  assert_eq!(parse_compile_and_output("()"), "return null\n");
 }
 
 #[test]
 pub fn progn_tests() {
   assert_eq!(parse_compile_and_output("(progn (foo) (bar) (foo))"), "foo()\nbar()\nreturn foo()\n");
-  assert_eq!(parse_compile_and_output("(progn)"), "return GDLisp.Nil\n");
-  assert_eq!(parse_compile_and_output("(progn (progn))"), "return GDLisp.Nil\n");
-  assert_eq!(parse_compile_and_output("(progn ())"), "return GDLisp.Nil\n");
+  assert_eq!(parse_compile_and_output("(progn)"), "return null\n");
+  assert_eq!(parse_compile_and_output("(progn (progn))"), "return null\n");
+  assert_eq!(parse_compile_and_output("(progn ())"), "return null\n");
 }
 
 #[test]

@@ -5,12 +5,12 @@ use super::common::{parse_compile_decl, parse_and_run};
 
 #[test]
 pub fn empty_class_test() {
-  assert_eq!(parse_compile_decl("((defclass ClassName (Node)))"), "extends Reference\nclass ClassName extends Node:\n    func _init():\n        pass\nstatic func run():\n    return GDLisp.Nil\n");
+  assert_eq!(parse_compile_decl("((defclass ClassName (Node)))"), "extends Reference\nclass ClassName extends Node:\n    func _init():\n        pass\nstatic func run():\n    return null\n");
 }
 
 #[test]
 pub fn simple_class_test() {
-  assert_eq!(parse_compile_decl("((defclass ClassName (Node) (defvar x) (defn _init (y)) (defn foo () 2)))"), "extends Reference\nclass ClassName extends Node:\n    func _init(y_0):\n        pass\n    var x\n    func foo():\n        return 2\nstatic func run():\n    return GDLisp.Nil\n");
+  assert_eq!(parse_compile_decl("((defclass ClassName (Node) (defvar x) (defn _init (y)) (defn foo () 2)))"), "extends Reference\nclass ClassName extends Node:\n    func _init(y_0):\n        pass\n    var x\n    func foo():\n        return 2\nstatic func run():\n    return null\n");
 }
 
 #[test]
@@ -24,7 +24,7 @@ class ClassName extends Node:
     func get_x():
         return self.x
 static func run():
-    return GDLisp.Nil
+    return null
 "#);
 }
 
@@ -39,7 +39,7 @@ class ClassName extends Node:
     func get_x():
         return self.x
 static func run():
-    return GDLisp.Nil
+    return null
 "#);
 }
 
@@ -54,7 +54,7 @@ class ClassName extends Node:
     func get_x():
         return self.x
 static func run():
-    return GDLisp.Nil
+    return null
 "#);
 }
 
@@ -68,7 +68,7 @@ export(int, 1, 2) var x
 func get_x():
     return self.x
 static func run():
-    return GDLisp.Nil
+    return null
 "#);
 }
 
@@ -82,7 +82,7 @@ export(String, "foo", "bar") var x = "foo"
 func get_x():
     return self.x
 static func run():
-    return GDLisp.Nil
+    return null
 "#);
 }
 
@@ -108,7 +108,7 @@ class ClassName extends Node:
         pass
     signal my_signal
 static func run():
-    return GDLisp.Nil
+    return null
 "#);
 }
 
@@ -121,7 +121,7 @@ class ClassName extends Node:
         pass
     signal my_signal
 static func run():
-    return GDLisp.Nil
+    return null
 "#);
 }
 
@@ -134,7 +134,7 @@ class ClassName extends Node:
         pass
     signal my_signal(foo, bar)
 static func run():
-    return GDLisp.Nil
+    return null
 "#);
 }
 
@@ -152,7 +152,7 @@ class _LambdaBlock_1 extends GDLisp.Function:
     func call_func():
         return _self_0
     func call_funcv(args):
-        if args is GDLisp.NilClass:
+        if args == null:
             return call_func()
         else:
             push_error("Too many arguments")
@@ -162,7 +162,7 @@ class Foo extends Node:
     func test():
         return _LambdaBlock_1.new(self)
 static func run():
-    return GDLisp.Nil
+    return null
 "#);
 }
 
@@ -183,7 +183,7 @@ class Foo extends Node:
         var _locals_2 = _Labels_0.new(self)
         return _locals_2._fn_foo_3(76)
 static func run():
-    return GDLisp.Nil
+    return null
 "#);
 }
 
@@ -241,7 +241,7 @@ class Foo extends Reference:
     func _init():
         example(3)
 static func run():
-    return GDLisp.Nil
+    return null
 "#);
 }
 
@@ -295,7 +295,7 @@ pub fn main_class_test_1() {
 func _init():
     pass
 static func run():
-    return GDLisp.Nil
+    return null
 "#);
 }
 
@@ -308,7 +308,7 @@ func _init():
 func foo():
     return 1
 static func run():
-    return GDLisp.Nil
+    return null
 "#);
 }
 
@@ -350,7 +350,7 @@ func _init():
 func test():
     return self.get_node("Target/Node")
 static func run():
-    return GDLisp.Nil
+    return null
 "#);
 }
 
@@ -365,6 +365,6 @@ func _init():
 func test(x_0):
     return x_0.get_node("Target/Node")
 static func run():
-    return GDLisp.Nil
+    return null
 "#);
 }

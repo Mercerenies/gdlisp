@@ -4,7 +4,7 @@ use super::common::parse_compile_and_output;
 #[test]
 pub fn quote_test() {
   assert_eq!(parse_compile_and_output("(quote 10)"), "return 10\n");
-  assert_eq!(parse_compile_and_output("(quote (1 2))"), "return GDLisp.Cons.new(1, GDLisp.Cons.new(2, GDLisp.Nil))\n");
+  assert_eq!(parse_compile_and_output("(quote (1 2))"), "return GDLisp.Cons.new(1, GDLisp.Cons.new(2, null))\n");
   assert_eq!(parse_compile_and_output("(quote (1 . 2))"), "return GDLisp.Cons.new(1, 2)\n");
   assert_eq!(parse_compile_and_output("(quote [1 2])"), "return [1, 2]\n");
 }
@@ -12,7 +12,7 @@ pub fn quote_test() {
 #[test]
 pub fn quote_syntax_test() {
   assert_eq!(parse_compile_and_output("'10"), "return 10\n");
-  assert_eq!(parse_compile_and_output("'(1 2)"), "return GDLisp.Cons.new(1, GDLisp.Cons.new(2, GDLisp.Nil))\n");
+  assert_eq!(parse_compile_and_output("'(1 2)"), "return GDLisp.Cons.new(1, GDLisp.Cons.new(2, null))\n");
   assert_eq!(parse_compile_and_output("'(1 . 2)"), "return GDLisp.Cons.new(1, 2)\n");
   assert_eq!(parse_compile_and_output("'[1 2]"), "return [1, 2]\n");
 }
@@ -20,7 +20,7 @@ pub fn quote_syntax_test() {
 #[test]
 pub fn full_quasiquote_test() {
   assert_eq!(parse_compile_and_output("(quasiquote 10)"), "return 10\n");
-  assert_eq!(parse_compile_and_output("(quasiquote (1 2))"), "return GDLisp.Cons.new(1, GDLisp.Cons.new(2, GDLisp.Nil))\n");
+  assert_eq!(parse_compile_and_output("(quasiquote (1 2))"), "return GDLisp.Cons.new(1, GDLisp.Cons.new(2, null))\n");
   assert_eq!(parse_compile_and_output("(quasiquote (1 . 2))"), "return GDLisp.Cons.new(1, 2)\n");
   assert_eq!(parse_compile_and_output("(quasiquote [1 2])"), "return [1, 2]\n");
 }
@@ -28,7 +28,7 @@ pub fn full_quasiquote_test() {
 #[test]
 pub fn full_quasiquote_syntax_test() {
   assert_eq!(parse_compile_and_output("`10"), "return 10\n");
-  assert_eq!(parse_compile_and_output("`(1 2)"), "return GDLisp.Cons.new(1, GDLisp.Cons.new(2, GDLisp.Nil))\n");
+  assert_eq!(parse_compile_and_output("`(1 2)"), "return GDLisp.Cons.new(1, GDLisp.Cons.new(2, null))\n");
   assert_eq!(parse_compile_and_output("`(1 . 2)"), "return GDLisp.Cons.new(1, 2)\n");
   assert_eq!(parse_compile_and_output("`[1 2]"), "return [1, 2]\n");
 }

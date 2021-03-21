@@ -66,7 +66,7 @@ pub fn semiglobal_flet_test() {
 pub fn semiglobal_flet_test_indirect() {
 
   let result0 = parse_compile_and_output_h("(flet ((f (x) (+ x 1))) (funcall (function f) 10))");
-  assert_eq!(result0.0, "return GDLisp.funcall(_FunctionRefBlock_2.new(), GDLisp.Cons.new(10, GDLisp.Nil))\n");
+  assert_eq!(result0.0, "return GDLisp.funcall(_FunctionRefBlock_2.new(), GDLisp.Cons.new(10, null))\n");
   assert_eq!(result0.1, r#"static func _flet_0(x_1):
     return x_1 + 1
 class _FunctionRefBlock_2 extends GDLisp.Function:
@@ -78,12 +78,12 @@ class _FunctionRefBlock_2 extends GDLisp.Function:
         return _flet_0(arg0)
     func call_funcv(args):
         var required_0 = null
-        if args is GDLisp.NilClass:
+        if args == null:
             push_error("Not enough arguments")
         else:
             required_0 = args.car
             args = args.cdr
-        if args is GDLisp.NilClass:
+        if args == null:
             return call_func(required_0)
         else:
             push_error("Too many arguments")
@@ -110,7 +110,7 @@ pub fn local_flet_test() {
     func call_func():
         return x_0 + 1
     func call_funcv(args):
-        if args is GDLisp.NilClass:
+        if args == null:
             return call_func()
         else:
             push_error("Too many arguments")
@@ -126,7 +126,7 @@ pub fn local_flet_test_indirect() {
       (flet ((f () (+ x 1)))
         (funcall (function f))))
   "#);
-  assert_eq!(result0.0, "var x_0 = 1\nvar _flet_2 = _LambdaBlock_1.new(x_0)\nreturn GDLisp.funcall(_flet_2, GDLisp.Nil)\n");
+  assert_eq!(result0.0, "var x_0 = 1\nvar _flet_2 = _LambdaBlock_1.new(x_0)\nreturn GDLisp.funcall(_flet_2, null)\n");
   assert_eq!(result0.1, r#"class _LambdaBlock_1 extends GDLisp.Function:
     var x_0
     func _init(x_0):
@@ -137,7 +137,7 @@ pub fn local_flet_test_indirect() {
     func call_func():
         return x_0 + 1
     func call_funcv(args):
-        if args is GDLisp.NilClass:
+        if args == null:
             return call_func()
         else:
             push_error("Too many arguments")
@@ -153,5 +153,5 @@ pub fn local_flet_closure_test() {
         (let ((g (lambda () (f))))
           (funcall g))))
   "#);
-  assert_eq!(result0.0, "var x_0 = 1\nvar _flet_2 = _LambdaBlock_1.new(x_0)\nvar g_4 = _LambdaBlock_3.new(_flet_2)\nreturn GDLisp.funcall(g_4, GDLisp.Nil)\n");
+  assert_eq!(result0.0, "var x_0 = 1\nvar _flet_2 = _LambdaBlock_1.new(x_0)\nvar g_4 = _LambdaBlock_3.new(_flet_2)\nreturn GDLisp.funcall(g_4, null)\n");
 }
