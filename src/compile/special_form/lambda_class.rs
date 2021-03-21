@@ -2,7 +2,7 @@
 use crate::ir::expr::LambdaClass;
 use crate::compile::error::Error;
 use crate::compile::Compiler;
-use crate::compile::stateful::{SideEffects, StExpr};
+use crate::compile::stateful::{SideEffects, StExpr, NeedsResult};
 use crate::compile::body::builder::StmtBuilder;
 use crate::compile::symbol_table::{SymbolTable, VarScope, LocalVar};
 use crate::gdscript::expr::Expr;
@@ -14,7 +14,7 @@ pub fn compile_lambda_class<'a>(compiler: &mut Compiler<'a>,
                                 table: &mut SymbolTable,
                                 class: &LambdaClass)
                                 -> Result<StExpr, Error> {
-  let LambdaClass { extends, constructor, decls } = class.clone();
+  let LambdaClass { extends, args: constructor_args, constructor, decls } = class.clone();
 
   // Validate the extends declaration (must be a global variable)
   let extends_var = table.get_var(&extends).ok_or_else(|| Error::NoSuchVar(extends.clone()))?;
@@ -92,8 +92,8 @@ pub fn compile_lambda_class<'a>(compiler: &mut Compiler<'a>,
   };
   builder.add_helper(Decl::ClassDecl(class));
 
-  // TODO Allow the user to supply additional constructor arguments?
-  let constructor_args: Vec<_> = gd_src_closure_vars.into_iter().map(Expr::Var).collect();
+  let constructor_args = constructor_args.iter().map(|expr| compiler.compile_expr(builder, table, expr, NeedsResult::Yes).map(|x| x.0)).collect::<Result<Vec<_>, _>>()?;
+  let constructor_args: Vec<_> = gd_src_closure_vars.into_iter().map(Expr::Var).chain(constructor_args.into_iter()).collect();
   let expr = Expr::Call(Some(Box::new(Expr::Var(gd_class_name))), String::from("new"), constructor_args);
   Ok(StExpr(expr, SideEffects::None))
 }

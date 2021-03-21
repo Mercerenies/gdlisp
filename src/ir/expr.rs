@@ -51,6 +51,7 @@ pub enum FuncRefTarget {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct LambdaClass {
   pub extends: String,
+  pub args: Vec<Expr>,
   pub constructor: decl::ConstructorDecl,
   pub decls: Vec<decl::ClassInnerDecl>,
 }
@@ -216,7 +217,10 @@ impl Expr {
         z.walk_locals(acc_vars, acc_fns);
       }
       Expr::LambdaClass(cls) => {
-        let LambdaClass { extends, constructor, decls } = &**cls;
+        let LambdaClass { extends, args, constructor, decls } = &**cls;
+        for arg in args {
+          arg.walk_locals(acc_vars, acc_fns);
+        }
         acc_vars.visited(extends, AccessType::ClosedRead);
         let (con_vars, con_fns) = constructor.get_names();
         acc_vars.merge_with(con_vars.closed());

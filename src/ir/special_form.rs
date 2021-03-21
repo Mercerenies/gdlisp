@@ -1,5 +1,5 @@
 
-use crate::sxp::ast::AST;
+use crate::sxp::ast::{self, AST};
 use crate::sxp::dotted::DottedExpr;
 use super::expr::{Expr, FuncRefTarget, AssignTarget, LambdaClass};
 use super::decl;
@@ -10,7 +10,7 @@ use crate::compile::error::{Error as GDError};
 use crate::ir::incremental::IncCompiler;
 use crate::pipeline::Pipeline;
 
-use std::convert::TryInto;
+use std::convert::{TryFrom, TryInto};
 
 pub fn dispatch_form(icompiler: &mut IncCompiler,
                      pipeline: &mut Pipeline,
@@ -274,15 +274,24 @@ pub fn new_form(icompiler: &mut IncCompiler,
   if tail.len() < 1 {
     return Err(Error::from(GDError::TooFewArgs(String::from("new"), 1)));
   }
-  let superclass = match tail[0] {
+  let super_call = match tail[0] {
+    AST::Symbol(_) => ast::list(vec!((*tail[0]).clone())),
+    _ => tail[0].clone(),
+  };
+  let super_call = Vec::try_from(DottedExpr::new(&super_call))?;
+  if super_call.is_empty() {
+    return Err(Error::from(GDError::InvalidArg(String::from("new"), tail[0].clone(), String::from("superclass declaration"))));
+  }
+  let superclass = match super_call[0] {
     AST::Symbol(superclass_name) => superclass_name.to_owned(),
     _ => return Err(Error::from(GDError::InvalidArg(String::from("new"), tail[0].clone(), String::from("superclass declaration")))),
   };
+  let super_args = super_call[1..].iter().map(|arg| icompiler.compile_expr(pipeline, arg)).collect::<Result<Vec<_>, _>>()?;
   let mut cls = decl::ClassDecl::new(String::from("(local anonymous class)"), superclass);
   for decl in &tail[1..] {
     icompiler.compile_class_inner_decl(pipeline, &mut cls, decl)?;
   }
-  let lambda_class = LambdaClass::from(cls);
+  let lambda_class = LambdaClass::from((cls, super_args));
   Ok(Expr::LambdaClass(Box::new(lambda_class)))
 }
 

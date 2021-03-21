@@ -38,6 +38,23 @@ pub fn constructor_lambda_class_test() {
 }
 
 #[test]
+pub fn constructor_args_lambda_class_test() {
+
+  let result0 = parse_compile_and_output_h("(new (Node 99) (defvar x) (defvar y) (defn _init (y) (setq self:x 1) (setq self:y y)) (defn foo () [self:x self:y]))");
+  assert_eq!(result0.0, "return _AnonymousClass_0.new(99)\n");
+  assert_eq!(result0.1, r#"class _AnonymousClass_0 extends Node:
+    func _init(y_1):
+        self.x = 1
+        self.y = y_1
+    var x
+    var y
+    func foo():
+        return [self.x, self.y]
+"#);
+
+}
+
+#[test]
 pub fn closure_lambda_class_test() {
 
   let result0 = parse_compile_and_output_h("(let ((a 1)) (new Node (defn foo (x) (+ x a))))");
@@ -48,6 +65,23 @@ pub fn closure_lambda_class_test() {
     var a_0
     func foo(x_2):
         return x_2 + a_0
+"#);
+
+}
+
+#[test]
+pub fn closure_and_args_lambda_class_test() {
+
+  let result0 = parse_compile_and_output_h("(let ((a 1)) (new (Node 77) (defvar z) (defn _init (z) (setq self:z z)) (defn foo () (+ self:z a))))");
+  assert_eq!(result0.0, "var a_0 = 1\nreturn _AnonymousClass_1.new(a_0, 77)\n");
+  assert_eq!(result0.1, r#"class _AnonymousClass_1 extends Node:
+    func _init(a_0, z_2):
+        self.a_0 = a_0
+        self.z = z_2
+    var a_0
+    var z
+    func foo():
+        return self.z + a_0
 "#);
 
 }
@@ -102,4 +136,11 @@ pub fn lambda_class_running_test_5() {
          (print x))))
   "#);
   assert_eq!(output, "\n1\n2\n2\n");
+}
+
+#[test]
+#[ignore]
+pub fn lambda_class_running_test_6() {
+  let output = parse_and_run("((let ((x (let ((y 99)) (new (Reference 1) (defvar z) (defn _init (z) (setq self:z z)) (defn foo () (+ self:z y)))))) (print (x:foo))))");
+  assert_eq!(output, "\n100\n");
 }

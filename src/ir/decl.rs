@@ -244,10 +244,12 @@ impl Default for ConstructorDecl {
 
 }
 
-impl From<ClassDecl> for expr::LambdaClass {
-  fn from(decl: ClassDecl) -> expr::LambdaClass {
+impl From<(ClassDecl, Vec<Expr>)> for expr::LambdaClass {
+  fn from(arg: (ClassDecl, Vec<Expr>)) -> expr::LambdaClass {
+    let (decl, args) = arg;
     expr::LambdaClass {
       extends: decl.extends,
+      args: args,
       constructor: decl.constructor,
       decls: decl.decls,
     }
