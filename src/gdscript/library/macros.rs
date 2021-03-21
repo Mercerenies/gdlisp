@@ -9,6 +9,7 @@ use std::convert::TryInto;
 pub const ID_AND_FUNCTION:      u32 = 0;
 pub const ID_OR_FUNCTION:       u32 = 1;
 pub const ID_LETSTAR_FUNCTION:  u32 = 2;
+pub const ID_DEFVARS_FUNCTION:  u32 = 3;
 
 pub fn get_builtin_macro(id: MacroID) -> Option<fn(&[&AST]) -> Result<AST, Error>> {
   match id.0 {
@@ -20,6 +21,9 @@ pub fn get_builtin_macro(id: MacroID) -> Option<fn(&[&AST]) -> Result<AST, Error
     }
     2 => {
       Some(let_star_function)
+    }
+    3 => {
+      Some(defvars_function)
     }
     _ => {
       None
@@ -72,5 +76,11 @@ pub fn let_star_function(arg: &[&AST]) -> Result<AST, Error> {
                           ast::list(vec!(var.clone())),
                           body));
   }
+  Ok(body)
+}
+
+pub fn defvars_function(arg: &[&AST]) -> Result<AST, Error> {
+  let body: Vec<_> = arg[0..].iter().map(|x| ast::list(vec!(AST::Symbol(String::from("defvar")), (*x).clone()))).collect();
+  let body = ast::cons(AST::Symbol(String::from("progn")), ast::list(body));
   Ok(body)
 }

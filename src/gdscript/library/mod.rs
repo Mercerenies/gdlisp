@@ -278,4 +278,8 @@ pub fn bind_builtin_macros(macros: &mut HashMap<String, MacroData>) {
   macros.insert(String::from("let*"),
                 MacroData { id: MacroID(macros::ID_LETSTAR_FUNCTION), args: ArgList::rest(), imported: true });
 
+  // defvars
+  macros.insert(String::from("defvars"),
+                MacroData { id: MacroID(macros::ID_DEFVARS_FUNCTION), args: ArgList::rest(), imported: true });
+
 }

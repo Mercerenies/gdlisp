@@ -87,6 +87,21 @@ static func run():
 }
 
 #[test]
+pub fn member_var_class_test_6() {
+  assert_eq!(parse_compile_decl("((defclass ClassName (Node) (defvars x y z)))"),
+             r#"extends Reference
+class ClassName extends Node:
+    func _init():
+        pass
+    var x
+    var y
+    var z
+static func run():
+    return null
+"#);
+}
+
+#[test]
 #[should_panic]
 pub fn bad_member_var_class_test_1() {
   parse_compile_decl("((defclass ClassName (Node) (defvar x (if 1 2 3)) (defn _init (x) (setq self:x x)) (defn get-x () self:x)))");
