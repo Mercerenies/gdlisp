@@ -172,12 +172,6 @@ func not_(x):
 func list(args):
     return args
 
-func yield_(x, y):
-    if x is NilClass:
-        return yield()
-    else:
-        return yield(x, y)
-
 func vector(x, y, z):
     if z is NilClass:
         return Vector2(x, y)

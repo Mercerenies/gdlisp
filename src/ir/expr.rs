@@ -34,6 +34,7 @@ pub enum Expr {
   Vector2(Box<Expr>, Box<Expr>),
   Vector3(Box<Expr>, Box<Expr>, Box<Expr>),
   LambdaClass(Box<LambdaClass>),
+  Yield(Option<(Box<Expr>, Box<Expr>)>),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -224,6 +225,12 @@ impl Expr {
           let (decl_vars, decl_fns) = decl.get_names();
           acc_vars.merge_with(decl_vars.closed());
           acc_fns.merge_with(decl_fns);
+        }
+      }
+      Expr::Yield(arg) => {
+        if let Some((x, y)) = arg {
+          x.walk_locals(acc_vars, acc_fns);
+          y.walk_locals(acc_vars, acc_fns);
         }
       }
     };

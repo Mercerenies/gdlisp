@@ -420,7 +420,6 @@ pub fn array_test() {
 #[test]
 pub fn yield_test() {
   assert_eq!(parse_compile_and_output("(yield)"), "return yield()\n");
-  assert_eq!(parse_compile_and_output("(yield 1)"), "return yield(1, GDLisp.Nil)\n");
   assert_eq!(parse_compile_and_output("(yield 1 2)"), "return yield(1, 2)\n");
 }
 
@@ -458,4 +457,21 @@ pub fn known_gdscript_classes_test() {
 #[should_panic]
 pub fn unknown_gdscript_classes_test() {
   parse_compile_and_output("(progn NotARealClass Node2D GDScript Object)");
+}
+
+#[test]
+#[ignore]
+pub fn yield_running_test() {
+  let result = parse_and_run(r#"
+    ((defn foo ()
+       (print 2)
+       (yield)
+       (print 4))
+     (print 1)
+     (let ((x (foo)))
+       (print 3)
+       (x:resume)
+       (print 5)))
+  "#);
+  assert_eq!(result, "\n1\n2\n3\n4\n5\n");
 }

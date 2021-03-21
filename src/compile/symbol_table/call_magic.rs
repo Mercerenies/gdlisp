@@ -64,8 +64,6 @@ pub struct BooleanNotOperation;
 #[derive(Clone)]
 pub struct ListOperation;
 #[derive(Clone)]
-pub struct YieldOperation;
-#[derive(Clone)]
 pub struct VectorOperation;
 #[derive(Clone)]
 pub struct ArraySubscript;
@@ -367,37 +365,6 @@ impl CallMagic for ListOperation {
                  args: Vec<StExpr>) -> Result<Expr, Error> {
     let args = strip_st(args);
     Ok(library::construct_list(args))
-  }
-}
-
-impl CallMagic for YieldOperation {
-  fn compile<'a>(&self,
-                 call: FnCall,
-                 _compiler: &mut Compiler<'a>,
-                 _builder: &mut StmtBuilder,
-                 _table: &mut SymbolTable,
-                 args: Vec<StExpr>) -> Result<Expr, Error> {
-    let mut args = strip_st(args);
-    match args.len() {
-      0 => {
-        Ok(Expr::yield_expr(None))
-      }
-      1 => {
-        // This is nonsense on the GDScript side, but it's equivalent
-        // to the function form's behavior, so we have to let it
-        // slide. (TODO Do we?)
-        let x = args.pop().expect("Internal error in YieldOperation");
-        Ok(Expr::yield_expr(Some((x, library::nil()))))
-      }
-      2 => {
-        let y = args.pop().expect("Internal error in YieldOperation");
-        let x = args.pop().expect("Internal error in YieldOperation");
-        Ok(Expr::yield_expr(Some((x, y))))
-      }
-      _ => {
-        Err(Error::TooManyArgs(call.function, args.len()))
-      }
-    }
   }
 }
 

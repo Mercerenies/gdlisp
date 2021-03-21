@@ -34,6 +34,7 @@ pub fn dispatch_form(icompiler: &mut IncCompiler,
     "unquote" => Err(Error::from(GDError::UnquoteOutsideQuasiquote)),
     "access-slot" => access_slot_form(icompiler, pipeline, tail).map(Some),
     "new" => new_form(icompiler, pipeline, tail).map(Some),
+    "yield" => yield_form(icompiler, pipeline, tail).map(Some),
     _ => Ok(None),
   }
 }
@@ -283,4 +284,27 @@ pub fn new_form(icompiler: &mut IncCompiler,
   }
   let lambda_class = LambdaClass::from(cls);
   Ok(Expr::LambdaClass(Box::new(lambda_class)))
+}
+
+pub fn yield_form(icompiler: &mut IncCompiler,
+                  pipeline: &mut Pipeline,
+                  tail: &[&AST]) -> Result<Expr, Error> {
+  match tail.len() {
+    0 => {
+      Ok(Expr::Yield(None))
+    }
+    1 => {
+      // TODO This isn't completely accurate, as we accept either 0 or 2
+      // arguments, so TooFewArgs here is misleading.
+      Err(Error::from(GDError::TooFewArgs(String::from("yield"), 2)))
+    }
+    2 => {
+      let lhs = icompiler.compile_expr(pipeline, tail[0])?;
+      let rhs = icompiler.compile_expr(pipeline, tail[1])?;
+      Ok(Expr::Yield(Some((Box::new(lhs), Box::new(rhs)))))
+    }
+    _ => {
+      Err(Error::from(GDError::TooManyArgs(String::from("yield"), 2)))
+    }
+  }
 }

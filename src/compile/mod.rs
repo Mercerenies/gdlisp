@@ -249,6 +249,16 @@ impl<'a> Compiler<'a> {
       IRExpr::LambdaClass(cls) => {
         lambda_class::compile_lambda_class(self, builder, table, cls)
       }
+      IRExpr::Yield(arg) => {
+        match arg {
+          None => Ok(StExpr(Expr::yield_expr(None), SideEffects::ModifiesState)),
+          Some((x, y)) => {
+            let StExpr(x, _) = self.compile_expr(builder, table, x, NeedsResult::Yes)?;
+            let StExpr(y, _) = self.compile_expr(builder, table, y, NeedsResult::Yes)?;
+            Ok(StExpr(Expr::yield_expr(Some((x, y))), SideEffects::ModifiesState))
+          }
+        }
+      }
       /* // This will eventually be an optimization.
       IRExpr::Funcall(f, args) => {
         let func_expr = self.compile_expr(builder, table, f, NeedsResult::Yes)?.0;
