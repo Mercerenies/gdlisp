@@ -38,12 +38,16 @@ pub const MAIN_BODY_NAME: &str = "run";
 
 pub fn compile_expr(pipeline: &mut Pipeline, expr: &AST)
                     -> Result<Expr, PError> {
-  incremental::IncCompiler::new().compile_expr(pipeline, expr)
+  let mut compiler = incremental::IncCompiler::new();
+  compiler.bind_builtin_macros();
+  compiler.compile_expr(pipeline, expr)
 }
 
 pub fn compile_decl(pipeline: &mut Pipeline, decl: &AST)
                     -> Result<Decl, PError> {
-  incremental::IncCompiler::new().compile_decl(pipeline, decl)
+  let mut compiler = incremental::IncCompiler::new();
+  compiler.bind_builtin_macros();
+  compiler.compile_decl(pipeline, decl)
 }
 
 pub fn compile_toplevel(pipeline: &mut Pipeline, body: &AST)
