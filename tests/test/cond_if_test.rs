@@ -36,6 +36,44 @@ pub fn cond_tests_abbr_stmt() {
 }
 
 #[test]
+pub fn or_test() {
+  let result0 = parse_compile_and_output("(or 1 2 3)");
+  assert_eq!(result0, r#"var _cond_0 = null
+var _cond_2 = 1
+if _cond_2:
+    _cond_0 = _cond_2
+else:
+    var _cond_1 = 2
+    if _cond_1:
+        _cond_0 = _cond_1
+    else:
+        if true:
+            _cond_0 = 3
+        else:
+            _cond_0 = null
+return _cond_0
+"#);
+}
+
+#[test]
+pub fn and_test() {
+  let result0 = parse_compile_and_output("(and 1 2 3)");
+  assert_eq!(result0, r#"var _cond_0 = null
+if !1:
+    _cond_0 = false
+else:
+    if !2:
+        _cond_0 = false
+    else:
+        if true:
+            _cond_0 = 3
+        else:
+            _cond_0 = null
+return _cond_0
+"#);
+}
+
+#[test]
 #[ignore]
 fn if_test_1() {
   let output = parse_and_run(r#"
