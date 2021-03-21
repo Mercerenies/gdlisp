@@ -65,3 +65,8 @@ pub fn closure_var_test() {
             push_error("Too many arguments")
 "#);
 }
+
+#[test]
+pub fn let_star_test() {
+  assert_eq!(parse_compile_and_output("(let* ((a 1) (b a)) b)"), "var a_0 = 1\nvar b_1 = a_0\nreturn b_1\n");
+}
