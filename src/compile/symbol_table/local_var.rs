@@ -16,37 +16,33 @@ pub enum VarScope { GlobalVar, LocalVar }
 
 impl LocalVar {
 
-  pub fn read(name: String) -> LocalVar {
-    LocalVar { name: Expr::Var(name), access_type: AccessType::Read, scope: VarScope::LocalVar, assignable: true }
-  }
-
-  pub fn rw(name: String) -> LocalVar {
-    LocalVar { name: Expr::Var(name), access_type: AccessType::RW, scope: VarScope::LocalVar, assignable: true }
-  }
-
-  pub fn closed_rw(name: String) -> LocalVar {
-    LocalVar { name: Expr::Var(name), access_type: AccessType::ClosedRW, scope: VarScope::LocalVar, assignable: true }
-  }
-
-  pub fn global(name: String) -> LocalVar {
-    LocalVar { name: Expr::Var(name), access_type: AccessType::Read, scope: VarScope::GlobalVar, assignable: true }
-  }
-
   pub fn new(name: String, access_type: AccessType, scope: VarScope, assignable: bool) -> LocalVar {
     LocalVar { name: Expr::Var(name), access_type, scope, assignable }
   }
 
+  pub fn read(name: String) -> LocalVar {
+    LocalVar::new(name, AccessType::Read, VarScope::LocalVar, true)
+  }
+
+  pub fn rw(name: String) -> LocalVar {
+    LocalVar::new(name, AccessType::RW, VarScope::LocalVar, true)
+  }
+
+  pub fn closed_rw(name: String) -> LocalVar {
+    LocalVar::new(name, AccessType::ClosedRW, VarScope::LocalVar, true)
+  }
+
+  pub fn global(name: String) -> LocalVar {
+    LocalVar::new(name, AccessType::Read, VarScope::GlobalVar, true)
+  }
+
   pub fn local(name: String, access_type: AccessType) -> LocalVar {
-    LocalVar { name: Expr::Var(name), access_type, scope: VarScope::LocalVar, assignable: true }
+    LocalVar::new(name, access_type, VarScope::LocalVar, true)
   }
 
   pub fn self_var() -> LocalVar {
-    LocalVar {
-      name: Expr::var("self"),
-      access_type: AccessType::ClosedRead,
-      scope: VarScope::LocalVar,
-      assignable: false, // Cannot assign to self
-    }
+    // Note: Cannot assign to self
+    LocalVar::new(String::from("self"), AccessType::ClosedRead, VarScope::LocalVar, false)
   }
 
   pub fn expr(&self) -> Expr {
