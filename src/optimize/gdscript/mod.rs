@@ -22,8 +22,7 @@ pub trait ExpressionLevelPass {
 }
 
 pub trait StatementLevelPass {
-  // TODO Rename this >.> (eliminate doesn't make sense as a name)
-  fn eliminate(&self, stmt: &Stmt) -> Result<Vec<Stmt>, Error>;
+  fn run_on_stmt(&self, stmt: &Stmt) -> Result<Vec<Stmt>, Error>;
 }
 
 pub trait FunctionOptimization {
@@ -65,14 +64,14 @@ impl<T> FileOptimization for T where T : FunctionOptimization {
 // A StatementLevelPass is just a local FunctionOptimization
 impl<T> FunctionOptimization for T where T : StatementLevelPass {
   fn run_on_function(&self, function: &mut decl::FnDecl) -> Result<(), Error> {
-    function.body = walker::walk_stmts(&function.body, |x| self.eliminate(x))?;
+    function.body = walker::walk_stmts(&function.body, |x| self.run_on_stmt(x))?;
     Ok(())
   }
 }
 
 // An ExpressionLevelPass can easily be realized as a StatementLevelPass
 impl<T> StatementLevelPass for T where T : ExpressionLevelPass {
-  fn eliminate(&self, stmt: &Stmt) -> Result<Vec<Stmt>, Error> {
+  fn run_on_stmt(&self, stmt: &Stmt) -> Result<Vec<Stmt>, Error> {
     let new_stmt = match stmt {
       Stmt::Expr(e) => {
         Stmt::Expr(self.run_on_expr(&e)?)

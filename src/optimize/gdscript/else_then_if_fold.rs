@@ -6,7 +6,7 @@ use super::StatementLevelPass;
 pub struct ElseThenIfFold;
 
 impl StatementLevelPass for ElseThenIfFold {
-  fn eliminate(&self, stmt: &Stmt) -> Result<Vec<Stmt>, Error> {
+  fn run_on_stmt(&self, stmt: &Stmt) -> Result<Vec<Stmt>, Error> {
     // If we have an else whose body is an if, we can flatten it.
     // This comes up when compiling cond sometimes.
     if let Stmt::IfStmt(if_stmt) = &stmt {

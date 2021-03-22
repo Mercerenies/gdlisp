@@ -24,10 +24,10 @@ fn kill_if_branch(if_stmt: &stmt::IfStmt) -> Vec<Stmt> {
 
 impl ConstantConditionalBranch {
 
-  pub fn eliminate_acc(&self, stmts: &[Stmt]) -> Result<Vec<Stmt>, Error> {
+  pub fn run_on_stmt_acc(&self, stmts: &[Stmt]) -> Result<Vec<Stmt>, Error> {
     let mut result = Vec::new();
     for stmt in stmts {
-      result.extend(self.eliminate(stmt)?);
+      result.extend(self.run_on_stmt(stmt)?);
     }
     Ok(result)
   }
@@ -36,7 +36,7 @@ impl ConstantConditionalBranch {
 
 impl StatementLevelPass for ConstantConditionalBranch {
 
-  fn eliminate(&self, stmt: &Stmt) -> Result<Vec<Stmt>, Error> {
+  fn run_on_stmt(&self, stmt: &Stmt) -> Result<Vec<Stmt>, Error> {
     // Check for obviously true or false cases
     if let Stmt::IfStmt(if_stmt) = &stmt {
 
@@ -44,23 +44,23 @@ impl StatementLevelPass for ConstantConditionalBranch {
       if let Some(b) = constant::deduce_bool(&if_stmt.if_clause.0) {
         if b {
           // Definitely true case
-          return self.eliminate_acc(&if_stmt.if_clause.1);
+          return self.run_on_stmt_acc(&if_stmt.if_clause.1);
         } else {
           // Definitely false case
           let rest_of_stmt = kill_if_branch(&if_stmt);
-          return self.eliminate_acc(&rest_of_stmt);
+          return self.run_on_stmt_acc(&rest_of_stmt);
         }
       }
 
       // Elif branches
 
-      // If any are definitely false, we can eliminate them
+      // If any are definitely false, we can run_on_stmt them
       let mut v = if_stmt.elif_clauses.clone();
       v.retain(|(e, _)| constant::deduce_bool(e) != Some(false));
       if v != if_stmt.elif_clauses.clone() {
         let mut new_if_stmt = if_stmt.clone();
         new_if_stmt.elif_clauses = v;
-        return self.eliminate(&Stmt::IfStmt(new_if_stmt));
+        return self.run_on_stmt(&Stmt::IfStmt(new_if_stmt));
       }
 
       // If any are definitely true, then they become the else branch
@@ -69,7 +69,7 @@ impl StatementLevelPass for ConstantConditionalBranch {
         let mut new_if_stmt = if_stmt.clone();
         new_if_stmt.elif_clauses = if_stmt.elif_clauses[0..match_index].to_vec();
         new_if_stmt.else_clause = Some(if_stmt.elif_clauses[match_index].1.clone());
-        return self.eliminate(&Stmt::IfStmt(new_if_stmt));
+        return self.run_on_stmt(&Stmt::IfStmt(new_if_stmt));
       }
 
     }

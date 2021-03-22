@@ -8,7 +8,7 @@ pub struct DeadCodeElimination;
 
 impl StatementLevelPass for DeadCodeElimination {
 
-  fn eliminate(&self, stmt: &Stmt) -> Result<Vec<Stmt>, Error> {
+  fn run_on_stmt(&self, stmt: &Stmt) -> Result<Vec<Stmt>, Error> {
     let mut stmt = stmt.clone();
 
     // Check for empty else clause
@@ -35,7 +35,7 @@ mod tests {
   use crate::gdscript::arglist::ArgList;
 
   #[test]
-  fn else_do_not_eliminate() {
+  fn else_do_not_run_on_stmt() {
     /* (Change nothing)
      * if 0:
      *   return 1
@@ -50,7 +50,7 @@ mod tests {
   }
 
   #[test]
-  fn else_eliminate() {
+  fn else_run_on_stmt() {
     /* (Eliminate spurious else)
      * if 0:
      *   return 1
