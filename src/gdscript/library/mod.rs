@@ -258,7 +258,7 @@ pub fn bind_builtins(table: &mut SymbolTable) {
   table.set_var("Null".to_owned(), LocalVar::global("TYPE_NIL".to_owned()));
   table.set_var("Bool".to_owned(), LocalVar::global("TYPE_BOOL".to_owned()));
   table.set_var("Int".to_owned(), LocalVar::global("TYPE_INT".to_owned()));
-  table.set_var("Real".to_owned(), LocalVar::global("TYPE_REAL".to_owned()));
+  table.set_var("Float".to_owned(), LocalVar::global("TYPE_REAL".to_owned()));
   table.set_var("String".to_owned(), LocalVar::global("TYPE_STRING".to_owned()));
   table.set_var("Vector2".to_owned(), LocalVar::global("TYPE_VECTOR2".to_owned()));
   table.set_var("Rect2".to_owned(), LocalVar::global("TYPE_RECT2".to_owned()));
