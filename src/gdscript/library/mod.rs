@@ -206,10 +206,10 @@ pub fn bind_builtins(table: &mut SymbolTable) {
                FnCall::qualified(FnSpecs::new(2, 0, None), FnScope::Global, gdlisp_root(), "elt".to_owned()),
                Box::new(call_magic::ArraySubscript));
 
-  // instance?
+  // instance? (TODO This can be a multimethod, or if we decide not to go that route then we can call-magic away some of the checks if we know we're looking at a class name)
   table.set_fn("instance?".to_owned(),
                FnCall::qualified(FnSpecs::new(2, 0, None), FnScope::Global, gdlisp_root(), "istype".to_owned()),
-               Box::new(call_magic::DefaultCall)); ////
+               Box::new(call_magic::DefaultCall));
 
   // ---- GDScript built-ins that we use unmodified ----
 
@@ -252,6 +252,11 @@ pub fn bind_builtins(table: &mut SymbolTable) {
                FnCall::unqualified(FnSpecs::new(1, 0, None), FnScope::Global, "len".to_owned()),
                Box::new(call_magic::DefaultCall));
 
+  // TODO Definitely want to wrap this (and all of the mouse functions) in a nice namespace or module or something.
+  table.set_fn("get-global-mouse-position".to_owned(),
+               FnCall::unqualified(FnSpecs::new(0, 0, None), FnScope::Global, "get_global_mouse_position".to_owned()),
+               Box::new(call_magic::DefaultCall));
+
   table.set_var("PI".to_owned(), LocalVar::global("PI".to_owned()));
 
   // TYPE_* Constants
@@ -283,6 +288,22 @@ pub fn bind_builtins(table: &mut SymbolTable) {
   table.set_var("PoolVector3Array".to_owned(), LocalVar::global("TYPE_VECTOR3_ARRAY".to_owned()));
   table.set_var("PoolColorArray".to_owned(), LocalVar::global("TYPE_COLOR_ARRAY".to_owned()));
   table.set_var("TYPE_MAX".to_owned(), LocalVar::global("TYPE_MAX".to_owned()));
+
+  // BUTTON_* Constants
+  table.set_var("BUTTON_LEFT".to_owned(), LocalVar::global("BUTTON_LEFT".to_owned()));
+  table.set_var("BUTTON_RIGHT".to_owned(), LocalVar::global("BUTTON_RIGHT".to_owned()));
+  table.set_var("BUTTON_MIDDLE".to_owned(), LocalVar::global("BUTTON_MIDDLE".to_owned()));
+  table.set_var("BUTTON_XBUTTON1".to_owned(), LocalVar::global("BUTTON_XBUTTON1".to_owned()));
+  table.set_var("BUTTON_XBUTTON2".to_owned(), LocalVar::global("BUTTON_XBUTTON2".to_owned()));
+  table.set_var("BUTTON_WHEEL_UP".to_owned(), LocalVar::global("BUTTON_WHEEL_UP".to_owned()));
+  table.set_var("BUTTON_WHEEL_DOWN".to_owned(), LocalVar::global("BUTTON_WHEEL_DOWN".to_owned()));
+  table.set_var("BUTTON_WHEEL_LEFT".to_owned(), LocalVar::global("BUTTON_WHEEL_LEFT".to_owned()));
+  table.set_var("BUTTON_WHEEL_RIGHT".to_owned(), LocalVar::global("BUTTON_WHEEL_RIGHT".to_owned()));
+  table.set_var("BUTTON_MASK_LEFT".to_owned(), LocalVar::global("BUTTON_MASK_LEFT".to_owned()));
+  table.set_var("BUTTON_MASK_RIGHT".to_owned(), LocalVar::global("BUTTON_MASK_RIGHT".to_owned()));
+  table.set_var("BUTTON_MASK_MIDDLE".to_owned(), LocalVar::global("BUTTON_MASK_MIDDLE".to_owned()));
+  table.set_var("BUTTON_MASK_XBUTTON1".to_owned(), LocalVar::global("BUTTON_MASK_XBUTTON1".to_owned()));
+  table.set_var("BUTTON_MASK_XBUTTON2".to_owned(), LocalVar::global("BUTTON_MASK_XBUTTON2".to_owned()));
 
 
 }
