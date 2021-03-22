@@ -2,7 +2,11 @@
 // TODO Just a basic stub right now; we'll support all Godot literal
 // types soon.
 
+use crate::ir::literal::{Literal as IRLiteral};
+
 use ordered_float::OrderedFloat;
+
+use std::convert::TryFrom;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Literal {
@@ -12,6 +16,9 @@ pub enum Literal {
   Null,
   Bool(bool),
 }
+
+#[derive(Debug, Clone, Default)]
+pub struct IRToExprLiteralError;
 
 impl Literal {
 
@@ -49,6 +56,22 @@ impl From<bool> for Literal {
   fn from(x: bool) -> Literal {
     Literal::Bool(x)
   }
+}
+
+impl TryFrom<IRLiteral> for Literal {
+  type Error = IRToExprLiteralError;
+
+  fn try_from(value: IRLiteral) -> Result<Literal, Self::Error> {
+    match value {
+      IRLiteral::Nil => Ok(Literal::Null),
+      IRLiteral::Int(n) => Ok(Literal::Int(n)),
+      IRLiteral::Float(f) => Ok(Literal::Float(f)),
+      IRLiteral::String(s) => Ok(Literal::String(s)),
+      IRLiteral::Symbol(_) => Err(IRToExprLiteralError), // Doesn't compile to a GDScript literal
+      IRLiteral::Bool(b) => Ok(Literal::Bool(b)),
+    }
+  }
+
 }
 
 #[cfg(test)]
