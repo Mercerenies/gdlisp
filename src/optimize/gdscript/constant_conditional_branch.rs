@@ -1,10 +1,10 @@
 
-pub struct ConstantConditionalBranch;
-
 use crate::gdscript::stmt::{self, Stmt};
 use crate::compile::error::Error;
 use super::StatementLevelPass;
 use super::constant;
+
+pub struct ConstantConditionalBranch;
 
 // Eliminate the "if" part of the conditional
 fn kill_if_branch(if_stmt: &stmt::IfStmt) -> Vec<Stmt> {
