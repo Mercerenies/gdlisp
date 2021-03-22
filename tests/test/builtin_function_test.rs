@@ -448,9 +448,15 @@ pub fn simple_builtin_test() {
 }
 
 #[test]
-pub fn known_gdscript_classes_test() {
+pub fn known_gdscript_classes_test_1() {
+  assert_eq!(parse_compile_and_output("[Sprite Node Node2D GDScript Object]"),
+             "return [Sprite, Node, Node2D, GDScript, TYPE_OBJECT]\n");
+}
+
+#[test]
+pub fn known_gdscript_classes_test_2() {
   // Note: They all get checked, but all except the last is elided by the statefulness rules.
-  assert_eq!(parse_compile_and_output("(progn Sprite Node Node2D GDScript Object)"), "return Object\n");
+  assert_eq!(parse_compile_and_output("(progn Sprite Node Node2D GDScript Object)"), "return TYPE_OBJECT\n");
 }
 
 #[test]

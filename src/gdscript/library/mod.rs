@@ -254,6 +254,37 @@ pub fn bind_builtins(table: &mut SymbolTable) {
 
   table.set_var("PI".to_owned(), LocalVar::global("PI".to_owned()));
 
+  // TYPE_* Constants
+  table.set_var("Null".to_owned(), LocalVar::global("TYPE_NIL".to_owned()));
+  table.set_var("Bool".to_owned(), LocalVar::global("TYPE_BOOL".to_owned()));
+  table.set_var("Int".to_owned(), LocalVar::global("TYPE_INT".to_owned()));
+  table.set_var("Real".to_owned(), LocalVar::global("TYPE_REAL".to_owned()));
+  table.set_var("String".to_owned(), LocalVar::global("TYPE_STRING".to_owned()));
+  table.set_var("Vector2".to_owned(), LocalVar::global("TYPE_VECTOR2".to_owned()));
+  table.set_var("Rect2".to_owned(), LocalVar::global("TYPE_RECT2".to_owned()));
+  table.set_var("Vector3".to_owned(), LocalVar::global("TYPE_VECTOR3".to_owned()));
+  table.set_var("Transform2D".to_owned(), LocalVar::global("TYPE_TRANSFORM2D".to_owned()));
+  table.set_var("Plane".to_owned(), LocalVar::global("TYPE_PLANE".to_owned()));
+  table.set_var("Quat".to_owned(), LocalVar::global("TYPE_QUAT".to_owned()));
+  table.set_var("AABB".to_owned(), LocalVar::global("TYPE_AABB".to_owned()));
+  table.set_var("Basis".to_owned(), LocalVar::global("TYPE_BASIS".to_owned()));
+  table.set_var("Transform".to_owned(), LocalVar::global("TYPE_TRANSFORM".to_owned()));
+  table.set_var("Color".to_owned(), LocalVar::global("TYPE_COLOR".to_owned()));
+  table.set_var("NodePath".to_owned(), LocalVar::global("TYPE_NODE_PATH".to_owned()));
+  table.set_var("RID".to_owned(), LocalVar::global("TYPE_RID".to_owned()));
+  table.set_var("Object".to_owned(), LocalVar::global("TYPE_OBJECT".to_owned()));
+  table.set_var("Dictionary".to_owned(), LocalVar::global("TYPE_DICTIONARY".to_owned()));
+  table.set_var("Array".to_owned(), LocalVar::global("TYPE_ARRAY".to_owned()));
+  table.set_var("PoolByteArray".to_owned(), LocalVar::global("TYPE_RAW_ARRAY".to_owned()));
+  table.set_var("PoolIntArray".to_owned(), LocalVar::global("TYPE_INT_ARRAY".to_owned()));
+  table.set_var("PoolRealArray".to_owned(), LocalVar::global("TYPE_REAL_ARRAY".to_owned()));
+  table.set_var("PoolStringArray".to_owned(), LocalVar::global("TYPE_STRING_ARRAY".to_owned()));
+  table.set_var("PoolVector2Array".to_owned(), LocalVar::global("TYPE_VECTOR2_ARRAY".to_owned()));
+  table.set_var("PoolVector3Array".to_owned(), LocalVar::global("TYPE_VECTOR3_ARRAY".to_owned()));
+  table.set_var("PoolColorArray".to_owned(), LocalVar::global("TYPE_COLOR_ARRAY".to_owned()));
+  table.set_var("TYPE_MAX".to_owned(), LocalVar::global("TYPE_MAX".to_owned()));
+
+
 }
 
 pub fn all_builtin_names() -> HashSet<Id> {
