@@ -206,6 +206,11 @@ pub fn bind_builtins(table: &mut SymbolTable) {
                FnCall::qualified(FnSpecs::new(2, 0, None), FnScope::Global, gdlisp_root(), "elt".to_owned()),
                Box::new(call_magic::ArraySubscript));
 
+  // instance?
+  table.set_fn("instance?".to_owned(),
+               FnCall::qualified(FnSpecs::new(2, 0, None), FnScope::Global, gdlisp_root(), "istype".to_owned()),
+               Box::new(call_magic::DefaultCall)); ////
+
   // ---- GDScript built-ins that we use unmodified ----
 
   table.set_fn("str".to_owned(),

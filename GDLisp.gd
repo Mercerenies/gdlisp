@@ -177,3 +177,9 @@ func array_to_list(arr):
 
 func elt(arr, n):
     return arr[n]
+
+func istype(value, type):
+    if typeof(type) == TYPE_INT:
+        return typeof(value) == type
+    else:
+        return value is type
