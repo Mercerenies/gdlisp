@@ -7,7 +7,8 @@ pub mod constant_conditional_branch;
 pub mod else_then_if_fold;
 
 use crate::gdscript::decl::{self, Decl};
-use crate::gdscript::stmt::Stmt;
+use crate::gdscript::expr::Expr;
+use crate::gdscript::stmt::{self, Stmt};
 use crate::compile::error::Error;
 
 // Note: If optimization results in an error, the code is guaranteed
@@ -15,7 +16,12 @@ use crate::compile::error::Error;
 // to the way it started, but it should perform equivalently at
 // runtime.
 
+pub trait ExpressionLevelPass {
+  fn run_on_expr(&self, expr: &Expr) -> Result<Expr, Error>;
+}
+
 pub trait StatementLevelPass {
+  // TODO Rename this >.> (eliminate doesn't make sense as a name)
   fn eliminate(&self, stmt: &Stmt) -> Result<Vec<Stmt>, Error>;
 }
 
@@ -60,6 +66,58 @@ impl<T> FunctionOptimization for T where T : StatementLevelPass {
   fn run_on_function(&self, function: &mut decl::FnDecl) -> Result<(), Error> {
     function.body = walker::walk_stmts(&function.body, |x| self.eliminate(x))?;
     Ok(())
+  }
+}
+
+// An ExpressionLevelPass can easily be realized as a StatementLevelPass
+impl<T> StatementLevelPass for T where T : ExpressionLevelPass {
+  fn eliminate(&self, stmt: &Stmt) -> Result<Vec<Stmt>, Error> {
+    let new_stmt = match stmt {
+      Stmt::Expr(e) => {
+        Stmt::Expr(self.run_on_expr(&e)?)
+      }
+      Stmt::IfStmt(stmt::IfStmt { if_clause, elif_clauses, else_clause }) => {
+        let new_if_stmt = stmt::IfStmt {
+          if_clause: (self.run_on_expr(&if_clause.0)?, if_clause.1.clone()),
+          elif_clauses: (elif_clauses.iter().map(|(e, s)| Ok((self.run_on_expr(e)?, s.clone()))).collect::<Result<_, Error>>()?),
+          else_clause: else_clause.clone(),
+        };
+        Stmt::IfStmt(new_if_stmt)
+      }
+      Stmt::ForLoop(stmt::ForLoop { iter_var, collection, body }) => {
+        let new_for_loop = stmt::ForLoop {
+          iter_var: iter_var.clone(),
+          collection: self.run_on_expr(collection)?,
+          body: body.clone(),
+        };
+        Stmt::ForLoop(new_for_loop)
+      }
+      Stmt::WhileLoop(stmt::WhileLoop { condition, body }) => {
+        let new_while_loop = stmt::WhileLoop {
+          condition: self.run_on_expr(condition)?,
+          body: body.clone(),
+        };
+        Stmt::WhileLoop(new_while_loop)
+      }
+      Stmt::MatchStmt(expr, clauses) => {
+        Stmt::MatchStmt(self.run_on_expr(expr)?, clauses.clone())
+      }
+      Stmt::VarDecl(name, expr) => {
+        Stmt::VarDecl(name.clone(), self.run_on_expr(expr)?)
+      }
+      Stmt::ReturnStmt(expr) => {
+        Stmt::ReturnStmt(self.run_on_expr(expr)?)
+      }
+      Stmt::Assign(lhs, op, rhs) => {
+        let lhs = self.run_on_expr(&*lhs)?;
+        let rhs = self.run_on_expr(&*rhs)?;
+        Stmt::Assign(Box::new(lhs), *op, Box::new(rhs))
+      }
+      Stmt::PassStmt | Stmt::BreakStmt | Stmt::ContinueStmt => {
+        stmt.clone()
+      }
+    };
+    Ok(vec!(new_stmt))
   }
 }
 
