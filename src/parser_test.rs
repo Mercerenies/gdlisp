@@ -4,7 +4,7 @@
 #[cfg(test)]
 mod tests {
   use crate::parser::*;
-  use crate::sxp::ast::{self, AST};
+  use crate::sxp::ast::AST;
 
   #[test]
   fn parser_simple() {
@@ -36,18 +36,18 @@ mod tests {
   #[test]
   fn parser_quoting() {
     let p = ASTParser::new();
-    assert_eq!(p.parse("'a").unwrap(), ast::list(vec!(AST::symbol("quote"), AST::symbol("a"))));
-    assert_eq!(p.parse("`a").unwrap(), ast::list(vec!(AST::symbol("quasiquote"), AST::symbol("a"))));
-    assert_eq!(p.parse(",a").unwrap(), ast::list(vec!(AST::symbol("unquote"), AST::symbol("a"))));
+    assert_eq!(p.parse("'a").unwrap(), AST::list(vec!(AST::symbol("quote"), AST::symbol("a"))));
+    assert_eq!(p.parse("`a").unwrap(), AST::list(vec!(AST::symbol("quasiquote"), AST::symbol("a"))));
+    assert_eq!(p.parse(",a").unwrap(), AST::list(vec!(AST::symbol("unquote"), AST::symbol("a"))));
   }
 
   #[test]
   fn parser_colon() {
     let p = ASTParser::new();
-    assert_eq!(p.parse("a:b").unwrap(), ast::list(vec!(AST::symbol("access-slot"), AST::symbol("a"), AST::symbol("b"))));
-    assert_eq!(p.parse("(1 . 2):b").unwrap(), ast::list(vec!(AST::symbol("access-slot"), AST::cons(AST::Int(1), AST::Int(2)), AST::symbol("b"))));
-    assert_eq!(p.parse("'a:b").unwrap(), ast::list(vec!(AST::symbol("quote"), ast::list(vec!(AST::symbol("access-slot"), AST::symbol("a"), AST::symbol("b"))))));
-    assert_eq!(p.parse("a:b:c").unwrap(), ast::list(vec!(AST::symbol("access-slot"), ast::list(vec!(AST::symbol("access-slot"), AST::symbol("a"), AST::symbol("b"))), AST::symbol("c"))));
+    assert_eq!(p.parse("a:b").unwrap(), AST::list(vec!(AST::symbol("access-slot"), AST::symbol("a"), AST::symbol("b"))));
+    assert_eq!(p.parse("(1 . 2):b").unwrap(), AST::list(vec!(AST::symbol("access-slot"), AST::cons(AST::Int(1), AST::Int(2)), AST::symbol("b"))));
+    assert_eq!(p.parse("'a:b").unwrap(), AST::list(vec!(AST::symbol("quote"), AST::list(vec!(AST::symbol("access-slot"), AST::symbol("a"), AST::symbol("b"))))));
+    assert_eq!(p.parse("a:b:c").unwrap(), AST::list(vec!(AST::symbol("access-slot"), AST::list(vec!(AST::symbol("access-slot"), AST::symbol("a"), AST::symbol("b"))), AST::symbol("c"))));
   }
 
   #[test]

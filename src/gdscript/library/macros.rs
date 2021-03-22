@@ -1,6 +1,6 @@
 
 use crate::runner::macro_server::named_file_server::MacroID;
-use crate::sxp::ast::{self, AST};
+use crate::sxp::ast::AST;
 use crate::sxp::dotted::DottedExpr;
 use crate::compile::error::Error;
 
@@ -35,9 +35,9 @@ pub fn or_function(arg: &[&AST]) -> Result<AST, Error> {
   let mut iter = arg.iter().rev();
   if let Some(fst) = iter.next() {
     // Some arguments provided
-    let mut result = ast::list(vec!(ast::list(vec!(AST::Bool(true), (*fst).clone()))));
+    let mut result = AST::list(vec!(AST::list(vec!(AST::Bool(true), (*fst).clone()))));
     for x in iter {
-      let car = ast::list(vec!((*x).clone()));
+      let car = AST::list(vec!((*x).clone()));
       result = AST::Cons(Box::new(car), Box::new(result));
     }
     Ok(AST::Cons(Box::new(AST::Symbol(String::from("cond"))), Box::new(result)))
@@ -51,10 +51,10 @@ pub fn and_function(arg: &[&AST]) -> Result<AST, Error> {
   let mut iter = arg.iter().rev();
   if let Some(fst) = iter.next() {
     // Some arguments provided
-    let mut result = ast::list(vec!(ast::list(vec!(AST::Bool(true), (*fst).clone()))));
+    let mut result = AST::list(vec!(AST::list(vec!(AST::Bool(true), (*fst).clone()))));
     for x in iter {
-      let cond = ast::list(vec!(AST::Symbol(String::from("not")), (*x).clone()));
-      let car = ast::list(vec!(cond, AST::Bool(false)));
+      let cond = AST::list(vec!(AST::Symbol(String::from("not")), (*x).clone()));
+      let car = AST::list(vec!(cond, AST::Bool(false)));
       result = AST::Cons(Box::new(car), Box::new(result));
     }
     Ok(AST::Cons(Box::new(AST::Symbol(String::from("cond"))), Box::new(result)))
@@ -70,17 +70,17 @@ pub fn let_star_function(arg: &[&AST]) -> Result<AST, Error> {
   }
   let vars: Vec<_> = DottedExpr::new(arg[0]).try_into()?;
   let body: Vec<_> = arg[1..].iter().map(|x| (*x).clone()).collect();
-  let mut body = AST::cons(AST::symbol("progn"), ast::list(body));
+  let mut body = AST::cons(AST::symbol("progn"), AST::list(body));
   for var in vars.into_iter().rev() {
-    body = ast::list(vec!(AST::Symbol(String::from("let")),
-                          ast::list(vec!(var.clone())),
+    body = AST::list(vec!(AST::Symbol(String::from("let")),
+                          AST::list(vec!(var.clone())),
                           body));
   }
   Ok(body)
 }
 
 pub fn defvars_function(arg: &[&AST]) -> Result<AST, Error> {
-  let body: Vec<_> = arg[0..].iter().map(|x| ast::list(vec!(AST::Symbol(String::from("defvar")), (*x).clone()))).collect();
-  let body = AST::cons(AST::symbol("progn"), ast::list(body));
+  let body: Vec<_> = arg[0..].iter().map(|x| AST::list(vec!(AST::Symbol(String::from("defvar")), (*x).clone()))).collect();
+  let body = AST::cons(AST::symbol("progn"), AST::list(body));
   Ok(body)
 }

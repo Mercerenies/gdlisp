@@ -18,14 +18,6 @@ pub enum AST {
   Vector3(Box<AST>, Box<AST>, Box<AST>),
 }
 
-pub fn dotted_list(vec: Vec<AST>, terminal: AST) -> AST {
-  vec.into_iter().rev().fold(terminal, |cdr, car| AST::cons(car, cdr))
-}
-
-pub fn list(vec: Vec<AST>) -> AST {
-  dotted_list(vec, AST::Nil)
-}
-
 fn fmt_list(a: &AST, b: &AST, f: &mut fmt::Formatter<'_>) -> fmt::Result {
   match b {
     AST::Nil =>
@@ -54,6 +46,14 @@ impl AST {
 
   pub fn symbol(s: &str) -> AST {
     AST::Symbol(s.to_string())
+  }
+
+  pub fn dotted_list(vec: Vec<AST>, terminal: AST) -> AST {
+    vec.into_iter().rev().fold(terminal, |cdr, car| AST::cons(car, cdr)) // NOTE: Arguments reversed
+  }
+
+  pub fn list(vec: Vec<AST>) -> AST {
+    AST::dotted_list(vec, AST::Nil)
   }
 
   fn _walk_preorder<'a, 'b, F, E>(&'a self, func: &mut F) -> Result<(), E>
@@ -220,8 +220,8 @@ mod tests {
 
   #[test]
   fn runtime_repr_list() {
-    assert_eq!(list(vec!(AST::Int(1), AST::Int(2), AST::Int(3))).to_string(), "(1 2 3)");
-    assert_eq!(dotted_list(vec!(AST::Int(1), AST::Int(2), AST::Int(3)), AST::Int(4)).to_string(), "(1 2 3 . 4)");
+    assert_eq!(AST::list(vec!(AST::Int(1), AST::Int(2), AST::Int(3))).to_string(), "(1 2 3)");
+    assert_eq!(AST::dotted_list(vec!(AST::Int(1), AST::Int(2), AST::Int(3)), AST::Int(4)).to_string(), "(1 2 3 . 4)");
   }
 
   #[test]
@@ -239,7 +239,7 @@ mod tests {
     let foo = AST::Symbol(String::from("foo"));
     let bar = AST::Symbol(String::from("bar"));
     assert_eq!(AST::cons(foo.clone(), bar.clone()).all_symbols(), vec!("foo", "bar"));
-    assert_eq!(list(vec!(foo.clone(), bar.clone())).all_symbols(), vec!("foo", "bar"));
+    assert_eq!(AST::list(vec!(foo.clone(), bar.clone())).all_symbols(), vec!("foo", "bar"));
   }
 
 }

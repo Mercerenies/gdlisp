@@ -1,5 +1,5 @@
 
-use crate::sxp::ast::{self, AST};
+use crate::sxp::ast::AST;
 use crate::sxp::dotted::DottedExpr;
 use crate::runner::path::{RPathBuf, PathSrc};
 use super::identifier::{Namespace, Id, IdLike};
@@ -276,7 +276,7 @@ impl ImportName<Namespace> {
 
 fn invalid_ending_err(tail: &[&AST]) -> ImportDeclParseError {
   let ending: Vec<AST> = tail.iter().map(|x| (*x).clone()).collect();
-  ImportDeclParseError::InvalidEnding(ast::list(ending))
+  ImportDeclParseError::InvalidEnding(AST::list(ending))
 }
 
 impl fmt::Display for ImportDeclParseError {

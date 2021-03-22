@@ -48,7 +48,6 @@ impl<'a> TryFrom<DottedExpr<'a>> for Vec<&'a AST> {
 #[cfg(test)]
 mod tests {
   use super::*;
-  use crate::sxp::ast;
 
   #[test]
   fn simple_dot() {
@@ -64,7 +63,7 @@ mod tests {
   #[test]
   fn proper_list() {
     let vec = vec!(AST::Int(1), AST::Int(2), AST::Int(3));
-    let ast = ast::list(vec.clone());
+    let ast = AST::list(vec.clone());
     let dot = DottedExpr::new(&ast);
 
     assert_eq!(dot.elements, vec.iter().collect::<Vec<_>>());
@@ -79,7 +78,7 @@ mod tests {
   fn improper_list() {
     let vec = vec!(AST::Int(1), AST::Int(2), AST::Int(3));
     let end = AST::Int(4);
-    let ast = ast::dotted_list(vec.clone(), end.clone());
+    let ast = AST::dotted_list(vec.clone(), end.clone());
     let dot = DottedExpr::new(&ast);
 
     assert_eq!(dot.elements, vec.iter().collect::<Vec<_>>());

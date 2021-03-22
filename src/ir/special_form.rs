@@ -1,5 +1,5 @@
 
-use crate::sxp::ast::{self, AST};
+use crate::sxp::ast::AST;
 use crate::sxp::dotted::DottedExpr;
 use super::expr::{Expr, FuncRefTarget, AssignTarget, LambdaClass};
 use super::decl;
@@ -275,7 +275,7 @@ pub fn new_form(icompiler: &mut IncCompiler,
     return Err(Error::from(GDError::TooFewArgs(String::from("new"), 1)));
   }
   let super_call = match tail[0] {
-    AST::Symbol(_) => ast::list(vec!((*tail[0]).clone())),
+    AST::Symbol(_) => AST::list(vec!((*tail[0]).clone())),
     _ => tail[0].clone(),
   };
   let super_call = Vec::try_from(DottedExpr::new(&super_call))?;

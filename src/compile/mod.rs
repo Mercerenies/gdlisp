@@ -713,7 +713,7 @@ impl<'a> Compiler<'a> {
 mod tests {
   use super::*;
   use crate::gdscript::decl::Decl;
-  use crate::sxp::ast::{self, AST};
+  use crate::sxp::ast::AST;
   use crate::compile::symbol_table::function_call::{FnCall, FnScope, FnSpecs};
   use crate::pipeline::config::ProjectConfig;
   use crate::compile::preload_resolver::DefaultPreloadResolver;
@@ -757,7 +757,7 @@ mod tests {
 
   #[test]
   fn compile_call() {
-    let ast = ast::list(vec!(AST::Symbol(String::from("foo1")), AST::Int(10)));
+    let ast = AST::list(vec!(AST::Symbol(String::from("foo1")), AST::Int(10)));
     let expected = Stmt::ReturnStmt(Expr::Call(None, String::from("foo1"), vec!(Expr::from(10))));
     let actual = compile_stmt(&ast).unwrap();
     assert_eq!(actual.0, vec!(expected));
@@ -802,7 +802,7 @@ mod tests {
 
   #[test]
   fn compile_progn_vacuous() {
-    let ast = ast::list(vec!(AST::Symbol(String::from("progn")), AST::Int(1), AST::Int(2)));
+    let ast = AST::list(vec!(AST::Symbol(String::from("progn")), AST::Int(1), AST::Int(2)));
     let expected = vec!(Stmt::ReturnStmt(Expr::from(2)));
     let actual = compile_stmt(&ast).unwrap();
     assert_eq!(actual.0, expected);
@@ -811,9 +811,9 @@ mod tests {
 
   #[test]
   fn compile_progn_stateful() {
-    let ast = ast::list(vec!(AST::Symbol(String::from("progn")),
-                             ast::list(vec!(AST::Symbol(String::from("foo")))),
-                             ast::list(vec!(AST::Symbol(String::from("bar"))))));
+    let ast = AST::list(vec!(AST::Symbol(String::from("progn")),
+                             AST::list(vec!(AST::Symbol(String::from("foo")))),
+                             AST::list(vec!(AST::Symbol(String::from("bar"))))));
     let expected = vec!(Stmt::Expr(Expr::Call(None, String::from("foo"), vec!())),
                         Stmt::ReturnStmt(Expr::Call(None, String::from("bar"), vec!())));
     let actual = compile_stmt(&ast).unwrap();
@@ -826,7 +826,7 @@ mod tests {
     let result1 = compile_stmt(&AST::Nil).unwrap();
     assert_eq!(result1, (vec!(Stmt::ReturnStmt(Compiler::nil_expr().0)), vec!()));
 
-    let result2 = compile_stmt(&ast::list(vec!(AST::Symbol(String::from("progn"))))).unwrap();
+    let result2 = compile_stmt(&AST::list(vec!(AST::Symbol(String::from("progn"))))).unwrap();
     assert_eq!(result2, (vec!(Stmt::ReturnStmt(Compiler::nil_expr().0)), vec!()));
   }
 

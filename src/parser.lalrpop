@@ -1,7 +1,7 @@
 // -*- Rust -*-
 
 use std::str::FromStr;
-use crate::sxp::ast::{self, AST};
+use crate::sxp::ast::AST;
 use crate::sxp::string;
 
 grammar;
@@ -32,10 +32,10 @@ match {
 
 pub AST: AST = {
   <ast: LiteralOrNestedAST> => ast,
-  "'" <body: AST> => ast::list(vec!(AST::Symbol(String::from("quote")), body)),
-  "#'" <body: AST> => ast::list(vec!(AST::Symbol(String::from("function")), body)),
-  "`" <body: AST> => ast::list(vec!(AST::Symbol(String::from("quasiquote")), body)),
-  "," <body: AST> => ast::list(vec!(AST::Symbol(String::from("unquote")), body)),
+  "'" <body: AST> => AST::list(vec!(AST::Symbol(String::from("quote")), body)),
+  "#'" <body: AST> => AST::list(vec!(AST::Symbol(String::from("function")), body)),
+  "`" <body: AST> => AST::list(vec!(AST::Symbol(String::from("quasiquote")), body)),
+  "," <body: AST> => AST::list(vec!(AST::Symbol(String::from("unquote")), body)),
 }
 
 pub SomeAST: AST = {
@@ -62,9 +62,9 @@ pub LiteralOrNestedAST: AST = {
   "[" <contents: ArrayContents> "]" => AST::Array(contents),
   "V{" <x: AST> <y: AST> "}" => AST::Vector2(Box::new(x), Box::new(y)),
   "V{" <x: AST> <y: AST> <z: AST> "}" => AST::Vector3(Box::new(x), Box::new(y), Box::new(z)),
-  <body: LiteralOrNestedAST> ":" <name: Symbol> => ast::list(vec!(AST::Symbol(String::from("access-slot")), body, AST::Symbol(name))),
-  <body: LiteralOrNestedAST> ":" <path: NodePath> => ast::list(vec!(ast::list(vec!(AST::Symbol(String::from("access-slot")), body, AST::Symbol(String::from("get-node")))), AST::String(path))),
-  <path: NodePath> => ast::list(vec!(ast::list(vec!(AST::Symbol(String::from("access-slot")), AST::Symbol(String::from("self")), AST::Symbol(String::from("get-node")))), AST::String(path))),
+  <body: LiteralOrNestedAST> ":" <name: Symbol> => AST::list(vec!(AST::Symbol(String::from("access-slot")), body, AST::Symbol(name))),
+  <body: LiteralOrNestedAST> ":" <path: NodePath> => AST::list(vec!(AST::list(vec!(AST::Symbol(String::from("access-slot")), body, AST::Symbol(String::from("get-node")))), AST::String(path))),
+  <path: NodePath> => AST::list(vec!(AST::list(vec!(AST::Symbol(String::from("access-slot")), AST::Symbol(String::from("self")), AST::Symbol(String::from("get-node")))), AST::String(path))),
 }
 
 Cdr: AST = {
