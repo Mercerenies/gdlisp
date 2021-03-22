@@ -1,6 +1,7 @@
 
 use crate::ir::locals::AccessType;
 use crate::gdscript::expr::Expr;
+use crate::gdscript::literal::Literal;
 use crate::gdscript::library::CELL_CONTENTS;
 
 #[derive(PartialEq, Eq, Clone, Debug)]
@@ -9,15 +10,22 @@ pub struct LocalVar {
   pub access_type: AccessType,
   pub scope: VarScope,
   pub assignable: bool,
+  pub value_hint: Option<ValueHint>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum VarScope { GlobalVar, LocalVar }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum ValueHint {
+  ClassName,
+  Literal(Literal),
+}
+
 impl LocalVar {
 
   pub fn new(name: String, access_type: AccessType, scope: VarScope, assignable: bool) -> LocalVar {
-    LocalVar { name: Expr::Var(name), access_type, scope, assignable }
+    LocalVar { name: Expr::Var(name), access_type, scope, assignable, value_hint: None }
   }
 
   pub fn read(name: String) -> LocalVar {
@@ -43,6 +51,17 @@ impl LocalVar {
   pub fn self_var() -> LocalVar {
     // Note: Cannot assign to self
     LocalVar::new(String::from("self"), AccessType::ClosedRead, VarScope::LocalVar, false)
+  }
+
+  // Disable assignment on self (intended to be used in a builder-style)
+  pub fn no_assign(mut self) -> Self {
+    self.assignable = false;
+    self
+  }
+
+  pub fn with_hint(mut self, value_hint: ValueHint) -> Self {
+    self.value_hint = Some(value_hint);
+    self
   }
 
   pub fn expr(&self) -> Expr {

@@ -5,9 +5,10 @@ pub mod classes;
 pub mod macros;
 
 use super::expr::Expr;
+use super::literal::Literal;
 use super::op;
 use crate::compile::symbol_table::SymbolTable;
-use crate::compile::symbol_table::local_var::{LocalVar, VarScope};
+use crate::compile::symbol_table::local_var::{LocalVar, VarScope, ValueHint};
 use crate::compile::symbol_table::function_call::{FnCall, FnScope, FnSpecs};
 use crate::compile::symbol_table::call_magic;
 use crate::ir::arglist::{ArgList, VarArg};
@@ -74,7 +75,8 @@ pub fn bind_builtins(table: &mut SymbolTable) {
                   name: nil(),
                   access_type: AccessType::ClosedRead,
                   scope: VarScope::GlobalVar,
-                  assignable: false
+                  assignable: false,
+                  value_hint: Some(ValueHint::Literal(Literal::Null)),
                 });
 
   // Cons
