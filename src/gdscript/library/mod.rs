@@ -6,7 +6,8 @@ pub mod macros;
 
 use super::expr::Expr;
 use super::op;
-use crate::compile::symbol_table::{SymbolTable, LocalVar, VarScope};
+use crate::compile::symbol_table::SymbolTable;
+use crate::compile::symbol_table::local_var::{LocalVar, VarScope};
 use crate::compile::symbol_table::function_call::{FnCall, FnScope, FnSpecs};
 use crate::compile::symbol_table::call_magic;
 use crate::ir::arglist::{ArgList, VarArg};
