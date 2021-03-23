@@ -13,6 +13,7 @@ pub enum Decl {
   ConstDecl(String, Expr),
   ClassDecl(ClassDecl),
   FnDecl(Static, FnDecl),
+  EnumDecl(EnumDecl),
   SignalDecl(String, ArgList),
 }
 
@@ -41,6 +42,12 @@ pub struct FnDecl {
   pub name: String,
   pub args: ArgList,
   pub body: Vec<Stmt>,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct EnumDecl {
+  pub name: Option<String>,
+  pub clauses: Vec<(String, Option<Expr>)>,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -100,6 +107,23 @@ impl Decl {
         } else {
           writeln!(w, "signal {}({})", name, args.to_gd())
         }
+      }
+      Decl::EnumDecl(EnumDecl { name, clauses }) => {
+        write!(w, "enum ")?;
+        if let Some(name) = name {
+          write!(w, "{} ", name)?;
+        }
+        writeln!(w, "{{")?;
+        for (const_name, const_value) in clauses {
+          indent(w, ind + 4)?;
+          write!(w, "{}", const_name)?;
+          if let Some(const_value) = const_value {
+            write!(w, " = {}", const_value.to_gd())?;
+          }
+          writeln!(w, ",")?;
+        }
+        indent(w, ind)?;
+        writeln!(w, "}}")
       }
     }
   }
@@ -268,6 +292,33 @@ mod tests {
     });
     assert_eq!(decl3.to_gd(0), "class MyClass extends ParentClass:\n    var variable\n    func sample():\n        pass\n");
 
+  }
+
+  #[test]
+  fn enums() {
+    let decl1 = Decl::EnumDecl(EnumDecl {
+      name: None,
+      clauses: vec!(),
+    });
+    assert_eq!(decl1.to_gd(0), "enum {\n}\n");
+
+    let decl2 = Decl::EnumDecl(EnumDecl {
+      name: None,
+      clauses: vec!((String::from("Value1"), None), (String::from("Value2"), None)),
+    });
+    assert_eq!(decl2.to_gd(0), "enum {\n    Value1,\n    Value2,\n}\n");
+
+    let decl3 = Decl::EnumDecl(EnumDecl {
+      name: None,
+      clauses: vec!((String::from("Value1"), Some(Expr::from(99))), (String::from("Value2"), None)),
+    });
+    assert_eq!(decl3.to_gd(0), "enum {\n    Value1 = 99,\n    Value2,\n}\n");
+
+    let decl4 = Decl::EnumDecl(EnumDecl {
+      name: Some(String::from("EnumName")),
+      clauses: vec!((String::from("Value1"), Some(Expr::from(99))), (String::from("Value2"), None)),
+    });
+    assert_eq!(decl4.to_gd(0), "enum EnumName {\n    Value1 = 99,\n    Value2,\n}\n");
   }
 
 }

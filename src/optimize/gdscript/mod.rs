@@ -33,6 +33,8 @@ pub trait FileOptimization {
   fn run_on_file(&self, file: &mut decl::TopLevelClass) -> Result<(), Error>;
 }
 
+// TODO Note that expression-level optimizations won't run on
+// ConstDecl, VarDecl, or EnumDecl expressions right now.
 fn on_decl(opt: &impl FunctionOptimization, decl: &mut Decl) -> Result<(), Error> {
   match decl {
     Decl::FnDecl(_, fndecl) => {
@@ -44,7 +46,7 @@ fn on_decl(opt: &impl FunctionOptimization, decl: &mut Decl) -> Result<(), Error
       }
       Ok(())
     }
-    Decl::VarDecl(_, _, _) | Decl::ConstDecl(_, _) | Decl::SignalDecl(_, _) => {
+    Decl::VarDecl(_, _, _) | Decl::ConstDecl(_, _) | Decl::SignalDecl(_, _) | Decl::EnumDecl(_) => {
       Ok(())
     }
   }
