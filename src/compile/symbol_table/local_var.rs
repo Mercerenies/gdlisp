@@ -44,7 +44,7 @@ impl LocalVar {
   }
 
   pub fn global(name: String) -> LocalVar {
-    LocalVar::new(name, AccessType::Read, VarScope::GlobalVar, true)
+    LocalVar::new(name, AccessType::Read, VarScope::GlobalVar, false)
   }
 
   pub fn local(name: String, access_type: AccessType) -> LocalVar {
