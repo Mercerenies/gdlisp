@@ -275,6 +275,24 @@ impl<'a> Compiler<'a> {
     }
   }
 
+  // Compile an expression, but fail if a builder is required for
+  // helper stmts or decls.
+  pub fn compile_simple_expr(&mut self,
+                             table: &mut SymbolTable,
+                             src_name: &str,
+                             expr: &IRExpr,
+                             needs_result: NeedsResult)
+                             -> Result<Expr, Error> {
+    let mut tmp_builder = StmtBuilder::new();
+    let value = self.compile_expr(&mut tmp_builder, table, expr, needs_result)?.0;
+    let (stmts, decls) = tmp_builder.build();
+    if stmts.is_empty() && decls.is_empty() {
+      Ok(value)
+    } else {
+      Err(Error::NotConstantEnough(String::from(src_name)))
+    }
+  }
+
   pub fn nil_expr() -> StExpr {
     StExpr(library::nil(), SideEffects::None)
   }
@@ -448,15 +466,7 @@ impl<'a> Compiler<'a> {
       IRExpr::LocalVar(s) => Ok(Expr::Var(s.to_owned())),
       _ => {
         expr.validate_const_expr("export")?;
-        // TODO Abstract this pattern of "compile with fake builder then verify it's empty"
-        let mut tmp_builder = StmtBuilder::new();
-        let value = self.compile_expr(&mut tmp_builder, table, expr, NeedsResult::Yes)?.0;
-        let (stmts, decls) = tmp_builder.build();
-        if stmts.is_empty() && decls.is_empty() {
-          Ok(value)
-        } else {
-          Err(Error::NotConstantEnough(String::from("export")))
-        }
+        self.compile_simple_expr(table, "export", expr, NeedsResult::Yes)
       }
     }
   }
@@ -479,14 +489,7 @@ impl<'a> Compiler<'a> {
         let exports = exports.map(|args| decl::Export { args });
         let name = names::lisp_to_gd(&v.name);
         let value = v.value.as_ref().map(|expr| {
-          let mut tmp_builder = StmtBuilder::new();
-          let value = self.compile_expr(&mut tmp_builder, table, expr, NeedsResult::Yes)?.0;
-          let (stmts, decls) = tmp_builder.build();
-          if stmts.is_empty() && decls.is_empty() {
-            Ok(value)
-          } else {
-            Err(Error::NotConstantEnough(name.to_owned()))
-          }
+          self.compile_simple_expr(table, &name, expr, NeedsResult::Yes)
         }).transpose()?;
         Ok(Decl::VarDecl(exports, name, value))
       }
