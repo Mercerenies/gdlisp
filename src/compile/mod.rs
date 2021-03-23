@@ -226,7 +226,7 @@ impl<'a> Compiler<'a> {
           if let Some(LocalVar { value_hint, .. }) = table.get_var(lhs) {
             if let Some(ValueHint::Enum(vs)) = value_hint {
               // It's an enum and we know its values; validate
-              if !vs.contains(sym) {
+              if !vs.contains(&names::lisp_to_gd(sym)) {
                 return Err(Error::NoSuchEnumValue(lhs.clone(), sym.clone()));
               }
             }
