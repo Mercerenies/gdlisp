@@ -378,6 +378,43 @@ pub fn bind_builtins(table: &mut SymbolTable) {
                   ))
                 });
 
+  // KEY_MASK_* Constants
+  table.set_var("KeyMask".to_owned(),
+                LocalVar {
+                  name: on_gdlisp_root(String::from("KeyMask")),
+                  access_type: AccessType::Read,
+                  scope: VarScope::GlobalVar,
+                  assignable: false,
+                  value_hint: Some(ValueHint::enumeration(
+                    vec!("CODE_MASK", "MODIFIER_MASK", "SHIFT", "ALT",
+                         "META", "CTRL", "CMD", "KPAD", "GROUP_SWITCH").into_iter()
+                  ))
+                });
+
+  // JOY_* Constants
+  table.set_var("Joy".to_owned(),
+                LocalVar {
+                  name: on_gdlisp_root(String::from("Joy")),
+                  access_type: AccessType::Read,
+                  scope: VarScope::GlobalVar,
+                  assignable: false,
+                  value_hint: Some(ValueHint::enumeration(
+                    vec!("BUTTON_0", "BUTTON_1", "BUTTON_2",
+                         "BUTTON_3", "BUTTON_4", "BUTTON_5", "BUTTON_6", "BUTTON_7",
+                         "BUTTON_8", "BUTTON_9", "BUTTON_10", "BUTTON_11", "BUTTON_12",
+                         "BUTTON_13", "BUTTON_14", "BUTTON_15", "BUTTON_MAX", "SONY_CIRCLE",
+                         "SONY_X", "SONY_SQUARE", "SONY_TRIANGLE", "XBOX_B", "XBOX_A",
+                         "XBOX_X", "XBOX_Y", "DS_A", "DS_B", "DS_X", "DS_Y", "VR_GRIP",
+                         "VR_PAD", "VR_TRIGGER", "OCULUS_AX", "OCULUS_BY", "OCULUS_MENU",
+                         "OPENVR_MENU", "SELECT", "START", "DPAD_UP", "DPAD_DOWN", "DPAD_LEFT",
+                         "DPAD_RIGHT", "L", "L2", "L3", "R", "R2", "R3", "AXIS_0", "AXIS_1",
+                         "AXIS_2", "AXIS_3", "AXIS_4", "AXIS_5", "AXIS_6", "AXIS_7", "AXIS_8",
+                         "AXIS_9", "AXIS_MAX", "ANALOG_LX", "ANALOG_LY", "ANALOG_RX", "ANALOG_RY",
+                         "ANALOG_L2", "ANALOG_R2", "VR_ANALOG_TRIGGER", "VR_ANALOG_GRIP",
+                         "OPENVR_TOUCHPADX", "OPENVR_TOUCHPADY").into_iter()
+                  ))
+                });
+
 }
 
 pub fn all_builtin_names() -> HashSet<Id> {
