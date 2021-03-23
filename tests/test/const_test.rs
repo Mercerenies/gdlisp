@@ -35,5 +35,6 @@ pub fn builtin_const_test() {
   // recognizes all of the constants I'm compiling these to.
   parse_and_run(r#"([Int Null TYPE_MAX PI NodePath PoolStringArray
                      Mouse:LEFT Margin:BOTTOM Corner:TOP_RIGHT
-                     Orientation:VERTICAL HAlign:LEFT VAlign:TOP])"#);
+                     Orientation:VERTICAL HAlign:LEFT VAlign:TOP
+                     Key:A Key:THORN Key:EXCLAM Key:KP_8 Key:KP-9])"#);
 }

@@ -3,6 +3,7 @@
 
 pub mod classes;
 pub mod macros;
+pub mod keys;
 
 use super::expr::Expr;
 use super::literal::Literal;
@@ -362,6 +363,18 @@ pub fn bind_builtins(table: &mut SymbolTable) {
                   assignable: false,
                   value_hint: Some(ValueHint::enumeration(
                     vec!("TOP", "CENTER", "BOTTOM").into_iter()
+                  ))
+                });
+
+  // KEY_* Constants
+  table.set_var("Key".to_owned(),
+                LocalVar {
+                  name: on_gdlisp_root(String::from("Key")),
+                  access_type: AccessType::Read,
+                  scope: VarScope::GlobalVar,
+                  assignable: false,
+                  value_hint: Some(ValueHint::enumeration(
+                    keys::GDSCRIPT_KEY_NAMES.iter().map(|x| *x)
                   ))
                 });
 
