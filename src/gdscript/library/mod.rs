@@ -467,4 +467,12 @@ pub fn bind_builtin_macros(macros: &mut HashMap<String, MacroData>) {
   macros.insert(String::from("defvars"),
                 MacroData { id: MacroID(macros::ID_DEFVARS_FUNCTION), args: ArgList::rest(), imported: true });
 
+  // when
+  macros.insert(String::from("when"),
+                MacroData { id: MacroID(macros::ID_WHEN_FUNCTION), args: ArgList::rest(), imported: true });
+
+  // unless
+  macros.insert(String::from("unless"),
+                MacroData { id: MacroID(macros::ID_UNLESS_FUNCTION), args: ArgList::rest(), imported: true });
+
 }

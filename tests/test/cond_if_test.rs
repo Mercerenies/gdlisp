@@ -74,6 +74,32 @@ return _cond_0
 }
 
 #[test]
+pub fn when_test() {
+  let result0 = parse_compile_and_output("(when 1 (foo) (bar))");
+  assert_eq!(result0, r#"var _if_0 = null
+if 1:
+    foo()
+    _if_0 = bar()
+else:
+    _if_0 = null
+return _if_0
+"#);
+}
+
+#[test]
+pub fn unless_test() {
+  let result0 = parse_compile_and_output("(unless 1 (foo) (bar))");
+  assert_eq!(result0, r#"var _if_0 = null
+if 1:
+    _if_0 = null
+else:
+    foo()
+    _if_0 = bar()
+return _if_0
+"#);
+}
+
+#[test]
 #[ignore]
 fn if_test_1() {
   let output = parse_and_run(r#"

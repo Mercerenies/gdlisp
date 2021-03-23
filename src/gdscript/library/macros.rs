@@ -10,6 +10,8 @@ pub const ID_AND_FUNCTION:      u32 = 0;
 pub const ID_OR_FUNCTION:       u32 = 1;
 pub const ID_LETSTAR_FUNCTION:  u32 = 2;
 pub const ID_DEFVARS_FUNCTION:  u32 = 3;
+pub const ID_WHEN_FUNCTION:     u32 = 4;
+pub const ID_UNLESS_FUNCTION:   u32 = 5;
 
 pub fn get_builtin_macro(id: MacroID) -> Option<fn(&[&AST]) -> Result<AST, Error>> {
   match id.0 {
@@ -24,6 +26,12 @@ pub fn get_builtin_macro(id: MacroID) -> Option<fn(&[&AST]) -> Result<AST, Error
     }
     3 => {
       Some(defvars_function)
+    }
+    4 => {
+      Some(when_function)
+    }
+    5 => {
+      Some(unless_function)
     }
     _ => {
       None
@@ -83,4 +91,22 @@ pub fn defvars_function(arg: &[&AST]) -> Result<AST, Error> {
   let body: Vec<_> = arg[0..].iter().map(|x| AST::list(vec!(AST::Symbol(String::from("defvar")), (*x).clone()))).collect();
   let body = AST::cons(AST::symbol("progn"), AST::list(body));
   Ok(body)
+}
+
+pub fn when_function(arg: &[&AST]) -> Result<AST, Error> {
+  if arg.is_empty() {
+    return Err(Error::TooFewArgs(String::from("when"), arg.len()));
+  }
+  let cond = arg[0].clone();
+  let body = AST::list(arg[1..].iter().map(|x| (*x).clone()).collect());
+  Ok(AST::list(vec!(AST::symbol("if"), cond, AST::cons(AST::symbol("progn"), body), AST::Nil)))
+}
+
+pub fn unless_function(arg: &[&AST]) -> Result<AST, Error> {
+  if arg.is_empty() {
+    return Err(Error::TooFewArgs(String::from("unless"), arg.len()));
+  }
+  let cond = arg[0].clone();
+  let body = AST::list(arg[1..].iter().map(|x| (*x).clone()).collect());
+  Ok(AST::list(vec!(AST::symbol("if"), cond, AST::Nil, AST::cons(AST::symbol("progn"), body))))
 }
