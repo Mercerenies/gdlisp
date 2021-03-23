@@ -33,5 +33,7 @@ pub fn const_test_run() {
 pub fn builtin_const_test() {
   // I don't care what this outputs; I just want to know that Godot
   // recognizes all of the constants I'm compiling these to.
-  parse_and_run(r#"(Int Null TYPE_MAX PI NodePath PoolStringArray Mouse:LEFT)"#);
+  parse_and_run(r#"([Int Null TYPE_MAX PI NodePath PoolStringArray
+                     Mouse:LEFT Margin:BOTTOM Corner:TOP_RIGHT
+                     Orientation:VERTICAL HAlign:LEFT VAlign:TOP])"#);
 }

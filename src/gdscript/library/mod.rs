@@ -301,7 +301,68 @@ pub fn bind_builtins(table: &mut SymbolTable) {
                          "XBUTTON2", "WHEEL_UP", "WHEEL_DOWN",
                          "WHEEL_LEFT", "WHEEL_RIGHT", "MASK_LEFT",
                          "MASK_RIGHT", "MASK_MIDDLE", "MASK_XBUTTON1",
-                         "MASK_XBUTTON2").into_iter()))
+                         "MASK_XBUTTON2").into_iter()
+                  ))
+                });
+
+  // MARGIN_* Constants
+  table.set_var("Margin".to_owned(),
+                LocalVar {
+                  name: on_gdlisp_root(String::from("Margin")),
+                  access_type: AccessType::Read,
+                  scope: VarScope::GlobalVar,
+                  assignable: false,
+                  value_hint: Some(ValueHint::enumeration(
+                    vec!("LEFT", "TOP", "RIGHT", "BOTTOM").into_iter()
+                  ))
+                });
+
+  // CORNER_* Constants
+  table.set_var("Corner".to_owned(),
+                LocalVar {
+                  name: on_gdlisp_root(String::from("Corner")),
+                  access_type: AccessType::Read,
+                  scope: VarScope::GlobalVar,
+                  assignable: false,
+                  value_hint: Some(ValueHint::enumeration(
+                    vec!("TOP_LEFT", "TOP_RIGHT", "BOTTOM_RIGHT", "BOTTOM_LEFT").into_iter()
+                  ))
+                });
+
+  // ORIENTATION_* Constants
+  table.set_var("Orientation".to_owned(),
+                LocalVar {
+                  name: on_gdlisp_root(String::from("Orientation")),
+                  access_type: AccessType::Read,
+                  scope: VarScope::GlobalVar,
+                  assignable: false,
+                  value_hint: Some(ValueHint::enumeration(
+                    vec!("VERTICAL", "HORIZONTAL").into_iter()
+                  ))
+                });
+
+  // HALIGN_* Constants
+  table.set_var("HAlign".to_owned(),
+                LocalVar {
+                  name: on_gdlisp_root(String::from("HAlign")),
+                  access_type: AccessType::Read,
+                  scope: VarScope::GlobalVar,
+                  assignable: false,
+                  value_hint: Some(ValueHint::enumeration(
+                    vec!("LEFT", "CENTER", "RIGHT").into_iter()
+                  ))
+                });
+
+  // VALIGN_* Constants
+  table.set_var("VAlign".to_owned(),
+                LocalVar {
+                  name: on_gdlisp_root(String::from("VAlign")),
+                  access_type: AccessType::Read,
+                  scope: VarScope::GlobalVar,
+                  assignable: false,
+                  value_hint: Some(ValueHint::enumeration(
+                    vec!("TOP", "CENTER", "BOTTOM").into_iter()
+                  ))
                 });
 
 }
