@@ -290,21 +290,19 @@ pub fn bind_builtins(table: &mut SymbolTable) {
   table.set_var("TYPE_MAX".to_owned(), LocalVar::global("TYPE_MAX".to_owned()));
 
   // BUTTON_* Constants
-  table.set_var("BUTTON_LEFT".to_owned(), LocalVar::global("BUTTON_LEFT".to_owned()));
-  table.set_var("BUTTON_RIGHT".to_owned(), LocalVar::global("BUTTON_RIGHT".to_owned()));
-  table.set_var("BUTTON_MIDDLE".to_owned(), LocalVar::global("BUTTON_MIDDLE".to_owned()));
-  table.set_var("BUTTON_XBUTTON1".to_owned(), LocalVar::global("BUTTON_XBUTTON1".to_owned()));
-  table.set_var("BUTTON_XBUTTON2".to_owned(), LocalVar::global("BUTTON_XBUTTON2".to_owned()));
-  table.set_var("BUTTON_WHEEL_UP".to_owned(), LocalVar::global("BUTTON_WHEEL_UP".to_owned()));
-  table.set_var("BUTTON_WHEEL_DOWN".to_owned(), LocalVar::global("BUTTON_WHEEL_DOWN".to_owned()));
-  table.set_var("BUTTON_WHEEL_LEFT".to_owned(), LocalVar::global("BUTTON_WHEEL_LEFT".to_owned()));
-  table.set_var("BUTTON_WHEEL_RIGHT".to_owned(), LocalVar::global("BUTTON_WHEEL_RIGHT".to_owned()));
-  table.set_var("BUTTON_MASK_LEFT".to_owned(), LocalVar::global("BUTTON_MASK_LEFT".to_owned()));
-  table.set_var("BUTTON_MASK_RIGHT".to_owned(), LocalVar::global("BUTTON_MASK_RIGHT".to_owned()));
-  table.set_var("BUTTON_MASK_MIDDLE".to_owned(), LocalVar::global("BUTTON_MASK_MIDDLE".to_owned()));
-  table.set_var("BUTTON_MASK_XBUTTON1".to_owned(), LocalVar::global("BUTTON_MASK_XBUTTON1".to_owned()));
-  table.set_var("BUTTON_MASK_XBUTTON2".to_owned(), LocalVar::global("BUTTON_MASK_XBUTTON2".to_owned()));
-
+  table.set_var("Mouse".to_owned(),
+                LocalVar {
+                  name: on_gdlisp_root(String::from("Mouse")),
+                  access_type: AccessType::Read,
+                  scope: VarScope::GlobalVar,
+                  assignable: false,
+                  value_hint: Some(ValueHint::enumeration(
+                    vec!("LEFT", "RIGHT", "MIDDLE", "XBUTTON1",
+                         "XBUTTON2", "WHEEL_UP", "WHEEL_DOWN",
+                         "WHEEL_LEFT", "WHEEL_RIGHT", "MASK_LEFT",
+                         "MASK_RIGHT", "MASK_MIDDLE", "MASK_XBUTTON1",
+                         "MASK_XBUTTON2").into_iter()))
+                });
 
 }
 

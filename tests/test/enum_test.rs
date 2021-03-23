@@ -35,3 +35,8 @@ pub fn enum_runner_test() {
 pub fn invalid_enum_test() {
   parse_compile_decl("((defenum MyEnum (A 1) (B 2) (C 3)) MyEnum:D)");
 }
+
+#[test]
+pub fn builtin_enum_test() {
+  assert_eq!(parse_compile_decl("(Mouse:LEFT)"), "extends Reference\nstatic func run():\n    return GDLisp.Mouse.LEFT\n");
+}
