@@ -271,7 +271,7 @@ pub fn access_slot_form(icompiler: &mut IncCompiler,
 pub fn new_form(icompiler: &mut IncCompiler,
                 pipeline: &mut Pipeline,
                 tail: &[&AST]) -> Result<Expr, Error> {
-  if tail.len() < 1 {
+  if tail.is_empty() {
     return Err(Error::from(GDError::TooFewArgs(String::from("new"), 1)));
   }
   let super_call = match tail[0] {

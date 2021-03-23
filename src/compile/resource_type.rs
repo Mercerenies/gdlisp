@@ -29,7 +29,7 @@ pub enum ResourceType {
 impl ResourceType {
 
   pub fn from_path<P : AsRef<Path> + ?Sized>(path: &P) -> ResourceType {
-    ResourceType::from_file_extension(&path.as_ref().extension().unwrap_or(OsStr::new("")))
+    ResourceType::from_file_extension(&path.as_ref().extension().unwrap_or_else(|| OsStr::new("")))
   }
 
   pub fn from_file_extension<S : AsRef<OsStr> + ?Sized>(ext: &S) -> ResourceType {

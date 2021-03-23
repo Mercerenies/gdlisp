@@ -11,7 +11,7 @@ pub fn deduce_bool(expr: &Expr) -> Option<bool> {
       match lit {
         Literal::Int(n) => Some(*n != 0),
         Literal::Float(f) => Some(**f != 0.0),
-        Literal::String(s) => Some(s != ""),
+        Literal::String(s) => Some(s.is_empty()),
         Literal::Null => Some(false),
         Literal::Bool(b) => Some(*b),
       }

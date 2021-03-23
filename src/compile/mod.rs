@@ -717,7 +717,7 @@ impl<'a> Compiler<'a> {
         ImportDetails::Named(s) => s.to_owned(),
         _ => return Err(PError::from(Error::InvalidImportOnResource(import.filename.to_string()))),
       };
-      let var = LocalVar::global(preload_name.clone())
+      let var = LocalVar::global(preload_name)
         .no_assign(); // Cannot assign to constant
       // TODO Value hint? It would have to be based on the file extension / what resource type it is.
       // (e.g. *.gd would be ClassHint, but *.tres or *.png would not be)

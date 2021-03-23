@@ -10,12 +10,12 @@ pub struct ConstantConditionalBranch;
 fn kill_if_branch(if_stmt: &stmt::IfStmt) -> Vec<Stmt> {
   if if_stmt.elif_clauses.is_empty() {
     // No elif, so the else clause becomes the whole conditional
-    if_stmt.else_clause.clone().unwrap_or(vec!())
+    if_stmt.else_clause.clone().unwrap_or_default()
   } else {
     // Use the first elif
     let new_if_stmt = stmt::IfStmt {
       if_clause: if_stmt.elif_clauses[0].clone(),
-      elif_clauses: if_stmt.elif_clauses[1..].iter().cloned().collect(),
+      elif_clauses: if_stmt.elif_clauses[1..].to_vec(),
       else_clause: if_stmt.else_clause.clone(),
     };
     vec!(Stmt::IfStmt(new_if_stmt))
