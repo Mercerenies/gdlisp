@@ -257,6 +257,35 @@ impl IncCompiler {
             }
             Ok(Decl::ClassDecl(class))
           }
+          "defenum" => {
+            if vec.len() < 2 {
+              return Err(PError::from(Error::InvalidDecl(decl.clone())));
+            }
+            let name = match vec[1] {
+              AST::Symbol(s) => s.to_owned(),
+              _ => return Err(PError::from(Error::InvalidDecl(decl.clone()))),
+            };
+            let clauses = vec[2..].iter().map(|clause| {
+              let clause = match clause {
+                AST::Symbol(_) => AST::list(vec!((*clause).clone())),
+                _ => (*clause).clone(),
+              };
+              let clause = Vec::try_from(DottedExpr::new(&clause))?;
+              let (name, value) = match &clause[..] {
+                [name] => (name, None),
+                [name, value] => (name, Some(value)),
+                _ => return Err(PError::from(Error::InvalidDecl(decl.clone()))),
+              };
+              let name = match name {
+                AST::Symbol(s) => s.to_owned(),
+                _ => return Err(PError::from(Error::InvalidDecl(decl.clone()))),
+              };
+              let value = value.map(|v| self.compile_expr(pipeline, v)).transpose()?;
+              Ok((name, value))
+            }).collect::<Result<_, _>>()?;
+            let enum_decl = decl::EnumDecl { name, clauses };
+            Ok(Decl::EnumDecl(enum_decl))
+          }
           _ => {
             Err(PError::from(Error::UnknownDecl(decl.clone())))
           }

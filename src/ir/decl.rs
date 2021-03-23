@@ -21,6 +21,7 @@ pub enum Decl {
   MacroDecl(MacroDecl),
   ConstDecl(ConstDecl),
   ClassDecl(ClassDecl),
+  EnumDecl(EnumDecl),
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -41,6 +42,12 @@ pub struct MacroDecl {
 pub struct ConstDecl {
   pub name: String,
   pub value: Expr,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct EnumDecl {
+  pub name: String,
+  pub clauses: Vec<(String, Option<Expr>)>,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -114,6 +121,7 @@ impl Decl {
       Decl::MacroDecl(decl) => &decl.name,
       Decl::ConstDecl(decl) => &decl.name,
       Decl::ClassDecl(decl) => &decl.name,
+      Decl::EnumDecl(decl) => &decl.name,
     }
   }
 
@@ -146,6 +154,15 @@ impl Decl {
         ids.remove(&Id::new(Namespace::Value, String::from("self")));
         ids
       }
+      Decl::EnumDecl(enum_decl) => {
+        let mut ids = HashSet::new();
+        for (_, expr) in &enum_decl.clauses {
+          if let Some(expr) = expr {
+            ids.extend(expr.get_ids());
+          }
+        }
+        ids
+      }
     }
   }
 
@@ -159,7 +176,16 @@ impl Decl {
       Decl::MacroDecl(_) => Namespace::Function,
       Decl::ConstDecl(_) => Namespace::Value,
       Decl::ClassDecl(_) => Namespace::Value,
+      Decl::EnumDecl(_) => Namespace::Value,
     }
+  }
+
+}
+
+impl EnumDecl {
+
+  pub fn value_names(&self) -> impl Iterator<Item=&str> {
+    self.clauses.iter().map(|(x, _)| &**x)
   }
 
 }

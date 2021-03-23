@@ -355,6 +355,19 @@ impl<'a> Compiler<'a> {
           Ok(())
         }
       }
+      IRDecl::EnumDecl(ir::decl::EnumDecl { name, clauses }) => {
+        let gd_name = names::lisp_to_gd(&name);
+        let gd_clauses = clauses.iter().map(|(const_name, const_value)| {
+          if let Some(expr) = const_value {
+            expr.validate_const_expr(const_name)?;
+          }
+          let gd_const_name = names::lisp_to_gd(const_name);
+          let gd_const_value = const_value.as_ref().map(|x| self.compile_simple_expr(table, const_name, x, NeedsResult::Yes)).transpose()?;
+          Ok((gd_const_name, gd_const_value))
+        }).collect::<Result<_, Error>>()?;
+        builder.add_decl(Decl::EnumDecl(decl::EnumDecl { name: Some(gd_name), clauses: gd_clauses }));
+        Ok(())
+      }
     }
   }
 
@@ -552,6 +565,13 @@ impl<'a> Compiler<'a> {
             .with_hint(ValueHint::ClassName);
           table.set_var(name.clone(), var);
         }
+      }
+      IRDecl::EnumDecl(edecl) => {
+        let name = edecl.name.clone();
+        let var = LocalVar::global(names::lisp_to_gd(&name))
+          .no_assign() // Can't assign to constants
+          .with_hint(ValueHint::enumeration(edecl.value_names()));
+        table.set_var(name, var);
       }
     };
     Ok(())

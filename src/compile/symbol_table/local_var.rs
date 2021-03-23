@@ -4,6 +4,8 @@ use crate::gdscript::expr::Expr;
 use crate::gdscript::literal::Literal;
 use crate::gdscript::library::CELL_CONTENTS;
 
+use std::borrow::ToOwned;
+
 #[derive(PartialEq, Eq, Clone, Debug)]
 pub struct LocalVar {
   pub name: Expr,
@@ -20,6 +22,7 @@ pub enum VarScope { GlobalVar, LocalVar }
 pub enum ValueHint {
   ClassName,
   Literal(Literal),
+  Enum(Vec<String>),
 }
 
 impl LocalVar {
@@ -76,5 +79,13 @@ impl LocalVar {
   // TODO Put all of the declaration-site stuff here as well, like
   // .expr() for access, so we have it all in one place (i.e. the
   // difference between "var x = ..." and "var x = Cell.new(...)")
+
+}
+
+impl ValueHint {
+
+  pub fn enumeration<'a>(values: impl Iterator<Item=&'a str>) -> ValueHint {
+    ValueHint::Enum(values.map(str::to_owned).collect())
+  }
 
 }
