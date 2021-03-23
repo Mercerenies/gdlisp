@@ -68,10 +68,9 @@ pub fn create_macro_file(pipeline: &mut Pipeline, imports: Vec<ImportDecl>, src_
   compiler.compile_toplevel(pipeline, &mut builder, &mut table, &toplevel)?;
   let result = builder.build();
 
-  // TODO Handle the error correctly
-  let mut tmp_file = make_tmp().expect("IO Error");
-  result.write_to_gd(&mut tmp_file).expect("IO Error");
-  tmp_file.flush().expect("IO Error");
+  let mut tmp_file = make_tmp()?;
+  result.write_to_gd(&mut tmp_file)?;
+  tmp_file.flush()?;
   Ok(tmp_file)
 
 }
