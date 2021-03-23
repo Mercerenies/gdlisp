@@ -37,5 +37,6 @@ pub fn builtin_const_test() {
                      Mouse:LEFT Margin:BOTTOM Corner:TOP_RIGHT
                      Orientation:VERTICAL HAlign:LEFT VAlign:TOP
                      Key:A Key:THORN Key:EXCLAM Key:KP_8 Key:KP-9
-                     KeyMask:CTRL Joy:BUTTON-13 Joy:R3 Joy:ANALOG-R2])"#);
+                     KeyMask:CTRL Joy:BUTTON-13 Joy:R3 Joy:ANALOG-R2
+                     MIDIMessage:NOTE_ON PI SPKEY])"#);
 }

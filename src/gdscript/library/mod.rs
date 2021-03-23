@@ -259,6 +259,7 @@ pub fn bind_builtins(table: &mut SymbolTable) {
                Box::new(call_magic::DefaultCall));
 
   table.set_var("PI".to_owned(), LocalVar::global("PI".to_owned()));
+  table.set_var("SPKEY".to_owned(), LocalVar::global("SPKEY".to_owned()));
 
   // TYPE_* Constants
   table.set_var("Null".to_owned(), LocalVar::global("TYPE_NIL".to_owned()));
@@ -414,6 +415,21 @@ pub fn bind_builtins(table: &mut SymbolTable) {
                          "OPENVR_TOUCHPADX", "OPENVR_TOUCHPADY").into_iter()
                   ))
                 });
+
+  // MIDI_MESSAGE_* Constants
+  table.set_var("MIDIMessage".to_owned(),
+                LocalVar {
+                  name: on_gdlisp_root(String::from("MIDIMessage")),
+                  access_type: AccessType::Read,
+                  scope: VarScope::GlobalVar,
+                  assignable: false,
+                  value_hint: Some(ValueHint::enumeration(
+                    vec!("NOTE_OFF", "NOTE_ON", "AFTERTOUCH", "CONTROL_CHANGE",
+                         "PROGRAM_CHANGE", "CHANNEL_PRESSURE", "PITCH_BEND").into_iter()
+                  ))
+                });
+
+  // TODO The remaining constants from @GlobalScope need to be copied over here
 
 }
 
