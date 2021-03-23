@@ -220,9 +220,23 @@ impl<'a> Compiler<'a> {
         Ok(StExpr(ast.reify(), SideEffects::None))
       }
       IRExpr::FieldAccess(lhs, sym) => {
+
+        // This is a special case to validate enum names, as an extra sanity check.
+        if let IRExpr::LocalVar(lhs) = &**lhs {
+          if let Some(LocalVar { value_hint, .. }) = table.get_var(lhs) {
+            if let Some(ValueHint::Enum(vs)) = value_hint {
+              // It's an enum and we know its values; validate
+              if !vs.contains(sym) {
+                return Err(Error::NoSuchEnumValue(lhs.clone(), sym.clone()));
+              }
+            }
+          }
+        }
+
         let StExpr(lhs, state) = self.compile_expr(builder, table, lhs, NeedsResult::Yes)?;
         let side_effects = max(SideEffects::ReadsState, state);
         Ok(StExpr(Expr::Attribute(Box::new(lhs), names::lisp_to_gd(sym)), side_effects))
+
       }
       IRExpr::MethodCall(lhs, sym, args) => {
         // Note: No call magic, no optional/rest arguments. When

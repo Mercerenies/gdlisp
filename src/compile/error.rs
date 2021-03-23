@@ -23,6 +23,7 @@ pub enum Error {
   InvalidArg(String, AST, String), // Function, argument, expected
   NoSuchVar(String),
   NoSuchFn(String),
+  NoSuchEnumValue(String, String),
   UnknownDecl(AST),
   InvalidDecl(AST),
   UnquoteOutsideQuasiquote,
@@ -65,6 +66,9 @@ impl fmt::Display for Error {
       }
       Error::NoSuchFn(name) => {
         write!(f, "No such function {}", name)
+      }
+      Error::NoSuchEnumValue(name, subname) => {
+        write!(f, "No such enum value {}:{}", name, subname)
       }
       Error::UnknownDecl(ast) => {
         write!(f, "Unknown declaration {}", ast)
