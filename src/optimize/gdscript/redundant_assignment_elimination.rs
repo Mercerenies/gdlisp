@@ -262,12 +262,34 @@ mod tests {
   fn redundant_assign_test_no_trigger_3() {
     /* (Do not eliminate if different variables)
      * foo = 1
-     * var = 2
+     * bar = 2
      */
 
     let body0 = vec!(
       Stmt::Assign(Box::new(Expr::var("foo")), op::AssignOp::Eq, Box::new(Expr::from(1))),
       Stmt::Assign(Box::new(Expr::var("bar")), op::AssignOp::Eq, Box::new(Expr::from(2))),
+    );
+    let mut func0 = decl::FnDecl {
+      name: String::from("example"),
+      args: ArgList::empty(),
+      body: body0.clone(),
+    };
+    let func1 = func0.clone();
+
+    RedundantAssignmentElimination.run_on_function(&mut func0).unwrap();
+    assert_eq!(func0, func1);
+  }
+
+  #[test]
+  fn redundant_assign_test_no_trigger_4() {
+    /* (Do not eliminate if second assignment is compound)
+     * foo = 1
+     * foo += 2
+     */
+
+    let body0 = vec!(
+      Stmt::Assign(Box::new(Expr::var("foo")), op::AssignOp::Eq, Box::new(Expr::from(1))),
+      Stmt::Assign(Box::new(Expr::var("foo")), op::AssignOp::Add, Box::new(Expr::from(2))),
     );
     let mut func0 = decl::FnDecl {
       name: String::from("example"),
