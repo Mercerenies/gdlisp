@@ -3,6 +3,7 @@ pub mod noop;
 pub mod stmt_walker;
 pub mod expr_walker;
 pub mod constant;
+pub mod variables;
 pub mod dead_code_elimination;
 pub mod constant_conditional_branch;
 pub mod else_then_if_fold;
