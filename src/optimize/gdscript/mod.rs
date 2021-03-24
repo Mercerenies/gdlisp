@@ -6,6 +6,7 @@ pub mod dead_code_elimination;
 pub mod constant_conditional_branch;
 pub mod else_then_if_fold;
 pub mod basic_math_ops;
+pub mod redundant_assignment_elimination;
 
 use crate::gdscript::decl::{self, Decl};
 use crate::gdscript::expr::Expr;
@@ -129,5 +130,6 @@ pub fn run_standard_passes(file: &mut decl::TopLevelClass) -> Result<(), Error> 
   dead_code_elimination::DeadCodeElimination.run_on_file(file)?;
   else_then_if_fold::ElseThenIfFold.run_on_file(file)?;
   basic_math_ops::BasicMathOps.run_on_file(file)?;
+  redundant_assignment_elimination::RedundantAssignmentElimination.run_on_file(file)?;
   Ok(())
 }
