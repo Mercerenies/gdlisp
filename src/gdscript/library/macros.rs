@@ -12,6 +12,7 @@ pub const ID_LETSTAR_FUNCTION:  u32 = 2;
 pub const ID_DEFVARS_FUNCTION:  u32 = 3;
 pub const ID_WHEN_FUNCTION:     u32 = 4;
 pub const ID_UNLESS_FUNCTION:   u32 = 5;
+pub const ID_IF_FUNCTION:       u32 = 6;
 
 pub fn get_builtin_macro(id: MacroID) -> Option<fn(&[&AST]) -> Result<AST, Error>> {
   match id.0 {
@@ -32,6 +33,9 @@ pub fn get_builtin_macro(id: MacroID) -> Option<fn(&[&AST]) -> Result<AST, Error
     }
     5 => {
       Some(unless_function)
+    }
+    6 => {
+      Some(if_function)
     }
     _ => {
       None
@@ -109,4 +113,24 @@ pub fn unless_function(arg: &[&AST]) -> Result<AST, Error> {
   let cond = arg[0].clone();
   let body = AST::list(arg[1..].iter().map(|x| (*x).clone()).collect());
   Ok(AST::list(vec!(AST::symbol("if"), cond, AST::Nil, AST::cons(AST::symbol("progn"), body))))
+}
+
+pub fn if_function(arg: &[&AST]) -> Result<AST, Error> {
+  if arg.len() < 2 {
+    return Err(Error::TooFewArgs(String::from("if"), arg.len()));
+  }
+  if arg.len() > 3 {
+    return Err(Error::TooManyArgs(String::from("if"), arg.len()));
+  }
+  let cond = arg[0].clone();
+  let true_case = arg[1].clone();
+  let false_case = arg.get(2).map(|x| (*x).clone());
+
+  let mut result = vec!(AST::symbol("cond"));
+  result.push(AST::list(vec!(cond, true_case)));
+  if let Some(false_case) = false_case {
+    result.push(AST::list(vec!(AST::Bool(true), false_case)));
+  }
+
+  Ok(AST::list(result))
 }

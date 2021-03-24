@@ -3,16 +3,16 @@ use super::common::{parse_compile_and_output, parse_and_run};
 
 #[test]
 pub fn if_tests_expr() {
-  assert_eq!(parse_compile_and_output("(if 1 2 3)"), "var _if_0 = null\nif 1:\n    _if_0 = 2\nelse:\n    _if_0 = 3\nreturn _if_0\n");
-  assert_eq!(parse_compile_and_output("(if 1 2)"), "var _if_0 = null\nif 1:\n    _if_0 = 2\nelse:\n    _if_0 = null\nreturn _if_0\n");
-  assert_eq!(parse_compile_and_output("(if 1 2 ())"), "var _if_0 = null\nif 1:\n    _if_0 = 2\nelse:\n    _if_0 = null\nreturn _if_0\n");
-  assert_eq!(parse_compile_and_output("(if 1 (foo) (bar))"), "var _if_0 = null\nif 1:\n    _if_0 = foo()\nelse:\n    _if_0 = bar()\nreturn _if_0\n");
+  assert_eq!(parse_compile_and_output("(if 1 2 3)"), "var _cond_0 = null\nif 1:\n    _cond_0 = 2\nelse:\n    if true:\n        _cond_0 = 3\n    else:\n        _cond_0 = null\nreturn _cond_0\n");
+  assert_eq!(parse_compile_and_output("(if 1 2)"), "var _cond_0 = null\nif 1:\n    _cond_0 = 2\nelse:\n    _cond_0 = null\nreturn _cond_0\n");
+  assert_eq!(parse_compile_and_output("(if 1 2 ())"), "var _cond_0 = null\nif 1:\n    _cond_0 = 2\nelse:\n    if true:\n        _cond_0 = null\n    else:\n        _cond_0 = null\nreturn _cond_0\n");
+  assert_eq!(parse_compile_and_output("(if 1 (foo) (bar))"), "var _cond_0 = null\nif 1:\n    _cond_0 = foo()\nelse:\n    if true:\n        _cond_0 = bar()\n    else:\n        _cond_0 = null\nreturn _cond_0\n");
 }
 
 #[test]
 pub fn if_tests_stmt() {
-  assert_eq!(parse_compile_and_output("(progn (if 1 2 3) 1)"), "if 1:\n    pass\nelse:\n    pass\nreturn 1\n");
-  assert_eq!(parse_compile_and_output("(progn (if 1 (foo) (bar)) 1)"), "if 1:\n    foo()\nelse:\n    bar()\nreturn 1\n");
+  assert_eq!(parse_compile_and_output("(progn (if 1 2 3) 1)"), "if 1:\n    pass\nelse:\n    if true:\n        pass\n    else:\n        pass\nreturn 1\n");
+  assert_eq!(parse_compile_and_output("(progn (if 1 (foo) (bar)) 1)"), "if 1:\n    foo()\nelse:\n    if true:\n        bar()\n    else:\n        pass\nreturn 1\n");
 }
 
 #[test]
@@ -76,26 +76,32 @@ return _cond_0
 #[test]
 pub fn when_test() {
   let result0 = parse_compile_and_output("(when 1 (foo) (bar))");
-  assert_eq!(result0, r#"var _if_0 = null
+  assert_eq!(result0, r#"var _cond_0 = null
 if 1:
     foo()
-    _if_0 = bar()
+    _cond_0 = bar()
 else:
-    _if_0 = null
-return _if_0
+    if true:
+        _cond_0 = null
+    else:
+        _cond_0 = null
+return _cond_0
 "#);
 }
 
 #[test]
 pub fn unless_test() {
   let result0 = parse_compile_and_output("(unless 1 (foo) (bar))");
-  assert_eq!(result0, r#"var _if_0 = null
+  assert_eq!(result0, r#"var _cond_0 = null
 if 1:
-    _if_0 = null
+    _cond_0 = null
 else:
-    foo()
-    _if_0 = bar()
-return _if_0
+    if true:
+        foo()
+        _cond_0 = bar()
+    else:
+        _cond_0 = null
+return _cond_0
 "#);
 }
 

@@ -19,7 +19,6 @@ pub fn dispatch_form(icompiler: &mut IncCompiler,
                      -> Result<Option<Expr>, Error> {
   match head {
     "progn" => progn_form(icompiler, pipeline, tail).map(Some),
-    "if" => if_form(icompiler, pipeline, tail).map(Some),
     "cond" => cond_form(icompiler, pipeline, tail).map(Some),
     "while" => while_form(icompiler, pipeline, tail).map(Some),
     "for" => for_form(icompiler, pipeline, tail).map(Some),
@@ -46,22 +45,6 @@ pub fn progn_form(icompiler: &mut IncCompiler,
                   -> Result<Expr, Error> {
   let body = tail.iter().map(|expr| icompiler.compile_expr(pipeline, expr)).collect::<Result<Vec<_>, _>>()?;
   Ok(Expr::Progn(body))
-}
-
-pub fn if_form(icompiler: &mut IncCompiler,
-               pipeline: &mut Pipeline,
-               tail: &[&AST])
-               -> Result<Expr, Error> {
-  let (cond, t, f) = match tail {
-    [] | [_] => Err(Error::from(GDError::TooFewArgs(String::from("if"), tail.len()))),
-    [cond, t] => Ok((*cond, *t, &AST::Nil)),
-    [cond, t, f] => Ok((*cond, *t, *f)),
-    _ => Err(Error::from(GDError::TooManyArgs(String::from("if"), tail.len()))),
-  }?;
-  let cond = icompiler.compile_expr(pipeline, cond)?;
-  let t = icompiler.compile_expr(pipeline, t)?;
-  let f = icompiler.compile_expr(pipeline, f)?;
-  Ok(Expr::if_stmt(cond, t, f))
 }
 
 pub fn cond_form(icompiler: &mut IncCompiler,

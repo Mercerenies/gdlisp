@@ -121,9 +121,6 @@ impl<'a> Compiler<'a> {
         let body: Vec<_> = body.iter().collect();
         self.compile_stmts(builder, table, &body[..], needs_result)
       }
-      IRExpr::IfStmt(c, t, f) => {
-        special_form::compile_if_stmt(self, builder, table, c, t, f, needs_result)
-      }
       IRExpr::CondStmt(clauses) => {
         special_form::compile_cond_stmt(self, builder, table, clauses, needs_result)
       }

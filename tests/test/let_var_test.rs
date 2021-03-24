@@ -25,7 +25,7 @@ pub fn var_shadowing() {
 
 #[test]
 pub fn inline_if_in_let_test() {
-  assert_eq!(parse_compile_and_output("(let ((a (if (foo) (bar) (foo)))) a)"), "var _if_0 = null\nif foo():\n    _if_0 = bar()\nelse:\n    _if_0 = foo()\nvar a_1 = _if_0\nreturn a_1\n");
+  assert_eq!(parse_compile_and_output("(let ((a (if (foo) (bar) (foo)))) a)"), "var _cond_0 = null\nif foo():\n    _cond_0 = bar()\nelse:\n    if true:\n        _cond_0 = foo()\n    else:\n        _cond_0 = null\nvar a_1 = _cond_0\nreturn a_1\n");
 }
 
 #[test]

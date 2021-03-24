@@ -16,7 +16,6 @@ pub enum Expr {
   LocalVar(String),
   Literal(literal::Literal),
   Progn(Vec<Expr>),
-  IfStmt(Box<Expr>, Box<Expr>, Box<Expr>),
   CondStmt(Vec<(Expr, Option<Expr>)>),
   WhileStmt(Box<Expr>, Box<Expr>),
   ForStmt(String, Box<Expr>, Box<Expr>),
@@ -59,10 +58,6 @@ pub struct LambdaClass {
 
 impl Expr {
 
-  pub fn if_stmt(cond: Expr, t: Expr, f: Expr) -> Expr {
-    Expr::IfStmt(Box::new(cond), Box::new(t), Box::new(f))
-  }
-
   pub fn while_stmt(cond: Expr, body: Expr) -> Expr {
     Expr::WhileStmt(Box::new(cond), Box::new(body))
   }
@@ -85,11 +80,6 @@ impl Expr {
         for expr in exprs {
           expr.walk_locals(acc_vars, acc_fns);
         }
-      }
-      Expr::IfStmt(c, t, f) => {
-        c.walk_locals(acc_vars, acc_fns);
-        t.walk_locals(acc_vars, acc_fns);
-        f.walk_locals(acc_vars, acc_fns);
       }
       Expr::CondStmt(clauses) => {
         for clause in clauses {
