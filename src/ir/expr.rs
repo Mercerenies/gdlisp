@@ -35,6 +35,7 @@ pub enum Expr {
   Vector3(Box<Expr>, Box<Expr>, Box<Expr>),
   LambdaClass(Box<LambdaClass>),
   Yield(Option<(Box<Expr>, Box<Expr>)>),
+  Return(Box<Expr>),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -236,6 +237,9 @@ impl Expr {
           x.walk_locals(acc_vars, acc_fns);
           y.walk_locals(acc_vars, acc_fns);
         }
+      }
+      Expr::Return(expr) => {
+        expr.walk_locals(acc_vars, acc_fns);
       }
     };
   }

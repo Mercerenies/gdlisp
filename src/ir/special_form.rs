@@ -35,6 +35,7 @@ pub fn dispatch_form(icompiler: &mut IncCompiler,
     "access-slot" => access_slot_form(icompiler, pipeline, tail).map(Some),
     "new" => new_form(icompiler, pipeline, tail).map(Some),
     "yield" => yield_form(icompiler, pipeline, tail).map(Some),
+    "return" => return_form(icompiler, pipeline, tail).map(Some),
     _ => Ok(None),
   }
 }
@@ -314,6 +315,23 @@ pub fn yield_form(icompiler: &mut IncCompiler,
     }
     _ => {
       Err(Error::from(GDError::TooManyArgs(String::from("yield"), 2)))
+    }
+  }
+}
+
+pub fn return_form(icompiler: &mut IncCompiler,
+                   pipeline: &mut Pipeline,
+                   tail: &[&AST]) -> Result<Expr, Error> {
+  match tail.len() {
+    0 => {
+      Err(Error::from(GDError::TooFewArgs(String::from("return"), 1)))
+    }
+    1 => {
+      let expr = icompiler.compile_expr(pipeline, tail[0])?;
+      Ok(Expr::Return(Box::new(expr)))
+    }
+    _ => {
+      Err(Error::from(GDError::TooManyArgs(String::from("yield"), 1)))
     }
   }
 }

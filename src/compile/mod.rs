@@ -275,6 +275,10 @@ impl<'a> Compiler<'a> {
           }
         }
       }
+      IRExpr::Return(expr) => {
+        self.compile_stmt(builder, table, &stmt_wrapper::Return, expr)?;
+        Ok(Compiler::nil_expr())
+      }
       /* // This will eventually be an optimization.
       IRExpr::Funcall(f, args) => {
         let func_expr = self.compile_expr(builder, table, f, NeedsResult::Yes)?.0;
