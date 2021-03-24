@@ -52,6 +52,12 @@ impl From<String> for Literal {
   }
 }
 
+impl<'a> From<&'a str> for Literal {
+  fn from(x: &'a str) -> Literal {
+    Literal::String(String::from(x))
+  }
+}
+
 impl From<bool> for Literal {
   fn from(x: bool) -> Literal {
     Literal::Bool(x)
