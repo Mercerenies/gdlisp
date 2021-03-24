@@ -11,7 +11,7 @@ pub mod redundant_assignment_elimination;
 
 use crate::gdscript::decl::{self, Decl};
 use crate::gdscript::expr::Expr;
-use crate::gdscript::stmt::{self, Stmt};
+use crate::gdscript::stmt::Stmt;
 use crate::compile::error::Error;
 
 // Note: If optimization results in an error, the code is guaranteed
@@ -76,52 +76,7 @@ impl<T> FunctionOptimization for T where T : StatementLevelPass {
 // An ExpressionLevelPass can easily be realized as a StatementLevelPass
 impl<T> StatementLevelPass for T where T : ExpressionLevelPass {
   fn run_on_stmt(&self, stmt: &Stmt) -> Result<Vec<Stmt>, Error> {
-    let new_stmt = match stmt {
-      Stmt::Expr(e) => {
-        Stmt::Expr(self.run_on_expr(&e)?)
-      }
-      Stmt::IfStmt(stmt::IfStmt { if_clause, elif_clauses, else_clause }) => {
-        let new_if_stmt = stmt::IfStmt {
-          if_clause: (self.run_on_expr(&if_clause.0)?, if_clause.1.clone()),
-          elif_clauses: (elif_clauses.iter().map(|(e, s)| Ok((self.run_on_expr(e)?, s.clone()))).collect::<Result<_, Error>>()?),
-          else_clause: else_clause.clone(),
-        };
-        Stmt::IfStmt(new_if_stmt)
-      }
-      Stmt::ForLoop(stmt::ForLoop { iter_var, collection, body }) => {
-        let new_for_loop = stmt::ForLoop {
-          iter_var: iter_var.clone(),
-          collection: self.run_on_expr(collection)?,
-          body: body.clone(),
-        };
-        Stmt::ForLoop(new_for_loop)
-      }
-      Stmt::WhileLoop(stmt::WhileLoop { condition, body }) => {
-        let new_while_loop = stmt::WhileLoop {
-          condition: self.run_on_expr(condition)?,
-          body: body.clone(),
-        };
-        Stmt::WhileLoop(new_while_loop)
-      }
-      Stmt::MatchStmt(expr, clauses) => {
-        Stmt::MatchStmt(self.run_on_expr(expr)?, clauses.clone())
-      }
-      Stmt::VarDecl(name, expr) => {
-        Stmt::VarDecl(name.clone(), self.run_on_expr(expr)?)
-      }
-      Stmt::ReturnStmt(expr) => {
-        Stmt::ReturnStmt(self.run_on_expr(expr)?)
-      }
-      Stmt::Assign(lhs, op, rhs) => {
-        let lhs = self.run_on_expr(&*lhs)?;
-        let rhs = self.run_on_expr(&*rhs)?;
-        Stmt::Assign(Box::new(lhs), *op, Box::new(rhs))
-      }
-      Stmt::PassStmt | Stmt::BreakStmt | Stmt::ContinueStmt => {
-        stmt.clone()
-      }
-    };
-    Ok(vec!(new_stmt))
+    expr_walker::walk_expr(stmt, |e| self.run_on_expr(e))
   }
 }
 
@@ -132,5 +87,6 @@ pub fn run_standard_passes(file: &mut decl::TopLevelClass) -> Result<(), Error> 
   else_then_if_fold::ElseThenIfFold.run_on_file(file)?;
   basic_math_ops::BasicMathOps.run_on_file(file)?;
   redundant_assignment_elimination::RedundantAssignmentElimination.run_on_file(file)?;
+  direct_var_substitute::DirectVarSubstitute.run_on_file(file)?;
   Ok(())
 }
