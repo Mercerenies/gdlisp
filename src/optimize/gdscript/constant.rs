@@ -55,6 +55,24 @@ pub fn expr_has_side_effects(expr: &Expr) -> bool {
   }
 }
 
+// A constant expression neither reads nor writes to any local or
+// global state. If a variable has a constant value, any references to
+// that variable can be safely replaced with the value without
+// changing the behavior of the code.
+pub fn expr_is_constant(expr: &Expr) -> bool {
+  match expr {
+    Expr::Var(_) => false,
+    Expr::Literal(_) => true,
+    Expr::Subscript(_, _) => false,
+    Expr::Attribute(_, _) => false,
+    Expr::Call(_, _, _) => false,
+    Expr::SuperCall(_, _) => false,
+    Expr::Unary(_, e) => expr_is_constant(&*e),
+    Expr::Binary(a, _, b) => expr_is_constant(&*a) || expr_is_constant(&*b),
+    Expr::ArrayLit(es) => es.iter().any(expr_is_constant),
+  }
+}
+
 #[cfg(test)]
 mod tests {
   use super::*;
