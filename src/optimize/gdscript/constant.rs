@@ -1,5 +1,6 @@
 
 use crate::gdscript::expr::Expr;
+use crate::gdscript::stmt::Stmt;
 use crate::gdscript::literal::Literal;
 
 // Attempt to determine whether a value is true or false by looking at
@@ -17,6 +18,40 @@ pub fn deduce_bool(expr: &Expr) -> Option<bool> {
       }
     }
     _ => None,
+  }
+}
+
+// Attempt to discern whether or not a statement or expression has any
+// side effects. If in doubt, assume it does.
+
+pub fn stmt_has_side_effects(stmt: &Stmt) -> bool {
+  match stmt {
+    Stmt::Expr(e) => {
+      expr_has_side_effects(e)
+    }
+    Stmt::IfStmt(_) | Stmt::ForLoop(_) | Stmt::WhileLoop(_) |
+      Stmt::MatchStmt(_, _) => true, // TODO These
+    Stmt::PassStmt | Stmt::BreakStmt | Stmt::ContinueStmt | Stmt::VarDecl(_, _) |
+      Stmt::ReturnStmt(_) | Stmt::Assign(_, _, _) => true,
+  }
+}
+
+pub fn expr_has_side_effects(expr: &Expr) -> bool {
+  match expr {
+    Expr::Var(_) => false,
+    Expr::Literal(_) => false,
+    // Subscript is a bit questionable, because it can't call
+    // arbitrary methods (only works in a predefined, simple way), but
+    // it can err out if out of bounds.
+    Expr::Subscript(a, b) => expr_has_side_effects(&*a) || expr_has_side_effects(&*b),
+    // Attribute is questionable as well because setget can do method
+    // calls.
+    Expr::Attribute(a, _) => expr_has_side_effects(&*a),
+    Expr::Call(_, _, _) => true,
+    Expr::SuperCall(_, _) => true,
+    Expr::Unary(_, e) => expr_has_side_effects(e),
+    Expr::Binary(a, _, b) => expr_has_side_effects(&*a) || expr_has_side_effects(&*b),
+    Expr::ArrayLit(es) => es.iter().any(expr_has_side_effects),
   }
 }
 
