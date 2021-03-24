@@ -5,7 +5,7 @@ use crate::compile::error::Error;
 use super::FunctionOptimization;
 use super::constant;
 use super::expr_walker;
-use super::variables::{VarInfo, Access, get_variable_info};
+use super::variables::get_variable_info;
 
 pub struct DirectVarSubstitute;
 
@@ -25,9 +25,9 @@ impl FunctionOptimization for DirectVarSubstitute {
     let vars = get_variable_info(&function.body);
     function.body = expr_walker::walk_exprs(&function.body, |var_expr| {
       if let Expr::Var(var_name) = var_expr {
-        if let Some(VarInfo { access, value }) = vars.get(var_name) {
-          if *access == Access::Read && constant::expr_is_constant(&value) {
-            return Ok(value.clone());
+        if let Some(info) = vars.get(var_name) {
+          if info.is_read_only() && constant::expr_is_constant(&info.value) {
+            return Ok(info.value.clone());
           }
         }
       }

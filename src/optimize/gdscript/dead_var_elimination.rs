@@ -4,7 +4,7 @@ use crate::gdscript::decl;
 use crate::compile::error::Error;
 use super::FunctionOptimization;
 use super::stmt_walker;
-use super::variables::{VarInfo, Access, get_variable_info};
+use super::variables::get_variable_info;
 
 pub struct DeadVarElimination;
 
@@ -16,8 +16,8 @@ impl FunctionOptimization for DeadVarElimination {
     let vars = get_variable_info(&function.body);
     function.body = stmt_walker::walk_stmts(&function.body, stmt_walker::on_each_stmt(|stmt| {
       if let Stmt::VarDecl(var_name, expr) = stmt {
-        if let Some(VarInfo { access, value: _ }) = vars.get(var_name) {
-          if *access == Access::Read {
+        if let Some(info) = vars.get(var_name) {
+          if !info.is_ever_used() {
             return Ok(vec!(Stmt::Expr(expr.clone())));
           }
         }
