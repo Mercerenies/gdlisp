@@ -8,6 +8,7 @@ pub mod constant_conditional_branch;
 pub mod else_then_if_fold;
 pub mod basic_math_ops;
 pub mod redundant_assignment_elimination;
+pub mod direct_var_substitute;
 
 use crate::gdscript::decl::{self, Decl};
 use crate::gdscript::expr::Expr;
