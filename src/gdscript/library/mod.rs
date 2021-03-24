@@ -235,6 +235,10 @@ pub fn bind_builtins(table: &mut SymbolTable) {
                FnCall::unqualified(FnSpecs::new(0, 0, None), FnScope::Global, "randi".to_owned()),
                Box::new(call_magic::DefaultCall));
 
+  table.set_fn("randf".to_owned(),
+               FnCall::unqualified(FnSpecs::new(0, 0, None), FnScope::Global, "randf".to_owned()),
+               Box::new(call_magic::DefaultCall));
+
   table.set_fn("rand-range".to_owned(),
                FnCall::unqualified(FnSpecs::new(2, 0, None), FnScope::Global, "rand_range".to_owned()),
                Box::new(call_magic::DefaultCall));
