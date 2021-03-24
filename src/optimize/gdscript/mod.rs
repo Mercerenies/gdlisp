@@ -10,6 +10,7 @@ pub mod else_then_if_fold;
 pub mod basic_math_ops;
 pub mod redundant_assignment_elimination;
 pub mod direct_var_substitute;
+pub mod dead_var_elimination;
 
 use crate::gdscript::decl::{self, Decl};
 use crate::gdscript::expr::Expr;
@@ -90,5 +91,6 @@ pub fn run_standard_passes(file: &mut decl::TopLevelClass) -> Result<(), Error> 
   basic_math_ops::BasicMathOps.run_on_file(file)?;
   redundant_assignment_elimination::RedundantAssignmentElimination.run_on_file(file)?;
   direct_var_substitute::DirectVarSubstitute.run_on_file(file)?;
+  dead_var_elimination::DeadVarElimination.run_on_file(file)?;
   Ok(())
 }
