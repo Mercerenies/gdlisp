@@ -3,16 +3,16 @@ use crate::gdscript::stmt::{self, Stmt};
 use crate::compile::error::Error;
 
 pub struct StmtWalker<'a> {
-  pub imp: Box<dyn Fn(&[Stmt]) -> Result<Vec<Stmt>, Error> + 'a>,
+  pub imp: Box<dyn FnMut(&[Stmt]) -> Result<Vec<Stmt>, Error> + 'a>,
 }
 
 impl<'a> StmtWalker<'a> {
 
-  pub fn new(function: impl Fn(&[Stmt]) -> Result<Vec<Stmt>, Error> + 'a) -> StmtWalker<'a> {
+  pub fn new(function: impl FnMut(&[Stmt]) -> Result<Vec<Stmt>, Error> + 'a) -> StmtWalker<'a> {
     StmtWalker { imp: Box::new(function) }
   }
 
-  pub fn walk_stmts(&self, stmts: &[Stmt]) -> Result<Vec<Stmt>, Error> {
+  pub fn walk_stmts(&mut self, stmts: &[Stmt]) -> Result<Vec<Stmt>, Error> {
     let mut result = Vec::new();
     for stmt in stmts {
       result.extend(self.walk_stmt(stmt)?);
@@ -20,7 +20,7 @@ impl<'a> StmtWalker<'a> {
     (self.imp)(&result)
   }
 
-  pub fn walk_stmt(&self, stmt: &Stmt) -> Result<Vec<Stmt>, Error> {
+  pub fn walk_stmt(&mut self, stmt: &Stmt) -> Result<Vec<Stmt>, Error> {
     let stmt = match stmt {
       Stmt::Expr(_) | Stmt::PassStmt | Stmt::BreakStmt | Stmt::ContinueStmt
         | Stmt::VarDecl(_, _) | Stmt::ReturnStmt(_) | Stmt::Assign(_, _, _) => stmt.clone(),
@@ -55,8 +55,8 @@ impl<'a> StmtWalker<'a> {
 
 }
 
-pub fn on_each_stmt<'a>(walker: impl Fn(&Stmt) -> Result<Vec<Stmt>, Error> + 'a)
-                        -> impl Fn(&[Stmt]) -> Result<Vec<Stmt>, Error> + 'a {
+pub fn on_each_stmt<'a>(mut walker: impl FnMut(&Stmt) -> Result<Vec<Stmt>, Error> + 'a)
+                        -> impl FnMut(&[Stmt]) -> Result<Vec<Stmt>, Error> + 'a {
   move |stmts| {
     let mut result = Vec::new();
     for stmt in stmts {
@@ -66,15 +66,15 @@ pub fn on_each_stmt<'a>(walker: impl Fn(&Stmt) -> Result<Vec<Stmt>, Error> + 'a)
   }
 }
 
-pub fn walk_stmt<'a>(stmt: &Stmt, walker: impl Fn(&[Stmt]) -> Result<Vec<Stmt>, Error> + 'a)
+pub fn walk_stmt<'a>(stmt: &Stmt, walker: impl FnMut(&[Stmt]) -> Result<Vec<Stmt>, Error> + 'a)
                      -> Result<Vec<Stmt>, Error> {
-  let walker = StmtWalker::new(walker);
+  let mut walker = StmtWalker::new(walker);
   walker.walk_stmt(&stmt)
 }
 
-pub fn walk_stmts<'a>(stmts: &[Stmt], walker: impl Fn(&[Stmt]) -> Result<Vec<Stmt>, Error> + 'a)
+pub fn walk_stmts<'a>(stmts: &[Stmt], walker: impl FnMut(&[Stmt]) -> Result<Vec<Stmt>, Error> + 'a)
                       -> Result<Vec<Stmt>, Error> {
-  let walker = StmtWalker::new(walker);
+  let mut walker = StmtWalker::new(walker);
   walker.walk_stmts(&stmts)
 }
 
