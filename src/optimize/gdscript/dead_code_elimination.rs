@@ -12,6 +12,11 @@ impl StatementLevelPass for DeadCodeElimination {
   fn run_on_stmt(&self, stmt: &Stmt) -> Result<Vec<Stmt>, Error> {
     let mut stmt = stmt.clone();
 
+    // If the statement itself has no effect, then omit it entirely
+    if noop::is_code_noop(&stmt) {
+      return Ok(vec!());
+    }
+
     // Check for empty else clause
     if let Stmt::IfStmt(if_stmt) = &mut stmt {
       if let Some(else_clause) = &if_stmt.else_clause {

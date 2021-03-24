@@ -24,6 +24,7 @@ pub fn deduce_bool(expr: &Expr) -> Option<bool> {
 // Attempt to discern whether or not a statement or expression has any
 // side effects. If in doubt, assume it does.
 
+// TODO Is this just noop::is_code_noop?
 pub fn stmt_has_side_effects(stmt: &Stmt) -> bool {
   match stmt {
     Stmt::Expr(e) => {
