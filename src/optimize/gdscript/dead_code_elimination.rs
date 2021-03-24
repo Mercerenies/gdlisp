@@ -6,6 +6,7 @@ use super::noop;
 
 pub struct DeadCodeElimination;
 
+// TODO Apply to code after a return
 impl StatementLevelPass for DeadCodeElimination {
 
   fn run_on_stmt(&self, stmt: &Stmt) -> Result<Vec<Stmt>, Error> {
