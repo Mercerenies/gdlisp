@@ -66,7 +66,7 @@ impl<T> FileOptimization for T where T : FunctionOptimization {
 // A StatementLevelPass is just a local FunctionOptimization
 impl<T> FunctionOptimization for T where T : StatementLevelPass {
   fn run_on_function(&self, function: &mut decl::FnDecl) -> Result<(), Error> {
-    function.body = walker::walk_stmts(&function.body, |x| self.run_on_stmt(x))?;
+    function.body = walker::walk_stmts(&function.body, walker::on_each_stmt(|x| self.run_on_stmt(x)))?;
     Ok(())
   }
 }
