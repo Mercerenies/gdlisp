@@ -68,8 +68,8 @@ pub fn on_each_stmt<'a>(mut walker: impl FnMut(&Stmt) -> Result<Vec<Stmt>, Error
 
 pub fn walk_stmt<'a>(stmt: &Stmt, walker: impl FnMut(&[Stmt]) -> Result<Vec<Stmt>, Error> + 'a)
                      -> Result<Vec<Stmt>, Error> {
-  let mut walker = StmtWalker::new(walker);
-  walker.walk_stmt(&stmt)
+  let stmts = vec!(stmt.clone());
+  walk_stmts(&stmts[..], walker)
 }
 
 pub fn walk_stmts<'a>(stmts: &[Stmt], walker: impl FnMut(&[Stmt]) -> Result<Vec<Stmt>, Error> + 'a)
