@@ -6,7 +6,7 @@ use crate::gdscript::op;
 use crate::compile::error::Error;
 use super::FunctionOptimization;
 use super::constant;
-use super::walker;
+use super::stmt_walker;
 
 pub struct RedundantAssignmentElimination;
 
@@ -106,7 +106,7 @@ impl RedundantAssignmentElimination {
 
 impl FunctionOptimization for RedundantAssignmentElimination {
   fn run_on_function(&self, function: &mut decl::FnDecl) -> Result<(), Error> {
-    function.body = walker::walk_stmts(&function.body, |x| self.run_on_stmts(x))?;
+    function.body = stmt_walker::walk_stmts(&function.body, |x| self.run_on_stmts(x))?;
     Ok(())
   }
 }

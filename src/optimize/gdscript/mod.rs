@@ -1,6 +1,6 @@
 
 pub mod noop;
-pub mod walker;
+pub mod stmt_walker;
 pub mod constant;
 pub mod dead_code_elimination;
 pub mod constant_conditional_branch;
@@ -67,7 +67,7 @@ impl<T> FileOptimization for T where T : FunctionOptimization {
 // A StatementLevelPass is just a local FunctionOptimization
 impl<T> FunctionOptimization for T where T : StatementLevelPass {
   fn run_on_function(&self, function: &mut decl::FnDecl) -> Result<(), Error> {
-    function.body = walker::walk_stmts(&function.body, walker::on_each_stmt(|x| self.run_on_stmt(x)))?;
+    function.body = stmt_walker::walk_stmts(&function.body, stmt_walker::on_each_stmt(|x| self.run_on_stmt(x)))?;
     Ok(())
   }
 }
