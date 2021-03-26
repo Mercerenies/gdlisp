@@ -5,6 +5,7 @@ use crate::ir::arglist::ArgListParseError;
 use crate::ir::identifier::Namespace;
 use crate::ir::import::{ImportDeclParseError, ImportNameResolutionError};
 use crate::runner::path::RPathBuf;
+use crate::runner::macro_server::response;
 
 use std::fmt;
 
@@ -35,6 +36,7 @@ pub enum Error {
   ExportOnInnerClassVar(String),
   ResourceDoesNotExist(String),
   InvalidImportOnResource(String),
+  GodotServerError(response::Failure),
 }
 
 impl fmt::Display for Error {
@@ -103,6 +105,9 @@ impl fmt::Display for Error {
       Error::InvalidImportOnResource(s) => {
         write!(f, "Cannot use restricted or open import lists on resource import at {}", s)
       }
+      Error::GodotServerError(err) => {
+        write!(f, "Error during Godot server task execution (error code {}): {}", err.error_code, err.error_string)
+      }
     }
   }
 }
@@ -138,5 +143,11 @@ impl From<ImportNameResolutionError> for Error {
         Error::AmbiguousNamespace(s)
       }
     }
+  }
+}
+
+impl From<response::Failure> for Error {
+  fn from(err: response::Failure) -> Error {
+    Error::GodotServerError(err)
   }
 }

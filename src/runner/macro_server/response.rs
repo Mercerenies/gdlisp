@@ -2,6 +2,7 @@
 use json::JsonValue;
 
 use std::convert::TryFrom;
+use std::fmt;
 
 /*
  * Responses are received as JSON objects which have the following keys.
@@ -42,6 +43,28 @@ fn fail(json: &JsonValue) -> ParseError {
   ParseError::MalformedResponse(json.to_string())
 }
 
+impl TryFrom<ServerResponse> for Success {
+  type Error = Failure;
+
+  fn try_from(resp: ServerResponse) -> Result<Success, Failure> {
+    match resp {
+      ServerResponse::Failure(err) => Err(err),
+      ServerResponse::Success(val) => Ok(val),
+    }
+  }
+
+}
+
+impl TryFrom<ServerResponse> for String {
+  type Error = Failure;
+
+  fn try_from(resp: ServerResponse) -> Result<String, Failure> {
+    let Success { response_string } = Success::try_from(resp)?;
+    Ok(response_string)
+  }
+
+}
+
 impl TryFrom<JsonValue> for ServerResponse {
   type Error = ParseError;
 
@@ -66,4 +89,20 @@ impl TryFrom<JsonValue> for ServerResponse {
     }
   }
 
+}
+
+impl fmt::Display for ParseError {
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    match self {
+      ParseError::MalformedResponse(s) => {
+        writeln!(f, "{}", s)
+      }
+    }
+  }
+}
+
+impl fmt::Display for Failure {
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    writeln!(f, "{} {}", self.error_code, self.error_string)
+  }
 }

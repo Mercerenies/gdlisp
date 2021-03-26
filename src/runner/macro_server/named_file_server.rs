@@ -9,12 +9,14 @@ use crate::ir::arglist::ArgList;
 use crate::pipeline::error::{Error as PError};
 use crate::parser;
 use super::command::ServerCommand;
+use super::response;
 
 use tempfile::NamedTempFile;
 
 use std::collections::HashMap;
 use std::path::Path;
 use std::io;
+use std::convert::TryFrom;
 
 pub struct NamedFileServer {
   server: LazyServer,
@@ -33,6 +35,11 @@ pub struct MacroCall {
   pub name: String,
 }
 
+// TODO Make this return GDError like it probably should.
+fn response_to_string(response: response::ServerResponse) -> io::Result<String> {
+  String::try_from(response).map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e.to_string()))
+}
+
 #[allow(clippy::new_without_default)]
 impl NamedFileServer {
 
@@ -47,7 +54,7 @@ impl NamedFileServer {
   fn load_file_on_server(&mut self, path: &Path) -> io::Result<u32> {
     let server = self.server.get_mut()?;
     let cmd = ServerCommand::Load((*path.to_string_lossy()).to_owned());
-    let result = server.issue_command(&cmd)?;
+    let result: String = response_to_string(server.issue_command(&cmd)?)?;
     result.parse().map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e))
   }
 
@@ -83,7 +90,7 @@ impl NamedFileServer {
     };
     let server = self.server.get_mut()?;
     let eval_str = compile_default_call(call, args)?.to_gd();
-    let result = server.issue_command(&ServerCommand::Eval(eval_str))?;
+    let result = response_to_string(server.issue_command(&ServerCommand::Eval(eval_str))?)?;
     let parser = parser::ASTParser::new();
     let parsed = parser.parse(&result)?;
     Ok(parsed)

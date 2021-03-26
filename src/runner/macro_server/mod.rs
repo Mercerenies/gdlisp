@@ -7,12 +7,13 @@ pub mod named_file_server;
 use super::run_project_process;
 
 use command::ServerCommand;
+use response::ServerResponse;
 
 use std::io::{self, Write, Read, ErrorKind};
 use std::path::PathBuf;
 use std::process::{Child, ExitStatus};
 use std::net::{TcpListener, TcpStream};
-use std::convert::TryInto;
+use std::convert::{TryFrom, TryInto};
 use std::fs;
 use std::mem::ManuallyDrop;
 
@@ -74,10 +75,13 @@ impl MacroServer {
     String::from_utf8(buf).map_err(|_| io::Error::new(io::ErrorKind::InvalidData, "Error in UTF8 conversion"))
   }
 
-  pub fn issue_command(&mut self, command: &ServerCommand) -> io::Result<String> {
+  pub fn issue_command(&mut self, command: &ServerCommand) -> io::Result<ServerResponse> {
     let json = command.to_json();
     self.send_string(&json.to_string())?;
-    self.receive_string()
+
+    let result = self.receive_string()?;
+    let result = json::parse(&result).map_err(|err| io::Error::new(io::ErrorKind::InvalidData, err.to_string()))?;
+    ServerResponse::try_from(result).map_err(|err| io::Error::new(io::ErrorKind::InvalidData, err.to_string()))
   }
 
   // Unsafe to use the server afterward, so we only expose a public
@@ -107,11 +111,17 @@ mod tests {
   use super::*;
   use crate::sxp::reify::Reify;
   use crate::parser;
+  use std::convert::TryFrom;
+
+  fn issue_command_and_unwrap(server: &mut MacroServer, value: &ServerCommand) -> String {
+    let result = server.issue_command(value).unwrap();
+    String::try_from(result).unwrap()
+  }
 
   fn roundtrip_value(server: &mut MacroServer, value: &str) {
     let parser = parser::ASTParser::new();
     let ast = parser.parse(value).unwrap();
-    let result = server.issue_command(&ServerCommand::Eval(ast.reify().to_gd())).unwrap();
+    let result = issue_command_and_unwrap(server, &ServerCommand::Eval(ast.reify().to_gd()));
     assert_eq!(value, &result);
   }
 
@@ -125,7 +135,7 @@ mod tests {
   #[ignore]
   fn spawn_server_ping_pong_test() {
     let mut server1 = MacroServer::new().unwrap();
-    let response1 = server1.issue_command(&ServerCommand::Ping).unwrap();
+    let response1 = issue_command_and_unwrap(&mut server1, &ServerCommand::Ping);
     assert_eq!(response1, "pong");
     server1.shutdown().unwrap();
   }
@@ -134,9 +144,9 @@ mod tests {
   #[ignore]
   fn spawn_server_test() {
     let mut server2 = MacroServer::new().unwrap();
-    let response2_1 = server2.issue_command(&ServerCommand::Ping).unwrap();
+    let response2_1 = issue_command_and_unwrap(&mut server2, &ServerCommand::Ping);
     assert_eq!(response2_1, "pong");
-    let response2_2 = server2.issue_command(&ServerCommand::Eval(String::from("1 + 1"))).unwrap();
+    let response2_2 = issue_command_and_unwrap(&mut server2, &ServerCommand::Eval(String::from("1 + 1")));
     assert_eq!(response2_2, "2");
 
     roundtrip_value(&mut server2, "(1 . ())");
@@ -147,9 +157,9 @@ mod tests {
     // TODO Test roundtrip on string escaping (once we support parsing
     // escape sequences)
 
-    let response2_3 = server2.issue_command(&ServerCommand::Load(String::from("res://TestLoadedFile.gd"))).unwrap();
+    let response2_3 = issue_command_and_unwrap(&mut server2, &ServerCommand::Load(String::from("res://TestLoadedFile.gd")));
     assert_eq!(response2_3, "0");
-    let response2_4 = server2.issue_command(&ServerCommand::Eval(String::from(r#"MAIN.loaded_files[0].example()"#))).unwrap();
+    let response2_4 = issue_command_and_unwrap(&mut server2, &ServerCommand::Eval(String::from(r#"MAIN.loaded_files[0].example()"#)));
     assert_eq!(response2_4, "\"Test succeeded\"");
 
     server2.shutdown().unwrap();
