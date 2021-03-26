@@ -14,10 +14,17 @@ func _ready():
 
 func _process(_delta):
     if peer.get_available_bytes() > 0:
-        var cmd = peer.get_string()
-        run_command(cmd)
+        var json_result = JSON.parse(peer.get_string())
+        if json_result.error == OK:
+            var payload = json_result.result
+            run_command(payload)
+        else:
+            # TODO Send error back
+            push_error("Invalid JSON " + json_result.error_string)
 
-func run_command(cmd):
+func run_command(payload):
+    var cmd = payload['command']
+    var args = payload['args']
     match cmd:
         "quit":
             peer.put_string("Acknowledged\nQuitting...")
@@ -25,11 +32,11 @@ func run_command(cmd):
         "ping":
             peer.put_string("pong")
         "eval":
-            var input = peer.get_string()
+            var input = args[0]
             var result = eval(input)
             peer.put_string(pretty(result))
         "load":
-            var input = peer.get_string()
+            var input = args[0]
             var idx = len(loaded_files)
             loaded_files.push_back(load(input))
             peer.put_string(pretty(idx))

@@ -74,9 +74,8 @@ impl MacroServer {
   }
 
   pub fn issue_command(&mut self, command: &ServerCommand) -> io::Result<String> {
-    for s in command.to_command() {
-      self.send_string(&s)?;
-    }
+    let json = command.to_json();
+    self.send_string(&json.to_string())?;
     self.receive_string()
   }
 

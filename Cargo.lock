@@ -212,6 +212,7 @@ version = "0.1.0"
 dependencies = [
  "dyn-clone",
  "getopts",
+ "json",
  "lalrpop",
  "lalrpop-util",
  "ordered-float",
@@ -286,6 +287,12 @@ checksum = "284f18f85651fe11e8a991b2adb42cb078325c996ed026d994719efcfca1d54b"
 dependencies = [
  "either",
 ]
+
+[[package]]
+name = "json"
+version = "0.11.15"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "92c245af8786f6ac35f95ca14feca9119e71339aaab41e878e7cdd655c97e9e5"
 
 [[package]]
 name = "lalrpop"
