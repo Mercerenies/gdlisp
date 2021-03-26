@@ -1,8 +1,6 @@
 
 use json::JsonValue;
 
-use std::vec;
-
 /*
  * Commands are sent as JSON objects which have the following keys.
  *

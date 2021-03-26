@@ -1,5 +1,6 @@
 
 pub mod command;
+pub mod response;
 pub mod lazy;
 pub mod named_file_server;
 
