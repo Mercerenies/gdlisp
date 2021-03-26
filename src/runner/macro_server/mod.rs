@@ -5,7 +5,7 @@ pub mod named_file_server;
 
 use super::run_project_process;
 
-use command::{ServerCommand, IsServerCommand};
+use command::ServerCommand;
 
 use std::io::{self, Write, Read, ErrorKind};
 use std::path::PathBuf;
@@ -73,7 +73,7 @@ impl MacroServer {
     String::from_utf8(buf).map_err(|_| io::Error::new(io::ErrorKind::InvalidData, "Error in UTF8 conversion"))
   }
 
-  pub fn issue_command(&mut self, command: impl IsServerCommand) -> io::Result<String> {
+  pub fn issue_command(&mut self, command: &ServerCommand) -> io::Result<String> {
     for s in command.to_command() {
       self.send_string(&s)?;
     }
@@ -125,7 +125,7 @@ mod tests {
   #[ignore]
   fn spawn_server_ping_pong_test() {
     let mut server1 = MacroServer::new().unwrap();
-    let response1 = server1.issue_command(&vec!(String::from("ping"))).unwrap();
+    let response1 = server1.issue_command(&ServerCommand::Ping).unwrap();
     assert_eq!(response1, "pong");
     server1.shutdown().unwrap();
   }
