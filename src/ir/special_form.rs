@@ -2,12 +2,13 @@
 use crate::sxp::ast::AST;
 use crate::sxp::dotted::DottedExpr;
 use super::expr::{Expr, FuncRefTarget, AssignTarget, LambdaClass};
-use super::decl;
+use super::decl::{self, Decl};
 use super::arglist::ArgList;
 use super::quasiquote::quasiquote;
 use crate::pipeline::error::Error;
 use crate::compile::error::{Error as GDError};
 use crate::ir::incremental::IncCompiler;
+use crate::ir::identifier::{Id, Namespace};
 use crate::pipeline::Pipeline;
 
 use std::convert::{TryFrom, TryInto};
@@ -35,6 +36,7 @@ pub fn dispatch_form(icompiler: &mut IncCompiler,
     "new" => new_form(icompiler, pipeline, tail).map(Some),
     "yield" => yield_form(icompiler, pipeline, tail).map(Some),
     "return" => return_form(icompiler, pipeline, tail).map(Some),
+    "macrolet" => macrolet_form(icompiler, pipeline, tail).map(Some),
     _ => Ok(None),
   }
 }
@@ -209,8 +211,11 @@ pub fn flet_form(icompiler: &mut IncCompiler,
     let body = func[2..].iter().map(|expr| icompiler.compile_expr(pipeline, expr)).collect::<Result<Vec<_>, _>>()?;
     Ok((name, args, Expr::Progn(body)))
   }).collect::<Result<Vec<_>, _>>()?;
-  let body = tail[1..].iter().map(|expr| icompiler.compile_expr(pipeline, expr)).collect::<Result<Vec<_>, _>>()?;
-  Ok(container(fn_clauses, Box::new(Expr::Progn(body))))
+  let names: Vec<_> = fn_clauses.iter().map(|x| x.0.to_owned()).collect();
+  macrolet_unbind_macros(icompiler, pipeline, &mut names.iter().map(|x| &**x), |icompiler, pipeline| {
+    let body = tail[1..].iter().map(|expr| icompiler.compile_expr(pipeline, expr)).collect::<Result<Vec<_>, _>>()?;
+    Ok(container(fn_clauses, Box::new(Expr::Progn(body))))
+  })
 }
 
 pub fn quote_form(tail: &[&AST]) -> Result<Expr, Error> {
@@ -315,6 +320,97 @@ pub fn return_form(icompiler: &mut IncCompiler,
     }
     _ => {
       Err(Error::from(GDError::TooManyArgs(String::from("yield"), 1)))
+    }
+  }
+}
+
+pub fn macrolet_form(icompiler: &mut IncCompiler,
+                     pipeline: &mut Pipeline,
+                     tail: &[&AST])
+                 -> Result<Expr, Error> {
+  if tail.is_empty() {
+    return Err(Error::from(GDError::TooFewArgs(String::from("macrolet"), tail.len())));
+  }
+  let fns: Vec<_> = DottedExpr::new(tail[0]).try_into()?;
+  let fn_clauses = fns.into_iter().map(|clause| {
+    let func: Vec<_> = DottedExpr::new(clause).try_into()?;
+    if func.len() < 2 {
+      return Err(Error::from(GDError::InvalidArg(String::from("macrolet"), clause.clone(), String::from("macro declaration"))));
+    }
+    let name = match func[0] {
+      AST::Symbol(s) => Ok(s.clone()),
+      _ => Err(Error::from(GDError::InvalidArg(String::from("macrolet"), (*clause).clone(), String::from("macro declaration")))),
+    }?;
+    let args: Vec<_> = DottedExpr::new(func[1]).try_into()?;
+    let args = ArgList::parse(args)?;
+    let body = func[2..].iter().map(|expr| icompiler.compile_expr(pipeline, expr)).collect::<Result<Vec<_>, _>>()?;
+    Ok(decl::MacroDecl { name, args, body: Expr::Progn(body) })
+  }).collect::<Result<Vec<_>, _>>()?;
+
+  macrolet_bind_locals(icompiler, pipeline, &mut fn_clauses.into_iter(), |icompiler, pipeline| {
+    let body = tail[1..].iter().map(|expr| icompiler.compile_expr(pipeline, expr)).collect::<Result<Vec<_>, _>>()?;
+    Ok(Expr::Progn(body))
+  })
+
+}
+
+fn macrolet_bind_locals<B, E, F, I>(icompiler: &mut IncCompiler,
+                                    pipeline: &mut Pipeline,
+                                    macros: &mut I,
+                                    func: F)
+                                    -> Result<B, E>
+where E : From<Error>,
+      F : FnOnce(&mut IncCompiler, &mut Pipeline) -> Result<B, E>,
+      I : Iterator<Item=decl::MacroDecl> {
+  match macros.next() {
+    None => func(icompiler, pipeline),
+    Some(m) => icompiler.locally_save_macro(&m.name.to_string(), |icompiler| {
+      let name = m.name.to_string();
+      let old_symbol_value = {
+        let table = icompiler.symbol_table();
+        table.get(&*Id::build(Namespace::Function, &name)).cloned()
+      };
+      icompiler.symbol_table().set(Id::new(Namespace::Function, name.to_string()), Decl::MacroDecl(m.clone()));
+      icompiler.bind_macro(pipeline, &name, m)?;
+      let result = macrolet_bind_locals(icompiler, pipeline, macros, func);
+      if let Some(old_symbol_value) = old_symbol_value {
+        let table = icompiler.symbol_table();
+        table.set(Id::new(Namespace::Function, name.to_string()), old_symbol_value);
+      }
+      icompiler.unbind_macro(&name);
+      result
+    }),
+  }
+}
+
+fn macrolet_unbind_macros<'a, B, E, F, I>(icompiler: &mut IncCompiler,
+                                          pipeline: &mut Pipeline,
+                                          macros: &mut I,
+                                          func: F)
+                                          -> Result<B, E>
+where E : From<Error>,
+      F : FnOnce(&mut IncCompiler, &mut Pipeline) -> Result<B, E>,
+      I : Iterator<Item=&'a str> {
+  match macros.next() {
+    None => func(icompiler, pipeline),
+    Some(name) => {
+      if icompiler.has_macro(name) {
+        icompiler.locally_save_macro(name, |icompiler| {
+          let old_symbol_value = {
+            let table = icompiler.symbol_table();
+            table.get(&*Id::build(Namespace::Function, &name)).cloned()
+          };
+          icompiler.unbind_macro(name);
+          let result = macrolet_unbind_macros(icompiler, pipeline, macros, func);
+          if let Some(old_symbol_value) = old_symbol_value {
+            let table = icompiler.symbol_table();
+            table.set(Id::new(Namespace::Function, name.to_string()), old_symbol_value);
+          }
+          result
+        })
+      } else {
+        macrolet_unbind_macros(icompiler, pipeline, macros, func)
+      }
     }
   }
 }

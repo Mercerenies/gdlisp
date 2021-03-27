@@ -523,8 +523,29 @@ impl IncCompiler {
     Ok(())
   }
 
+  pub fn locally_save_macro<B>(&mut self, name: &str, func: impl FnOnce(&mut Self) -> B) -> B {
+    let saved_value = self.macros.remove(name);
+    let result = func(self);
+    if let Some(saved_value) = saved_value {
+      self.macros.insert(name.to_string(), saved_value);
+    }
+    result
+  }
+
+  pub fn has_macro(&self, name: &str) -> bool {
+    self.macros.contains_key(name)
+  }
+
+  pub fn unbind_macro(&mut self, name: &str) {
+    self.macros.remove(name);
+  }
+
   pub fn bind_builtin_macros(&mut self) {
     library::bind_builtin_macros(&mut self.macros);
+  }
+
+  pub fn symbol_table(&mut self) -> &mut SymbolTable {
+    &mut self.symbols
   }
 
 }
