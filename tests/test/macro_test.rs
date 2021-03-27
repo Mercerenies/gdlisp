@@ -127,3 +127,11 @@ static func run():
     return [100, _flet_0(), 100]
 "#);
 }
+
+#[test]
+#[ignore]
+#[should_panic]
+pub fn closure_macrolet_test() {
+  parse_compile_and_output("(let ((a 1)) (macrolet ((foo () a)) (foo)))");
+}
+
