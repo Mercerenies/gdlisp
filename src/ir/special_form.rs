@@ -376,6 +376,9 @@ where E : From<Error>,
       if let Some(old_symbol_value) = old_symbol_value {
         let table = icompiler.symbol_table();
         table.set(Id::new(Namespace::Function, name.to_string()), old_symbol_value);
+      } else {
+        let table = icompiler.symbol_table();
+        table.del(&*Id::build(Namespace::Function, &name));
       }
       icompiler.unbind_macro(&name);
       result
@@ -405,6 +408,9 @@ where E : From<Error>,
           if let Some(old_symbol_value) = old_symbol_value {
             let table = icompiler.symbol_table();
             table.set(Id::new(Namespace::Function, name.to_string()), old_symbol_value);
+          } else {
+            let table = icompiler.symbol_table();
+            table.del(&*Id::build(Namespace::Function, &name));
           }
           result
         })

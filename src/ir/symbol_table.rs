@@ -32,8 +32,20 @@ impl SymbolTable {
     }
   }
 
-  pub fn del<'a>(&mut self, id: &(dyn IdLike + 'a)) {
-    self.values.remove(id);
+  pub fn del<'a>(&mut self, id: &(dyn IdLike + 'a)) -> Option<Decl> {
+    if let Some(idx) = self.values.remove(id) {
+      let decl = self.in_order.remove(idx);
+      for v in self.values.values_mut() {
+        // We shifted declarations over, so we need to update all
+        // indices that were to the right of the removed one.
+        if *v > idx {
+          *v -= 1;
+        }
+      }
+      Some(decl)
+    } else {
+      None
+    }
   }
 
   pub fn has<'a>(&self, id: &(dyn IdLike + 'a)) -> bool {

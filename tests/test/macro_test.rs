@@ -135,3 +135,18 @@ pub fn closure_macrolet_test() {
   parse_compile_and_output("(let ((a 1)) (macrolet ((foo () a)) (foo)))");
 }
 
+/*
+#[test]
+#[ignore]
+pub fn labels_global_macro_shadowing_test() {
+  let result = parse_compile_decl("((defmacro foo () 100) [(foo) (labels ((foo () (foo))) (foo)) (foo)])");
+  assert_eq!(result, r#"extends Reference
+static func foo():
+    return 100
+static func _flet_0():
+    return 99
+static func run():
+    return [100, _flet_0(), 100]
+"#);
+}
+*/
