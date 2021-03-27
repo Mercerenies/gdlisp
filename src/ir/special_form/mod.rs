@@ -1,4 +1,6 @@
 
+pub mod local_binding;
+
 use crate::sxp::ast::AST;
 use crate::sxp::dotted::DottedExpr;
 use super::expr::{Expr, FuncRefTarget, AssignTarget, LambdaClass};
@@ -10,6 +12,7 @@ use crate::compile::error::{Error as GDError};
 use crate::ir::incremental::IncCompiler;
 use crate::ir::identifier::{Id, Namespace};
 use crate::pipeline::Pipeline;
+use local_binding::{FLetLocalBinding, LabelsLocalBinding, LocalBinding};
 
 use std::convert::{TryFrom, TryInto};
 
@@ -24,8 +27,8 @@ pub fn dispatch_form(icompiler: &mut IncCompiler,
     "while" => while_form(icompiler, pipeline, tail).map(Some),
     "for" => for_form(icompiler, pipeline, tail).map(Some),
     "let" => let_form(icompiler, pipeline, tail).map(Some),
-    "flet" => flet_form(icompiler, pipeline, tail, Expr::FLet).map(Some),
-    "labels" => flet_form(icompiler, pipeline, tail, Expr::Labels).map(Some),
+    "flet" => flet_form(icompiler, pipeline, tail, FLetLocalBinding).map(Some),
+    "labels" => flet_form(icompiler, pipeline, tail, LabelsLocalBinding).map(Some),
     "lambda" => lambda_form(icompiler, pipeline, tail).map(Some),
     "function" => function_form(tail).map(Some),
     "setq" => assign_form(icompiler, pipeline, tail).map(Some),
@@ -191,7 +194,7 @@ pub fn assign_form(icompiler: &mut IncCompiler,
 pub fn flet_form(icompiler: &mut IncCompiler,
                  pipeline: &mut Pipeline,
                  tail: &[&AST],
-                 container: impl FnOnce(Vec<(String, ArgList, Expr)>, Box<Expr>) -> Expr)
+                 binding_rule: impl LocalBinding)
                  -> Result<Expr, Error> {
   if tail.is_empty() {
     return Err(Error::from(GDError::TooFewArgs(String::from("flet"), tail.len())));
@@ -210,23 +213,36 @@ pub fn flet_form(icompiler: &mut IncCompiler,
     }
   }).collect::<Result<_, _>>()?;
 
-  let fn_clauses = fns.into_iter().map(|clause| {
-    let func: Vec<_> = DottedExpr::new(clause).try_into()?;
-    if func.len() < 2 {
-      return Err(Error::from(GDError::InvalidArg(String::from("flet"), clause.clone(), String::from("function declaration"))));
-    }
-    let name = match func[0] {
-      AST::Symbol(s) => Ok(s.clone()),
-      _ => Err(Error::from(GDError::InvalidArg(String::from("flet"), (*clause).clone(), String::from("function declaration")))),
-    }?;
-    let args: Vec<_> = DottedExpr::new(func[1]).try_into()?;
-    let args = ArgList::parse(args)?;
-    let body = func[2..].iter().map(|expr| icompiler.compile_expr(pipeline, expr)).collect::<Result<Vec<_>, _>>()?;
-    Ok((name, args, Expr::Progn(body)))
-  }).collect::<Result<Vec<_>, _>>()?;
-  macrolet_unbind_macros(icompiler, pipeline, &mut fn_names.iter().map(|x| &**x), |icompiler, pipeline| {
-    let body = tail[1..].iter().map(|expr| icompiler.compile_expr(pipeline, expr)).collect::<Result<Vec<_>, _>>()?;
-    Ok(container(fn_clauses, Box::new(Expr::Progn(body))))
+  // If the recursive binding rule is in effect (i.e. for labels),
+  // then we want to bind all of the names before compiling anything.
+  // If the recursive binding rule is not in effect (i.e. for flet),
+  // then we want to bind the names after compiling the clauses but
+  // before compiling the body.
+  let (pre_names, post_names) = if binding_rule.has_recursive_bindings() {
+    (fn_names, vec!())
+  } else {
+    (vec!(), fn_names)
+  };
+
+  macrolet_unbind_macros(icompiler, pipeline, &mut pre_names.iter().map(|x| &**x), |icompiler, pipeline| {
+    let fn_clauses = fns.into_iter().map(|clause| {
+      let func: Vec<_> = DottedExpr::new(clause).try_into()?;
+      if func.len() < 2 {
+        return Err(Error::from(GDError::InvalidArg(String::from("flet"), clause.clone(), String::from("function declaration"))));
+      }
+      let name = match func[0] {
+        AST::Symbol(s) => Ok(s.clone()),
+        _ => Err(Error::from(GDError::InvalidArg(String::from("flet"), (*clause).clone(), String::from("function declaration")))),
+      }?;
+      let args: Vec<_> = DottedExpr::new(func[1]).try_into()?;
+      let args = ArgList::parse(args)?;
+      let body = func[2..].iter().map(|expr| icompiler.compile_expr(pipeline, expr)).collect::<Result<Vec<_>, _>>()?;
+      Ok((name, args, Expr::Progn(body)))
+    }).collect::<Result<Vec<_>, _>>()?;
+    macrolet_unbind_macros(icompiler, pipeline, &mut post_names.iter().map(|x| &**x), |icompiler, pipeline| {
+      let body = tail[1..].iter().map(|expr| icompiler.compile_expr(pipeline, expr)).collect::<Result<Vec<_>, _>>()?;
+      Ok(binding_rule.wrap_in_expr(fn_clauses, Box::new(Expr::Progn(body))))
+    })
   })
 }
 

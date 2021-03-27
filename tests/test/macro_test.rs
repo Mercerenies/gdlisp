@@ -135,7 +135,6 @@ pub fn closure_macrolet_test() {
   parse_compile_and_output("(let ((a 1)) (macrolet ((foo () a)) (foo)))");
 }
 
-/*
 #[test]
 #[ignore]
 pub fn labels_global_macro_shadowing_test() {
@@ -143,10 +142,13 @@ pub fn labels_global_macro_shadowing_test() {
   assert_eq!(result, r#"extends Reference
 static func foo():
     return 100
-static func _flet_0():
-    return 99
+class _Labels_0 extends Reference:
+    func _init():
+        pass
+    func _fn_foo_2():
+        return _fn_foo_2()
 static func run():
-    return [100, _flet_0(), 100]
+    var _locals_1 = _Labels_0.new()
+    return [100, _locals_1._fn_foo_2(), 100]
 "#);
 }
-*/
