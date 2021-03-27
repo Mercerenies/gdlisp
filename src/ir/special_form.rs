@@ -197,6 +197,19 @@ pub fn flet_form(icompiler: &mut IncCompiler,
     return Err(Error::from(GDError::TooFewArgs(String::from("flet"), tail.len())));
   }
   let fns: Vec<_> = DottedExpr::new(tail[0]).try_into()?;
+
+  // Get all of the names of the declared functions
+  let fn_names: Vec<_> = fns.iter().map(|clause| {
+    let func: Vec<_> = DottedExpr::new(clause).try_into()?;
+    if func.len() < 2 {
+      return Err(Error::from(GDError::InvalidArg(String::from("flet"), (*clause).clone(), String::from("function declaration"))));
+    }
+    match func[0] {
+      AST::Symbol(s) => Ok(s.clone()),
+      _ => Err(Error::from(GDError::InvalidArg(String::from("flet"), (*clause).clone(), String::from("function declaration")))),
+    }
+  }).collect::<Result<_, _>>()?;
+
   let fn_clauses = fns.into_iter().map(|clause| {
     let func: Vec<_> = DottedExpr::new(clause).try_into()?;
     if func.len() < 2 {
@@ -211,8 +224,7 @@ pub fn flet_form(icompiler: &mut IncCompiler,
     let body = func[2..].iter().map(|expr| icompiler.compile_expr(pipeline, expr)).collect::<Result<Vec<_>, _>>()?;
     Ok((name, args, Expr::Progn(body)))
   }).collect::<Result<Vec<_>, _>>()?;
-  let names: Vec<_> = fn_clauses.iter().map(|x| x.0.to_owned()).collect();
-  macrolet_unbind_macros(icompiler, pipeline, &mut names.iter().map(|x| &**x), |icompiler, pipeline| {
+  macrolet_unbind_macros(icompiler, pipeline, &mut fn_names.iter().map(|x| &**x), |icompiler, pipeline| {
     let body = tail[1..].iter().map(|expr| icompiler.compile_expr(pipeline, expr)).collect::<Result<Vec<_>, _>>()?;
     Ok(container(fn_clauses, Box::new(Expr::Progn(body))))
   })
