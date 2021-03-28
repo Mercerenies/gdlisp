@@ -3,6 +3,9 @@ use json::{JsonValue, object};
 
 use std::borrow::{Cow, ToOwned};
 
+// To be honest, this thing probably should've been using owned
+// strings from the beginning. The fact that our dependencies are
+// Cow<'a, str> is pretty much for historical reasons.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct FreshNameGenerator<'a> {
   reserved: Vec<Cow<'a, str>>,
