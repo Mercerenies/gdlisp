@@ -15,6 +15,7 @@ use crate::compile::names;
 use crate::gdscript::stmt::{self, Stmt};
 use crate::gdscript::expr::Expr;
 use crate::gdscript::literal::Literal;
+use crate::gdscript::op;
 
 type IRExpr = ir::expr::Expr;
 
@@ -76,7 +77,8 @@ pub fn compile_while_stmt<'a>(compiler: &mut Compiler<'a>,
   if !cond_body.is_empty() {
     // Compound while form
     body_builder.append_all(&mut cond_body.into_iter());
-    body_builder.append(stmt::if_then(cond_expr, vec!(Stmt::BreakStmt)));
+    let inner_cond_expr = Expr::Unary(op::UnaryOp::Not, Box::new(cond_expr));
+    body_builder.append(stmt::if_then(inner_cond_expr, vec!(Stmt::BreakStmt)));
     cond_expr = Expr::Literal(Literal::Bool(true));
   }
   compiler.compile_stmt(&mut body_builder, table, &stmt_wrapper::Vacuous, body)?;
