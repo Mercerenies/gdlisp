@@ -15,6 +15,7 @@ pub enum ServerCommand {
   Quit,
   Ping,
   Eval(String),
+  Exec(String),
   Load(String),
 }
 
@@ -25,6 +26,7 @@ impl ServerCommand {
       ServerCommand::Quit => "quit",
       ServerCommand::Ping => "ping",
       ServerCommand::Eval(_) => "eval",
+      ServerCommand::Exec(_) => "exec",
       ServerCommand::Load(_) => "load",
     }
   }
@@ -34,6 +36,7 @@ impl ServerCommand {
       ServerCommand::Quit => vec!(),
       ServerCommand::Ping => vec!(),
       ServerCommand::Eval(s) => vec!(&s),
+      ServerCommand::Exec(s) => vec!(&s),
       ServerCommand::Load(s) => vec!(&s),
     }
   }

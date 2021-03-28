@@ -51,24 +51,33 @@ func run_command(payload):
             var input = args[0]
             var result = eval(input)
             peer.put_string(successful_response(pretty(result)))
+        "exec":
+            var input = args[0]
+            exec(input)
+            peer.put_string(successful_response("Success"))
         "load":
             var input = args[0]
             var idx = len(loaded_files)
             loaded_files.push_back(load(input))
             peer.put_string(successful_response(pretty(idx)))
 
+func eval(input):
+    return exec("return " + input)
+
 # Funny hack, thanks Godot Q&A! :)
 #
 # https://godotengine.org/qa/339/does-gdscript-have-method-to-execute-string-code-exec-python?show=362#a362
-func eval(input):
+func exec(input):
     var script = GDScript.new()
-    script.set_source_code("func eval(MAIN):\n    return " + input)
+    script.set_source_code("func exec(MAIN):\n    " + input)
     script.reload()
 
     var obj = Reference.new()
     obj.set_script(script)
 
-    return obj.eval(self)
+    print(script.source_code)
+
+    return obj.exec(self)
 
 # I'll probably end up migrating this to GDLisp.gd proper at some
 # point, but for now, here it is.

@@ -166,4 +166,13 @@ mod tests {
 
   }
 
+  #[test]
+  #[ignore]
+  fn spawn_server_exec_test() {
+    let mut server = MacroServer::new().unwrap();
+    let command = ServerCommand::Exec(String::from("var tmp_var = 1 + 1\n    return tmp_var"));
+    let response = issue_command_and_unwrap(&mut server, &command);
+    assert_eq!(response, "Success");
+  }
+
 }
