@@ -1,4 +1,5 @@
 
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct FreshNameGenerator<'a> {
   reserved: Vec<&'a str>,
   index: u32,
