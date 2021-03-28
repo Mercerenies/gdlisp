@@ -73,6 +73,9 @@ impl IncCompiler {
           let ast = server.run_server_file(&call, parms.clone(), args);
           server.reset_global_name_generator()?;
 
+          // Check the error on `ast' here, not above, because we want
+          // reset_global_name_generator to run if and only if
+          // set_global_name_generator runs.
           Ok(ast?)
         }
       }
