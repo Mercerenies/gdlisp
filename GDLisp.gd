@@ -3,6 +3,8 @@ extends Node
 # Library file for GDLisp. This file must be included as a singleton
 # in any project which uses GDLisp compiled files.
 
+var global_name_generator
+
 class Cons:
     var car
     var cdr
@@ -30,6 +32,47 @@ class Symbol:
     var contents
     func _init(contents):
         self.contents = contents
+
+class FreshNameGenerator extends Reference:
+
+    # This is meant to be identical to FreshNameGenerator in the Rust
+    # source. We want to be able to consistently generate names in the
+    # same way on both Rust and Godot and to be able to communicate
+    # FreshNameGenerator state between the two (via to_json /
+    # from_json)
+
+    const DEFAULT_PREFIX = "_G"
+
+    var reserved
+    var index
+
+    func _init(res, idx = 0):
+        reserved = res
+        index = idx
+
+    func generate():
+        return generate_with(DEFAULT_PREFIX)
+
+    func generate_with(prefix):
+        var name = ""
+        while true:
+            name = "{}_{}".format([prefix, index], "{}")
+            index += 1
+            if not (name in reserved):
+                break
+        return name
+
+    func to_json():
+        return {
+            "reserved": reserved,
+            "index": index,
+        }
+
+    static func from_json(json):
+        var cls = FreshNameGenerator
+        var res = json["reserved"]
+        var idx = json["idx"]
+        return cls.new(res, idx)
 
 enum Mouse {
     LEFT = BUTTON_LEFT,
@@ -418,6 +461,9 @@ enum MIDIMessage {
     PITCH_BEND = MIDI_MESSAGE_PITCH_BEND,
 }
 
+func _init():
+    global_name_generator = FreshNameGenerator.new([])
+
 func length(x):
     var result = 0
     while x is Cons:
@@ -570,3 +616,9 @@ func istype(value, type):
         return typeof(value) == type
     else:
         return value is type
+
+func gensym(prefix):
+    if prefix == null:
+        return Symbol.new(global_name_generator.generate())
+    else:
+        return Symbol.new(global_name_generator.generate_with(prefix))
