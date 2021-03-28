@@ -2,6 +2,7 @@
 use crate::sxp::ast::AST;
 use crate::runner::macro_server::lazy::LazyServer;
 use crate::compile::names;
+use crate::compile::names::fresh::FreshNameGenerator;
 use crate::compile::symbol_table::function_call::{FnCall, FnScope, FnSpecs};
 use crate::compile::symbol_table::call_magic::compile_default_call;
 use crate::gdscript::expr::{Expr as GDExpr};
@@ -94,6 +95,24 @@ impl NamedFileServer {
     let parser = parser::ASTParser::new();
     let parsed = parser.parse(&result)?;
     Ok(parsed)
+  }
+
+  pub fn set_global_name_generator<'a>(&mut self, gen: &FreshNameGenerator<'a>) -> io::Result<()> {
+    let server = self.server.get_mut()?;
+    let json = gen.to_json();
+    let exec_str = format!("GDLisp.global_name_generator = GDLisp.FreshNameGenerator.from_json({})",
+                           json.to_string());
+    let cmd = ServerCommand::Exec(exec_str);
+    let _result = response_to_string(server.issue_command(&cmd)?)?;
+    Ok(())
+  }
+
+  pub fn reset_global_name_generator(&mut self) -> io::Result<()> {
+    let server = self.server.get_mut()?;
+    let exec_str = String::from(r#"GDLisp.global_name_generator = GDLisp.FreshNameGenerator.new([], "")"#);
+    let cmd = ServerCommand::Exec(exec_str);
+    let _result = response_to_string(server.issue_command(&cmd)?)?;
+    Ok(())
   }
 
 }
