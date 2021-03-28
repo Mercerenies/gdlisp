@@ -3,8 +3,10 @@ use crate::gdscript::stmt::{self, Stmt};
 use crate::compile::error::Error;
 
 pub struct StmtWalker<'a> {
-  pub imp: Box<dyn FnMut(&[Stmt]) -> Result<Vec<Stmt>, Error> + 'a>,
+  pub imp: Box<WalkFn<'a>>,
 }
+
+pub type WalkFn<'a> = dyn FnMut(&[Stmt]) -> Result<Vec<Stmt>, Error> + 'a;
 
 impl<'a> StmtWalker<'a> {
 

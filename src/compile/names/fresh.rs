@@ -67,7 +67,7 @@ impl<'a> FreshNameGenerator<'a> {
       Some(JsonValue::Array(reserved)) => reserved,
       _ => return Err(ParseError::MalformedInput),
     };
-    let reserved = reserved.into_iter()
+    let reserved = reserved.iter()
       .map(|value| value.as_str().ok_or(ParseError::MalformedInput).map(|string| {
         Cow::Borrowed(string)
       }))

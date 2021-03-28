@@ -14,7 +14,9 @@ pub const ID_WHEN_FUNCTION:     u32 = 4;
 pub const ID_UNLESS_FUNCTION:   u32 = 5;
 pub const ID_IF_FUNCTION:       u32 = 6;
 
-pub fn get_builtin_macro(id: MacroID) -> Option<fn(&[&AST]) -> Result<AST, Error>> {
+pub type BuiltInMacro = fn(&[&AST]) -> Result<AST, Error>;
+
+pub fn get_builtin_macro(id: MacroID) -> Option<BuiltInMacro> {
   match id.0 {
     0 => {
       Some(and_function)

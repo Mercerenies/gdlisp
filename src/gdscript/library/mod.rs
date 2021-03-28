@@ -384,7 +384,7 @@ pub fn bind_builtins(table: &mut SymbolTable) {
                   scope: VarScope::GlobalVar,
                   assignable: false,
                   value_hint: Some(ValueHint::enumeration(
-                    keys::GDSCRIPT_KEY_NAMES.iter().map(|x| *x)
+                    keys::GDSCRIPT_KEY_NAMES.iter().copied()
                   ))
                 });
 

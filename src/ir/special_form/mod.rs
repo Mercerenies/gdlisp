@@ -392,6 +392,9 @@ where E : From<Error>,
       I : Iterator<Item=decl::MacroDecl> {
   match macros.next() {
     None => func(icompiler, pipeline),
+    #[allow(clippy::redundant_clone)] // Clippy thinks this clone is
+                                      // redundant but it doesn't
+                                      // compile without it.
     Some(m) => icompiler.locally_save_macro(&m.name.to_string(), |icompiler| {
       let name = m.name.to_string();
       let old_symbol_value = {

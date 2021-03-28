@@ -44,7 +44,7 @@ pub struct IncCompiler {
 #[allow(clippy::new_without_default)]
 impl IncCompiler {
 
-  pub fn new<'a>(names: Vec<&'a str>) -> IncCompiler {
+  pub fn new(names: Vec<&str>) -> IncCompiler {
     let names = FreshNameGenerator::new(names).to_owned_names();
     IncCompiler {
       names: names,

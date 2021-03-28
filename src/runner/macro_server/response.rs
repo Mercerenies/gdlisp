@@ -75,15 +75,15 @@ impl TryFrom<JsonValue> for ServerResponse {
     };
     let error_code = obj.get("error_code")
       .and_then(|err| err.as_u32())
-      .ok_or(fail(&json))?;
+      .ok_or_else(|| fail(&json))?;
     if error_code == 0 {
       // Success case
-      let response_string = obj.get("response_string").and_then(|r| r.as_str()).ok_or(fail(&json))?;
+      let response_string = obj.get("response_string").and_then(|r| r.as_str()).ok_or_else(|| fail(&json))?;
       let response_string = response_string.to_owned();
       Ok(ServerResponse::Success(Success { response_string }))
     } else {
       // Failure case
-      let error_string = obj.get("error_string").and_then(|r| r.as_str()).ok_or(fail(&json))?;
+      let error_string = obj.get("error_string").and_then(|r| r.as_str()).ok_or_else(|| fail(&json))?;
       let error_string = error_string.to_owned();
       Ok(ServerResponse::Failure(Failure { error_code, error_string }))
     }
