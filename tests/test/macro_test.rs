@@ -152,3 +152,31 @@ static func run():
     return [100, _locals_1._fn_foo_2(), 100]
 "#);
 }
+
+#[test]
+#[ignore]
+pub fn gensym_test_1() {
+  let result = parse_compile_decl("((defmacro foo (a) (let ((x (gensym))) `(let ((,x ,a)) [,x ,x]))) (foo 10))");
+  assert_eq!(result, r#"extends Reference
+static func foo(a_0):
+    var x_1 = GDLisp.gensym(null)
+    return GDLisp.Cons.new(GDLisp.Symbol.new("let"), GDLisp.Cons.new(GDLisp.Cons.new(GDLisp.Cons.new(x_1, GDLisp.Cons.new(a_0, null)), null), GDLisp.Cons.new([x_1, x_1], null)))
+static func run():
+    var _G_0_2 = 10
+    return [_G_0_2, _G_0_2]
+"#);
+}
+
+#[test]
+#[ignore]
+pub fn gensym_test_2() {
+  let result = parse_compile_decl("((defmacro foo (a) (let ((x (gensym))) `(let ((,x ,a)) [,x ,x]))) [(foo 10) '_G_0])");
+  assert_eq!(result, r#"extends Reference
+static func foo(a_0):
+    var x_1 = GDLisp.gensym(null)
+    return GDLisp.Cons.new(GDLisp.Symbol.new("let"), GDLisp.Cons.new(GDLisp.Cons.new(GDLisp.Cons.new(x_1, GDLisp.Cons.new(a_0, null)), null), GDLisp.Cons.new([x_1, x_1], null)))
+static func run():
+    var _G_1_2 = 10
+    return [[_G_1_2, _G_1_2], GDLisp.Symbol.new("_G_0")]
+"#);
+}

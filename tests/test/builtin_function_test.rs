@@ -502,3 +502,5 @@ pub fn instance_check_test() {
   "#);
   assert_eq!(result, "\nTrue\nTrue\nFalse\nTrue\nTrue\nFalse\nFalse\n");
 }
+
+// TODO Test gensym at runtime once we can pretty-print symbols
