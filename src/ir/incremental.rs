@@ -19,6 +19,7 @@ use crate::sxp::ast::AST;
 use crate::sxp::reify::Reify;
 use crate::compile::error::Error;
 use crate::compile::resource_type::ResourceType;
+use crate::compile::names::fresh::FreshNameGenerator;
 use crate::gdscript::library;
 use crate::runner::macro_server::named_file_server::MacroCall;
 use crate::pipeline::error::{Error as PError};
@@ -34,6 +35,7 @@ use std::collections::{HashMap, HashSet};
 // side.
 
 pub struct IncCompiler {
+  names: FreshNameGenerator<'static>,
   symbols: SymbolTable,
   macros: HashMap<String, MacroData>,
   imports: Vec<ImportDecl>,
@@ -42,8 +44,10 @@ pub struct IncCompiler {
 #[allow(clippy::new_without_default)]
 impl IncCompiler {
 
-  pub fn new() -> IncCompiler {
+  pub fn new<'a>(names: Vec<&'a str>) -> IncCompiler {
+    let names = FreshNameGenerator::new(names).to_owned_names();
     IncCompiler {
+      names: names,
       symbols: SymbolTable::new(),
       macros: HashMap::new(),
       imports: vec!(),
@@ -63,8 +67,13 @@ impl IncCompiler {
           // User-defined macro; runs in Godot
           let call = self.get_macro_file(pipeline, &head).expect("Could not find macro file").clone();
           let args: Vec<_> = tail.iter().map(|x| x.reify()).collect();
-          let ast = pipeline.get_server_mut().run_server_file(&call, parms.clone(), args)?;
-          Ok(ast)
+
+          let server = pipeline.get_server_mut();
+          server.set_global_name_generator(&self.names)?;
+          let ast = server.run_server_file(&call, parms.clone(), args);
+          server.reset_global_name_generator()?;
+
+          Ok(ast?)
         }
       }
       _ => {
@@ -546,14 +555,6 @@ impl IncCompiler {
 
   pub fn symbol_table(&mut self) -> &mut SymbolTable {
     &mut self.symbols
-  }
-
-}
-
-impl Default for IncCompiler {
-
-  fn default() -> IncCompiler {
-    IncCompiler::new()
   }
 
 }
