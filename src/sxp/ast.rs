@@ -56,52 +56,54 @@ impl AST {
     AST::dotted_list(vec, AST::Nil)
   }
 
-  fn _walk_preorder<'a, 'b, F, E>(&'a self, func: &mut F) -> Result<(), E>
-  where F: FnMut(&'b AST) -> Result<(), E>,
-        'a: 'b {
-    func(self)?;
-    if let AST::Cons(car, cdr) = self {
-      car._walk_preorder(func)?;
-      cdr._walk_preorder(func)?;
+  fn _recurse<'a, 'b, F1, F2, E>(&'a self, func: &mut F1, default: &mut F2) -> Result<(), E>
+  where F1 : FnMut(&'b AST) -> Result<(), E>,
+        F2 : FnMut() -> Result<(), E>,
+        'a : 'b {
+    match self {
+      AST::Cons(car, cdr) => {
+        func(&*car)?;
+        func(&*cdr)?;
+      }
+      AST::Array(arr) => {
+        for x in arr {
+          func(&*x)?;
+        }
+      }
+      AST::Vector2(x, y) => {
+        func(&*x)?;
+        func(&*y)?;
+      }
+      AST::Vector3(x, y, z) => {
+        func(&*x)?;
+        func(&*y)?;
+        func(&*z)?;
+      }
+      AST::Nil | AST::Int(_) | AST::Bool(_) | AST::Float(_) | AST::String(_) | AST::Symbol(_) => {
+        default()?;
+      }
     }
     Ok(())
   }
 
-  fn _walk_inorder<'a, 'b, F, E>(&'a self, func: &mut F) -> Result<(), E>
+  fn _walk_preorder<'a, 'b, F, E>(&'a self, func: &mut F) -> Result<(), E>
   where F: FnMut(&'b AST) -> Result<(), E>,
         'a: 'b {
-    match self {
-      AST::Cons(car, cdr) => {
-        car._walk_inorder(func)?;
-        func(self)?;
-        cdr._walk_inorder(func)?;
-      }
-      _ => func(self)?
-    }
-    Ok(())
+    func(self)?;
+    self._recurse(&mut |x| x._walk_preorder(func), &mut || Ok(()))
   }
 
   fn _walk_postorder<'a, 'b, F, E>(&'a self, func: &mut F) -> Result<(), E>
   where F: FnMut(&'b AST) -> Result<(), E>,
         'a: 'b {
-    if let AST::Cons(car, cdr) = self {
-      car._walk_postorder(func)?;
-      cdr._walk_postorder(func)?;
-    }
-    func(self)?;
-    Ok(())
+    self._recurse(&mut |x| x._walk_postorder(func), &mut || Ok(()))?;
+    func(self)
   }
 
   pub fn walk_preorder<'a, 'b, F, E>(&'a self, mut func: F) -> Result<(), E>
   where F: FnMut(&'b AST) -> Result<(), E>,
         'a: 'b {
     self._walk_preorder(&mut func)
-  }
-
-  pub fn walk_inorder<'a, 'b, F, E>(&'a self, mut func: F) -> Result<(), E>
-  where F: FnMut(&'b AST) -> Result<(), E>,
-        'a: 'b {
-    self._walk_inorder(&mut func)
   }
 
   pub fn walk_postorder<'a, 'b, F, E>(&'a self, mut func: F) -> Result<(), E>
