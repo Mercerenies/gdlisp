@@ -71,7 +71,7 @@ class FreshNameGenerator extends Reference:
     static func from_json(json):
         var cls = FreshNameGenerator
         var res = json["reserved"]
-        var idx = json["idx"]
+        var idx = json["index"]
         return cls.new(res, idx)
 
 enum Mouse {
