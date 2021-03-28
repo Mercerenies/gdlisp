@@ -1,7 +1,7 @@
 
 use json::{JsonValue, object};
 
-use std::borrow::Cow;
+use std::borrow::{Cow, ToOwned};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct FreshNameGenerator<'a> {
@@ -53,7 +53,7 @@ impl<'a> FreshNameGenerator<'a> {
     }
   }
 
-  pub fn from_json(value: &JsonValue) -> Result<Self, ParseError> {
+  pub fn from_json(value: &'a JsonValue) -> Result<Self, ParseError> {
     let value = match value {
       JsonValue::Object(value) => value,
       _ => return Err(ParseError::MalformedInput),
@@ -66,7 +66,7 @@ impl<'a> FreshNameGenerator<'a> {
     };
     let reserved = reserved.into_iter()
       .map(|value| value.as_str().ok_or(ParseError::MalformedInput).map(|string| {
-        Cow::Owned(string.to_owned())
+        Cow::Borrowed(string)
       }))
       .collect::<Result<_, _>>()?;
 
@@ -77,6 +77,16 @@ impl<'a> FreshNameGenerator<'a> {
     };
 
     Ok(FreshNameGenerator { reserved, index })
+  }
+
+  // We can take ownership of the strings in the generator to
+  // eliminate a dependency on some other lifetime.
+  pub fn to_owned_names(&self) -> FreshNameGenerator<'static> {
+    let reserved: Vec<_> = self.reserved.iter().map(|x| Cow::Owned((**x).to_owned())).collect();
+    FreshNameGenerator {
+      reserved: reserved,
+      index: self.index,
+    }
   }
 
 }
@@ -126,6 +136,13 @@ mod tests {
     let json = gen.to_json();
     let gen1 = FreshNameGenerator::from_json(&json).unwrap();
     assert_eq!(gen, gen1);
+  }
+
+  #[test]
+  fn through_owned() {
+    let gen = FreshNameGenerator::new(vec!("abc", "def", "foo_1", "_example_names"));
+    // Taking ownership shouldn't change anything comparable by PartialEq
+    assert_eq!(gen, gen.to_owned_names());
   }
 
 }
