@@ -7,11 +7,9 @@ use crate::compile::error::Error;
 use super::FunctionOptimization;
 use super::constant;
 use super::stmt_walker;
+use super::assignment::{AssignmentStmt, AssignType};
 
 pub struct RedundantAssignmentElimination;
-
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-enum AssignType { VarDecl, Assignment }
 
 /*
  * This catches situations like
@@ -31,21 +29,8 @@ enum AssignType { VarDecl, Assignment }
  */
 impl RedundantAssignmentElimination {
 
-  fn match_first_assign<'a, 'b>(&'a self, stmt: &'b Stmt) -> Option<(AssignType, &'b str, &'b Expr)> {
-    match stmt {
-      Stmt::VarDecl(name, expr) => Some((AssignType::VarDecl, name, expr)),
-      // We don't care what assign op is being used because, if the
-      // optimization fires, we'll replace it with op::AssignOp::Eq
-      // anyway.
-      Stmt::Assign(name, _, expr) => {
-        if let Expr::Var(name) = &**name {
-          Some((AssignType::Assignment, name, expr))
-        } else {
-          None
-        }
-      }
-      _ => None,
-    }
+  fn match_first_assign<'a>(&self, stmt: &'a Stmt) -> Option<AssignmentStmt<'a>> {
+    AssignmentStmt::match_stmt(stmt)
   }
 
   // The second assignment (the one that makes the first redundant)
@@ -53,40 +38,32 @@ impl RedundantAssignmentElimination {
   // Godot error (I think? Might be a shadowed variable? Either way,
   // not our problem)
   fn match_second_assign<'a, 'b, 'c>(&'a self, name: &'b str, stmt: &'c Stmt) -> Option<&'c Expr> {
-    match stmt {
-      Stmt::Assign(new_name, op::AssignOp::Eq, expr) => {
-        if let Expr::Var(new_name) = &**new_name {
-          if name == new_name {
-            return Some(expr);
-          }
+    if let Some(AssignmentStmt { assign_type, var_name, expr }) = AssignmentStmt::match_stmt(stmt) {
+      if assign_type == AssignType::Assignment(op::AssignOp::Eq) {
+        if name == var_name {
+          return Some(expr);
         }
-        None
       }
-      _ => None,
     }
+    None
   }
 
-  fn rebuild_assignment(&self, assign_type: AssignType, name: &str, expr: &Expr) -> Stmt {
-    match assign_type {
-      AssignType::VarDecl => Stmt::VarDecl(name.to_owned(), expr.to_owned()),
-      AssignType::Assignment => Stmt::Assign(Box::new(Expr::var(name)),
-                                             op::AssignOp::Eq,
-                                             Box::new(expr.to_owned())),
-    }
+  fn rebuild_assignment(&self, assign_type: AssignType, var_name: &str, expr: &Expr) -> Stmt {
+    AssignmentStmt { assign_type, var_name, expr }.into()
   }
 
   pub fn run_on_stmts(&self, stmts: &[Stmt]) -> Result<Vec<Stmt>, Error> {
     // Look for something to eliminate. If we find it, do the
     // elimination and call the function again. If not, we're done.
     for (index, stmt1) in stmts.iter().enumerate() {
-      if let Some((assign_type, name, expr1)) = self.match_first_assign(stmt1) {
+      if let Some(AssignmentStmt { assign_type, var_name: name, expr: expr1 }) = self.match_first_assign(stmt1) {
         if !constant::expr_has_side_effects(expr1) {
           // Found a match. Keep going.
           for jndex in index+1..stmts.len() {
             let stmt2 = &stmts[jndex];
             if let Some(expr2) = self.match_second_assign(name, stmt2) {
               // Redundant assignment; cull
-              let new_stmt = self.rebuild_assignment(assign_type, name, expr2);
+              let new_stmt = self.rebuild_assignment(assign_type.ensure_eq(), name, expr2);
               let mut new_stmts = stmts.to_vec();
               new_stmts.splice(index..=jndex, vec!(new_stmt).into_iter());
               return self.run_on_stmts(&new_stmts);
@@ -191,6 +168,36 @@ mod tests {
 
     let body0 = vec!(
       Stmt::Assign(Box::new(Expr::var("foo")), op::AssignOp::Eq, Box::new(Expr::from(1))),
+      Stmt::Assign(Box::new(Expr::var("foo")), op::AssignOp::Eq, Box::new(Expr::from(2))),
+    );
+    let mut func0 = decl::FnDecl {
+      name: String::from("example"),
+      args: ArgList::empty(),
+      body: body0,
+    };
+
+    let body1 = vec!(
+      Stmt::Assign(Box::new(Expr::var("foo")), op::AssignOp::Eq, Box::new(Expr::from(2))),
+    );
+    let func1 = decl::FnDecl {
+      name: String::from("example"),
+      args: ArgList::empty(),
+      body: body1,
+    };
+
+    RedundantAssignmentElimination.run_on_function(&mut func0).unwrap();
+    assert_eq!(func0, func1);
+  }
+
+  #[test]
+  fn redundant_assign_test_4() {
+    /* (Eliminate after assign (compound))
+     * foo += 1
+     * foo = 2
+     */
+
+    let body0 = vec!(
+      Stmt::Assign(Box::new(Expr::var("foo")), op::AssignOp::Add, Box::new(Expr::from(1))),
       Stmt::Assign(Box::new(Expr::var("foo")), op::AssignOp::Eq, Box::new(Expr::from(2))),
     );
     let mut func0 = decl::FnDecl {
