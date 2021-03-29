@@ -12,6 +12,7 @@ pub mod basic_math_ops;
 pub mod redundant_assignment_elimination;
 pub mod direct_var_substitute;
 pub mod dead_var_elimination;
+pub mod ternary_if_fold;
 
 use crate::gdscript::decl::{self, Decl};
 use crate::gdscript::expr::Expr;
@@ -87,8 +88,14 @@ impl<T> StatementLevelPass for T where T : ExpressionLevelPass {
 // TODO We'll refine this a lot. Right now, it's hard coded.
 pub fn run_standard_passes(file: &mut decl::TopLevelClass) -> Result<(), Error> {
 
-  // Run twice, for good measure :)
-  for _ in 0..2 {
+  // Run thrice, for good measure :)
+  for _ in 0..3 {
+
+    // Fold trivial if statements containing assignments into the variable
+    ternary_if_fold::TernaryIfFold.run_on_file(file)?;
+    redundant_assignment_elimination::RedundantAssignmentElimination.run_on_file(file)?;
+    dead_var_elimination::DeadVarElimination.run_on_file(file)?;
+    dead_code_elimination::DeadCodeElimination.run_on_file(file)?;
 
     // Simplify anything we can at the expression level.
     basic_math_ops::BasicMathOps.run_on_file(file)?;
