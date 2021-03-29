@@ -4,6 +4,8 @@ use crate::gdscript::stmt::{self, Stmt};
 use crate::gdscript::expr::{self, Expr};
 use crate::compile::error::Error;
 
+// Post-order traversal
+
 pub fn walk_expr<'a>(stmt: &Stmt, mut walker: impl FnMut(&Expr) -> Result<Expr, Error> + 'a)
                      -> Result<Vec<Stmt>, Error> {
   stmt_walker::walk_stmt(stmt, stmt_walker::on_each_stmt(|s| walk_impl(&mut walker, s)))
@@ -16,7 +18,7 @@ pub fn walk_exprs<'a>(stmts: &[Stmt], mut walker: impl FnMut(&Expr) -> Result<Ex
 
 fn walk_impl_expr<'a>(walker: &mut (impl FnMut(&Expr) -> Result<Expr, Error> + 'a), expr: &Expr)
                       -> Result<Expr, Error> {
-  let mut expr = walker(expr)?;
+  let mut expr = expr.clone();
   match &mut expr {
     Expr::Subscript(a, b) => {
       **a = walk_impl_expr(walker, &**a)?;
@@ -57,7 +59,7 @@ fn walk_impl_expr<'a>(walker: &mut (impl FnMut(&Expr) -> Result<Expr, Error> + '
     }
     Expr::Var(_) | Expr::Literal(_) => {}
   }
-  Ok(expr)
+  walker(&expr)
 }
 
 fn walk_impl<'a>(walker: &mut (impl FnMut(&Expr) -> Result<Expr, Error> + 'a), stmt: &Stmt)
