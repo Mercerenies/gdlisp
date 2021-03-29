@@ -1,7 +1,7 @@
 
 // Helper functions for checking whether code is a noop
 
-use crate::gdscript::expr::Expr;
+use crate::gdscript::expr::{self, Expr};
 use crate::gdscript::stmt::Stmt;
 
 pub fn is_code_seq_noop(stmts: &[Stmt]) -> bool {
@@ -31,6 +31,8 @@ pub fn is_expr_noop(expr: &Expr) -> bool {
     Expr::SuperCall(_, _) => false,
     Expr::Unary(_, e) => is_expr_noop(&*e),
     Expr::Binary(a, _, b) => is_expr_noop(&*a) && is_expr_noop(&*b),
+    Expr::TernaryIf(expr::TernaryIf { true_case: a, cond: b, false_case: c }) =>
+      is_expr_noop(&*a) && is_expr_noop(&*b) && is_expr_noop(&*c),
     Expr::ArrayLit(v) => v.iter().all(is_expr_noop),
   }
 }

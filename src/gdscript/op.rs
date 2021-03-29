@@ -15,6 +15,10 @@ pub enum AssignOp {
   Eq, Add, Sub, Times, Div, Mod, BitAnd, BitOr,
 }
 
+// There is only one ternary op in Godot: if conditionals.
+#[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Hash, Debug)]
+pub struct TernaryOp;
+
 #[derive(PartialEq, Eq, Clone, Hash, Debug)]
 pub struct OperatorInfo {
   pub precedence: i32,
@@ -88,5 +92,11 @@ impl OperatorHasInfo for AssignOp {
       AssignOp::BitOr => "|=",
     };
     info(prec, name, pad)
+  }
+}
+
+impl OperatorHasInfo for TernaryOp {
+  fn op_info(&self) -> OperatorInfo {
+    info(3, "if-else", Padding::Required)
   }
 }

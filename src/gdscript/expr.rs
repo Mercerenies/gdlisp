@@ -21,7 +21,15 @@ pub enum Expr {
   SuperCall(String, Vec<Expr>),
   Unary(UnaryOp, Box<Expr>),
   Binary(Box<Expr>, BinaryOp, Box<Expr>),
+  TernaryIf(TernaryIf),
   ArrayLit(Vec<Expr>),
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct TernaryIf {
+  pub true_case: Box<Expr>,
+  pub cond: Box<Expr>,
+  pub false_case: Box<Expr>,
 }
 
 fn maybe_parens(cond: bool, inner: String) -> String {
@@ -86,6 +94,7 @@ impl Expr {
         maybe_parens(prec > info.precedence, inner)
       },
       Expr::Binary(lhs, op, rhs) => {
+        // Implicit assumption that all operators are left-associative.
         let info = op.op_info();
         let lhs = lhs.to_gd_prec(info.precedence);
         let rhs = rhs.to_gd_prec(info.precedence + 1);
@@ -94,6 +103,15 @@ impl Expr {
         } else {
           format!("{} {} {}", lhs, info.name, rhs)
         };
+        maybe_parens(prec > info.precedence, inner)
+      },
+      Expr::TernaryIf(TernaryIf { true_case, cond, false_case }) => {
+        // Ternary is right-associative.
+        let info = op::TernaryOp.op_info();
+        let lhs = true_case.to_gd_prec(info.precedence + 1);
+        let cond = cond.to_gd_prec(PRECEDENCE_LOWEST);
+        let rhs = false_case.to_gd_prec(info.precedence);
+        let inner = format!("{} if {} else {}", lhs, cond, rhs);
         maybe_parens(prec > info.precedence, inner)
       },
       Expr::ArrayLit(vec) => {
@@ -108,7 +126,7 @@ impl Expr {
         }
         result.push(']');
         result
-      }
+      },
     }
   }
 
@@ -122,6 +140,12 @@ impl<T> From<T> for Expr
   where Literal : From<T> {
   fn from(x: T) -> Expr {
     Expr::Literal(Literal::from(x))
+  }
+}
+
+impl From<TernaryIf> for Expr {
+  fn from(x: TernaryIf) -> Expr {
+    Expr::TernaryIf(x)
   }
 }
 
@@ -227,6 +251,14 @@ mod tests {
     assert_eq!(binary(&a, BinaryOp::And, &b).to_gd(), "a && b");
     assert_eq!(binary(&a, BinaryOp::Or, &b).to_gd(), "a || b");
     assert_eq!(binary(&a, BinaryOp::Cast, &b).to_gd(), "a as b");
+  }
+
+  #[test]
+  fn ternary_op() {
+    let a = Box::new(Expr::from(1));
+    let b = Box::new(Expr::from(2));
+    let c = Box::new(Expr::from(3));
+    assert_eq!(Expr::TernaryIf(TernaryIf { true_case: a, cond: b, false_case: c }).to_gd(), "1 if 2 else 3");
   }
 
   #[test]

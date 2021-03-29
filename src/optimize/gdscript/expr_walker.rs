@@ -1,7 +1,7 @@
 
 use super::stmt_walker;
 use crate::gdscript::stmt::{self, Stmt};
-use crate::gdscript::expr::Expr;
+use crate::gdscript::expr::{self, Expr};
 use crate::compile::error::Error;
 
 pub fn walk_expr<'a>(stmt: &Stmt, mut walker: impl FnMut(&Expr) -> Result<Expr, Error> + 'a)
@@ -44,6 +44,11 @@ fn walk_impl_expr<'a>(walker: &mut (impl FnMut(&Expr) -> Result<Expr, Error> + '
     Expr::Binary(a, _, b) => {
       **a = walk_impl_expr(walker, &**a)?;
       **b = walk_impl_expr(walker, &**b)?;
+    }
+    Expr::TernaryIf(expr::TernaryIf { true_case: a, cond: b, false_case: c }) => {
+      **a = walk_impl_expr(walker, &**a)?;
+      **b = walk_impl_expr(walker, &**b)?;
+      **c = walk_impl_expr(walker, &**c)?;
     }
     Expr::ArrayLit(args) => {
       for arg in args.iter_mut() {
