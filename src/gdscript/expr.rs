@@ -274,4 +274,77 @@ mod tests {
 
   }
 
+  #[test]
+  fn ternary_if_precedence_1() {
+    let a = Box::new(Expr::from(1));
+    let b = Box::new(Expr::from(2));
+    let c = Box::new(Expr::from(3));
+    let d = Box::new(Expr::from(4));
+    let e = Box::new(Expr::from(5));
+
+    let left_assoc = Expr::from(TernaryIf {
+      true_case: Box::new(Expr::from(TernaryIf { true_case: a.clone(), cond: b.clone(), false_case: c.clone() })),
+      cond: d.clone(),
+      false_case: e.clone(),
+    });
+    let right_assoc = Expr::from(TernaryIf {
+      true_case: a.clone(),
+      cond: b.clone(),
+      false_case: Box::new(Expr::from(TernaryIf { true_case: c.clone(), cond: d.clone(), false_case: e.clone() })),
+    });
+    assert_eq!(left_assoc.to_gd(), "(1 if 2 else 3) if 4 else 5");
+    assert_eq!(right_assoc.to_gd(), "1 if 2 else 3 if 4 else 5");
+  }
+
+  #[test]
+  fn ternary_if_precedence_2() {
+    let a = Expr::Var(String::from("a"));
+    let b = Expr::Var(String::from("b"));
+    let c = Expr::Var(String::from("c"));
+    let d = Expr::Var(String::from("d"));
+
+    let case1 = Expr::from(TernaryIf {
+      true_case: Box::new(binary(&a, BinaryOp::Or, &b)),
+      cond: Box::new(c.clone()),
+      false_case: Box::new(d.clone()),
+    });
+    assert_eq!(case1.to_gd(), "a || b if c else d");
+
+    let case2 = Expr::from(TernaryIf {
+      true_case: Box::new(a.clone()),
+      cond: Box::new(binary(&b, BinaryOp::Or, &c)),
+      false_case: Box::new(d.clone()),
+    });
+    assert_eq!(case2.to_gd(), "a if b || c else d");
+
+    let case3 = Expr::from(TernaryIf {
+      true_case: Box::new(a.clone()),
+      cond: Box::new(b.clone()),
+      false_case: Box::new(binary(&c, BinaryOp::Or, &d)),
+    });
+    assert_eq!(case3.to_gd(), "a if b else c || d");
+
+    let case4 = Expr::from(TernaryIf {
+      true_case: Box::new(binary(&a, BinaryOp::Cast, &b)),
+      cond: Box::new(c.clone()),
+      false_case: Box::new(d.clone()),
+    });
+    assert_eq!(case4.to_gd(), "(a as b) if c else d");
+
+    let case5 = Expr::from(TernaryIf {
+      true_case: Box::new(a.clone()),
+      cond: Box::new(binary(&b, BinaryOp::Cast, &c)),
+      false_case: Box::new(d.clone()),
+    });
+    assert_eq!(case5.to_gd(), "a if b as c else d");
+
+    let case6 = Expr::from(TernaryIf {
+      true_case: Box::new(a.clone()),
+      cond: Box::new(b.clone()),
+      false_case: Box::new(binary(&c, BinaryOp::Cast, &d)),
+    });
+    assert_eq!(case6.to_gd(), "a if b else (c as d)");
+
+  }
+
 }
