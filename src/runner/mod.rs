@@ -4,6 +4,7 @@ pub mod into_gd_file;
 pub mod macro_server;
 pub mod temporary_copy;
 pub mod path;
+pub mod version;
 
 use into_gd_file::IntoGDFile;
 

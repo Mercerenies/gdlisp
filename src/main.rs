@@ -16,6 +16,7 @@ use gdlisp::gdscript::decl;
 use gdlisp::command_line::{parse_args, show_help_message};
 use gdlisp::pipeline::Pipeline;
 use gdlisp::pipeline::config::ProjectConfig;
+use gdlisp::runner::version::get_godot_version;
 
 use walkdir::WalkDir;
 
@@ -76,14 +77,30 @@ fn main() {
   let parsed_args = parse_args(&args[1..]);
   if parsed_args.help_message {
     show_help_message(&program_name);
-  } else if let Some(input) = parsed_args.input_file {
-    let input: &Path = input.as_ref();
-    if input.is_dir() {
-      compile_all_files(input);
-    } else {
-      compile_file(input);
-    }
   } else {
-    run_pseudo_repl();
+
+    let version = get_godot_version();
+    match version {
+      Ok(version) => {
+        println!("GDLisp (development version)");
+        println!("Running under Godot {}", version);
+      }
+      Err(err) => {
+        eprintln!("Warning: `godot` is not on your path. A significant portion of the GDLisp compiler depends on the Godot engine. It is strongly recommended that you add `godot` to your path before continuing.");
+        eprintln!("Warning: While looking for Godot, the error I got was: {}", err);
+      }
+    }
+
+    if let Some(input) = parsed_args.input_file {
+      let input: &Path = input.as_ref();
+      if input.is_dir() {
+        compile_all_files(input);
+      } else {
+        compile_file(input);
+      }
+    } else {
+      run_pseudo_repl();
+    }
+
   }
 }
