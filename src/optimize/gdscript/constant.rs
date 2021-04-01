@@ -30,9 +30,10 @@ pub fn stmt_has_side_effects(stmt: &Stmt) -> bool {
     Stmt::Expr(e) => {
       expr_has_side_effects(e)
     }
+    Stmt::PassStmt => false,
     Stmt::IfStmt(_) | Stmt::ForLoop(_) | Stmt::WhileLoop(_) |
       Stmt::MatchStmt(_, _) => true, // TODO These
-    Stmt::PassStmt | Stmt::BreakStmt | Stmt::ContinueStmt | Stmt::VarDecl(_, _) |
+    Stmt::BreakStmt | Stmt::ContinueStmt | Stmt::VarDecl(_, _) |
       Stmt::ReturnStmt(_) | Stmt::Assign(_, _, _) => true,
   }
 }
