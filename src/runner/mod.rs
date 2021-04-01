@@ -17,6 +17,7 @@ use std::ffi::OsStr;
 pub fn run_with_file<P : AsRef<Path>>(path: P) -> io::Result<String> {
   let out =
     Command::new("godot")
+    .arg("--no-window")
     .arg("-s")
     .arg(path.as_ref().as_os_str())
     .arg("-q")
@@ -33,6 +34,7 @@ where P : AsRef<Path>,
       K : AsRef<OsStr>,
       V : AsRef<OsStr> {
   Command::new("godot")
+    .arg("--no-window")
     .arg("--path")
     .arg(path.as_ref().as_os_str())
     .envs(env)
@@ -44,6 +46,7 @@ where P : AsRef<Path>,
 pub fn run_project<P : AsRef<Path>>(path: P) -> io::Result<String> {
   let out =
     Command::new("godot")
+    .arg("--no-window")
     .arg("--path")
     .arg(path.as_ref().as_os_str())
     .stderr(Stdio::inherit())
