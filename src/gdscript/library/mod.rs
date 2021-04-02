@@ -488,4 +488,8 @@ pub fn bind_builtin_macros(macros: &mut HashMap<String, MacroData>) {
   macros.insert(String::from("if"),
                 MacroData { id: MacroID(macros::ID_IF_FUNCTION), args: ArgList::rest(), imported: true });
 
+  // yield*
+  macros.insert(String::from("yield*"),
+                MacroData { id: MacroID(macros::ID_YIELDSTAR_FUNCTION), args: ArgList::rest(), imported: true });
+
 }

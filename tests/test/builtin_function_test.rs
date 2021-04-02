@@ -478,14 +478,37 @@ pub fn yield_running_test() {
     ((defn foo ()
        (print 2)
        (yield)
-       (print 4))
+       (print 4)
+       6)
      (print 1)
      (let ((x (foo)))
        (print 3)
-       (x:resume)
-       (print 5)))
+       (let ((final (x:resume)))
+         (print 5)
+         (print final))))
   "#);
-  assert_eq!(result, "\n1\n2\n3\n4\n5\n");
+  assert_eq!(result, "\n1\n2\n3\n4\n5\n6\n");
+}
+
+#[test]
+#[ignore]
+pub fn yield_star_running_test() {
+  let result = parse_and_run(r#"
+    ((defn foo ()
+       (print 2)
+       (yield)
+       (print 4)
+       6)
+     (defn bar ()
+       (yield* (foo)))
+     (print 1)
+     (let ((x (bar)))
+       (print 3)
+       (let ((final (x:resume)))
+         (print 5)
+         (print final))))
+  "#);
+  assert_eq!(result, "\n1\n2\n3\n4\n5\n6\n");
 }
 
 #[test]
