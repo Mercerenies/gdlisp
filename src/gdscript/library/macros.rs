@@ -3,6 +3,7 @@ use crate::runner::macro_server::named_file_server::MacroID;
 use crate::sxp::ast::AST;
 use crate::sxp::dotted::DottedExpr;
 use crate::compile::error::Error;
+use crate::compile::names::fresh::FreshNameGenerator;
 
 use std::convert::TryInto;
 
@@ -14,8 +15,12 @@ pub const ID_WHEN_FUNCTION:     u32 = 4;
 pub const ID_UNLESS_FUNCTION:   u32 = 5;
 pub const ID_IF_FUNCTION:       u32 = 6;
 
+pub struct MacroState<'a, 'b> {
+  pub generator: &'a mut FreshNameGenerator<'b>,
+}
+
 ///// Get FreshNameGenerator down here so built-in macros can gensym correctly (then maybe yield*)
-pub type BuiltInMacro = fn(&[&AST]) -> Result<AST, Error>;
+pub type BuiltInMacro = fn(MacroState<'_, '_>, &[&AST]) -> Result<AST, Error>;
 
 pub fn get_builtin_macro(id: MacroID) -> Option<BuiltInMacro> {
   match id.0 {
@@ -46,7 +51,7 @@ pub fn get_builtin_macro(id: MacroID) -> Option<BuiltInMacro> {
   }
 }
 
-pub fn or_function(arg: &[&AST]) -> Result<AST, Error> {
+pub fn or_function(_state: MacroState<'_, '_>, arg: &[&AST]) -> Result<AST, Error> {
   let mut iter = arg.iter().rev();
   if let Some(fst) = iter.next() {
     // Some arguments provided
@@ -62,7 +67,7 @@ pub fn or_function(arg: &[&AST]) -> Result<AST, Error> {
   }
 }
 
-pub fn and_function(arg: &[&AST]) -> Result<AST, Error> {
+pub fn and_function(_state: MacroState<'_, '_>, arg: &[&AST]) -> Result<AST, Error> {
   let mut iter = arg.iter().rev();
   if let Some(fst) = iter.next() {
     // Some arguments provided
@@ -79,7 +84,7 @@ pub fn and_function(arg: &[&AST]) -> Result<AST, Error> {
   }
 }
 
-pub fn let_star_function(arg: &[&AST]) -> Result<AST, Error> {
+pub fn let_star_function(_state: MacroState<'_, '_>, arg: &[&AST]) -> Result<AST, Error> {
   if arg.is_empty() {
     return Err(Error::TooFewArgs(String::from("let*"), arg.len()));
   }
@@ -94,13 +99,13 @@ pub fn let_star_function(arg: &[&AST]) -> Result<AST, Error> {
   Ok(body)
 }
 
-pub fn defvars_function(arg: &[&AST]) -> Result<AST, Error> {
+pub fn defvars_function(_state: MacroState<'_, '_>, arg: &[&AST]) -> Result<AST, Error> {
   let body: Vec<_> = arg[0..].iter().map(|x| AST::list(vec!(AST::Symbol(String::from("defvar")), (*x).clone()))).collect();
   let body = AST::cons(AST::symbol("progn"), AST::list(body));
   Ok(body)
 }
 
-pub fn when_function(arg: &[&AST]) -> Result<AST, Error> {
+pub fn when_function(_state: MacroState<'_, '_>, arg: &[&AST]) -> Result<AST, Error> {
   if arg.is_empty() {
     return Err(Error::TooFewArgs(String::from("when"), arg.len()));
   }
@@ -109,7 +114,7 @@ pub fn when_function(arg: &[&AST]) -> Result<AST, Error> {
   Ok(AST::list(vec!(AST::symbol("if"), cond, AST::cons(AST::symbol("progn"), body), AST::Nil)))
 }
 
-pub fn unless_function(arg: &[&AST]) -> Result<AST, Error> {
+pub fn unless_function(_state: MacroState<'_, '_>, arg: &[&AST]) -> Result<AST, Error> {
   if arg.is_empty() {
     return Err(Error::TooFewArgs(String::from("unless"), arg.len()));
   }
@@ -118,7 +123,7 @@ pub fn unless_function(arg: &[&AST]) -> Result<AST, Error> {
   Ok(AST::list(vec!(AST::symbol("if"), cond, AST::Nil, AST::cons(AST::symbol("progn"), body))))
 }
 
-pub fn if_function(arg: &[&AST]) -> Result<AST, Error> {
+pub fn if_function(_state: MacroState<'_, '_>, arg: &[&AST]) -> Result<AST, Error> {
   if arg.len() < 2 {
     return Err(Error::TooFewArgs(String::from("if"), arg.len()));
   }

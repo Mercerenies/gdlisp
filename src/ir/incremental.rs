@@ -21,6 +21,7 @@ use crate::compile::error::Error;
 use crate::compile::resource_type::ResourceType;
 use crate::compile::names::fresh::FreshNameGenerator;
 use crate::gdscript::library;
+use crate::gdscript::library::macros::MacroState;
 use crate::runner::macro_server::named_file_server::MacroCall;
 use crate::pipeline::error::{Error as PError};
 use crate::pipeline::Pipeline;
@@ -61,7 +62,8 @@ impl IncCompiler {
         if id.is_reserved() {
           // Reserved for built-in macros; it runs in Rust
           let func = library::macros::get_builtin_macro(*id).ok_or_else(|| PError::from(Error::NoSuchFn(head.to_owned())))?;
-          let ast = func(tail)?;
+          let state = MacroState { generator: &mut self.names };
+          let ast = func(state, tail)?;
           Ok(ast)
         } else {
           // User-defined macro; runs in Godot
