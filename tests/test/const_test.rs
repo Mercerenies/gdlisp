@@ -9,13 +9,7 @@ pub fn const_test() {
 
 #[test]
 #[should_panic]
-pub fn const_test_nonconst_1() {
-  parse_compile_decl("((defconst B ()))");
-}
-
-#[test]
-#[should_panic]
-pub fn const_test_nonconst_2() {
+pub fn const_test_nonconst() {
   parse_compile_decl("((defconst B (list->array 1)))");
 }
 

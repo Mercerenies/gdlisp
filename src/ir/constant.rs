@@ -28,10 +28,11 @@ pub trait MaybeConstant {
 
 }
 
+// As a quoted literal, is the AST allowed as a const? (Not evaluated)
 impl MaybeConstant for AST {
   fn is_allowable_const(&self) -> bool {
     match self {
-      AST::Int(_) | AST::Float(_) | AST::Bool(_) | AST::String(_) => true,
+      AST::Int(_) | AST::Float(_) | AST::Bool(_) | AST::String(_) | AST::Nil => true,
       AST::Vector2(a, b) => {
         a.is_allowable_const() && b.is_allowable_const()
       }
@@ -44,7 +45,7 @@ impl MaybeConstant for AST {
       AST::Dictionary(vec) => {
         vec.iter().all(|(k, v)| k.is_allowable_const() && v.is_allowable_const())
       }
-      AST::Nil | AST::Symbol(_) | AST::Cons(_, _) => false, // TODO Can we magic this problem away?
+      AST::Symbol(_) | AST::Cons(_, _) => false, // TODO Can we magic this problem away?
     }
   }
 }
@@ -52,8 +53,8 @@ impl MaybeConstant for AST {
 impl MaybeConstant for Literal {
   fn is_allowable_const(&self) -> bool {
     match self {
-      Literal::Int(_) | Literal::Float(_) | Literal::String(_) | Literal::Bool(_) => true,
-      Literal::Nil | Literal::Symbol(_) => false, // TODO Can we magic this problem away?
+      Literal::Int(_) | Literal::Float(_) | Literal::String(_) | Literal::Bool(_) | Literal::Nil => true,
+      Literal::Symbol(_) => false, // TODO Can we magic this problem away?
     }
   }
 }
@@ -107,25 +108,25 @@ mod tests {
 
   #[test]
   fn constexpr_test_ast_positive() {
+    assert!(AST::Nil.is_allowable_const());
     assert!(AST::Int(100).is_allowable_const());
     assert!(AST::Float(OrderedFloat(0.0)).is_allowable_const());
     assert!(AST::Bool(true).is_allowable_const());
     assert!(AST::Bool(false).is_allowable_const());
     assert!(AST::String(String::from("foobar")).is_allowable_const());
     assert!(AST::Vector2(Box::new(AST::Int(1)), Box::new(AST::Int(2))).is_allowable_const());
+    assert!(AST::Vector2(Box::new(AST::Nil), Box::new(AST::Int(2))).is_allowable_const());
     assert!(AST::Vector3(Box::new(AST::Int(1)), Box::new(AST::Int(2)), Box::new(AST::Int(3))).is_allowable_const());
+    assert!(AST::Vector3(Box::new(AST::Int(1)), Box::new(AST::Int(2)), Box::new(AST::Nil)).is_allowable_const());
     assert!(AST::Array(vec!()).is_allowable_const());
     assert!(AST::Array(vec!(AST::Int(1), AST::Int(2))).is_allowable_const());
+    assert!(AST::Array(vec!(AST::Int(1), AST::Int(2), AST::Nil)).is_allowable_const());
   }
 
   #[test]
   fn constexpr_test_ast_negative() {
-    assert!(!AST::Nil.is_allowable_const());
     assert!(!AST::Symbol(String::from("symbol-name")).is_allowable_const());
     assert!(!AST::Cons(Box::new(AST::Int(1)), Box::new(AST::Int(2))).is_allowable_const());
-    assert!(!AST::Vector2(Box::new(AST::Nil), Box::new(AST::Int(2))).is_allowable_const());
-    assert!(!AST::Vector3(Box::new(AST::Int(1)), Box::new(AST::Int(2)), Box::new(AST::Nil)).is_allowable_const());
-    assert!(!AST::Array(vec!(AST::Int(1), AST::Int(2), AST::Nil)).is_allowable_const());
   }
 
   // TODO Test the rest of these
