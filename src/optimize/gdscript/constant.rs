@@ -56,6 +56,7 @@ pub fn expr_has_side_effects(expr: &Expr) -> bool {
     Expr::TernaryIf(expr::TernaryIf { true_case: a, cond: b, false_case: c }) =>
       expr_has_side_effects(&*a) || expr_has_side_effects(&*b) || expr_has_side_effects(&*c),
     Expr::ArrayLit(es) => es.iter().any(expr_has_side_effects),
+    Expr::DictionaryLit(es) => es.iter().any(|(k, v)| expr_has_side_effects(k) || expr_has_side_effects(v)),
   }
 }
 
@@ -76,6 +77,7 @@ pub fn expr_is_constant(expr: &Expr) -> bool {
     Expr::TernaryIf(expr::TernaryIf { true_case: a, cond: b, false_case: c }) =>
       expr_is_constant(&*a) && expr_is_constant(&*b) && expr_is_constant(&*c),
     Expr::ArrayLit(es) => es.iter().all(expr_is_constant),
+    Expr::DictionaryLit(es) => es.iter().all(|(k, v)| expr_is_constant(k) && expr_is_constant(v)),
   }
 }
 

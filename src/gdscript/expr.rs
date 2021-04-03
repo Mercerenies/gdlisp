@@ -23,6 +23,7 @@ pub enum Expr {
   Binary(Box<Expr>, BinaryOp, Box<Expr>),
   TernaryIf(TernaryIf),
   ArrayLit(Vec<Expr>),
+  DictionaryLit(Vec<(Expr, Expr)>),
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -125,6 +126,19 @@ impl Expr {
           first = false;
         }
         result.push(']');
+        result
+      },
+      Expr::DictionaryLit(vec) => {
+        let mut first = true;
+        let mut result = String::from("{");
+        for (k, v) in vec {
+          if !first {
+            result.push_str(", ");
+          }
+          result.push_str(&format!("{}: {}", k.to_gd_prec(PRECEDENCE_LOWEST), v.to_gd_prec(PRECEDENCE_LOWEST)));
+          first = false;
+        }
+        result.push('}');
         result
       },
     }
@@ -345,6 +359,22 @@ mod tests {
     });
     assert_eq!(case6.to_gd(), "a if b else (c as d)");
 
+  }
+
+  #[test]
+  fn arrays() {
+    assert_eq!(Expr::ArrayLit(vec!()).to_gd(), "[]");
+    assert_eq!(Expr::ArrayLit(vec!(Expr::from(1))).to_gd(), "[1]");
+    assert_eq!(Expr::ArrayLit(vec!(Expr::from(1), Expr::from(2))).to_gd(), "[1, 2]");
+    assert_eq!(Expr::ArrayLit(vec!(Expr::from(1), Expr::from(2), Expr::from(3))).to_gd(), "[1, 2, 3]");
+  }
+
+  #[test]
+  fn dictionaries() {
+    assert_eq!(Expr::DictionaryLit(vec!()).to_gd(), "{}");
+    assert_eq!(Expr::DictionaryLit(vec!((Expr::from(1), Expr::from(2)))).to_gd(), "{1: 2}");
+    assert_eq!(Expr::DictionaryLit(vec!((Expr::from(1), Expr::from(2)), (Expr::from(3), Expr::from(4)))).to_gd(), "{1: 2, 3: 4}");
+    assert_eq!(Expr::DictionaryLit(vec!((Expr::from(1), Expr::from(2)), (Expr::from(3), Expr::from(4)), (Expr::from(5), Expr::from(6)))).to_gd(), "{1: 2, 3: 4, 5: 6}");
   }
 
 }

@@ -57,6 +57,12 @@ fn walk_impl_expr<'a>(walker: &mut (impl FnMut(&Expr) -> Result<Expr, Error> + '
         *arg = walk_impl_expr(walker, arg)?;
       }
     }
+    Expr::DictionaryLit(args) => {
+      for (k, v) in args.iter_mut() {
+        *k = walk_impl_expr(walker, k)?;
+        *v = walk_impl_expr(walker, v)?;
+      }
+    }
     Expr::Var(_) | Expr::Literal(_) => {}
   }
   walker(&expr)
