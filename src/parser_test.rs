@@ -51,6 +51,14 @@ mod tests {
   }
 
   #[test]
+  fn parser_comments() {
+    let p = ASTParser::new();
+    assert_eq!(p.parse("\"abcdef\" ;; test comment").unwrap(), AST::string("abcdef"));
+    assert_eq!(p.parse("\"abc ;; def\"").unwrap(), AST::string("abc ;; def")); // Note: Not a comment
+    assert_eq!(p.parse("(a ;; b \n\n\n c)").unwrap(), AST::list(vec!(AST::symbol("a"), AST::symbol("c"))));
+  }
+
+  #[test]
   fn parser_failures() {
     let p = ASTParser::new();
     assert!(p.parse("(").is_err());
