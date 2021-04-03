@@ -37,6 +37,7 @@ pub enum Error {
   ResourceDoesNotExist(String),
   InvalidImportOnResource(String),
   GodotServerError(response::Failure),
+  StaticConstructor,
 }
 
 impl fmt::Display for Error {
@@ -107,6 +108,9 @@ impl fmt::Display for Error {
       }
       Error::GodotServerError(err) => {
         write!(f, "Error during Godot server task execution (error code {}): {}", err.error_code, err.error_string)
+      }
+      Error::StaticConstructor => {
+        write!(f, "Class constructors cannot be static")
       }
     }
   }

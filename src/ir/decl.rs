@@ -6,6 +6,7 @@ use super::import::ImportDecl;
 use super::identifier::{Namespace, Id, IdLike};
 use super::locals::Locals;
 use super::functions::Functions;
+use crate::gdscript::decl::Static;
 
 use std::collections::HashSet;
 
@@ -89,6 +90,7 @@ pub struct ClassVarDecl {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ClassFnDecl {
+  pub is_static: Static,
   pub name: String,
   pub args: SimpleArgList,
   pub body: Expr,

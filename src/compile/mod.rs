@@ -560,7 +560,7 @@ impl<'a> Compiler<'a> {
                                          IRArgList::from(f.args.clone()),
                                          &f.body,
                                          &stmt_wrapper::Return)?;
-        Ok(Decl::FnDecl(decl::Static::NonStatic, func))
+        Ok(Decl::FnDecl(f.is_static, func))
       }
     }
   }

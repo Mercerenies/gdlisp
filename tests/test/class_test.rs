@@ -186,6 +186,33 @@ static func run():
 }
 
 #[test]
+pub fn static_in_class_test() {
+  assert_eq!(parse_compile_decl("((defclass ClassName (Node) (defn foo () static 1)))"),
+             r#"extends Reference
+class ClassName extends Node:
+    func _init():
+        pass
+    static func foo():
+        return 1
+static func run():
+    return null
+"#);
+}
+
+#[test]
+pub fn static_in_main_class_test() {
+  assert_eq!(parse_compile_decl("((defclass ClassName (Node) main (defn foo () static 1)))"),
+             r#"extends Node
+func _init():
+    pass
+static func foo():
+    return 1
+static func run():
+    return null
+"#);
+}
+
+#[test]
 pub fn simple_self_closure_class_test() {
   assert_eq!(parse_compile_decl("((defclass Foo (Node) (defn test () (lambda () self))))"),
              r#"extends Reference
@@ -395,6 +422,17 @@ pub fn reference_to_const_in_class_test() {
      (print Foo:CONSTANT)
      (print (Foo:new):CONSTANT))"#),
              "\n100\n100\n");
+}
+
+#[test]
+#[ignore]
+pub fn reference_to_static_in_class_test() {
+  assert_eq!(parse_and_run(r#"
+    ((defclass Foo (Reference)
+       (defn foo () static 98))
+     (print (Foo:foo))
+     (print ((Foo:new):foo)))"#),
+             "\n98\n98\n");
 }
 
 #[test]
