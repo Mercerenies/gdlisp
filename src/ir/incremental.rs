@@ -157,6 +157,10 @@ impl IncCompiler {
         let vec = vec.iter().map(|e| self.compile_expr(pipeline, e)).collect::<Result<Vec<_>, _>>()?;
         Ok(Expr::Array(vec))
       }
+      AST::Dictionary(vec) => {
+        let vec = vec.iter().map(|(k, v)| Ok((self.compile_expr(pipeline, k)?, self.compile_expr(pipeline, v)?))).collect::<Result<Vec<_>, PError>>()?;
+        Ok(Expr::Dictionary(vec))
+      }
       AST::Int(n) => {
         Ok(Expr::Literal(Literal::Int(*n)))
       }

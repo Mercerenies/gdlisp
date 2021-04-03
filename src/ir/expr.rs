@@ -27,6 +27,7 @@ pub enum Expr {
   FuncRef(FuncRefTarget),
   Assign(AssignTarget, Box<Expr>),
   Array(Vec<Expr>),
+  Dictionary(Vec<(Expr, Expr)>),
   Quote(AST),
   FieldAccess(Box<Expr>, String),
   MethodCall(Box<Expr>, String, Vec<Expr>),
@@ -186,6 +187,12 @@ impl Expr {
       Expr::Array(vec) => {
         for x in vec {
           x.walk_locals(acc_vars, acc_fns);
+        }
+      }
+      Expr::Dictionary(vec) => {
+        for (k, v) in vec {
+          k.walk_locals(acc_vars, acc_fns);
+          v.walk_locals(acc_vars, acc_fns);
         }
       }
       Expr::Quote(_) => {}

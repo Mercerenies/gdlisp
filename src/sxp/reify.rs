@@ -46,6 +46,9 @@ impl Reify for AST {
       AST::Array(v) => {
         Expr::ArrayLit(v.iter().map(Reify::reify).collect())
       }
+      AST::Dictionary(vec) => {
+        Expr::DictionaryLit(vec.iter().map(|(k, v)| (k.reify(), v.reify())).collect())
+      }
       AST::Int(n) => {
         n.reify()
       }

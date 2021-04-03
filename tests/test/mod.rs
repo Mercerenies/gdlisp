@@ -7,6 +7,7 @@ pub mod cond_if_test;
 pub mod const_test;
 pub mod declaration_test;
 pub mod dependencies_test;
+pub mod dictionary_test;
 pub mod enum_test;
 pub mod even_odd_test;
 pub mod factorial_test;

@@ -213,6 +213,20 @@ impl<'a> Compiler<'a> {
         }).collect::<Result<Vec<_>, Error>>()?;
         Ok(StExpr(Expr::ArrayLit(vec), side_effects))
       }
+      IRExpr::Dictionary(vec) => {
+        let mut side_effects = SideEffects::None;
+        let vec = vec.iter().map(|(k, v)| {
+
+          let StExpr(kexpr, kstate) = self.compile_expr(builder, table, k, NeedsResult::Yes)?;
+          side_effects = max(side_effects, kstate);
+
+          let StExpr(vexpr, vstate) = self.compile_expr(builder, table, v, NeedsResult::Yes)?;
+          side_effects = max(side_effects, vstate);
+
+          Ok((kexpr, vexpr))
+        }).collect::<Result<Vec<_>, Error>>()?;
+        Ok(StExpr(Expr::DictionaryLit(vec), side_effects))
+      }
       IRExpr::Quote(ast) => {
         Ok(StExpr(ast.reify(), SideEffects::None))
       }

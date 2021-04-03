@@ -41,6 +41,9 @@ impl MaybeConstant for AST {
       AST::Array(vec) => {
         vec.iter().all(AST::is_allowable_const)
       }
+      AST::Dictionary(vec) => {
+        vec.iter().all(|(k, v)| k.is_allowable_const() && v.is_allowable_const())
+      }
       AST::Nil | AST::Symbol(_) | AST::Cons(_, _) => false, // TODO Can we magic this problem away?
     }
   }
@@ -74,6 +77,9 @@ impl MaybeConstant for Expr {
       }
       Expr::Array(arr) => {
         arr.iter().all(Expr::is_allowable_const)
+      }
+      Expr::Dictionary(arr) => {
+        arr.iter().all(|(k, v)| k.is_allowable_const() && v.is_allowable_const())
       }
       Expr::Quote(ast) => {
         ast.is_allowable_const()

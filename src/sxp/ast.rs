@@ -9,6 +9,7 @@ pub enum AST {
   Nil,
   Cons(Box<AST>, Box<AST>),
   Array(Vec<AST>),
+  Dictionary(Vec<(AST, AST)>),
   Int(i32),
   Bool(bool),
   Float(OrderedFloat<f32>),
@@ -68,6 +69,12 @@ impl AST {
       AST::Array(arr) => {
         for x in arr {
           func(&*x)?;
+        }
+      }
+      AST::Dictionary(d) => {
+        for (k, v) in d {
+          func(&*k)?;
+          func(&*v)?;
         }
       }
       AST::Vector2(x, y) => {
@@ -160,6 +167,18 @@ impl fmt::Display for AST {
           first = false;
         }
         write!(f, "]")
+      }
+      AST::Dictionary(vec) => {
+        write!(f, "{{")?;
+        let mut first = true;
+        for (k, v) in vec {
+          if !first {
+            write!(f, " ")?;
+          }
+          write!(f, "{} {}", k, v)?;
+          first = false;
+        }
+        write!(f, "}}")
       }
       AST::Vector2(x, y) => {
         write!(f, "V{{{} {}}}", x, y)

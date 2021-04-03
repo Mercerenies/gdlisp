@@ -25,7 +25,7 @@ match {
   r"[+-]?[0-9]+((\.[0-9]+)([eE][+-]?[0-9]+)?|(\.[0-9]+)?([eE][+-]?[0-9]+))" => FLOAT,
   r#""([^\\"]|\\[\\"])*""# => STRING,
   r"\$[A-Za-z0-9_~+=\-\\!@$%^&*<>/?]+" => PATH,
-  "(", ")", ".", "[", "]", "'", "#'", "`", ",", ":", "V{", "}",
+  "(", ")", ".", "[", "]", "'", "#'", "`", ",", ":", "V{", "{", "}",
 } else {
   r"[A-Za-z_~+=\-\\!@%^&*<>/?][A-Za-z0-9_~+=\-\\!@$%^&*<>/?]*(\.[A-Za-z0-9_~+=\-\\!@$%^&*<>/?]+)*" => SYMBOL,
 }
@@ -60,6 +60,7 @@ pub LiteralOrNestedAST: AST = {
   "(" ")" => AST::Nil,
   "(" <car: AST> <cdr: Cdr> ")" => AST::Cons(Box::new(car), Box::new(cdr)),
   "[" <contents: ArrayContents> "]" => AST::Array(contents),
+  "{" <contents: DictContents> "}" => AST::Dictionary(contents),
   "V{" <x: AST> <y: AST> "}" => AST::Vector2(Box::new(x), Box::new(y)),
   "V{" <x: AST> <y: AST> <z: AST> "}" => AST::Vector3(Box::new(x), Box::new(y), Box::new(z)),
   <body: LiteralOrNestedAST> ":" <name: Symbol> => AST::list(vec!(AST::Symbol(String::from("access-slot")), body, AST::Symbol(name))),
@@ -77,6 +78,14 @@ ArrayContents: Vec<AST> = {
   => vec!(),
   <mut init: ArrayContents> <last: AST> => {
     init.push(last);
+    init
+  }
+}
+
+DictContents: Vec<(AST, AST)> = {
+  => vec!(),
+  <mut init: DictContents> <lastk: AST> <lastv: AST> => {
+    init.push((lastk, lastv));
     init
   }
 }

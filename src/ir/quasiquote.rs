@@ -39,6 +39,10 @@ pub fn quasiquote(icompiler: &mut IncCompiler,
         let v1 = v.iter().map(|x| quasiquote(icompiler, pipeline, x)).collect::<Result<Vec<_>, _>>()?;
         Ok(Expr::Array(v1))
       }
+      AST::Dictionary(v) => {
+        let v1 = v.iter().map(|(k, v)| Ok((quasiquote(icompiler, pipeline, k)?, quasiquote(icompiler, pipeline, v)?))).collect::<Result<Vec<_>, Error>>()?;
+        Ok(Expr::Dictionary(v1))
+      }
       AST::Vector2(x, y) => {
         let x = quasiquote(icompiler, pipeline, x)?;
         let y = quasiquote(icompiler, pipeline, y)?;

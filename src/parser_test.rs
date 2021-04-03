@@ -65,6 +65,15 @@ mod tests {
     assert_eq!(p.parse("[1]").unwrap(), AST::Array(vec!(AST::Int(1))));
     assert_eq!(p.parse("[1 2]").unwrap(), AST::Array(vec!(AST::Int(1), AST::Int(2))));
   }
+
+  #[test]
+  fn parser_dict() {
+    let p = ASTParser::new();
+    assert_eq!(p.parse("{}").unwrap(), AST::Dictionary(vec!()));
+    assert_eq!(p.parse("{1 2}").unwrap(), AST::Dictionary(vec!((AST::Int(1), AST::Int(2)))));
+    assert_eq!(p.parse("{1 2 3 4}").unwrap(), AST::Dictionary(vec!((AST::Int(1), AST::Int(2)), (AST::Int(3), AST::Int(4)))));
+  }
+
   #[test]
   fn parser_failures() {
     let p = ASTParser::new();
@@ -80,6 +89,9 @@ mod tests {
     assert!(p.parse("a:(1 . 2)").is_err());
     assert!(p.parse("abc.").is_err());
     assert!(p.parse(".def").is_err());
+    assert!(p.parse("[a").is_err());
+    assert!(p.parse("{a").is_err());
+    assert!(p.parse("{a}").is_err()); // Not an even number of entries
   }
 
 }
