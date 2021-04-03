@@ -74,7 +74,7 @@ pub fn expr_is_constant(expr: &Expr) -> bool {
     Expr::Unary(_, e) => expr_is_constant(&*e),
     Expr::Binary(a, _, b) => expr_is_constant(&*a) || expr_is_constant(&*b),
     Expr::TernaryIf(expr::TernaryIf { true_case: a, cond: b, false_case: c }) =>
-      expr_is_constant(&*a) || expr_is_constant(&*b) || expr_is_constant(&*c),
+      expr_is_constant(&*a) && expr_is_constant(&*b) && expr_is_constant(&*c),
     Expr::ArrayLit(es) => es.iter().any(expr_is_constant),
   }
 }
