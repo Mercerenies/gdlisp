@@ -115,6 +115,13 @@ pub fn bad_member_var_class_test_2() {
 }
 
 #[test]
+#[should_panic]
+pub fn bad_member_const_class_test() {
+  // Consts must be initialized
+  parse_compile_decl("((defclass ClassName (Node) (defconst x)))");
+}
+
+#[test]
 pub fn signal_class_test_1() {
   assert_eq!(parse_compile_decl("((defclass ClassName (Node) (defsignal my-signal)))"),
              r#"extends Reference
@@ -148,6 +155,31 @@ class ClassName extends Node:
     func _init():
         pass
     signal my_signal(foo, bar)
+static func run():
+    return null
+"#);
+}
+
+#[test]
+pub fn const_in_class_test() {
+  assert_eq!(parse_compile_decl("((defclass ClassName (Node) (defconst x 1)))"),
+             r#"extends Reference
+class ClassName extends Node:
+    func _init():
+        pass
+    const x = 1
+static func run():
+    return null
+"#);
+}
+
+#[test]
+pub fn const_in_main_class_test() {
+  assert_eq!(parse_compile_decl("((defclass ClassName (Node) main (defconst x 1)))"),
+             r#"extends Node
+func _init():
+    pass
+const x = 1
 static func run():
     return null
 "#);
@@ -352,6 +384,17 @@ pub fn macro_uses_main_class_test() {
          foo:x))
      (print (through-foo)))"#),
              "\n5\n");
+}
+
+#[test]
+#[ignore]
+pub fn reference_to_const_in_class_test() {
+  assert_eq!(parse_and_run(r#"
+    ((defclass Foo (Reference)
+       (defconst CONSTANT 100))
+     (print Foo:CONSTANT)
+     (print (Foo:new):CONSTANT))"#),
+             "\n100\n100\n");
 }
 
 #[test]

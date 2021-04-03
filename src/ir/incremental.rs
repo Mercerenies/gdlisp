@@ -339,6 +339,20 @@ impl IncCompiler {
           }
           Ok(())
         }
+        "defconst" => {
+          // TODO Combine this with the other defconst in a helper function
+          if vec.len() != 3 {
+            return Err(PError::from(Error::InvalidDecl(curr.clone())));
+          }
+          let name = match vec[1] {
+            AST::Symbol(s) => s.to_owned(),
+            _ => return Err(PError::from(Error::InvalidDecl(curr.clone()))),
+          };
+          let value = self.compile_expr(pipeline, vec[2])?;
+          value.validate_const_expr(&name)?;
+          acc.decls.push(decl::ClassInnerDecl::ClassConstDecl(decl::ConstDecl { name, value }));
+          Ok(())
+        }
         "defvar" => {
           if vec.len() < 2 || vec.len() > 4 {
             return Err(PError::from(Error::InvalidDecl(curr.clone())));

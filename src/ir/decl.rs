@@ -68,6 +68,7 @@ pub struct ConstructorDecl { // TODO Super
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum ClassInnerDecl {
   ClassSignalDecl(ClassSignalDecl),
+  ClassConstDecl(ConstDecl),
   ClassVarDecl(ClassVarDecl),
   ClassFnDecl(ClassFnDecl),
 }
@@ -231,6 +232,7 @@ impl ClassInnerDecl {
   pub fn dependencies(&self) -> HashSet<Id> {
     match self {
       ClassInnerDecl::ClassSignalDecl(_) => HashSet::new(),
+      ClassInnerDecl::ClassConstDecl(_) => HashSet::new(),
       ClassInnerDecl::ClassVarDecl(_) => HashSet::new(),
       ClassInnerDecl::ClassFnDecl(func) => {
         let mut ids: HashSet<Id> = func.body.get_ids().collect();
@@ -245,7 +247,8 @@ impl ClassInnerDecl {
 
   pub fn get_names(&self) -> (Locals, Functions) {
     match self {
-      ClassInnerDecl::ClassSignalDecl(_) | ClassInnerDecl::ClassVarDecl(_) => (Locals::new(), Functions::new()),
+      ClassInnerDecl::ClassSignalDecl(_) | ClassInnerDecl::ClassVarDecl(_) |
+        ClassInnerDecl::ClassConstDecl(_) => (Locals::new(), Functions::new()),
       ClassInnerDecl::ClassFnDecl(fndecl) => {
         let (mut loc, func) = fndecl.body.get_names();
         for name in fndecl.args.iter_vars() {

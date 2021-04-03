@@ -510,6 +510,18 @@ impl<'a> Compiler<'a> {
         let args = s.args.args.iter().map(|x| names::lisp_to_gd(&x)).collect();
         Ok(Decl::SignalDecl(name, ArgList::required(args)))
       }
+      ir::decl::ClassInnerDecl::ClassConstDecl(c) => {
+        // TODO Merge this with IRDecl::ConstDecl above
+        let gd_name = names::lisp_to_gd(&c.name);
+        let mut tmp_builder = StmtBuilder::new();
+        let value = self.compile_expr(&mut tmp_builder, table, &c.value, NeedsResult::Yes)?.0;
+        let (stmts, decls) = tmp_builder.build();
+        if stmts.is_empty() && decls.is_empty() {
+          Ok(Decl::ConstDecl(gd_name, value))
+        } else {
+          Err(Error::NotConstantEnough(c.name.to_owned()))
+        }
+      }
       ir::decl::ClassInnerDecl::ClassVarDecl(v) => {
         let exports = v.export.as_ref().map(|export| {
           export.args.iter().map(|expr| self.compile_export(table, expr)).collect::<Result<Vec<_>, _>>()
