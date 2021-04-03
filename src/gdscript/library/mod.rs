@@ -217,6 +217,11 @@ pub fn bind_builtins(table: &mut SymbolTable) {
                FnCall::qualified(FnSpecs::new(0, 1, None), FnScope::Global, gdlisp_root(), "gensym".to_owned()),
                Box::new(call_magic::DefaultCall));
 
+  // member? (Array has element)
+  table.set_fn("member?".to_owned(),
+               FnCall::qualified(FnSpecs::new(2, 0, None), FnScope::Global, gdlisp_root(), "is_elt".to_owned()),
+               Box::new(call_magic::ElementOf));
+
   // ---- GDScript built-ins that we use unmodified ----
 
   table.set_fn("str".to_owned(),
