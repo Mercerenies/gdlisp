@@ -210,3 +210,14 @@ static func run():
     return [_Import_0, _Import_0.VALUE]
 "#);
 }
+
+#[test]
+#[ignore]
+#[should_panic]
+fn import_declare_test_failed() {
+  let mut loader = MockFileLoader::new();
+  loader.add_file("a.lisp", "(sys/declare value a)");
+  loader.add_file("main.lisp", r#"(use "res://a.lisp" open) a"#);
+  let mut pipeline = Pipeline::with_resolver(dummy_config(), Box::new(loader));
+  pipeline.load_file("main.lisp").unwrap();
+}

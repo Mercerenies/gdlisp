@@ -304,6 +304,48 @@ impl IncCompiler {
             let enum_decl = decl::EnumDecl { name, clauses };
             Ok(Decl::EnumDecl(enum_decl))
           }
+          "sys/declare" => {
+            // (sys/declare value name)
+            // (sys/declare function name (args...))
+            if vec.len() < 3 {
+              return Err(PError::from(Error::InvalidDecl(decl.clone())));
+            }
+            match vec[1] {
+              AST::Symbol(value) if value == "value" => {
+                if vec.len() > 3 {
+                  return Err(PError::from(Error::InvalidDecl(decl.clone())));
+                }
+                let name = match vec[2] {
+                  AST::Symbol(s) => s.to_owned(),
+                  _ => return Err(PError::from(Error::InvalidDecl(decl.clone()))),
+                };
+                let declare = decl::DeclareDecl {
+                  declare_type: decl::DeclareType::Value,
+                  name
+                };
+                Ok(Decl::DeclareDecl(declare))
+              }
+              AST::Symbol(function) if function == "function" => {
+                if vec.len() != 4 {
+                  return Err(PError::from(Error::InvalidDecl(decl.clone())));
+                }
+                let name = match vec[2] {
+                  AST::Symbol(s) => s.to_owned(),
+                  _ => return Err(PError::from(Error::InvalidDecl(decl.clone()))),
+                };
+                let args: Vec<_> = DottedExpr::new(vec[3]).try_into()?;
+                let args = ArgList::parse(args)?;
+                let declare = decl::DeclareDecl {
+                  declare_type: decl::DeclareType::Function(args),
+                  name
+                };
+                Ok(Decl::DeclareDecl(declare))
+              }
+              _ => {
+                Err(PError::from(Error::InvalidDecl(decl.clone())))
+              }
+            }
+          }
           _ => {
             Err(PError::from(Error::UnknownDecl(decl.clone())))
           }

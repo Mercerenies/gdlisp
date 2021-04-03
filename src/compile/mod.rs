@@ -397,6 +397,11 @@ impl<'a> Compiler<'a> {
         builder.add_decl(Decl::EnumDecl(decl::EnumDecl { name: Some(gd_name), clauses: gd_clauses }));
         Ok(())
       }
+      IRDecl::DeclareDecl(_) => {
+        // (sys/declare ...) statements have no runtime presence and do
+        // nothing here.
+        Ok(())
+      }
     }
   }
 
@@ -613,6 +618,23 @@ impl<'a> Compiler<'a> {
           .no_assign() // Can't assign to constants
           .with_hint(ValueHint::enumeration(edecl.value_names()));
         table.set_var(name, var);
+      }
+      IRDecl::DeclareDecl(ddecl) => {
+        let ir::decl::DeclareDecl { declare_type, name } = ddecl;
+        match declare_type {
+          ir::decl::DeclareType::Value => {
+            let var = LocalVar::global(names::lisp_to_gd(name));
+            table.set_var(name.clone(), var);
+          }
+          ir::decl::DeclareType::Function(args) => {
+            let func = function_call::FnCall::unqualified(
+              function_call::FnSpecs::from(args.to_owned()),
+              function_call::FnScope::Global,
+              names::lisp_to_gd(name)
+            );
+            table.set_fn(name.clone(), func, Box::new(DefaultCall));
+          }
+        }
       }
     };
     Ok(())

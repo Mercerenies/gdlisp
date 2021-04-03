@@ -22,6 +22,7 @@ pub enum Decl {
   ConstDecl(ConstDecl),
   ClassDecl(ClassDecl),
   EnumDecl(EnumDecl),
+  DeclareDecl(DeclareDecl),
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -94,6 +95,22 @@ pub struct ClassFnDecl {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
+pub struct DeclareDecl {
+  pub declare_type: DeclareType,
+  pub name: String,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum DeclareType {
+  Value,
+  Function(ArgList),
+}
+
+// TODO This is a bit confusing, since "export" is used in GDLisp to
+// mean "exported from a module", not "exported to the interface". We
+// should probably rename this so that GDScript "exports" are called
+// something else.
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct Export {
   pub args: Vec<Expr>,
 }
@@ -123,6 +140,7 @@ impl Decl {
       Decl::ConstDecl(decl) => &decl.name,
       Decl::ClassDecl(decl) => &decl.name,
       Decl::EnumDecl(decl) => &decl.name,
+      Decl::DeclareDecl(decl) => &decl.name,
     }
   }
 
@@ -164,11 +182,20 @@ impl Decl {
         }
         ids
       }
+      Decl::DeclareDecl(_) => {
+        HashSet::new()
+      }
     }
   }
 
   pub fn is_macro(&self) -> bool {
     matches!(self, Decl::MacroDecl(_))
+  }
+
+  pub fn is_exported_by_default(&self) -> bool {
+    // (sys/declare ...) statements are never exported and are always
+    // file-local by default.
+    !(matches!(self, Decl::DeclareDecl(_)))
   }
 
   pub fn namespace(&self) -> Namespace {
@@ -178,6 +205,7 @@ impl Decl {
       Decl::ConstDecl(_) => Namespace::Value,
       Decl::ClassDecl(_) => Namespace::Value,
       Decl::EnumDecl(_) => Namespace::Value,
+      Decl::DeclareDecl(d) => d.declare_type.namespace(),
     }
   }
 
@@ -262,6 +290,17 @@ impl ClassInnerDecl {
 
 }
 
+impl DeclareType {
+
+  pub fn namespace(&self) -> Namespace {
+    match self {
+      DeclareType::Value => Namespace::Value,
+      DeclareType::Function(_) => Namespace::Function,
+    }
+  }
+
+}
+
 impl Default for ConstructorDecl {
 
   fn default() -> ConstructorDecl {
@@ -271,6 +310,12 @@ impl Default for ConstructorDecl {
     }
   }
 
+}
+
+impl From<DeclareType> for Namespace {
+  fn from(d: DeclareType) -> Namespace {
+    d.namespace()
+  }
 }
 
 impl From<(ClassDecl, Vec<Expr>)> for expr::LambdaClass {

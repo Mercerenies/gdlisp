@@ -9,7 +9,9 @@ use super::identifier::Id;
 pub fn get_export_list<'a>(decls: impl IntoIterator<Item=&'a Decl>) -> Vec<Id> {
   let mut exports = Vec::new();
   for decl in decls {
-    exports.push(decl.to_id());
+    if decl.is_exported_by_default() {
+      exports.push(decl.to_id());
+    }
   }
   exports
 }

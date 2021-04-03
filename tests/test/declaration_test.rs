@@ -93,3 +93,28 @@ static func run():
     return null
 "#);
 }
+
+#[test]
+pub fn declare_value_test() {
+  assert_eq!(parse_compile_decl("((sys/declare value x) x)"), r#"extends Reference
+static func run():
+    return x
+"#);
+}
+
+#[test]
+pub fn declare_function_test_1() {
+  assert_eq!(parse_compile_decl("((sys/declare function f ()) (f))"), r#"extends Reference
+static func run():
+    return f()
+"#);
+}
+
+#[test]
+pub fn declare_function_test_2() {
+  assert_eq!(parse_compile_decl("((sys/declare function f (a &opt b)) (f 1) (f 1 2))"), r#"extends Reference
+static func run():
+    f(1, null)
+    return f(1, 2)
+"#);
+}
