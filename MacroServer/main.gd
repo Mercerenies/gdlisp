@@ -75,8 +75,6 @@ func exec(input):
     var obj = Reference.new()
     obj.set_script(script)
 
-    print(script.source_code)
-
     return obj.exec(self)
 
 # I'll probably end up migrating this to GDLisp.gd proper at some
