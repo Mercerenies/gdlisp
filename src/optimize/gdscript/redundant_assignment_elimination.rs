@@ -39,10 +39,8 @@ impl RedundantAssignmentElimination {
   // not our problem)
   fn match_second_assign<'a, 'b, 'c>(&'a self, name: &'b str, stmt: &'c Stmt) -> Option<&'c Expr> {
     if let Some(AssignmentStmt { assign_type, var_name, expr }) = AssignmentStmt::match_stmt(stmt) {
-      if assign_type == AssignType::Assignment(op::AssignOp::Eq) {
-        if name == var_name {
-          return Some(expr);
-        }
+      if assign_type == AssignType::Assignment(op::AssignOp::Eq) && name == var_name {
+        return Some(expr);
       }
     }
     None

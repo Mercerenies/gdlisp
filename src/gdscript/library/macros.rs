@@ -149,7 +149,7 @@ pub fn if_function(_state: MacroState<'_, '_>, arg: &[&AST]) -> Result<AST, Erro
 // TODO Surely some optimizations are in order to get this down to a
 // manageable compiled form.
 pub fn yield_star_function(state: MacroState<'_, '_>, arg: &[&AST]) -> Result<AST, Error> {
-  if arg.len() < 1 {
+  if arg.is_empty() {
     return Err(Error::TooFewArgs(String::from("yield*"), arg.len()));
   }
   if arg.len() > 1 {

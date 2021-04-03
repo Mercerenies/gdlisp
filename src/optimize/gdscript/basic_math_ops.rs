@@ -35,6 +35,6 @@ impl ExpressionLevelPass for BasicMathOps {
       }
     }
 
-    Ok(expr.clone())
+    Ok(expr)
   }
 }
