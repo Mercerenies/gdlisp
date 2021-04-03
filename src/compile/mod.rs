@@ -361,15 +361,9 @@ impl<'a> Compiler<'a> {
       }
       IRDecl::ConstDecl(ir::decl::ConstDecl { name, value }) => {
         let gd_name = names::lisp_to_gd(&name);
-        let mut tmp_builder = StmtBuilder::new();
-        let value = self.compile_expr(&mut tmp_builder, table, value, NeedsResult::Yes)?.0;
-        let (stmts, decls) = tmp_builder.build();
-        if stmts.is_empty() && decls.is_empty() {
-          builder.add_decl(Decl::ConstDecl(gd_name, value));
-          Ok(())
-        } else {
-          Err(Error::NotConstantEnough(name.to_owned()))
-        }
+        let value = self.compile_simple_expr(table, name, value, NeedsResult::Yes)?;
+        builder.add_decl(Decl::ConstDecl(gd_name, value));
+        Ok(())
       }
       IRDecl::ClassDecl(ir::decl::ClassDecl { name, extends, main_class, constructor, decls }) => {
         let gd_name = names::lisp_to_gd(&name);
@@ -532,14 +526,8 @@ impl<'a> Compiler<'a> {
       ir::decl::ClassInnerDecl::ClassConstDecl(c) => {
         // TODO Merge this with IRDecl::ConstDecl above
         let gd_name = names::lisp_to_gd(&c.name);
-        let mut tmp_builder = StmtBuilder::new();
-        let value = self.compile_expr(&mut tmp_builder, table, &c.value, NeedsResult::Yes)?.0;
-        let (stmts, decls) = tmp_builder.build();
-        if stmts.is_empty() && decls.is_empty() {
-          Ok(Decl::ConstDecl(gd_name, value))
-        } else {
-          Err(Error::NotConstantEnough(c.name.to_owned()))
-        }
+        let value = self.compile_simple_expr(table, &c.name, &c.value, NeedsResult::Yes)?;
+        Ok(Decl::ConstDecl(gd_name, value))
       }
       ir::decl::ClassInnerDecl::ClassVarDecl(v) => {
         let exports = v.export.as_ref().map(|export| {
