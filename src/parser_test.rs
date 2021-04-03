@@ -59,6 +59,13 @@ mod tests {
   }
 
   #[test]
+  fn parser_array() {
+    let p = ASTParser::new();
+    assert_eq!(p.parse("[]").unwrap(), AST::Array(vec!()));
+    assert_eq!(p.parse("[1]").unwrap(), AST::Array(vec!(AST::Int(1))));
+    assert_eq!(p.parse("[1 2]").unwrap(), AST::Array(vec!(AST::Int(1), AST::Int(2))));
+  }
+  #[test]
   fn parser_failures() {
     let p = ASTParser::new();
     assert!(p.parse("(").is_err());
