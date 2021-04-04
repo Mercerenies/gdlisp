@@ -9,12 +9,9 @@
 // things like that which are constant "in spirit" and work around
 // GDScript limitations. But for now, we're being super strict.
 
-use crate::ir::expr::Expr;
-use crate::ir::literal::Literal;
 use super::error::Error;
-use crate::gdscript::expr::{Expr as GDExpr};
+use crate::gdscript::expr::Expr;
 use crate::gdscript::op;
-use crate::sxp::ast::AST;
 
 pub trait MaybeConstant {
 
@@ -30,145 +27,40 @@ pub trait MaybeConstant {
 
 }
 
-// As a quoted literal, is the AST allowed as a const? (Not evaluated)
-impl MaybeConstant for AST {
-  fn is_allowable_const(&self) -> bool {
-    match self {
-      AST::Int(_) | AST::Float(_) | AST::Bool(_) | AST::String(_) | AST::Nil => true,
-      AST::Vector2(a, b) => {
-        a.is_allowable_const() && b.is_allowable_const()
-      }
-      AST::Vector3(a, b, c) => {
-        a.is_allowable_const() && b.is_allowable_const() && c.is_allowable_const()
-      }
-      AST::Array(vec) => {
-        vec.iter().all(AST::is_allowable_const)
-      }
-      AST::Dictionary(vec) => {
-        vec.iter().all(|(k, v)| k.is_allowable_const() && v.is_allowable_const())
-      }
-      AST::Symbol(_) | AST::Cons(_, _) => false, // TODO Can we magic this problem away?
-    }
-  }
-}
-
-impl MaybeConstant for Literal {
-  fn is_allowable_const(&self) -> bool {
-    match self {
-      Literal::Int(_) | Literal::Float(_) | Literal::String(_) | Literal::Bool(_) | Literal::Nil => true,
-      Literal::Symbol(_) => false, // TODO Can we magic this problem away?
-    }
-  }
-}
-
 impl MaybeConstant for Expr {
   fn is_allowable_const(&self) -> bool {
     match self {
-      Expr::LocalVar(_) => {
+      Expr::Var(_) => {
         false // TODO Better?
       }
-      Expr::Literal(lit) => {
-        lit.is_allowable_const()
-      }
-      Expr::Progn(body) => {
-        // TODO Magic? :)
-        body.len() == 1 && body[0].is_allowable_const()
-      }
-      Expr::Call(_, _) => {
-        // TODO Allow arithmetic operators?
-        false
-      }
-      Expr::Array(arr) => {
-        arr.iter().all(Expr::is_allowable_const)
-      }
-      Expr::Dictionary(arr) => {
-        arr.iter().all(|(k, v)| k.is_allowable_const() && v.is_allowable_const())
-      }
-      Expr::Quote(ast) => {
-        ast.is_allowable_const()
-      }
-      Expr::Vector2(a, b) => {
-        a.is_allowable_const() && b.is_allowable_const()
-      }
-      Expr::Vector3(a, b, c) => {
-        a.is_allowable_const() && b.is_allowable_const() && c.is_allowable_const()
-      }
-      Expr::CondStmt(_) | Expr::WhileStmt(_, _) | Expr::ForStmt(_, _, _) |
-      Expr::Let(_, _) | Expr::FLet(_, _) | Expr::Labels(_, _) | Expr::Lambda(_, _) | Expr::FuncRef(_) |
-      Expr::Assign(_, _) | Expr::FieldAccess(_, _) | Expr::MethodCall(_, _, _) | Expr::LambdaClass(_) |
-      Expr::Yield(_) | Expr::Return(_) => {
-        false
-      }
-    }
-  }
-}
-
-impl MaybeConstant for GDExpr {
-  fn is_allowable_const(&self) -> bool {
-    match self {
-      GDExpr::Var(_) => {
-        false // TODO Better?
-      }
-      GDExpr::Literal(_) => {
+      Expr::Literal(_) => {
         true
       }
-      GDExpr::Subscript(a, b) => {
+      Expr::Subscript(a, b) => {
         a.is_allowable_const() && b.is_allowable_const()
       }
-      GDExpr::Attribute(_, _) => {
+      Expr::Attribute(_, _) => {
         false // I know, but Godot seems to disallow this one on principle
       }
-      GDExpr::Call(_, _, _) | GDExpr::SuperCall(_, _) => {
+      Expr::Call(_, _, _) | Expr::SuperCall(_, _) => {
         false
       }
-      GDExpr::Unary(_, a) => {
+      Expr::Unary(_, a) => {
         a.is_allowable_const()
       }
-      GDExpr::Binary(a, op, b) => {
+      Expr::Binary(a, op, b) => {
         // So casts don't seem to be considered const in GDScript...
         a.is_allowable_const() && b.is_allowable_const() && *op != op::BinaryOp::Cast
       }
-      GDExpr::TernaryIf(t) => {
+      Expr::TernaryIf(t) => {
         t.true_case.is_allowable_const() && t.cond.is_allowable_const() && t.false_case.is_allowable_const()
       }
-      GDExpr::ArrayLit(arr) => {
-        arr.iter().all(GDExpr::is_allowable_const)
+      Expr::ArrayLit(arr) => {
+        arr.iter().all(Expr::is_allowable_const)
       }
-      GDExpr::DictionaryLit(arr) => {
+      Expr::DictionaryLit(arr) => {
         arr.iter().all(|(k, v)| k.is_allowable_const() && v.is_allowable_const())
       }
     }
   }
-}
-
-#[cfg(test)]
-mod tests {
-  use super::*;
-  use ordered_float::OrderedFloat;
-
-  #[test]
-  fn constexpr_test_ast_positive() {
-    assert!(AST::Nil.is_allowable_const());
-    assert!(AST::Int(100).is_allowable_const());
-    assert!(AST::Float(OrderedFloat(0.0)).is_allowable_const());
-    assert!(AST::Bool(true).is_allowable_const());
-    assert!(AST::Bool(false).is_allowable_const());
-    assert!(AST::String(String::from("foobar")).is_allowable_const());
-    assert!(AST::Vector2(Box::new(AST::Int(1)), Box::new(AST::Int(2))).is_allowable_const());
-    assert!(AST::Vector2(Box::new(AST::Nil), Box::new(AST::Int(2))).is_allowable_const());
-    assert!(AST::Vector3(Box::new(AST::Int(1)), Box::new(AST::Int(2)), Box::new(AST::Int(3))).is_allowable_const());
-    assert!(AST::Vector3(Box::new(AST::Int(1)), Box::new(AST::Int(2)), Box::new(AST::Nil)).is_allowable_const());
-    assert!(AST::Array(vec!()).is_allowable_const());
-    assert!(AST::Array(vec!(AST::Int(1), AST::Int(2))).is_allowable_const());
-    assert!(AST::Array(vec!(AST::Int(1), AST::Int(2), AST::Nil)).is_allowable_const());
-  }
-
-  #[test]
-  fn constexpr_test_ast_negative() {
-    assert!(!AST::Symbol(String::from("symbol-name")).is_allowable_const());
-    assert!(!AST::Cons(Box::new(AST::Int(1)), Box::new(AST::Int(2))).is_allowable_const());
-  }
-
-  // TODO Test the rest of these
-
 }
