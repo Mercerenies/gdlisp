@@ -4,6 +4,7 @@ pub mod translation_unit;
 pub mod config;
 pub mod loader;
 pub mod resolver;
+pub mod can_load;
 
 use translation_unit::TranslationUnit;
 use config::ProjectConfig;
@@ -18,7 +19,6 @@ use crate::compile::symbol_table::SymbolTable;
 use crate::compile::preload_resolver::{DefaultPreloadResolver, LookupPreloadResolver};
 use crate::gdscript::library;
 use crate::gdscript::decl;
-use crate::gdscript::expr::Expr;
 use crate::util;
 use crate::runner::macro_server::named_file_server::NamedFileServer;
 use crate::runner::path::{RPathBuf, PathSrc};
@@ -190,12 +190,6 @@ impl Pipeline {
   // function for testing purposes.
   pub fn set_currently_loading_file(&mut self, path: RPathBuf) {
     self.current_file_path = Some(path);
-  }
-
-  pub fn load_expr(&self) -> Option<Expr> {
-    let mut filename = self.currently_loading_file()?.to_owned();
-    filename.path_mut().set_extension("gd");
-    Some(Expr::Call(None, String::from("load"), vec!(Expr::from(filename.to_string()))))
   }
 
   pub fn config(&self) -> &ProjectConfig {

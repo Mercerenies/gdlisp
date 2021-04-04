@@ -36,6 +36,7 @@ use crate::ir::locals::AccessType;
 use crate::runner::path::RPathBuf;
 use crate::pipeline::error::{Error as PError};
 use crate::pipeline::Pipeline;
+use crate::pipeline::can_load::CanLoad;
 use special_form::lambda;
 use special_form::flet;
 use special_form::lambda_class;
