@@ -14,6 +14,7 @@ use std::borrow::Borrow;
 #[derive(Clone, Debug, Default)]
 pub struct SymbolTable {
   locals: HashMap<String, LocalVar>,
+  reverse_locals: HashMap<String, String>, // key: GDScript name, value: GDLisp name (to use in locals)
   functions: HashMap<String, (FnCall, DebugWrapper<Box<dyn CallMagic + 'static>>)>,
 }
 
@@ -27,12 +28,24 @@ impl SymbolTable {
     self.locals.get(name)
   }
 
+  pub fn get_var_by_gd_name(&self, gd_name: &str) -> Option<&LocalVar> {
+    self.reverse_locals.get(gd_name).and_then(|name| self.locals.get(name))
+  }
+
   pub fn set_var(&mut self, name: String, value: LocalVar) -> Option<LocalVar> {
+    if let Some(gd_name) = value.simple_name() {
+      self.reverse_locals.insert(gd_name.to_owned(), name.clone());
+    }
     self.locals.insert(name, value)
   }
 
   pub fn del_var(&mut self, name: &str) {
-    self.locals.remove(name);
+    let value = self.locals.remove(name);
+    if let Some(value) = value {
+      if let Some(gd_name) = value.simple_name() {
+        self.reverse_locals.remove(gd_name);
+      }
+    }
   }
 
   pub fn get_fn(&self, name: &str) -> Option<(&FnCall, &(dyn CallMagic + 'static))> {

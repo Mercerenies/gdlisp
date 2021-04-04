@@ -67,6 +67,14 @@ impl LocalVar {
     self
   }
 
+  pub fn simple_name(&self) -> Option<&str> {
+    if let Expr::Var(name) = &self.name {
+      Some(name)
+    } else {
+      None
+    }
+  }
+
   pub fn expr(&self) -> Expr {
     let inner = self.name.clone();
     if self.access_type.requires_cell() {
