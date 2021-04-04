@@ -508,8 +508,9 @@ impl<'a> Compiler<'a> {
     match expr {
       IRExpr::LocalVar(s) => Ok(Expr::Var(s.to_owned())),
       _ => {
+        let expr = self.compile_simple_expr(table, "export", expr, NeedsResult::Yes)?;
         expr.validate_const_expr("export")?;
-        self.compile_simple_expr(table, "export", expr, NeedsResult::Yes)
+        Ok(expr)
       }
     }
   }
