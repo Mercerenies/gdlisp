@@ -212,6 +212,11 @@ pub fn bind_builtins(table: &mut SymbolTable) {
                FnCall::qualified(FnSpecs::new(2, 0, None), FnScope::Global, gdlisp_root(), "istype".to_owned()),
                Box::new(call_magic::DefaultCall));
 
+  // sys/instance-direct? (Always uses `is` directly; should be primitive and magicked away)
+  table.set_fn("sys/instance-direct?".to_owned(),
+               FnCall::qualified(FnSpecs::new(2, 0, None), FnScope::Global, gdlisp_root(), "istype_direct".to_owned()),
+               Box::new(call_magic::InstanceOf));
+
   // gensym
   table.set_fn("gensym".to_owned(),
                FnCall::qualified(FnSpecs::new(0, 1, None), FnScope::Global, gdlisp_root(), "gensym".to_owned()),

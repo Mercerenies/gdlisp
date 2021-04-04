@@ -69,6 +69,8 @@ pub struct VectorOperation;
 pub struct ArraySubscript;
 #[derive(Clone)]
 pub struct ElementOf;
+#[derive(Clone)]
+pub struct InstanceOf;
 
 // Covers addition and multiplication, for instance
 #[derive(Clone)]
@@ -440,6 +442,30 @@ impl CallMagic for ElementOf {
         let arr = args.pop().expect("Internal error in ElementOf");
         let value = args.pop().expect("Internal error in ElementOf");
         Ok(Expr::Binary(Box::new(value), op::BinaryOp::In, Box::new(arr)))
+      }
+      _ => {
+        Err(Error::TooManyArgs(call.function, args.len()))
+      }
+    }
+  }
+}
+
+impl CallMagic for InstanceOf {
+  fn compile<'a>(&self,
+                 call: FnCall,
+                 _compiler: &mut Compiler<'a>,
+                 _builder: &mut StmtBuilder,
+                 _table: &mut SymbolTable,
+                 args: Vec<StExpr>) -> Result<Expr, Error> {
+    let mut args = strip_st(args);
+    match args.len() {
+      0 | 1 => {
+        Err(Error::TooFewArgs(call.function, args.len()))
+      }
+      2 => {
+        let type_ = args.pop().expect("Internal error in InstanceOf");
+        let value = args.pop().expect("Internal error in InstanceOf");
+        Ok(Expr::Binary(Box::new(value), op::BinaryOp::Is, Box::new(type_)))
       }
       _ => {
         Err(Error::TooManyArgs(call.function, args.len()))

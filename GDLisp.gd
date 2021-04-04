@@ -620,6 +620,9 @@ func istype(value, type):
     else:
         return value is type
 
+func istype_direct(value, type):
+    return value is type
+
 func gensym(prefix):
     if prefix == null:
         return Symbol.new(global_name_generator.generate())
