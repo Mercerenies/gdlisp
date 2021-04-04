@@ -363,7 +363,7 @@ impl<'a> Compiler<'a> {
       IRDecl::ConstDecl(ir::decl::ConstDecl { name, value }) => {
         let gd_name = names::lisp_to_gd(&name);
         let value = self.compile_simple_expr(table, name, value, NeedsResult::Yes)?;
-        value.validate_const_expr(&name)?;
+        value.validate_const_expr(&name, table)?;
         builder.add_decl(Decl::ConstDecl(gd_name, value));
         Ok(())
       }
@@ -386,7 +386,7 @@ impl<'a> Compiler<'a> {
           let gd_const_name = names::lisp_to_gd(const_name);
           let gd_const_value = const_value.as_ref().map(|x| self.compile_simple_expr(table, const_name, x, NeedsResult::Yes)).transpose()?;
           if let Some(gd_const_value) = &gd_const_value {
-            gd_const_value.validate_const_expr(const_name)?;
+            gd_const_value.validate_const_expr(const_name, table)?;
           }
           Ok((gd_const_name, gd_const_value))
         }).collect::<Result<_, Error>>()?;
@@ -509,7 +509,7 @@ impl<'a> Compiler<'a> {
       IRExpr::LocalVar(s) => Ok(Expr::Var(s.to_owned())),
       _ => {
         let expr = self.compile_simple_expr(table, "export", expr, NeedsResult::Yes)?;
-        expr.validate_const_expr("export")?;
+        expr.validate_const_expr("export", table)?;
         Ok(expr)
       }
     }
@@ -530,7 +530,7 @@ impl<'a> Compiler<'a> {
         // TODO Merge this with IRDecl::ConstDecl above
         let gd_name = names::lisp_to_gd(&c.name);
         let value = self.compile_simple_expr(table, &c.name, &c.value, NeedsResult::Yes)?;
-        value.validate_const_expr(&c.name)?;
+        value.validate_const_expr(&c.name, table)?;
         Ok(Decl::ConstDecl(gd_name, value))
       }
       ir::decl::ClassInnerDecl::ClassVarDecl(v) => {
@@ -541,7 +541,7 @@ impl<'a> Compiler<'a> {
         let name = names::lisp_to_gd(&v.name);
         let value = v.value.as_ref().map::<Result<_, Error>, _>(|expr| {
           let value = self.compile_simple_expr(table, &name, expr, NeedsResult::Yes)?;
-          value.validate_const_expr(&v.name)?;
+          value.validate_const_expr(&v.name, table)?;
           Ok(value)
         }).transpose()?;
         Ok(Decl::VarDecl(exports, name, value))

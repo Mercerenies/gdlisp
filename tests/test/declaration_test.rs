@@ -95,11 +95,34 @@ static func run():
 }
 
 #[test]
-pub fn declare_value_test() {
+pub fn declare_value_test_1() {
   assert_eq!(parse_compile_decl("((sys/declare value x) x)"), r#"extends Reference
 static func run():
     return x
 "#);
+}
+
+#[test]
+pub fn declare_value_test_2() {
+  assert_eq!(parse_compile_decl("((sys/declare superglobal x) x)"), r#"extends Reference
+static func run():
+    return x
+"#);
+}
+
+#[test]
+pub fn declare_value_test_3() {
+  assert_eq!(parse_compile_decl("((sys/declare superglobal x) (defconst y x))"), r#"extends Reference
+const y = x
+static func run():
+    return null
+"#);
+}
+
+#[test]
+#[should_panic]
+pub fn declare_value_non_const_test() {
+  parse_compile_decl("((sys/declare value x) (defconst y x))");
 }
 
 #[test]

@@ -26,6 +26,18 @@ pub enum ValueHint {
   Superglobal, // Currently, superglobal is only used if explicitly requested with sys/declare
 }
 
+pub trait ValueHintsTable {
+  fn get_value_hint(&self, name: &str) -> Option<&ValueHint>;
+}
+
+pub struct VacuousValueHintsTable;
+
+impl ValueHintsTable for VacuousValueHintsTable {
+  fn get_value_hint(&self, _name: &str) -> Option<&ValueHint> {
+    None
+  }
+}
+
 impl LocalVar {
 
   pub fn new(name: String, access_type: AccessType, scope: VarScope, assignable: bool) -> LocalVar {

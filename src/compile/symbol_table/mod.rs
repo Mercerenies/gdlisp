@@ -5,7 +5,7 @@ pub mod local_var;
 
 use function_call::FnCall;
 use call_magic::{CallMagic, DefaultCall};
-use local_var::LocalVar;
+use local_var::{LocalVar, ValueHint, ValueHintsTable};
 use crate::util::debug_wrapper::DebugWrapper;
 
 use std::collections::HashMap;
@@ -149,6 +149,12 @@ impl HasSymbolTable for SymbolTable {
     self
   }
 
+}
+
+impl ValueHintsTable for SymbolTable {
+  fn get_value_hint(&self, name: &str) -> Option<&ValueHint> {
+    self.get_var_by_gd_name(name).and_then(|var| var.value_hint.as_ref())
+  }
 }
 
 // TODO Test magic here as well.
