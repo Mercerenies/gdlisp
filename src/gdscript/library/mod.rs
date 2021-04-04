@@ -277,6 +277,18 @@ pub fn bind_builtins(table: &mut SymbolTable) {
                FnCall::unqualified(FnSpecs::new(0, 0, None), FnScope::Global, "get_global_mouse_position".to_owned()),
                Box::new(call_magic::DefaultCall));
 
+  table.set_fn("push-error".to_owned(),
+               FnCall::unqualified(FnSpecs::new(1, 0, None), FnScope::Global, "push_error".to_owned()),
+               Box::new(call_magic::DefaultCall));
+
+  table.set_fn("push-warning".to_owned(),
+               FnCall::unqualified(FnSpecs::new(1, 0, None), FnScope::Global, "push_warning".to_owned()),
+               Box::new(call_magic::DefaultCall));
+
+  table.set_fn("typeof".to_owned(),
+               FnCall::unqualified(FnSpecs::new(1, 0, None), FnScope::Global, "typeof".to_owned()),
+               Box::new(call_magic::DefaultCall));
+
   table.set_var("PI".to_owned(), LocalVar::global("PI".to_owned()));
   table.set_var("SPKEY".to_owned(), LocalVar::global("SPKEY".to_owned()));
 
