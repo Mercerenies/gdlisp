@@ -72,6 +72,12 @@ impl SymbolTable {
     })
   }
 
+  pub fn fns_mut(&mut self) -> impl Iterator<Item=(&str, &mut FnCall, &mut (dyn CallMagic + 'static))> {
+    self.functions.iter_mut().map(|(name, value)| {
+      (name.borrow(), &mut value.0, &mut *value.1.0)
+    })
+  }
+
 }
 
 // So this probably doesn't need to be a trait anymore. It could

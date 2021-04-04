@@ -142,11 +142,12 @@ fn generate_lambda_class<'a, 'b>(compiler: &mut Compiler<'a>,
     Decl::FnDecl(decl::Static::NonStatic, func),
     Decl::FnDecl(decl::Static::NonStatic, funcv),
   ));
-  decl::ClassDecl {
+  let mut class = decl::ClassDecl {
     name: class_name,
     extends: decl::ClassExtends::Qualified(vec!(String::from("GDLisp"), String::from("Function"))),
     body: class_body,
-  }
+  };
+  class
 }
 
 pub fn purge_globals(vars: &mut Locals, table: &SymbolTable) {
