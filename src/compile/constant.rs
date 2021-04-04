@@ -9,9 +9,9 @@
 // things like that which are constant "in spirit" and work around
 // GDScript limitations. But for now, we're being super strict.
 
-use super::expr::Expr;
-use super::literal::Literal;
-use crate::compile::error::Error;
+use crate::ir::expr::Expr;
+use crate::ir::literal::Literal;
+use super::error::Error;
 use crate::gdscript::expr::{Expr as GDExpr};
 use crate::gdscript::op;
 use crate::sxp::ast::AST;

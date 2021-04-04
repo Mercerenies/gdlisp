@@ -23,7 +23,6 @@ pub mod call_name;
 pub mod import;
 pub mod export;
 pub mod identifier;
-pub mod constant;
 
 use expr::Expr;
 use decl::Decl;
