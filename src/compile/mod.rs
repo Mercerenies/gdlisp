@@ -594,9 +594,7 @@ impl<'a> Compiler<'a> {
       }
       IRDecl::ClassDecl(ir::decl::ClassDecl { name, main_class, .. }) => {
         if *main_class {
-          let mut filename = pipeline.currently_loading_file().expect("Loading file not recognized").to_owned(); // TODO Expect?
-          filename.path_mut().set_extension("gd");
-          let expr = Expr::Call(None, String::from("load"), vec!(Expr::from(filename.to_string())));
+          let expr = pipeline.load_expr().expect("Loading file not recognized"); // TODO Expect?
           let var = LocalVar { name: expr, access_type: AccessType::Read, scope: VarScope::GlobalVar, assignable: false, value_hint: Some(ValueHint::ClassName) };
           table.set_var(name.clone(), var);
         } else {
