@@ -8,9 +8,11 @@ use crate::compile::symbol_table::SymbolTable;
 use crate::compile::symbol_table::local_var::{VarScope, LocalVar};
 use crate::gdscript::expr::Expr;
 use crate::gdscript::decl::{self, Decl};
+use crate::pipeline::Pipeline;
 use super::lambda;
 
 pub fn compile_lambda_class<'a>(compiler: &mut Compiler<'a>,
+                                pipeline: &mut Pipeline,
                                 builder: &mut StmtBuilder,
                                 table: &mut SymbolTable,
                                 class: &LambdaClass)
@@ -71,7 +73,7 @@ pub fn compile_lambda_class<'a>(compiler: &mut Compiler<'a>,
     }
   }
 
-  let mut constructor = compiler.compile_constructor(builder, &mut lambda_table, &constructor)?;
+  let mut constructor = compiler.compile_constructor(pipeline, builder, &mut lambda_table, &constructor)?;
   let original_args = constructor.args.args;
   constructor.args.args = gd_closure_vars.to_vec();
   constructor.args.args.extend(original_args);
@@ -84,7 +86,7 @@ pub fn compile_lambda_class<'a>(compiler: &mut Compiler<'a>,
     class_body.push(Decl::VarDecl(None, name.clone(), None));
   }
   for d in &decls {
-    class_body.push(compiler.compile_class_inner_decl(builder, &mut lambda_table, d)?);
+    class_body.push(compiler.compile_class_inner_decl(pipeline, builder, &mut lambda_table, d)?);
   }
   let class = decl::ClassDecl {
     name: gd_class_name.clone(),
@@ -93,7 +95,7 @@ pub fn compile_lambda_class<'a>(compiler: &mut Compiler<'a>,
   };
   builder.add_helper(Decl::ClassDecl(class));
 
-  let constructor_args = constructor_args.iter().map(|expr| compiler.compile_expr(builder, table, expr, NeedsResult::Yes).map(|x| x.0)).collect::<Result<Vec<_>, _>>()?;
+  let constructor_args = constructor_args.iter().map(|expr| compiler.compile_expr(pipeline, builder, table, expr, NeedsResult::Yes).map(|x| x.0)).collect::<Result<Vec<_>, _>>()?;
   let constructor_args: Vec<_> = gd_src_closure_vars.into_iter().map(Expr::Var).chain(constructor_args.into_iter()).collect();
   let expr = Expr::Call(Some(Box::new(Expr::Var(gd_class_name))), String::from("new"), constructor_args);
   Ok(StExpr(expr, SideEffects::None))

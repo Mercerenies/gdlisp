@@ -64,6 +64,7 @@ impl<'a> Compiler<'a> {
   }
 
   pub fn compile_stmts(&mut self,
+                       pipeline: &mut Pipeline,
                        builder: &mut StmtBuilder,
                        table: &mut SymbolTable,
                        stmts: &[&IRExpr],
@@ -75,25 +76,27 @@ impl<'a> Compiler<'a> {
       let prefix = &stmts[..stmts.len()-1];
       let end = &stmts[stmts.len()-1];
       for x in prefix {
-        self.compile_stmt(builder, table, &stmt_wrapper::Vacuous, x)?;
+        self.compile_stmt(pipeline, builder, table, &stmt_wrapper::Vacuous, x)?;
       }
-      self.compile_expr(builder, table, end, needs_result)
+      self.compile_expr(pipeline, builder, table, end, needs_result)
     }
   }
 
   pub fn compile_stmt(&mut self,
+                      pipeline: &mut Pipeline,
                       builder: &mut StmtBuilder,
                       table: &mut SymbolTable,
                       destination: &dyn StmtWrapper,
                       stmt: &IRExpr)
                       -> Result<(), Error> {
     let needs_result = NeedsResult::from(!destination.is_vacuous());
-    let expr = self.compile_expr(builder, table, stmt, needs_result)?;
+    let expr = self.compile_expr(pipeline, builder, table, stmt, needs_result)?;
     destination.wrap_to_builder(builder, expr);
     Ok(())
   }
 
   pub fn compile_expr(&mut self,
+                      pipeline: &mut Pipeline,
                       builder: &mut StmtBuilder,
                       table: &mut SymbolTable,
                       expr: &IRExpr,
@@ -121,16 +124,16 @@ impl<'a> Compiler<'a> {
       }
       IRExpr::Progn(body) => {
         let body: Vec<_> = body.iter().collect();
-        self.compile_stmts(builder, table, &body[..], needs_result)
+        self.compile_stmts(pipeline, builder, table, &body[..], needs_result)
       }
       IRExpr::CondStmt(clauses) => {
-        special_form::compile_cond_stmt(self, builder, table, clauses, needs_result)
+        special_form::compile_cond_stmt(self, pipeline, builder, table, clauses, needs_result)
       }
       IRExpr::WhileStmt(cond, body) => {
-        special_form::compile_while_stmt(self, builder, table, cond, body, needs_result)
+        special_form::compile_while_stmt(self, pipeline, builder, table, cond, body, needs_result)
       }
       IRExpr::ForStmt(name, iter, body) => {
-        special_form::compile_for_stmt(self, builder, table, &*name, iter, body, needs_result)
+        special_form::compile_for_stmt(self, pipeline, builder, table, &*name, iter, body, needs_result)
       }
       IRExpr::Call(f, args) => {
         let (fcall, call_magic) = match table.get_fn(f) {
@@ -140,7 +143,7 @@ impl<'a> Compiler<'a> {
         // Call magic is used to implement some commonly used wrappers
         // for simple GDScript operations.
         let args = args.iter()
-                       .map(|x| self.compile_expr(builder, table, x, NeedsResult::Yes))
+                       .map(|x| self.compile_expr(pipeline, builder, table, x, NeedsResult::Yes))
                        .collect::<Result<Vec<_>, _>>()?;
         Ok(StExpr(fcall.into_expr_with_magic(&*call_magic, self, builder, table, args)?, SideEffects::ModifiesState))
       }
@@ -149,7 +152,7 @@ impl<'a> Compiler<'a> {
         let var_names = clauses.iter().map::<Result<(String, String), Error>, _>(|clause| {
           let (ast_name, expr) = clause;
           let ast_name = ast_name.to_owned();
-          let result_value = self.compile_expr(builder, table, &expr, NeedsResult::Yes)?.0;
+          let result_value = self.compile_expr(pipeline, builder, table, &expr, NeedsResult::Yes)?.0;
           let result_value =
             if closure_vars.get(&ast_name).requires_cell() {
               library::construct_cell(result_value)
@@ -160,23 +163,23 @@ impl<'a> Compiler<'a> {
           Ok((ast_name, gd_name))
         }).collect::<Result<Vec<_>, _>>()?;
         table.with_local_vars(&mut var_names.into_iter().map(|x| (x.0.clone(), LocalVar::local(x.1, closure_vars.get(&x.0)))), |table| {
-          self.compile_expr(builder, table, body, needs_result)
+          self.compile_expr(pipeline, builder, table, body, needs_result)
         })
       }
       IRExpr::FLet(clauses, body) => {
-        flet::compile_flet(self, builder, table, clauses, body, needs_result)
+        flet::compile_flet(self, pipeline, builder, table, clauses, body, needs_result)
       }
       IRExpr::Labels(clauses, body) => {
-        flet::compile_labels(self, builder, table, clauses, body, needs_result)
+        flet::compile_labels(self, pipeline, builder, table, clauses, body, needs_result)
       }
       IRExpr::Lambda(args, body) => {
-        lambda::compile_lambda_stmt(self, builder, table, args, body)
+        lambda::compile_lambda_stmt(self, pipeline, builder, table, args, body)
       }
       IRExpr::FuncRef(name) => {
         match name {
           FuncRefTarget::SimpleName(name) => {
             let func = table.get_fn(name).ok_or_else(|| Error::NoSuchFn(name.clone()))?.0.clone();
-            lambda::compile_function_ref(self, builder, table, func)
+            lambda::compile_function_ref(self, pipeline, builder, table, func)
           }
         }
       }
@@ -185,21 +188,21 @@ impl<'a> Compiler<'a> {
         if !var.assignable {
           return Err(Error::CannotAssignTo(var.name.to_gd()));
         }
-        self.compile_stmt(builder, table, &stmt_wrapper::AssignToExpr(var.expr()), expr)?;
+        self.compile_stmt(pipeline, builder, table, &stmt_wrapper::AssignToExpr(var.expr()), expr)?;
         Ok(StExpr(var.expr(), SideEffects::from(var.access_type)))
       }
       IRExpr::Assign(AssignTarget::InstanceField(lhs, name), expr) => {
         // TODO Weirdness with setget makes this stateful flag not
         // always right? I mean, foo:bar can have side effects if bar
         // is protected by a setget.
-        let StExpr(mut lhs, stateful) = self.compile_expr(builder, table, lhs, NeedsResult::Yes)?;
+        let StExpr(mut lhs, stateful) = self.compile_expr(pipeline, builder, table, lhs, NeedsResult::Yes)?;
         // Assign to a temp if it's stateful
         if needs_result == NeedsResult::Yes && stateful.modifies_state() {
           let var = self.declare_var(builder, "_assign", Some(lhs));
           lhs = Expr::Var(var);
         }
         let lhs = Expr::Attribute(Box::new(lhs), names::lisp_to_gd(name));
-        self.compile_stmt(builder, table, &stmt_wrapper::AssignToExpr(lhs.clone()), expr)?;
+        self.compile_stmt(pipeline, builder, table, &stmt_wrapper::AssignToExpr(lhs.clone()), expr)?;
         if needs_result == NeedsResult::Yes {
           Ok(StExpr(lhs, SideEffects::None))
         } else {
@@ -209,7 +212,7 @@ impl<'a> Compiler<'a> {
       IRExpr::Array(vec) => {
         let mut side_effects = SideEffects::None;
         let vec = vec.iter().map(|expr| {
-          let StExpr(cexpr, state) = self.compile_expr(builder, table, expr, NeedsResult::Yes)?;
+          let StExpr(cexpr, state) = self.compile_expr(pipeline, builder, table, expr, NeedsResult::Yes)?;
           side_effects = max(side_effects, state);
           Ok(cexpr)
         }).collect::<Result<Vec<_>, Error>>()?;
@@ -219,10 +222,10 @@ impl<'a> Compiler<'a> {
         let mut side_effects = SideEffects::None;
         let vec = vec.iter().map(|(k, v)| {
 
-          let StExpr(kexpr, kstate) = self.compile_expr(builder, table, k, NeedsResult::Yes)?;
+          let StExpr(kexpr, kstate) = self.compile_expr(pipeline, builder, table, k, NeedsResult::Yes)?;
           side_effects = max(side_effects, kstate);
 
-          let StExpr(vexpr, vstate) = self.compile_expr(builder, table, v, NeedsResult::Yes)?;
+          let StExpr(vexpr, vstate) = self.compile_expr(pipeline, builder, table, v, NeedsResult::Yes)?;
           side_effects = max(side_effects, vstate);
 
           Ok((kexpr, vexpr))
@@ -246,7 +249,7 @@ impl<'a> Compiler<'a> {
           }
         }
 
-        let StExpr(lhs, state) = self.compile_expr(builder, table, lhs, NeedsResult::Yes)?;
+        let StExpr(lhs, state) = self.compile_expr(pipeline, builder, table, lhs, NeedsResult::Yes)?;
         let side_effects = max(SideEffects::ReadsState, state);
         Ok(StExpr(Expr::Attribute(Box::new(lhs), names::lisp_to_gd(sym)), side_effects))
 
@@ -256,40 +259,40 @@ impl<'a> Compiler<'a> {
         // calling a method, we assume all arguments are required, we
         // perform no optimization, we do not check arity, and we
         // simply blindly forward the call on the GDScript side.
-        let StExpr(lhs, _) = self.compile_expr(builder, table, lhs, NeedsResult::Yes)?;
+        let StExpr(lhs, _) = self.compile_expr(pipeline, builder, table, lhs, NeedsResult::Yes)?;
         let args = args.iter()
-          .map(|arg| self.compile_expr(builder, table, arg, NeedsResult::Yes).map(|x| x.0))
+          .map(|arg| self.compile_expr(pipeline, builder, table, arg, NeedsResult::Yes).map(|x| x.0))
           .collect::<Result<Vec<_>, _>>()?;
         Ok(StExpr(Expr::Call(Some(Box::new(lhs)), names::lisp_to_gd(sym), args), SideEffects::ModifiesState))
       }
       IRExpr::Vector2(x, y) => {
-        let StExpr(x, xs) = self.compile_expr(builder, table, x, NeedsResult::Yes)?;
-        let StExpr(y, ys) = self.compile_expr(builder, table, y, NeedsResult::Yes)?;
+        let StExpr(x, xs) = self.compile_expr(pipeline, builder, table, x, NeedsResult::Yes)?;
+        let StExpr(y, ys) = self.compile_expr(pipeline, builder, table, y, NeedsResult::Yes)?;
         let side_effects = max(xs, ys);
         Ok(StExpr(Expr::Call(None, String::from("Vector2"), vec!(x, y)), side_effects))
       }
       IRExpr::Vector3(x, y, z) => {
-        let StExpr(x, xs) = self.compile_expr(builder, table, x, NeedsResult::Yes)?;
-        let StExpr(y, ys) = self.compile_expr(builder, table, y, NeedsResult::Yes)?;
-        let StExpr(z, zs) = self.compile_expr(builder, table, z, NeedsResult::Yes)?;
+        let StExpr(x, xs) = self.compile_expr(pipeline, builder, table, x, NeedsResult::Yes)?;
+        let StExpr(y, ys) = self.compile_expr(pipeline, builder, table, y, NeedsResult::Yes)?;
+        let StExpr(z, zs) = self.compile_expr(pipeline, builder, table, z, NeedsResult::Yes)?;
         let side_effects = max(xs, max(ys, zs));
         Ok(StExpr(Expr::Call(None, String::from("Vector3"), vec!(x, y, z)), side_effects))
       }
       IRExpr::LambdaClass(cls) => {
-        lambda_class::compile_lambda_class(self, builder, table, cls)
+        lambda_class::compile_lambda_class(self, pipeline, builder, table, cls)
       }
       IRExpr::Yield(arg) => {
         match arg {
           None => Ok(StExpr(Expr::yield_expr(None), SideEffects::ModifiesState)),
           Some((x, y)) => {
-            let StExpr(x, _) = self.compile_expr(builder, table, x, NeedsResult::Yes)?;
-            let StExpr(y, _) = self.compile_expr(builder, table, y, NeedsResult::Yes)?;
+            let StExpr(x, _) = self.compile_expr(pipeline, builder, table, x, NeedsResult::Yes)?;
+            let StExpr(y, _) = self.compile_expr(pipeline, builder, table, y, NeedsResult::Yes)?;
             Ok(StExpr(Expr::yield_expr(Some((x, y))), SideEffects::ModifiesState))
           }
         }
       }
       IRExpr::Return(expr) => {
-        self.compile_stmt(builder, table, &stmt_wrapper::Return, expr)?;
+        self.compile_stmt(pipeline, builder, table, &stmt_wrapper::Return, expr)?;
         Ok(Compiler::nil_expr())
       }
       /* // This will eventually be an optimization.
@@ -309,13 +312,14 @@ impl<'a> Compiler<'a> {
   // Compile an expression, but fail if a builder is required for
   // helper stmts or decls.
   pub fn compile_simple_expr(&mut self,
+                             pipeline: &mut Pipeline,
                              table: &mut SymbolTable,
                              src_name: &str,
                              expr: &IRExpr,
                              needs_result: NeedsResult)
                              -> Result<Expr, Error> {
     let mut tmp_builder = StmtBuilder::new();
-    let value = self.compile_expr(&mut tmp_builder, table, expr, needs_result)?.0;
+    let value = self.compile_expr(pipeline, &mut tmp_builder, table, expr, needs_result)?.0;
     let (stmts, decls) = tmp_builder.build();
     if stmts.is_empty() && decls.is_empty() {
       Ok(value)
@@ -341,6 +345,7 @@ impl<'a> Compiler<'a> {
   }
 
   pub fn compile_decl(&mut self,
+                      pipeline: &mut Pipeline,
                       builder: &mut CodeBuilder,
                       table: &mut SymbolTable,
                       decl: &IRDecl)
@@ -348,7 +353,7 @@ impl<'a> Compiler<'a> {
     match decl {
       IRDecl::FnDecl(ir::decl::FnDecl { name, args, body }) => {
         let gd_name = names::lisp_to_gd(&name);
-        let function = self.declare_function(builder, table, gd_name, args.clone(), body, &stmt_wrapper::Return)?;
+        let function = self.declare_function(pipeline, builder, table, gd_name, args.clone(), body, &stmt_wrapper::Return)?;
         builder.add_decl(Decl::FnDecl(decl::Static::IsStatic, function));
         Ok(())
       }
@@ -357,13 +362,13 @@ impl<'a> Compiler<'a> {
         // this stage of compilation is concerned. They'll be resolved
         // and then purged during the IR phase.
         let gd_name = names::lisp_to_gd(&name);
-        let function = self.declare_function(builder, table, gd_name, args.clone(), body, &stmt_wrapper::Return)?;
+        let function = self.declare_function(pipeline, builder, table, gd_name, args.clone(), body, &stmt_wrapper::Return)?;
         builder.add_decl(Decl::FnDecl(decl::Static::IsStatic, function));
         Ok(())
       }
       IRDecl::ConstDecl(ir::decl::ConstDecl { name, value }) => {
         let gd_name = names::lisp_to_gd(&name);
-        let value = self.compile_simple_expr(table, name, value, NeedsResult::Yes)?;
+        let value = self.compile_simple_expr(pipeline, table, name, value, NeedsResult::Yes)?;
         value.validate_const_expr(&name, table)?;
         builder.add_decl(Decl::ConstDecl(gd_name, value));
         Ok(())
@@ -372,7 +377,7 @@ impl<'a> Compiler<'a> {
         let gd_name = names::lisp_to_gd(&name);
         let extends = table.get_var(&extends).ok_or_else(|| Error::NoSuchVar(extends.clone()))?.name.clone();
         let extends = Compiler::expr_to_extends(extends)?;
-        let class = self.declare_class(builder, table, gd_name, extends, constructor, decls)?;
+        let class = self.declare_class(pipeline, builder, table, gd_name, extends, constructor, decls)?;
         if *main_class {
           self.flatten_class_into_main(builder, class);
           Ok(())
@@ -385,7 +390,7 @@ impl<'a> Compiler<'a> {
         let gd_name = names::lisp_to_gd(&name);
         let gd_clauses = clauses.iter().map(|(const_name, const_value)| {
           let gd_const_name = names::lisp_to_gd(const_name);
-          let gd_const_value = const_value.as_ref().map(|x| self.compile_simple_expr(table, const_name, x, NeedsResult::Yes)).transpose()?;
+          let gd_const_value = const_value.as_ref().map(|x| self.compile_simple_expr(pipeline, table, const_name, x, NeedsResult::Yes)).transpose()?;
           if let Some(gd_const_value) = &gd_const_value {
             gd_const_value.validate_const_expr(const_name, table)?;
           }
@@ -430,6 +435,7 @@ impl<'a> Compiler<'a> {
   }
 
   pub fn declare_function(&mut self,
+                          pipeline: &mut Pipeline,
                           builder: &mut impl HasDecls,
                           table: &mut SymbolTable,
                           gd_name: String,
@@ -449,7 +455,7 @@ impl<'a> Compiler<'a> {
       }
     }
     table.with_local_vars(&mut gd_args.into_iter().map(|x| (x.0.to_owned(), LocalVar::local(x.1, local_vars.get(&x.0)))), |table| {
-      self.compile_stmt(&mut stmt_builder, table, result_destination, body)
+      self.compile_stmt(pipeline, &mut stmt_builder, table, result_destination, body)
     })?;
     Ok(decl::FnDecl {
       name: gd_name,
@@ -459,6 +465,7 @@ impl<'a> Compiler<'a> {
   }
 
   pub fn declare_class(&mut self,
+                       pipeline: &mut Pipeline,
                        builder: &mut impl HasDecls,
                        table: &mut SymbolTable,
                        gd_name: String,
@@ -471,9 +478,9 @@ impl<'a> Compiler<'a> {
 
     let mut body = vec!();
     table.with_local_var::<Result<(), Error>, _>(String::from("self"), self_var, |table| {
-      body.push(Decl::FnDecl(decl::Static::NonStatic, self.compile_constructor(builder, table, constructor)?));
+      body.push(Decl::FnDecl(decl::Static::NonStatic, self.compile_constructor(pipeline, builder, table, constructor)?));
       for d in decls {
-        body.push(self.compile_class_inner_decl(builder, table, d)?);
+        body.push(self.compile_class_inner_decl(pipeline, builder, table, d)?);
       }
       Ok(())
     })?;
@@ -487,11 +494,13 @@ impl<'a> Compiler<'a> {
   }
 
   pub fn compile_constructor(&mut self,
+                             pipeline: &mut Pipeline,
                              builder: &mut impl HasDecls,
                              table: &mut SymbolTable,
                              constructor: &ir::decl::ConstructorDecl)
                              -> Result<decl::FnDecl, Error> {
-    self.declare_function(builder,
+    self.declare_function(pipeline,
+                          builder,
                           table,
                           String::from(library::CONSTRUCTOR_NAME),
                           IRArgList::from(constructor.args.clone()),
@@ -500,6 +509,7 @@ impl<'a> Compiler<'a> {
   }
 
   fn compile_export(&mut self,
+                    pipeline: &mut Pipeline,
                     table: &mut SymbolTable,
                     expr: &IRExpr) -> Result<Expr, Error> {
     // Any expression valid as a const is valid here, but then so are
@@ -509,7 +519,7 @@ impl<'a> Compiler<'a> {
     match expr {
       IRExpr::LocalVar(s) => Ok(Expr::Var(s.to_owned())),
       _ => {
-        let expr = self.compile_simple_expr(table, "export", expr, NeedsResult::Yes)?;
+        let expr = self.compile_simple_expr(pipeline, table, "export", expr, NeedsResult::Yes)?;
         expr.validate_const_expr("export", table)?;
         Ok(expr)
       }
@@ -517,6 +527,7 @@ impl<'a> Compiler<'a> {
   }
 
   pub fn compile_class_inner_decl(&mut self,
+                                  pipeline: &mut Pipeline,
                                   builder: &mut impl HasDecls,
                                   table: &mut SymbolTable,
                                   decl: &ir::decl::ClassInnerDecl)
@@ -530,18 +541,18 @@ impl<'a> Compiler<'a> {
       ir::decl::ClassInnerDecl::ClassConstDecl(c) => {
         // TODO Merge this with IRDecl::ConstDecl above
         let gd_name = names::lisp_to_gd(&c.name);
-        let value = self.compile_simple_expr(table, &c.name, &c.value, NeedsResult::Yes)?;
+        let value = self.compile_simple_expr(pipeline, table, &c.name, &c.value, NeedsResult::Yes)?;
         value.validate_const_expr(&c.name, table)?;
         Ok(Decl::ConstDecl(gd_name, value))
       }
       ir::decl::ClassInnerDecl::ClassVarDecl(v) => {
         let exports = v.export.as_ref().map(|export| {
-          export.args.iter().map(|expr| self.compile_export(table, expr)).collect::<Result<Vec<_>, _>>()
+          export.args.iter().map(|expr| self.compile_export(pipeline, table, expr)).collect::<Result<Vec<_>, _>>()
         }).transpose()?;
         let exports = exports.map(|args| decl::Export { args });
         let name = names::lisp_to_gd(&v.name);
         let value = v.value.as_ref().map::<Result<_, Error>, _>(|expr| {
-          let value = self.compile_simple_expr(table, &name, expr, NeedsResult::Yes)?;
+          let value = self.compile_simple_expr(pipeline, table, &name, expr, NeedsResult::Yes)?;
           value.validate_const_expr(&v.name, table)?;
           Ok(value)
         }).transpose()?;
@@ -549,7 +560,8 @@ impl<'a> Compiler<'a> {
       }
       ir::decl::ClassInnerDecl::ClassFnDecl(f) => {
         let gd_name = names::lisp_to_gd(&f.name);
-        let func = self.declare_function(builder,
+        let func = self.declare_function(pipeline,
+                                         builder,
                                          table,
                                          gd_name,
                                          IRArgList::from(f.args.clone()),
@@ -784,7 +796,7 @@ impl<'a> Compiler<'a> {
       Compiler::bind_decl(pipeline, table, decl)?;
     }
     for decl in decls {
-      self.compile_decl(builder, table, decl)?;
+      self.compile_decl(pipeline, builder, table, decl)?;
     }
     Ok(())
   }
@@ -836,7 +848,7 @@ mod tests {
     library::bind_builtins(&mut table);
     let mut builder = StmtBuilder::new();
     let expr = ir::compile_expr(&mut pipeline, ast)?;
-    let () = compiler.compile_stmt(&mut builder, &mut table, &mut stmt_wrapper::Return, &expr)?;
+    let () = compiler.compile_stmt(&mut pipeline, &mut builder, &mut table, &mut stmt_wrapper::Return, &expr)?;
     Ok(builder.build())
   }
 

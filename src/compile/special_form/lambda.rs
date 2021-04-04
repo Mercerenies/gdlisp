@@ -19,6 +19,7 @@ use crate::gdscript::decl::{self, Decl};
 use crate::gdscript::op;
 use crate::gdscript::arglist::ArgList;
 use crate::gdscript::library;
+use crate::pipeline::Pipeline;
 
 use std::convert::TryInto;
 use std::borrow::Borrow;
@@ -99,6 +100,7 @@ fn generate_lambda_vararg(specs: FnSpecs) -> decl::FnDecl {
 }
 
 fn generate_lambda_class<'a, 'b>(compiler: &mut Compiler<'a>,
+                                 pipeline: &mut Pipeline,
                                  specs: FnSpecs,
                                  args: ArgList,
                                  closed_vars: &[String],
@@ -147,6 +149,7 @@ fn generate_lambda_class<'a, 'b>(compiler: &mut Compiler<'a>,
     extends: decl::ClassExtends::Qualified(vec!(String::from("GDLisp"), String::from("Function"))),
     body: class_body,
   };
+  /////
   class
 }
 
@@ -157,6 +160,7 @@ pub fn purge_globals(vars: &mut Locals, table: &SymbolTable) {
 }
 
 pub fn compile_labels_scc<'a>(compiler: &mut Compiler<'a>,
+                              pipeline: &mut Pipeline,
                               builder: &mut StmtBuilder,
                               table: &mut SymbolTable,
                               clauses: &[&(String, IRArgList, IRExpr)])
@@ -243,7 +247,7 @@ pub fn compile_labels_scc<'a>(compiler: &mut Compiler<'a>,
       lambda_table.set_var(arg.to_owned(), LocalVar::local(gd_arg.to_owned(), all_vars.get(&arg)));
       wrap_in_cell_if_needed(arg, gd_arg, &all_vars, &mut lambda_builder);
     }
-    compiler.compile_stmt(&mut lambda_builder, &mut lambda_table, &stmt_wrapper::Return, body)?;
+    compiler.compile_stmt(pipeline, &mut lambda_builder, &mut lambda_table, &stmt_wrapper::Return, body)?;
     let lambda_body = lambda_builder.build_into(builder);
     let func_name = function_names[idx].to_owned();
     let func = decl::FnDecl {
@@ -371,6 +375,7 @@ fn wrap_in_cell_if_needed(name: &str, gd_name: &str, all_vars: &Locals, lambda_b
 }
 
 pub fn compile_lambda_stmt<'a>(compiler: &mut Compiler<'a>,
+                               pipeline: &mut Pipeline,
                                builder: &mut StmtBuilder,
                                table: &mut SymbolTable,
                                args: &IRArgList,
@@ -428,9 +433,9 @@ pub fn compile_lambda_stmt<'a>(compiler: &mut Compiler<'a>,
   for (arg, gd_arg) in &gd_args {
     wrap_in_cell_if_needed(arg, gd_arg, &all_vars, &mut lambda_builder);
   }
-  compiler.compile_stmt(&mut lambda_builder, &mut lambda_table, &stmt_wrapper::Return, body)?;
+  compiler.compile_stmt(pipeline, &mut lambda_builder, &mut lambda_table, &stmt_wrapper::Return, body)?;
   let lambda_body = lambda_builder.build_into(builder);
-  let class = generate_lambda_class(compiler, args.clone().into(), arglist, &gd_closure_vars, lambda_body, "_LambdaBlock");
+  let class = generate_lambda_class(compiler, pipeline, args.clone().into(), arglist, &gd_closure_vars, lambda_body, "_LambdaBlock");
   let class_name = class.name.clone();
   builder.add_helper(Decl::ClassDecl(class));
   let constructor_args = gd_src_closure_vars.into_iter().map(Expr::Var).collect();
@@ -439,6 +444,7 @@ pub fn compile_lambda_stmt<'a>(compiler: &mut Compiler<'a>,
 }
 
 pub fn compile_function_ref<'a>(compiler: &mut Compiler<'a>,
+                                pipeline: &mut Pipeline,
                                 builder: &mut StmtBuilder,
                                 _table: &mut SymbolTable,
                                 func: FnCall)
@@ -462,7 +468,7 @@ pub fn compile_function_ref<'a>(compiler: &mut Compiler<'a>,
     let body = Stmt::ReturnStmt(
       Expr::Call(func.object, func.function, arg_names.into_iter().map(Expr::Var).collect())
     );
-    let class = generate_lambda_class(compiler, specs, arglist, &closure_vars[..], vec!(body), "_FunctionRefBlock");
+    let class = generate_lambda_class(compiler, pipeline, specs, arglist, &closure_vars[..], vec!(body), "_FunctionRefBlock");
     let class_name = class.name.clone();
     builder.add_helper(Decl::ClassDecl(class));
     let expr = Expr::Call(Some(Box::new(Expr::Var(class_name))), String::from("new"), closure_var_ctor_args);
