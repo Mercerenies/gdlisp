@@ -8,6 +8,7 @@ pub mod decl;
 pub mod arglist;
 pub mod library;
 pub mod expr_wrapper;
+pub mod inner_class;
 
 use std::fmt;
 use std::convert::TryInto;
