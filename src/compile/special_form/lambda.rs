@@ -339,7 +339,7 @@ where I : Iterator<Item=&'a U>,
       None => { return Err(Error::NoSuchFn(func.borrow().to_owned())) }
       Some((call, magic)) => {
         match call.scope {
-          FnScope::SpecialLocal(_) | FnScope::Local(_) | FnScope::SemiGlobal | FnScope::Global => {
+          FnScope::SpecialLocal(_) | FnScope::Local(_) | FnScope::SemiGlobal | FnScope::Global | FnScope::Superglobal => {
             lambda_table.set_fn(func.borrow().to_owned(), call.clone(), dyn_clone::clone_box(magic));
           }
         }
@@ -358,14 +358,7 @@ pub fn copy_global_vars(src_table: &SymbolTable, dest_table: &mut SymbolTable) {
 }
 
 pub fn closure_fn_to_gd_var(call: &FnCall) -> Option<String> {
-  match &call.scope {
-    FnScope::Local(name) | FnScope::SpecialLocal(name) => {
-      Some(name.to_owned())
-    }
-    FnScope::SemiGlobal | FnScope::Global => {
-      None
-    }
-  }
+  call.scope.local_name().map(str::to_owned)
 }
 
 fn wrap_in_cell_if_needed(name: &str, gd_name: &str, all_vars: &Locals, lambda_builder: &mut StmtBuilder) {

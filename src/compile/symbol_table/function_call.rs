@@ -18,6 +18,10 @@ pub struct FnCall {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum FnScope {
+  // A superglobal function is available in all scopes, such as
+  // built-in GDScript functions like abs() or min(). Superglobals
+  // never need to be closed around or qualified, even if imported.
+  Superglobal,
   // A global function is defined at the global scope and will be
   // compiled to a globally-scoped function.
   Global,
@@ -107,9 +111,13 @@ impl FnSpecs {
 impl FnScope {
 
   pub fn is_local(&self) -> bool {
-    match *self {
-      FnScope::Local(_) | FnScope::SpecialLocal(_) => true,
-      FnScope::Global | FnScope::SemiGlobal => false,
+    self.local_name().is_some()
+  }
+
+  pub fn local_name(&self) -> Option<&str> {
+    match self {
+      FnScope::Local(name) | FnScope::SpecialLocal(name) => Some(name),
+      FnScope::Superglobal | FnScope::Global | FnScope::SemiGlobal => None,
     }
   }
 

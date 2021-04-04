@@ -144,7 +144,7 @@ pub fn bind_builtins(table: &mut SymbolTable) {
 
   // fmod (Modulo)
   table.set_fn("fmod".to_owned(),
-               FnCall::unqualified(FnSpecs::new(2, 0, None), FnScope::Global, "fmod".to_owned()),
+               FnCall::unqualified(FnSpecs::new(2, 0, None), FnScope::Superglobal, "fmod".to_owned()),
                Box::new(call_magic::DefaultCall));
 
   // = (Equality)
@@ -230,63 +230,63 @@ pub fn bind_builtins(table: &mut SymbolTable) {
   // ---- GDScript built-ins that we use unmodified ----
 
   table.set_fn("str".to_owned(),
-               FnCall::unqualified(FnSpecs::new(1, 0, None), FnScope::Global, "str".to_owned()),
+               FnCall::unqualified(FnSpecs::new(1, 0, None), FnScope::Superglobal, "str".to_owned()),
                Box::new(call_magic::DefaultCall));
 
   table.set_fn("int".to_owned(),
-               FnCall::unqualified(FnSpecs::new(1, 0, None), FnScope::Global, "int".to_owned()),
+               FnCall::unqualified(FnSpecs::new(1, 0, None), FnScope::Superglobal, "int".to_owned()),
                Box::new(call_magic::DefaultCall));
 
   table.set_fn("bool".to_owned(),
-               FnCall::unqualified(FnSpecs::new(1, 0, None), FnScope::Global, "bool".to_owned()),
+               FnCall::unqualified(FnSpecs::new(1, 0, None), FnScope::Superglobal, "bool".to_owned()),
                Box::new(call_magic::DefaultCall));
 
   table.set_fn("randomize".to_owned(),
-               FnCall::unqualified(FnSpecs::new(0, 0, None), FnScope::Global, "randomize".to_owned()),
+               FnCall::unqualified(FnSpecs::new(0, 0, None), FnScope::Superglobal, "randomize".to_owned()),
                Box::new(call_magic::DefaultCall));
 
   // (TODO Should we wrap this and the other random functions and make a nice interface to them?)
   table.set_fn("randi".to_owned(),
-               FnCall::unqualified(FnSpecs::new(0, 0, None), FnScope::Global, "randi".to_owned()),
+               FnCall::unqualified(FnSpecs::new(0, 0, None), FnScope::Superglobal, "randi".to_owned()),
                Box::new(call_magic::DefaultCall));
 
   table.set_fn("randf".to_owned(),
-               FnCall::unqualified(FnSpecs::new(0, 0, None), FnScope::Global, "randf".to_owned()),
+               FnCall::unqualified(FnSpecs::new(0, 0, None), FnScope::Superglobal, "randf".to_owned()),
                Box::new(call_magic::DefaultCall));
 
   table.set_fn("rand-range".to_owned(),
-               FnCall::unqualified(FnSpecs::new(2, 0, None), FnScope::Global, "rand_range".to_owned()),
+               FnCall::unqualified(FnSpecs::new(2, 0, None), FnScope::Superglobal, "rand_range".to_owned()),
                Box::new(call_magic::DefaultCall));
 
   table.set_fn("clamp".to_owned(),
-               FnCall::unqualified(FnSpecs::new(3, 0, None), FnScope::Global, "clamp".to_owned()),
+               FnCall::unqualified(FnSpecs::new(3, 0, None), FnScope::Superglobal, "clamp".to_owned()),
                Box::new(call_magic::DefaultCall));
 
   table.set_fn("abs".to_owned(),
-               FnCall::unqualified(FnSpecs::new(1, 0, None), FnScope::Global, "abs".to_owned()),
+               FnCall::unqualified(FnSpecs::new(1, 0, None), FnScope::Superglobal, "abs".to_owned()),
                Box::new(call_magic::DefaultCall));
 
   // TODO Eventually we'll want this to be a multimethod which works
   // on lists as well as arrays. (And possibly elt as well?)
   table.set_fn("len".to_owned(),
-               FnCall::unqualified(FnSpecs::new(1, 0, None), FnScope::Global, "len".to_owned()),
+               FnCall::unqualified(FnSpecs::new(1, 0, None), FnScope::Superglobal, "len".to_owned()),
                Box::new(call_magic::DefaultCall));
 
   // TODO Definitely want to wrap this (and all of the mouse functions) in a nice namespace or module or something.
   table.set_fn("get-global-mouse-position".to_owned(),
-               FnCall::unqualified(FnSpecs::new(0, 0, None), FnScope::Global, "get_global_mouse_position".to_owned()),
+               FnCall::unqualified(FnSpecs::new(0, 0, None), FnScope::Superglobal, "get_global_mouse_position".to_owned()),
                Box::new(call_magic::DefaultCall));
 
   table.set_fn("push-error".to_owned(),
-               FnCall::unqualified(FnSpecs::new(1, 0, None), FnScope::Global, "push_error".to_owned()),
+               FnCall::unqualified(FnSpecs::new(1, 0, None), FnScope::Superglobal, "push_error".to_owned()),
                Box::new(call_magic::DefaultCall));
 
   table.set_fn("push-warning".to_owned(),
-               FnCall::unqualified(FnSpecs::new(1, 0, None), FnScope::Global, "push_warning".to_owned()),
+               FnCall::unqualified(FnSpecs::new(1, 0, None), FnScope::Superglobal, "push_warning".to_owned()),
                Box::new(call_magic::DefaultCall));
 
   table.set_fn("typeof".to_owned(),
-               FnCall::unqualified(FnSpecs::new(1, 0, None), FnScope::Global, "typeof".to_owned()),
+               FnCall::unqualified(FnSpecs::new(1, 0, None), FnScope::Superglobal, "typeof".to_owned()),
                Box::new(call_magic::DefaultCall));
 
   table.set_var("PI".to_owned(), LocalVar::global("PI".to_owned()));

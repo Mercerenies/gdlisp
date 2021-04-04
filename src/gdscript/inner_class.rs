@@ -1,6 +1,11 @@
 
 use super::decl::{self, Decl};
 use crate::pipeline::can_load::CanLoad;
+use crate::compile::symbol_table::SymbolTable;
+
+// Helpers to make sure GDLisp inner classes (and any feature of
+// GDLisp that compiles to inner classes, like lambdas and lambda
+// classes) can access statics from the enclosing scope.
 
 pub const OUTER_REFERENCE_NAME: &str = "__gdlisp_outer_class";
 
