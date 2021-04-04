@@ -14,6 +14,24 @@ pub fn const_test_nonconst() {
 }
 
 #[test]
+#[should_panic]
+pub fn const_test_nonconst_in_class() {
+  parse_compile_decl("((defclass Foo (Reference) (defconst B (list->array 1))))");
+}
+
+#[test]
+#[should_panic]
+pub fn const_test_nonconst_in_enum() {
+  parse_compile_decl("((defenum Foo (A (list->array 1))))");
+}
+
+#[test]
+#[should_panic]
+pub fn const_test_nonconst_in_member_var() {
+  parse_compile_decl("((defclass Foo (Reference) (defvar b (list->array 1))))");
+}
+
+#[test]
 #[ignore]
 pub fn const_test_run() {
   let output = parse_and_run(r#"

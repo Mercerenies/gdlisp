@@ -12,7 +12,6 @@ use super::special_form;
 use super::depends::Dependencies;
 use super::decl::{self, Decl};
 use super::macros::{self, MacroData};
-use super::constant::MaybeConstant;
 use super::identifier::{Id, IdLike, Namespace};
 use crate::sxp::dotted::{DottedExpr, TryFromDottedExprError};
 use crate::sxp::ast::AST;
@@ -246,7 +245,6 @@ impl IncCompiler {
               _ => return Err(PError::from(Error::InvalidDecl(decl.clone()))),
             };
             let value = self.compile_expr(pipeline, vec[2])?;
-            value.validate_const_expr(&name)?;
             Ok(Decl::ConstDecl(decl::ConstDecl { name, value }))
           }
           "defclass" => {
@@ -396,7 +394,6 @@ impl IncCompiler {
             _ => return Err(PError::from(Error::InvalidDecl(curr.clone()))),
           };
           let value = self.compile_expr(pipeline, vec[2])?;
-          value.validate_const_expr(&name)?;
           acc.decls.push(decl::ClassInnerDecl::ClassConstDecl(decl::ConstDecl { name, value }));
           Ok(())
         }
@@ -415,7 +412,6 @@ impl IncCompiler {
             if let Some(v) = vec.get(idx) {
               if !(matches!(v, AST::Cons(car, _) if **car == AST::Symbol(String::from("export")))) {
                 let e = self.compile_expr(pipeline, v)?;
-                e.validate_const_expr(&name)?;
                 value = Some(e);
                 idx += 1;
               }

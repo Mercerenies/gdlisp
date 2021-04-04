@@ -362,6 +362,7 @@ impl<'a> Compiler<'a> {
       IRDecl::ConstDecl(ir::decl::ConstDecl { name, value }) => {
         let gd_name = names::lisp_to_gd(&name);
         let value = self.compile_simple_expr(table, name, value, NeedsResult::Yes)?;
+        value.validate_const_expr(&name)?;
         builder.add_decl(Decl::ConstDecl(gd_name, value));
         Ok(())
       }
@@ -381,11 +382,11 @@ impl<'a> Compiler<'a> {
       IRDecl::EnumDecl(ir::decl::EnumDecl { name, clauses }) => {
         let gd_name = names::lisp_to_gd(&name);
         let gd_clauses = clauses.iter().map(|(const_name, const_value)| {
-          if let Some(expr) = const_value {
-            expr.validate_const_expr(const_name)?;
-          }
           let gd_const_name = names::lisp_to_gd(const_name);
           let gd_const_value = const_value.as_ref().map(|x| self.compile_simple_expr(table, const_name, x, NeedsResult::Yes)).transpose()?;
+          if let Some(gd_const_value) = &gd_const_value {
+            gd_const_value.validate_const_expr(const_name)?;
+          }
           Ok((gd_const_name, gd_const_value))
         }).collect::<Result<_, Error>>()?;
         builder.add_decl(Decl::EnumDecl(decl::EnumDecl { name: Some(gd_name), clauses: gd_clauses }));
@@ -527,6 +528,7 @@ impl<'a> Compiler<'a> {
         // TODO Merge this with IRDecl::ConstDecl above
         let gd_name = names::lisp_to_gd(&c.name);
         let value = self.compile_simple_expr(table, &c.name, &c.value, NeedsResult::Yes)?;
+        value.validate_const_expr(&c.name)?;
         Ok(Decl::ConstDecl(gd_name, value))
       }
       ir::decl::ClassInnerDecl::ClassVarDecl(v) => {
@@ -535,8 +537,10 @@ impl<'a> Compiler<'a> {
         }).transpose()?;
         let exports = exports.map(|args| decl::Export { args });
         let name = names::lisp_to_gd(&v.name);
-        let value = v.value.as_ref().map(|expr| {
-          self.compile_simple_expr(table, &name, expr, NeedsResult::Yes)
+        let value = v.value.as_ref().map::<Result<_, Error>, _>(|expr| {
+          let value = self.compile_simple_expr(table, &name, expr, NeedsResult::Yes)?;
+          value.validate_const_expr(&v.name)?;
+          Ok(value)
         }).transpose()?;
         Ok(Decl::VarDecl(exports, name, value))
       }

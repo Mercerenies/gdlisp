@@ -12,6 +12,8 @@
 use super::expr::Expr;
 use super::literal::Literal;
 use crate::compile::error::Error;
+use crate::gdscript::expr::{Expr as GDExpr};
+use crate::gdscript::op;
 use crate::sxp::ast::AST;
 
 pub trait MaybeConstant {
@@ -96,6 +98,44 @@ impl MaybeConstant for Expr {
       Expr::Assign(_, _) | Expr::FieldAccess(_, _) | Expr::MethodCall(_, _, _) | Expr::LambdaClass(_) |
       Expr::Yield(_) | Expr::Return(_) => {
         false
+      }
+    }
+  }
+}
+
+impl MaybeConstant for GDExpr {
+  fn is_allowable_const(&self) -> bool {
+    match self {
+      GDExpr::Var(_) => {
+        false // TODO Better?
+      }
+      GDExpr::Literal(_) => {
+        true
+      }
+      GDExpr::Subscript(a, b) => {
+        a.is_allowable_const() && b.is_allowable_const()
+      }
+      GDExpr::Attribute(_, _) => {
+        false // I know, but Godot seems to disallow this one on principle
+      }
+      GDExpr::Call(_, _, _) | GDExpr::SuperCall(_, _) => {
+        false
+      }
+      GDExpr::Unary(_, a) => {
+        a.is_allowable_const()
+      }
+      GDExpr::Binary(a, op, b) => {
+        // So casts don't seem to be considered const in GDScript...
+        a.is_allowable_const() && b.is_allowable_const() && *op != op::BinaryOp::Cast
+      }
+      GDExpr::TernaryIf(t) => {
+        t.true_case.is_allowable_const() && t.cond.is_allowable_const() && t.false_case.is_allowable_const()
+      }
+      GDExpr::ArrayLit(arr) => {
+        arr.iter().all(GDExpr::is_allowable_const)
+      }
+      GDExpr::DictionaryLit(arr) => {
+        arr.iter().all(|(k, v)| k.is_allowable_const() && v.is_allowable_const())
       }
     }
   }
