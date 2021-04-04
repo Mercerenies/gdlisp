@@ -106,6 +106,7 @@ pub struct DeclareDecl {
 pub enum DeclareType {
   Value,
   Function(ArgList),
+  Superglobal,
 }
 
 // TODO This is a bit confusing, since "export" is used in GDLisp to
@@ -296,7 +297,7 @@ impl DeclareType {
 
   pub fn namespace(&self) -> Namespace {
     match self {
-      DeclareType::Value => Namespace::Value,
+      DeclareType::Value | DeclareType::Superglobal => Namespace::Value,
       DeclareType::Function(_) => Namespace::Function,
     }
   }

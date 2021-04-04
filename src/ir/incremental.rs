@@ -310,7 +310,7 @@ impl IncCompiler {
               return Err(PError::from(Error::InvalidDecl(decl.clone())));
             }
             match vec[1] {
-              AST::Symbol(value) if value == "value" => {
+              AST::Symbol(value) if value == "value" || value == "superglobal" => {
                 if vec.len() > 3 {
                   return Err(PError::from(Error::InvalidDecl(decl.clone())));
                 }
@@ -319,7 +319,7 @@ impl IncCompiler {
                   _ => return Err(PError::from(Error::InvalidDecl(decl.clone()))),
                 };
                 let declare = decl::DeclareDecl {
-                  declare_type: decl::DeclareType::Value,
+                  declare_type: if value == "superglobal" { decl::DeclareType::Superglobal } else { decl::DeclareType::Value },
                   name
                 };
                 Ok(Decl::DeclareDecl(declare))

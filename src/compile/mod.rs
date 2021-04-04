@@ -620,6 +620,11 @@ impl<'a> Compiler<'a> {
             let var = LocalVar::global(names::lisp_to_gd(name));
             table.set_var(name.clone(), var);
           }
+          ir::decl::DeclareType::Superglobal => {
+            let var = LocalVar::global(names::lisp_to_gd(name))
+              .with_hint(ValueHint::Superglobal);
+            table.set_var(name.clone(), var);
+          }
           ir::decl::DeclareType::Function(args) => {
             let func = function_call::FnCall::unqualified(
               function_call::FnSpecs::from(args.to_owned()),

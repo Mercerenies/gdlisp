@@ -23,6 +23,7 @@ pub enum ValueHint {
   ClassName,
   Literal(Literal),
   Enum(Vec<String>),
+  Superglobal, // Currently, superglobal is only used if explicitly requested with sys/declare
 }
 
 impl LocalVar {
