@@ -151,3 +151,24 @@ pub fn lambda_class_running_test_6() {
   let output = parse_and_run("((let ((x (let ((y 99)) (new (Reference 1) (defvar z) (defn _init (z) (setq self:z z)) (defn foo () (+ self:z y)))))) (print (x:foo))))");
   assert_eq!(output, "\n100\n");
 }
+
+#[test]
+#[ignore]
+pub fn lambda_class_access_static_fn_test_1() {
+  let output = parse_and_run("((defn foo () 100) (let ((x (new Reference (defn test () (foo))))) (print (x:test))))");
+  assert_eq!(output, "\n100\n");
+}
+
+#[test]
+#[ignore]
+pub fn lambda_class_access_static_fn_test_2() {
+  let output = parse_and_run("((defn foo () 100) (let ((x (new Reference (defn test () static (foo))))) (print (x:test))))");
+  assert_eq!(output, "\n100\n");
+}
+
+#[test]
+#[ignore]
+pub fn lambda_class_access_static_fn_test_3() {
+  let output = parse_and_run("((defn foo () 100) (let ((x (new Reference (defvar x) (defn _init () (setq self:x (foo)))))) (print x:x)))");
+  assert_eq!(output, "\n100\n");
+}
