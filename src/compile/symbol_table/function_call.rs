@@ -6,12 +6,13 @@ use crate::compile::error::Error;
 use crate::compile::body::builder::StmtBuilder;
 use crate::compile::stateful::StExpr;
 use super::call_magic::{CallMagic, DefaultCall};
+use super::local_var::VarName;
 use super::SymbolTable;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct FnCall {
   pub scope: FnScope,
-  pub object: Option<Box<Expr>>,
+  pub object: Option<Box<Expr>>, ///// Replace this with FnName (not Option<...>; the FnName handles the option part)
   pub function: String,
   pub specs: FnSpecs,
 }
@@ -42,6 +43,21 @@ pub enum FnScope {
   // is the worst case scenario, as we can make no assumptions about
   // the scoping of this function.
   SpecialLocal(String),
+}
+
+// Like local_var::VarName, this will eventually translate into an
+// expression (or possibly a lack thereof) and consists of all of the
+// expressions which denote valid function "name" translations.
+#[derive(PartialEq, Eq, Clone, Debug)]
+pub enum FnName {
+  // A static function local to the file and defined at the top-level.
+  FileConstant,
+  // A superglobal name, such as built-in GDScript functions.
+  Superglobal,
+  // A file-level function defined in another file and imported.
+  ImportedConstant(Box<VarName>),
+  // A file-level function defined in the current file but being referenced from an inner case (see Issue #30).
+  FileConstantQualified(String)
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -118,6 +134,41 @@ impl FnScope {
     match self {
       FnScope::Local(name) | FnScope::SpecialLocal(name) => Some(name),
       FnScope::Superglobal | FnScope::Global | FnScope::SemiGlobal => None,
+    }
+  }
+
+}
+
+impl FnName {
+
+  pub fn imported_constant(orig_name: VarName) -> FnName {
+    FnName::ImportedConstant(Box::new(orig_name))
+  }
+
+  pub fn file_constant_qualified(filename: &str) -> FnName {
+    FnName::FileConstantQualified(String::from(filename))
+  }
+
+}
+
+impl From<VarName> for FnName {
+  fn from(var_name: VarName) -> FnName {
+    FnName::imported_constant(var_name)
+  }
+}
+
+// Note: An Option here does NOT denote failure to convert. FnName can
+// be converted to an Option<Expr>, in the sense that "there is no
+// expression here" is a completely valid result of conversion and
+// indicates a function call which is not subscripted on a name.
+impl From<FnName> for Option<Expr> {
+
+  fn from(fn_name: FnName) -> Option<Expr> {
+    match fn_name {
+      FnName::FileConstant => None,
+      FnName::Superglobal => None,
+      FnName::ImportedConstant(var_name) => Some(Expr::from(*var_name)),
+      FnName::FileConstantQualified(s) => Some(Expr::from(VarName::CurrentFile(s))),
     }
   }
 
