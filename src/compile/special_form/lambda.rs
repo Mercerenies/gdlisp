@@ -20,6 +20,7 @@ use crate::gdscript::op;
 use crate::gdscript::arglist::ArgList;
 use crate::gdscript::library;
 use crate::pipeline::Pipeline;
+use crate::pipeline::can_load::CanLoad;
 
 use std::convert::TryInto;
 use std::borrow::Borrow;
@@ -191,7 +192,7 @@ pub fn compile_labels_scc<'a>(compiler: &mut Compiler<'a>,
 
   let mut lambda_table = SymbolTable::new();
   locally_bind_vars(compiler, table, &mut lambda_table, closure_vars.names())?;
-  locally_bind_fns(compiler, table, &mut lambda_table, closure_fns.names())?;
+  locally_bind_fns(compiler, pipeline, table, &mut lambda_table, closure_fns.names(), false)?;
   copy_global_vars(table, &mut lambda_table);
 
   let mut gd_src_closure_vars = Vec::new();
@@ -330,24 +331,28 @@ where I : Iterator<Item=&'a U>,
   Ok(())
 }
 
-pub fn locally_bind_fns<'a, 'b, I, U>(_compiler: &mut Compiler<'b>,
-                                      table: &SymbolTable,
-                                      lambda_table: &mut SymbolTable,
-                                      closure_fns: I)
-                                      -> Result<(), Error>
+pub fn locally_bind_fns<'a, 'b, I, U, L>(_compiler: &mut Compiler<'b>,
+                                         pipeline: &L,
+                                         table: &SymbolTable,
+                                         lambda_table: &mut SymbolTable,
+                                         closure_fns: I,
+                                         _static_binding: bool)
+                                         -> Result<(), Error>
 where I : Iterator<Item=&'a U>,
       U : Borrow<str>,
-      U : 'a {
+      U : 'a,
+      L : CanLoad {
   for func in closure_fns {
     // Ensure the function actually exists
     match table.get_fn(func.borrow()) {
       None => { return Err(Error::NoSuchFn(func.borrow().to_owned())) }
       Some((call, magic)) => {
-        match call.scope {
-          FnScope::SpecialLocal(_) | FnScope::Local(_) | FnScope::SemiGlobal | FnScope::Global | FnScope::Superglobal => {
-            lambda_table.set_fn(func.borrow().to_owned(), call.clone(), dyn_clone::clone_box(magic));
-          }
+        let mut call = call.clone();
+        if call.object == FnName::FileConstant {
+          ///// Do something more efficient if non-static
+          call.object = FnName::inner_static_load(pipeline)
         }
+        lambda_table.set_fn(func.borrow().to_owned(), call, dyn_clone::clone_box(magic));
       }
     };
   }
@@ -399,7 +404,7 @@ pub fn compile_lambda_stmt<'a>(compiler: &mut Compiler<'a>,
   purge_globals(&mut closure_vars, table);
 
   locally_bind_vars(compiler, table, &mut lambda_table, closure_vars.names())?;
-  locally_bind_fns(compiler, table, &mut lambda_table, closure_fns.names())?;
+  locally_bind_fns(compiler, pipeline, table, &mut lambda_table, closure_fns.names(), false)?;
   copy_global_vars(table, &mut lambda_table);
 
   let mut gd_src_closure_vars = Vec::new();

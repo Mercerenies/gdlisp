@@ -82,7 +82,7 @@ class _Labels_2 extends Reference:
     func _init():
         pass
     func _fn_f_4(x_5):
-        return _fn_f_4(_flet_0(x_5))
+        return _fn_f_4(load("res://TEST.gd")._flet_0(x_5))
 "#);
 }
 

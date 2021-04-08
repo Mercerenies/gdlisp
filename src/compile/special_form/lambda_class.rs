@@ -41,10 +41,18 @@ pub fn compile_lambda_class<'a>(compiler: &mut Compiler<'a>,
 
   let mut lambda_table = SymbolTable::new();
 
+  let mut lambda_static_table = lambda_table.clone();
+  lambda_table.set_var(String::from("self"), LocalVar::self_var());
+
   lambda::purge_globals(&mut closure_vars, table);
+
   lambda::locally_bind_vars(compiler, table, &mut lambda_table, closure_vars.names())?;
-  lambda::locally_bind_fns(compiler, table, &mut lambda_table, closure_fns.names())?;
+  lambda::locally_bind_fns(compiler, pipeline, table, &mut lambda_table, closure_fns.names(), false)?;
   lambda::copy_global_vars(table, &mut lambda_table);
+
+  lambda::locally_bind_vars(compiler, table, &mut lambda_static_table, closure_vars.names())?;
+  lambda::locally_bind_fns(compiler, pipeline, table, &mut lambda_static_table, closure_fns.names(), true)?;
+  lambda::copy_global_vars(table, &mut lambda_static_table);
 
   let mut gd_src_closure_vars = Vec::new();
   let mut gd_closure_vars = Vec::new();
@@ -73,9 +81,6 @@ pub fn compile_lambda_class<'a>(compiler: &mut Compiler<'a>,
       }
     }
   }
-
-  let mut lambda_static_table = lambda_table.clone();
-  lambda_table.set_var(String::from("self"), LocalVar::self_var());
 
   let mut constructor = compiler.compile_constructor(pipeline, builder, &mut lambda_table, &constructor)?;
   let original_args = constructor.args.args;

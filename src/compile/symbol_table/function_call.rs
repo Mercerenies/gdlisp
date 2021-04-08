@@ -5,6 +5,7 @@ use crate::compile::Compiler;
 use crate::compile::error::Error;
 use crate::compile::body::builder::StmtBuilder;
 use crate::compile::stateful::StExpr;
+use crate::pipeline::can_load::CanLoad;
 use super::call_magic::{CallMagic, DefaultCall};
 use super::local_var::VarName;
 use super::SymbolTable;
@@ -181,6 +182,14 @@ impl FnName {
         FnName::MacroCall(m)
       }
     }
+  }
+
+  // This is to get around Issue #30. A nested inner class cannot
+  // access the enclosing static scope, so we need to provide a means
+  // to get the outer scope.
+  pub fn inner_static_load(loader: &impl CanLoad) -> FnName {
+    let fname = loader.current_filename().expect("Cannot identify currently-loading filename");
+    FnName::on_local_var(VarName::CurrentFile(fname.to_string()))
   }
 
 }

@@ -43,6 +43,17 @@ fn modifying_closure_inside_lambda_test() {
 }
 
 #[test]
+#[ignore]
+fn lambda_access_outer_function_test() {
+  let output = parse_and_run(r#"
+  ((defn foo () 100)
+   (let ((f (lambda () (foo))))
+     (print (funcall f))))
+  "#);
+  assert_eq!(output, "\n100\n");
+}
+
+#[test]
 pub fn basic_lambda_test() {
 
   let result0 = parse_compile_and_output_h("(lambda ())");

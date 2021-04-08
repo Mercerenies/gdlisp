@@ -87,7 +87,7 @@ pub fn dump_files<T>(dir: &mut TempDir, data: &T) -> io::Result<()>
 where T : IntoGDFile + ?Sized {
 
   // The target file itself
-  let mut target_file = File::create(dir.path().join("target.gd"))?;
+  let mut target_file = File::create(dir.path().join("TEST.gd"))?;
   data.write_to_gd(&mut target_file)?;
 
   // The runner shim
@@ -105,7 +105,7 @@ script = ExtResource( 1 )
 extends Node
 
 func _ready():
-    var file = load("res://target.gd")
+    var file = load("res://TEST.gd")
     print("{}")
     file.run()
     get_tree().quit()
