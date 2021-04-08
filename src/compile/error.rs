@@ -39,6 +39,7 @@ pub enum Error {
   InvalidImportOnResource(String),
   GodotServerError(response::Failure),
   StaticConstructor,
+  StaticMethodOnLambdaClass(String),
 }
 
 impl fmt::Display for Error {
@@ -112,6 +113,9 @@ impl fmt::Display for Error {
       }
       Error::StaticConstructor => {
         write!(f, "Class constructors cannot be static")
+      }
+      Error::StaticMethodOnLambdaClass(s) => {
+        write!(f, "Static method {} is not allowed on anonymous class instance", s)
       }
     }
   }

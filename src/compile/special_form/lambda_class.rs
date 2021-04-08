@@ -1,4 +1,5 @@
 
+use crate::ir;
 use crate::ir::expr::LambdaClass;
 use crate::compile::error::Error;
 use crate::compile::Compiler;
@@ -96,8 +97,17 @@ pub fn compile_lambda_class<'a>(compiler: &mut Compiler<'a>,
     class_body.push(Decl::VarDecl(None, name.clone(), None));
   }
   for d in &decls {
+
+    if let ir::decl::ClassInnerDecl::ClassFnDecl(fndecl) = d {
+      if fndecl.is_static.into() {
+        // Static methods are not allowed on lambda classes
+        return Err(Error::StaticMethodOnLambdaClass(fndecl.name.clone()));
+      }
+    }
+
     let tables = ClassTablePair { instance_table: &mut lambda_table, static_table: &mut lambda_static_table };
     class_body.push(compiler.compile_class_inner_decl(pipeline, builder, tables, d)?);
+
   }
   let class = decl::ClassDecl {
     name: gd_class_name.clone(),

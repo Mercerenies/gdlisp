@@ -113,9 +113,9 @@ static func run():
 
 #[test]
 #[should_panic]
-pub fn bad_self_static_ref_lambda_class_test() {
-  // Can't reference self from static context
-  parse_compile_and_output("(new (Node) (defn get-self () static self))");
+pub fn bad_static_in_lambda_class_test() {
+  // Can't define static methods in lambda classes
+  parse_compile_and_output("(new (Node) (defn example () static 1))");
 }
 
 #[test]
@@ -187,13 +187,6 @@ pub fn lambda_class_access_static_fn_test_1() {
 #[test]
 #[ignore]
 pub fn lambda_class_access_static_fn_test_2() {
-  let output = parse_and_run("((defn foo () 100) (let ((x (new Reference (defn test () static (foo))))) (print (x:test))))");
-  assert_eq!(output, "\n100\n");
-}
-
-#[test]
-#[ignore]
-pub fn lambda_class_access_static_fn_test_3() {
   let output = parse_and_run("((defn foo () 100) (let ((x (new Reference (defvar x) (defn _init () (setq self:x (foo)))))) (print x:x)))");
   assert_eq!(output, "\n100\n");
 }
