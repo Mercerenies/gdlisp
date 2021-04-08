@@ -9,6 +9,34 @@ fn simple_labels_test_1() {
 }
 
 #[test]
+#[ignore]
+fn labels_test_outer_scope_static_1() {
+  let output = parse_and_run("((defn foo (x) (+ x 10)) (labels ((f (x) (if #f (f x) (foo x)))) (print (f 1))))");
+  assert_eq!(output, "\n11\n");
+}
+
+#[test]
+#[ignore]
+fn labels_test_outer_scope_static_2() {
+  let output = parse_and_run("((defn foo (x) (+ x 10)) (labels ((f (x) (if #f (f x) (foo x)))) (print (funcall #'f 1))))");
+  assert_eq!(output, "\n11\n");
+}
+
+#[test]
+#[ignore]
+fn labels_test_outer_scope_static_3() {
+  let output = parse_and_run("((defn foo (x y) (+ x y)) (let ((y 1)) (labels ((f (x) (foo x y))) (print (f 5)))))");
+  assert_eq!(output, "\n6\n");
+}
+
+#[test]
+#[ignore]
+fn labels_test_outer_scope_static_4() {
+  let output = parse_and_run("((defn foo (x y) (+ x y)) (let ((y 1)) (labels ((f (x) (foo x y))) (print (funcall #'f 5)))))");
+  assert_eq!(output, "\n6\n");
+}
+
+#[test]
 pub fn semiglobal_labels_test() {
 
   let result0 = parse_compile_and_output_h("(labels ((f (x) (+ x 1))) (f 10))");
