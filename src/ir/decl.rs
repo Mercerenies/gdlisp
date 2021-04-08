@@ -291,6 +291,14 @@ impl ClassInnerDecl {
     }
   }
 
+  pub fn is_static(&self) -> bool {
+    match self {
+      ClassInnerDecl::ClassSignalDecl(_) | ClassInnerDecl::ClassVarDecl(_) => false,
+      ClassInnerDecl::ClassConstDecl(_) => true,
+      ClassInnerDecl::ClassFnDecl(decl) => decl.is_static.into(),
+    }
+  }
+
 }
 
 impl DeclareType {
