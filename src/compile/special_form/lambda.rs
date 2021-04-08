@@ -471,7 +471,8 @@ pub fn compile_function_ref<'a>(compiler: &mut Compiler<'a>,
     }).collect();
 
     // TODO This into().map(Box::new) pattern needs to be written into FnName itself
-    let object: Option<Expr> = func.object.into();
+    let object = if func.object == FnName::FileConstant { FnName::inner_static_load(pipeline) } else { func.object };
+    let object: Option<Expr> = object.into();
     let body = Stmt::ReturnStmt(
       Expr::Call(object.map(Box::new), func.function, arg_names.into_iter().map(Expr::Var).collect())
     );

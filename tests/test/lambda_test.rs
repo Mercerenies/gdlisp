@@ -54,6 +54,17 @@ fn lambda_access_outer_function_test() {
 }
 
 #[test]
+#[ignore]
+fn simple_function_ref_run_test() {
+  let output = parse_and_run(r#"
+  ((defn foo () 100)
+   (let ((f #'foo))
+     (print (funcall f))))
+  "#);
+  assert_eq!(output, "\n100\n");
+}
+
+#[test]
 pub fn basic_lambda_test() {
 
   let result0 = parse_compile_and_output_h("(lambda ())");
