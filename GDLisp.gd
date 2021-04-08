@@ -464,6 +464,12 @@ enum MIDIMessage {
 func _init():
     global_name_generator = FreshNameGenerator.new([])
 
+func cons(a, b):
+    return Cons.new(a, b)
+
+func intern(a):
+    return Symbol.new(a)
+
 func length(x):
     var result = 0
     while x is Cons:

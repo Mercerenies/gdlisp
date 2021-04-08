@@ -442,9 +442,9 @@ pub fn method_test() {
 
 #[test]
 pub fn simple_builtin_test() {
-  assert_eq!(parse_compile_and_output("(cons 1 2)"), "return GDLisp.Cons.new(1, 2)\n");
-  assert_eq!(parse_compile_and_output("(cons 1 (cons 2 3))"), "return GDLisp.Cons.new(1, GDLisp.Cons.new(2, 3))\n");
-  assert_eq!(parse_compile_and_output("(intern 10)"), "return GDLisp.Symbol.new(10)\n");
+  assert_eq!(parse_compile_and_output("(cons 1 2)"), "return GDLisp.cons(1, 2)\n");
+  assert_eq!(parse_compile_and_output("(cons 1 (cons 2 3))"), "return GDLisp.cons(1, GDLisp.cons(2, 3))\n");
+  assert_eq!(parse_compile_and_output("(intern 10)"), "return GDLisp.intern(10)\n");
 }
 
 #[test]

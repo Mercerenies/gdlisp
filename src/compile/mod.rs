@@ -117,7 +117,7 @@ impl<'a> Compiler<'a> {
           IRLiteral::Bool(b) => Ok(StExpr(Expr::from(*b), SideEffects::None)),
           IRLiteral::String(s) => Ok(StExpr(Expr::from(s.to_owned()), SideEffects::None)),
           IRLiteral::Symbol(s) =>
-            Ok(StExpr(Expr::Call(Some(Box::new(library::symbol_class())), String::from("new"), vec!(s.reify())),
+            Ok(StExpr(Expr::Call(Some(Box::new(library::gdlisp_root())), String::from("intern"), vec!(s.reify())),
                       SideEffects::None)),
         }
       }
@@ -561,7 +561,7 @@ impl<'a> Compiler<'a> {
                -> Result<(), Error> {
     match decl {
       IRDecl::FnDecl(ir::decl::FnDecl { name, args, body: _ }) => {
-        let func = function_call::FnCall::unqualified(
+        let func = function_call::FnCall::file_constant(
           function_call::FnSpecs::from(args.to_owned()),
           function_call::FnScope::Global,
           names::lisp_to_gd(name)
@@ -572,7 +572,7 @@ impl<'a> Compiler<'a> {
         // As above, macros compile basically the same as functions in
         // terms of call semantics and should be resolved during the
         // IR stage.
-        let func = function_call::FnCall::unqualified(
+        let func = function_call::FnCall::file_constant(
           function_call::FnSpecs::from(args.to_owned()),
           function_call::FnScope::Global,
           names::lisp_to_gd(name)
@@ -619,13 +619,13 @@ impl<'a> Compiler<'a> {
             table.set_var(name.clone(), var);
           }
           ir::decl::DeclareType::Function(args) => {
-            let func = function_call::FnCall::unqualified(
+            let func = function_call::FnCall::file_constant(
               function_call::FnSpecs::from(args.to_owned()),
               function_call::FnScope::Global,
               names::lisp_to_gd(name)
             );
             table.set_fn(name.clone(), func, Box::new(DefaultCall));
-          }
+          } // TODO Superglobal function declare capability
         }
       }
     };
@@ -660,45 +660,9 @@ impl<'a> Compiler<'a> {
     self.gen.generate_with(&prefix)
   }
 
-  fn insert_object_into_call(import_name: String, object: Expr) -> Expr {
-    // This is really just a hacky approximation. I'm not sure this
-    // function even makes total sense in the general case, if given
-    // inputs not of the form we expect.
-    match object {
-      Expr::Var(s) => {
-        Expr::Attribute(Box::new(Expr::Var(import_name)), s)
-      }
-      Expr::Attribute(inner, s) => {
-        let inner = Compiler::insert_object_into_call(import_name, *inner);
-        Expr::Attribute(Box::new(inner), s)
-      }
-      Expr::Subscript(inner, rhs) => {
-        // Can this case even happen? WHEN would this case even happen?
-        let inner = Compiler::insert_object_into_call(import_name, *inner);
-        Expr::Subscript(Box::new(inner), rhs)
-      }
-      _ => {
-        // WTF? What do we do here?
-        //
-        // TODO Make a real error for this and return Result<...> (or
-        // restrict what FnCall can contain to be not all Expr but
-        // some other simpler type with an Into<Expr>)
-        panic!("Invalid import")
-      }
-    }
-  }
-
-  fn translate_call(import_name: String, call: function_call::FnCall) -> function_call::FnCall {
-    let object = match call.object {
-      None => Expr::Var(import_name),
-      Some(x) => Compiler::insert_object_into_call(import_name, *x),
-    };
-    function_call::FnCall {
-      scope: call.scope,
-      object: Some(Box::new(object)),
-      function: call.function,
-      specs: call.specs,
-    }
+  fn translate_call(import_name: String, mut call: function_call::FnCall) -> function_call::FnCall {
+    call.object = call.object.into_imported(import_name);
+    call
   }
 
   pub fn resolve_import(&mut self,
@@ -801,9 +765,9 @@ mod tests {
   fn bind_helper_symbols(table: &mut SymbolTable) {
     // Binds a few helper names to the symbol table for the sake of
     // debugging.
-    table.set_fn(String::from("foo1"), FnCall::unqualified(FnSpecs::new(1, 0, None), FnScope::Global, String::from("foo1")), Box::new(DefaultCall));
-    table.set_fn(String::from("foo"), FnCall::unqualified(FnSpecs::new(0, 0, None), FnScope::Global, String::from("foo")), Box::new(DefaultCall));
-    table.set_fn(String::from("bar"), FnCall::unqualified(FnSpecs::new(0, 0, None), FnScope::Global, String::from("bar")), Box::new(DefaultCall));
+    table.set_fn(String::from("foo1"), FnCall::file_constant(FnSpecs::new(1, 0, None), FnScope::Global, String::from("foo1")), Box::new(DefaultCall));
+    table.set_fn(String::from("foo"), FnCall::file_constant(FnSpecs::new(0, 0, None), FnScope::Global, String::from("foo")), Box::new(DefaultCall));
+    table.set_fn(String::from("bar"), FnCall::file_constant(FnSpecs::new(0, 0, None), FnScope::Global, String::from("bar")), Box::new(DefaultCall));
     table.set_var(String::from("foobar"), LocalVar::read(String::from("foobar")));
   }
 

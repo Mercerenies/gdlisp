@@ -6,8 +6,8 @@ use crate::ir::arglist::VarArg;
 use crate::compile::{Compiler, StExpr};
 use crate::compile::body::builder::StmtBuilder;
 use crate::compile::symbol_table::SymbolTable;
-use crate::compile::symbol_table::local_var::{LocalVar, VarScope};
-use crate::compile::symbol_table::function_call::{FnCall, FnSpecs, FnScope};
+use crate::compile::symbol_table::local_var::{LocalVar, VarScope, VarName};
+use crate::compile::symbol_table::function_call::{FnCall, FnSpecs, FnScope, FnName};
 use crate::compile::symbol_table::call_magic::DefaultCall;
 use crate::compile::stmt_wrapper;
 use crate::compile::error::Error;
@@ -230,7 +230,7 @@ pub fn compile_labels_scc<'a>(compiler: &mut Compiler<'a>,
     let func_name = compiler.name_generator().generate_with(&name_prefix);
     lambda_table.set_fn(name.to_owned(), FnCall {
       scope: FnScope::SpecialLocal(local_var_name.clone()),
-      object: None,
+      object: FnName::OnLocalScope,
       function: func_name.clone(),
       specs: FnSpecs::from(args.to_owned()),
     }, Box::new(DefaultCall));
@@ -257,7 +257,7 @@ pub fn compile_labels_scc<'a>(compiler: &mut Compiler<'a>,
     };
     let call = FnCall {
       scope: FnScope::SpecialLocal(local_var_name.clone()),
-      object: Some(Box::new(Expr::Var(local_var_name.clone()))),
+      object: FnName::on_local_var(VarName::local(&local_var_name)),
       function: func_name,
       specs: FnSpecs::from(args.to_owned()),
     };
@@ -465,8 +465,10 @@ pub fn compile_function_ref<'a>(compiler: &mut Compiler<'a>,
       Expr::var(name)
     }).collect();
 
+    // TODO This into().map(Box::new) pattern needs to be written into FnName itself
+    let object: Option<Expr> = func.object.into();
     let body = Stmt::ReturnStmt(
-      Expr::Call(func.object, func.function, arg_names.into_iter().map(Expr::Var).collect())
+      Expr::Call(object.map(Box::new), func.function, arg_names.into_iter().map(Expr::Var).collect())
     );
     let class = generate_lambda_class(compiler, pipeline, specs, arglist, &closure_vars[..], vec!(body), "_FunctionRefBlock");
     let class_name = class.name.clone();

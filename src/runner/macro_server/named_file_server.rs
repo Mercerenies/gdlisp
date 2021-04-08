@@ -3,7 +3,7 @@ use crate::sxp::ast::AST;
 use crate::runner::macro_server::lazy::LazyServer;
 use crate::compile::names;
 use crate::compile::names::fresh::FreshNameGenerator;
-use crate::compile::symbol_table::function_call::{FnCall, FnScope, FnSpecs};
+use crate::compile::symbol_table::function_call::{FnCall, FnScope, FnSpecs, FnName};
 use crate::compile::symbol_table::call_magic::compile_default_call;
 use crate::gdscript::expr::{Expr as GDExpr};
 use crate::ir::arglist::ArgList;
@@ -85,7 +85,7 @@ impl NamedFileServer {
       );
     let call = FnCall {
       scope: FnScope::Global,
-      object: Some(Box::new(call_object)),
+      object: FnName::MacroCall(Box::new(call_object)),
       function: call.name.to_owned(),
       specs: specs,
     };

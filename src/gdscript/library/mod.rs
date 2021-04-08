@@ -39,6 +39,12 @@ fn toplevel_enum(name: &str, values: &[&str]) -> LocalVar {
   var
 }
 
+fn gdlisp_function(name: &str, specs: FnSpecs) -> FnCall {
+  let mut func = FnCall::file_constant(specs, FnScope::Global, String::from(name));
+  func.object = func.object.into_imported(GDLISP_NAME.to_owned());
+  func
+}
+
 pub fn nil() -> Expr {
   Expr::null()
 }
@@ -82,27 +88,27 @@ pub fn bind_builtins(table: &mut SymbolTable) {
 
   // Cons
   table.set_fn("cons".to_owned(),
-               FnCall::qualified(FnSpecs::new(2, 0, None), FnScope::Global, cons_class(), "new".to_owned()),
+               gdlisp_function("cons", FnSpecs::new(2, 0, None)),
                Box::new(call_magic::DefaultCall));
 
   // intern
   table.set_fn("intern".to_owned(),
-               FnCall::qualified(FnSpecs::new(1, 0, None), FnScope::Global, symbol_class(), "new".to_owned()),
+               gdlisp_function("intern", FnSpecs::new(1, 0, None)),
                Box::new(call_magic::DefaultCall));
 
   // Length
   table.set_fn("length".to_owned(),
-               FnCall::qualified(FnSpecs::new(1, 0, None), FnScope::Global, gdlisp_root(), "length".to_owned()),
+               gdlisp_function("length", FnSpecs::new(1, 0, None)),
                Box::new(call_magic::DefaultCall));
 
   // Funcall
   table.set_fn("funcall".to_owned(),
-               FnCall::qualified(FnSpecs::new(1, 0, Some(VarArg::RestArg)), FnScope::Global, gdlisp_root(), "funcall".to_owned()),
+               gdlisp_function("funcall", FnSpecs::new(1, 0, Some(VarArg::RestArg))),
                Box::new(call_magic::DefaultCall));
 
   // + (Addition)
   table.set_fn("+".to_owned(),
-               FnCall::qualified(FnSpecs::new(0, 0, Some(VarArg::RestArg)), FnScope::Global, gdlisp_root(), "plus".to_owned()),
+               gdlisp_function("plus", FnSpecs::new(0, 0, Some(VarArg::RestArg))),
                Box::new(
                  call_magic::CompileToBinOp {
                    zero: Expr::from(0),
@@ -112,7 +118,7 @@ pub fn bind_builtins(table: &mut SymbolTable) {
 
   // * (Multiplication)
   table.set_fn("*".to_owned(),
-               FnCall::qualified(FnSpecs::new(0, 0, Some(VarArg::RestArg)), FnScope::Global, gdlisp_root(), "times".to_owned()),
+               gdlisp_function("times", FnSpecs::new(0, 0, Some(VarArg::RestArg))),
                Box::new(
                  call_magic::CompileToBinOp {
                    zero: Expr::from(1),
@@ -122,171 +128,171 @@ pub fn bind_builtins(table: &mut SymbolTable) {
 
   // - (Subtraction)
   table.set_fn("-".to_owned(),
-               FnCall::qualified(FnSpecs::new(1, 0, Some(VarArg::RestArg)), FnScope::Global, gdlisp_root(), "minus".to_owned()),
+               gdlisp_function("minus", FnSpecs::new(1, 0, Some(VarArg::RestArg))),
                Box::new(call_magic::MinusOperation));
 
   // / (Division)
   table.set_fn("/".to_owned(),
-               FnCall::qualified(FnSpecs::new(1, 0, Some(VarArg::RestArg)), FnScope::Global, gdlisp_root(), "div".to_owned()),
+               gdlisp_function("div", FnSpecs::new(1, 0, Some(VarArg::RestArg))),
                Box::new(call_magic::DivOperation));
 
   // div (Integer Division)
   table.set_fn("div".to_owned(),
-               FnCall::qualified(FnSpecs::new(1, 0, Some(VarArg::RestArg)), FnScope::Global, gdlisp_root(), "intdiv".to_owned()),
+               gdlisp_function("intdiv", FnSpecs::new(1, 0, Some(VarArg::RestArg))),
                Box::new(call_magic::IntDivOperation));
 
   // TODO Unify mod and fmod somehow
 
   // mod (Modulo)
   table.set_fn("mod".to_owned(),
-               FnCall::qualified(FnSpecs::new(2, 0, None), FnScope::Global, gdlisp_root(), "mod".to_owned()),
+               gdlisp_function("mod", FnSpecs::new(2, 0, None)),
                Box::new(call_magic::ModOperation));
 
   // fmod (Modulo)
   table.set_fn("fmod".to_owned(),
-               FnCall::unqualified(FnSpecs::new(2, 0, None), FnScope::Superglobal, "fmod".to_owned()),
+               FnCall::superglobal(FnSpecs::new(2, 0, None), FnScope::Superglobal, "fmod".to_owned()),
                Box::new(call_magic::DefaultCall));
 
   // = (Equality)
   table.set_fn("=".to_owned(),
-               FnCall::qualified(FnSpecs::new(1, 0, Some(VarArg::RestArg)), FnScope::Global, gdlisp_root(), "eq".to_owned()),
+               gdlisp_function("eq", FnSpecs::new(1, 0, Some(VarArg::RestArg))),
                Box::new(call_magic::CompileToTransCmp { bin: op::BinaryOp::Eq }));
 
   // < (Less Than)
   table.set_fn("<".to_owned(),
-               FnCall::qualified(FnSpecs::new(1, 0, Some(VarArg::RestArg)), FnScope::Global, gdlisp_root(), "lt".to_owned()),
+               gdlisp_function("lt", FnSpecs::new(1, 0, Some(VarArg::RestArg))),
                Box::new(call_magic::CompileToTransCmp { bin: op::BinaryOp::LT }));
 
   // > (Greater Than)
   table.set_fn(">".to_owned(),
-               FnCall::qualified(FnSpecs::new(1, 0, Some(VarArg::RestArg)), FnScope::Global, gdlisp_root(), "gt".to_owned()),
+               gdlisp_function("gt", FnSpecs::new(1, 0, Some(VarArg::RestArg))),
                Box::new(call_magic::CompileToTransCmp { bin: op::BinaryOp::GT }));
 
   // <= (Less Than or Equal)
   table.set_fn("<=".to_owned(),
-               FnCall::qualified(FnSpecs::new(1, 0, Some(VarArg::RestArg)), FnScope::Global, gdlisp_root(), "le".to_owned()),
+               gdlisp_function("le", FnSpecs::new(1, 0, Some(VarArg::RestArg))),
                Box::new(call_magic::CompileToTransCmp { bin: op::BinaryOp::LE }));
 
   // >= (Greater Than or Equal)
   table.set_fn(">=".to_owned(),
-               FnCall::qualified(FnSpecs::new(1, 0, Some(VarArg::RestArg)), FnScope::Global, gdlisp_root(), "ge".to_owned()),
+               gdlisp_function("ge", FnSpecs::new(1, 0, Some(VarArg::RestArg))),
                Box::new(call_magic::CompileToTransCmp { bin: op::BinaryOp::GE }));
 
   // /= (Not Equal)
   table.set_fn("/=".to_owned(),
-               FnCall::qualified(FnSpecs::new(1, 0, Some(VarArg::RestArg)), FnScope::Global, gdlisp_root(), "ne".to_owned()),
+               gdlisp_function("ne", FnSpecs::new(1, 0, Some(VarArg::RestArg))),
                Box::new(call_magic::NEqOperation { fallback: Box::new(call_magic::DefaultCall) }));
 
   // not
   table.set_fn("not".to_owned(),
-               FnCall::qualified(FnSpecs::new(1, 0, None), FnScope::Global, gdlisp_root(), "not_".to_owned()),
+               gdlisp_function("not_", FnSpecs::new(1, 0, None)),
                Box::new(call_magic::BooleanNotOperation));
 
   // list
   table.set_fn("list".to_owned(),
-               FnCall::qualified(FnSpecs::new(0, 0, Some(VarArg::RestArg)), FnScope::Global, gdlisp_root(), "list".to_owned()),
+               gdlisp_function("list", FnSpecs::new(0, 0, Some(VarArg::RestArg))),
                Box::new(call_magic::ListOperation));
 
   // vector
   table.set_fn("vector".to_owned(),
-               FnCall::qualified(FnSpecs::new(1, 1, None), FnScope::Global, gdlisp_root(), "vector".to_owned()),
+               gdlisp_function("vector", FnSpecs::new(1, 1, None)),
                Box::new(call_magic::VectorOperation));
 
   // list->array
   table.set_fn("list->array".to_owned(),
-               FnCall::qualified(FnSpecs::new(1, 0, None), FnScope::Global, gdlisp_root(), "list_to_array".to_owned()),
+               gdlisp_function("list_to_array", FnSpecs::new(1, 0, None)),
                Box::new(call_magic::DefaultCall));
 
   // array->list
   table.set_fn("array->list".to_owned(),
-               FnCall::qualified(FnSpecs::new(1, 0, None), FnScope::Global, gdlisp_root(), "array_to_list".to_owned()),
+               gdlisp_function("array_to_list", FnSpecs::new(1, 0, None)),
                Box::new(call_magic::DefaultCall));
 
   // elt (Array element)
   table.set_fn("elt".to_owned(),
-               FnCall::qualified(FnSpecs::new(2, 0, None), FnScope::Global, gdlisp_root(), "elt".to_owned()),
+               gdlisp_function("elt", FnSpecs::new(2, 0, None)),
                Box::new(call_magic::ArraySubscript));
 
   // instance? (TODO This can be a multimethod, or if we decide not to go that route then we can call-magic away some of the checks if we know we're looking at a class name)
   table.set_fn("instance?".to_owned(),
-               FnCall::qualified(FnSpecs::new(2, 0, None), FnScope::Global, gdlisp_root(), "istype".to_owned()),
+               gdlisp_function("istype", FnSpecs::new(2, 0, None)),
                Box::new(call_magic::DefaultCall));
 
   // sys/instance-direct? (Always uses `is` directly; should be primitive and magicked away)
   table.set_fn("sys/instance-direct?".to_owned(),
-               FnCall::qualified(FnSpecs::new(2, 0, None), FnScope::Global, gdlisp_root(), "istype_direct".to_owned()),
+               gdlisp_function("istype_direct", FnSpecs::new(2, 0, None)),
                Box::new(call_magic::InstanceOf));
 
   // gensym
   table.set_fn("gensym".to_owned(),
-               FnCall::qualified(FnSpecs::new(0, 1, None), FnScope::Global, gdlisp_root(), "gensym".to_owned()),
+               gdlisp_function("gensym", FnSpecs::new(0, 1, None)),
                Box::new(call_magic::DefaultCall));
 
   // member? (Array has element)
   table.set_fn("member?".to_owned(),
-               FnCall::qualified(FnSpecs::new(2, 0, None), FnScope::Global, gdlisp_root(), "is_elt".to_owned()),
+               gdlisp_function("elt", FnSpecs::new(2, 0, None)),
                Box::new(call_magic::ElementOf));
 
   // ---- GDScript built-ins that we use unmodified ----
 
   table.set_fn("str".to_owned(),
-               FnCall::unqualified(FnSpecs::new(1, 0, None), FnScope::Superglobal, "str".to_owned()),
+               FnCall::superglobal(FnSpecs::new(1, 0, None), FnScope::Superglobal, "str".to_owned()),
                Box::new(call_magic::DefaultCall));
 
   table.set_fn("int".to_owned(),
-               FnCall::unqualified(FnSpecs::new(1, 0, None), FnScope::Superglobal, "int".to_owned()),
+               FnCall::superglobal(FnSpecs::new(1, 0, None), FnScope::Superglobal, "int".to_owned()),
                Box::new(call_magic::DefaultCall));
 
   table.set_fn("bool".to_owned(),
-               FnCall::unqualified(FnSpecs::new(1, 0, None), FnScope::Superglobal, "bool".to_owned()),
+               FnCall::superglobal(FnSpecs::new(1, 0, None), FnScope::Superglobal, "bool".to_owned()),
                Box::new(call_magic::DefaultCall));
 
   table.set_fn("randomize".to_owned(),
-               FnCall::unqualified(FnSpecs::new(0, 0, None), FnScope::Superglobal, "randomize".to_owned()),
+               FnCall::superglobal(FnSpecs::new(0, 0, None), FnScope::Superglobal, "randomize".to_owned()),
                Box::new(call_magic::DefaultCall));
 
   // (TODO Should we wrap this and the other random functions and make a nice interface to them?)
   table.set_fn("randi".to_owned(),
-               FnCall::unqualified(FnSpecs::new(0, 0, None), FnScope::Superglobal, "randi".to_owned()),
+               FnCall::superglobal(FnSpecs::new(0, 0, None), FnScope::Superglobal, "randi".to_owned()),
                Box::new(call_magic::DefaultCall));
 
   table.set_fn("randf".to_owned(),
-               FnCall::unqualified(FnSpecs::new(0, 0, None), FnScope::Superglobal, "randf".to_owned()),
+               FnCall::superglobal(FnSpecs::new(0, 0, None), FnScope::Superglobal, "randf".to_owned()),
                Box::new(call_magic::DefaultCall));
 
   table.set_fn("rand-range".to_owned(),
-               FnCall::unqualified(FnSpecs::new(2, 0, None), FnScope::Superglobal, "rand_range".to_owned()),
+               FnCall::superglobal(FnSpecs::new(2, 0, None), FnScope::Superglobal, "rand_range".to_owned()),
                Box::new(call_magic::DefaultCall));
 
   table.set_fn("clamp".to_owned(),
-               FnCall::unqualified(FnSpecs::new(3, 0, None), FnScope::Superglobal, "clamp".to_owned()),
+               FnCall::superglobal(FnSpecs::new(3, 0, None), FnScope::Superglobal, "clamp".to_owned()),
                Box::new(call_magic::DefaultCall));
 
   table.set_fn("abs".to_owned(),
-               FnCall::unqualified(FnSpecs::new(1, 0, None), FnScope::Superglobal, "abs".to_owned()),
+               FnCall::superglobal(FnSpecs::new(1, 0, None), FnScope::Superglobal, "abs".to_owned()),
                Box::new(call_magic::DefaultCall));
 
   // TODO Eventually we'll want this to be a multimethod which works
   // on lists as well as arrays. (And possibly elt as well?)
   table.set_fn("len".to_owned(),
-               FnCall::unqualified(FnSpecs::new(1, 0, None), FnScope::Superglobal, "len".to_owned()),
+               FnCall::superglobal(FnSpecs::new(1, 0, None), FnScope::Superglobal, "len".to_owned()),
                Box::new(call_magic::DefaultCall));
 
   // TODO Definitely want to wrap this (and all of the mouse functions) in a nice namespace or module or something.
   table.set_fn("get-global-mouse-position".to_owned(),
-               FnCall::unqualified(FnSpecs::new(0, 0, None), FnScope::Superglobal, "get_global_mouse_position".to_owned()),
+               FnCall::superglobal(FnSpecs::new(0, 0, None), FnScope::Superglobal, "get_global_mouse_position".to_owned()),
                Box::new(call_magic::DefaultCall));
 
   table.set_fn("push-error".to_owned(),
-               FnCall::unqualified(FnSpecs::new(1, 0, None), FnScope::Superglobal, "push_error".to_owned()),
+               FnCall::superglobal(FnSpecs::new(1, 0, None), FnScope::Superglobal, "push_error".to_owned()),
                Box::new(call_magic::DefaultCall));
 
   table.set_fn("push-warning".to_owned(),
-               FnCall::unqualified(FnSpecs::new(1, 0, None), FnScope::Superglobal, "push_warning".to_owned()),
+               FnCall::superglobal(FnSpecs::new(1, 0, None), FnScope::Superglobal, "push_warning".to_owned()),
                Box::new(call_magic::DefaultCall));
 
   table.set_fn("typeof".to_owned(),
-               FnCall::unqualified(FnSpecs::new(1, 0, None), FnScope::Superglobal, "typeof".to_owned()),
+               FnCall::superglobal(FnSpecs::new(1, 0, None), FnScope::Superglobal, "typeof".to_owned()),
                Box::new(call_magic::DefaultCall));
 
   table.set_var("PI".to_owned(), LocalVar::superglobal("PI".to_owned()));

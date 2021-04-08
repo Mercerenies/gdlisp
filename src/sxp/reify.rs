@@ -41,7 +41,7 @@ impl Reify for AST {
         library::nil()
       }
       AST::Cons(a, b) => {
-        Expr::Call(Some(Box::new(library::cons_class())), String::from("new"), vec!(a.reify(), b.reify()))
+        Expr::Call(Some(Box::new(library::gdlisp_root())), String::from("cons"), vec!(a.reify(), b.reify()))
       }
       AST::Array(v) => {
         Expr::ArrayLit(v.iter().map(Reify::reify).collect())
@@ -62,7 +62,7 @@ impl Reify for AST {
         s.reify()
       }
       AST::Symbol(s) => {
-        Expr::Call(Some(Box::new(library::symbol_class())), String::from("new"), vec!(s.reify()))
+        Expr::Call(Some(Box::new(library::gdlisp_root())), String::from("intern"), vec!(s.reify()))
       }
       AST::Vector2(x, y) => {
         Expr::Call(None, String::from("Vector2"), vec!(x.reify(), y.reify()))
@@ -82,11 +82,11 @@ mod tests {
   #[test]
   fn reify_test() {
     assert_eq!(AST::Nil.reify().to_gd(), "null");
-    assert_eq!(AST::cons(AST::Int(1), AST::Int(2)).reify().to_gd(), "GDLisp.Cons.new(1, 2)");
+    assert_eq!(AST::cons(AST::Int(1), AST::Int(2)).reify().to_gd(), "GDLisp.cons(1, 2)");
     assert_eq!(AST::Array(vec!(AST::Int(1), AST::Nil)).reify().to_gd(), "[1, null]");
     assert_eq!(AST::Bool(false).reify().to_gd(), "false");
     assert_eq!(AST::Bool(true).reify().to_gd(), "true");
-    assert_eq!(AST::symbol("foo").reify().to_gd(), "GDLisp.Symbol.new(\"foo\")");
+    assert_eq!(AST::symbol("foo").reify().to_gd(), "GDLisp.intern(\"foo\")");
   }
 
 }

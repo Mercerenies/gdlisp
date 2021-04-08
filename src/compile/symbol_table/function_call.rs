@@ -12,7 +12,7 @@ use super::SymbolTable;
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct FnCall {
   pub scope: FnScope,
-  pub object: Option<Box<Expr>>, ///// Replace this with FnName (not Option<...>; the FnName handles the option part)
+  pub object: FnName,
   pub function: String,
   pub specs: FnSpecs,
 }
@@ -56,8 +56,12 @@ pub enum FnName {
   Superglobal,
   // A file-level function defined in another file and imported.
   ImportedConstant(Box<VarName>),
-  // A file-level function defined in the current file but being referenced from an inner case (see Issue #30).
-  FileConstantQualified(String)
+  // A local function referenced using a local variable.
+  OnLocalVar(Box<VarName>),
+  // A local function referenced by the current local scope.
+  OnLocalScope,
+  // Special compiler-only case: a top-level macro name being called *during* compilation.
+  MacroCall(Box<Expr>), // TODO Be more specific than Expr here?
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -69,12 +73,12 @@ pub struct FnSpecs {
 
 impl FnCall {
 
-  pub fn unqualified(specs: FnSpecs, scope: FnScope, function: String) -> FnCall {
-    FnCall { specs, scope, object: None, function }
+  pub fn file_constant(specs: FnSpecs, scope: FnScope, function: String) -> FnCall {
+    FnCall { specs, scope, object: FnName::FileConstant, function }
   }
 
-  pub fn qualified(specs: FnSpecs, scope: FnScope, object: Expr, function: String) -> FnCall {
-    FnCall { specs, scope, object: Some(Box::new(object)), function }
+  pub fn superglobal(specs: FnSpecs, scope: FnScope, function: String) -> FnCall {
+    FnCall { specs, scope, object: FnName::Superglobal, function }
   }
 
   pub fn into_expr<'a>(self,
@@ -145,8 +149,38 @@ impl FnName {
     FnName::ImportedConstant(Box::new(orig_name))
   }
 
-  pub fn file_constant_qualified(filename: &str) -> FnName {
-    FnName::FileConstantQualified(String::from(filename))
+  pub fn on_local_var(local_name: VarName) -> FnName {
+    FnName::OnLocalVar(Box::new(local_name))
+  }
+
+  // If a name is available at top-level scope A.gd and some file B.gd
+  // imports A.gd and calls the top-level constant AConst, then
+  // calling name.as_imported("AConst") will convert the name to how
+  // it should be referenced from B.gd.
+  pub fn into_imported(self, import_name: String) -> FnName {
+    match self {
+      FnName::FileConstant => {
+        FnName::imported_constant(VarName::FileConstant(import_name))
+      }
+      FnName::Superglobal => {
+        FnName::Superglobal
+      }
+      FnName::ImportedConstant(v) => {
+        FnName::imported_constant(v.into_imported(import_name))
+      }
+      FnName::OnLocalVar(v) => {
+        // This case probably shouldn't happen, but oh well. Delegate to VarName.
+        FnName::on_local_var(v.into_imported(import_name))
+      }
+      FnName::OnLocalScope => {
+        // This case definitely shouldn't happen. Leave it alone I guess.
+        FnName::OnLocalScope
+      }
+      FnName::MacroCall(m) => {
+        // Shouldn't happen :)
+        FnName::MacroCall(m)
+      }
+    }
   }
 
 }
@@ -168,7 +202,9 @@ impl From<FnName> for Option<Expr> {
       FnName::FileConstant => None,
       FnName::Superglobal => None,
       FnName::ImportedConstant(var_name) => Some(Expr::from(*var_name)),
-      FnName::FileConstantQualified(s) => Some(Expr::from(VarName::CurrentFile(s))),
+      FnName::OnLocalVar(var_name) => Some(Expr::from(*var_name)),
+      FnName::OnLocalScope => None,
+      FnName::MacroCall(m) => Some(*m),
     }
   }
 

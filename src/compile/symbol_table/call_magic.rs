@@ -132,7 +132,8 @@ pub fn compile_default_call(call: FnCall, mut args: Vec<Expr>) -> Result<Expr, E
       args.push(Expr::ArrayLit(rest));
     }
   }
-  Ok(Expr::Call(object, function, args))
+  let object: Option<Expr> = object.into();
+  Ok(Expr::Call(object.map(Box::new), function, args))
 }
 
 impl CallMagic for DefaultCall {

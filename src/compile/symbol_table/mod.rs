@@ -202,7 +202,7 @@ mod tests {
   }
 
   fn sample_fn() -> FnCall {
-    FnCall::unqualified(FnSpecs::new(1, 0, None), FnScope::Global, "foobar".to_owned())
+    FnCall::file_constant(FnSpecs::new(1, 0, None), FnScope::Global, "foobar".to_owned())
   }
 
   #[test]

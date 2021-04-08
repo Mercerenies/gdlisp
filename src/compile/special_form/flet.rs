@@ -3,12 +3,12 @@ use crate::ir;
 use crate::compile::Compiler;
 use crate::compile::body::builder::StmtBuilder;
 use crate::compile::symbol_table::{HasSymbolTable, SymbolTable};
-use crate::compile::symbol_table::function_call::{FnCall, FnSpecs, FnScope};
+use crate::compile::symbol_table::function_call::{FnCall, FnSpecs, FnScope, FnName};
+use crate::compile::symbol_table::local_var::VarName;
 use crate::compile::error::Error;
 use crate::compile::stateful::{StExpr, NeedsResult};
 use crate::compile::stmt_wrapper;
 use crate::gdscript::decl::{self, Decl};
-use crate::gdscript::expr::Expr;
 use crate::graph::Graph;
 use crate::graph::top_sort::top_sort;
 use crate::graph::tarjan;
@@ -53,7 +53,7 @@ fn compile_flet_call<'a>(compiler: &mut Compiler<'a>,
     let specs = FnSpecs::from(args);
     Ok(FnCall {
       scope: FnScope::SemiGlobal,
-      object: None,
+      object: FnName::FileConstant,
       function: gd_name,
       specs
     })
@@ -64,7 +64,7 @@ fn compile_flet_call<'a>(compiler: &mut Compiler<'a>,
     let specs = FnSpecs::from(args);
     Ok(FnCall {
       scope: FnScope::Local(local_name.clone()),
-      object: Some(Box::new(Expr::Var(local_name))),
+      object: FnName::on_local_var(VarName::Local(local_name)),
       function: "call_func".to_owned(),
       specs
     })
