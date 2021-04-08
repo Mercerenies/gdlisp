@@ -24,7 +24,7 @@ use crate::gdscript::library;
 use crate::gdscript::arglist::ArgList;
 use error::Error;
 use stmt_wrapper::StmtWrapper;
-use symbol_table::{HasSymbolTable, SymbolTable};
+use symbol_table::{HasSymbolTable, SymbolTable, ClassTablePair};
 use symbol_table::local_var::{LocalVar, ValueHint};
 use symbol_table::function_call;
 use symbol_table::call_magic::DefaultCall;
@@ -460,10 +460,12 @@ impl<'a> Compiler<'a> {
     let self_var = LocalVar::self_var();
 
     let mut body = vec!();
-    table.with_local_var::<Result<(), Error>, _>(String::from("self"), self_var, |table| {
-      body.push(Decl::FnDecl(decl::Static::NonStatic, self.compile_constructor(pipeline, builder, table, constructor)?));
+    let mut instance_table = table.clone();
+    instance_table.with_local_var::<Result<(), Error>, _>(String::from("self"), self_var, |instance_table| {
+      body.push(Decl::FnDecl(decl::Static::NonStatic, self.compile_constructor(pipeline, builder, instance_table, constructor)?));
       for d in decls {
-        body.push(self.compile_class_inner_decl(pipeline, builder, table, d)?);
+        let tables = ClassTablePair { instance_table, static_table: table };
+        body.push(self.compile_class_inner_decl(pipeline, builder, tables, d)?);
       }
       Ok(())
     })?;
@@ -512,9 +514,10 @@ impl<'a> Compiler<'a> {
   pub fn compile_class_inner_decl(&mut self,
                                   pipeline: &mut Pipeline,
                                   builder: &mut impl HasDecls,
-                                  table: &mut SymbolTable,
+                                  tables: ClassTablePair<'_, '_>,
                                   decl: &ir::decl::ClassInnerDecl)
                                   -> Result<Decl, Error> {
+    let table = tables.into_table(decl.is_static());
     match decl {
       ir::decl::ClassInnerDecl::ClassSignalDecl(s) => {
         let name = names::lisp_to_gd(&s.name);

@@ -4,7 +4,7 @@ use crate::compile::error::Error;
 use crate::compile::Compiler;
 use crate::compile::stateful::{SideEffects, StExpr, NeedsResult};
 use crate::compile::body::builder::StmtBuilder;
-use crate::compile::symbol_table::SymbolTable;
+use crate::compile::symbol_table::{SymbolTable, ClassTablePair};
 use crate::compile::symbol_table::local_var::{VarScope, LocalVar};
 use crate::gdscript::expr::Expr;
 use crate::gdscript::decl::{self, Decl};
@@ -40,7 +40,6 @@ pub fn compile_lambda_class<'a>(compiler: &mut Compiler<'a>,
   }
 
   let mut lambda_table = SymbolTable::new();
-  lambda_table.set_var(String::from("self"), LocalVar::self_var());
 
   lambda::purge_globals(&mut closure_vars, table);
   lambda::locally_bind_vars(compiler, table, &mut lambda_table, closure_vars.names())?;
@@ -75,6 +74,9 @@ pub fn compile_lambda_class<'a>(compiler: &mut Compiler<'a>,
     }
   }
 
+  let mut lambda_static_table = lambda_table.clone();
+  lambda_table.set_var(String::from("self"), LocalVar::self_var());
+
   let mut constructor = compiler.compile_constructor(pipeline, builder, &mut lambda_table, &constructor)?;
   let original_args = constructor.args.args;
   constructor.args.args = gd_closure_vars.to_vec();
@@ -88,7 +90,8 @@ pub fn compile_lambda_class<'a>(compiler: &mut Compiler<'a>,
     class_body.push(Decl::VarDecl(None, name.clone(), None));
   }
   for d in &decls {
-    class_body.push(compiler.compile_class_inner_decl(pipeline, builder, &mut lambda_table, d)?);
+    let tables = ClassTablePair { instance_table: &mut lambda_table, static_table: &mut lambda_static_table };
+    class_body.push(compiler.compile_class_inner_decl(pipeline, builder, tables, d)?);
   }
   let class = decl::ClassDecl {
     name: gd_class_name.clone(),

@@ -1,5 +1,5 @@
 
-use super::common::{parse_compile_and_output_h, parse_and_run};
+use super::common::{parse_compile_and_output, parse_compile_and_output_h, parse_and_run};
 
 #[test]
 pub fn basic_lambda_class_test() {
@@ -84,6 +84,13 @@ pub fn closure_and_args_lambda_class_test() {
         return self.z + a_0
 "#);
 
+}
+
+#[test]
+#[should_panic]
+pub fn bad_self_static_ref_lambda_class_test() {
+  // Can't reference self from static context
+  parse_compile_and_output("(new (Node) (defn get-self () static self))");
 }
 
 #[test]

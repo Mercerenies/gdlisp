@@ -116,6 +116,13 @@ pub fn bad_member_var_class_test_2() {
 
 #[test]
 #[should_panic]
+pub fn bad_self_static_ref_class_test() {
+  // Can't reference self from static context
+  parse_compile_decl("((defclass ClassName (Node) (defn get-self () static self)))");
+}
+
+#[test]
+#[should_panic]
 pub fn bad_member_const_class_test() {
   // Consts must be initialized
   parse_compile_decl("((defclass ClassName (Node) (defconst x)))");

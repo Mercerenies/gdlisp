@@ -356,6 +356,7 @@ impl IncCompiler {
     }
   }
 
+  // TODO Do we need to take two tables here (static and non-static) like we do in compile?
   pub fn compile_class_inner_decl(&mut self,
                                   pipeline: &mut Pipeline,
                                   acc: &mut decl::ClassDecl,

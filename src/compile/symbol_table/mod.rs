@@ -18,6 +18,14 @@ pub struct SymbolTable {
   functions: HashMap<String, (FnCall, DebugWrapper<Box<dyn CallMagic + 'static>>)>,
 }
 
+// When we move into a class scope, we need to keep two symbol tables:
+// one for use in static contexts and one for use in instance
+// (non-static) contexts. This struct encapsulates that concept.
+pub struct ClassTablePair<'a, 'b> {
+  pub static_table: &'a mut SymbolTable,
+  pub instance_table: &'b mut SymbolTable,
+}
+
 impl SymbolTable {
 
   pub fn new() -> SymbolTable {
@@ -164,6 +172,18 @@ impl ValueHintsTable for SymbolTable {
   fn get_value_hint(&self, name: &str) -> Option<&ValueHint> {
     self.get_var_by_gd_name(name).and_then(|var| var.value_hint.as_ref())
   }
+}
+
+impl<'a> ClassTablePair<'a, 'a> {
+
+  pub fn into_table(self, is_static: bool) -> &'a mut SymbolTable {
+    if is_static {
+      self.static_table
+    } else {
+      self.instance_table
+    }
+  }
+
 }
 
 // TODO Test magic here as well.
