@@ -192,6 +192,13 @@ impl FnName {
     FnName::on_local_var(VarName::CurrentFile(fname.to_string()))
   }
 
+  pub fn update_for_inner_scope(&mut self, _static_binding: bool, loader: &impl CanLoad) {
+    if *self == FnName::FileConstant {
+      ///// Do something more efficient if non-static
+      *self = FnName::inner_static_load(loader);
+    }
+  }
+
 }
 
 impl From<VarName> for FnName {

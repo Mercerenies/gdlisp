@@ -376,7 +376,7 @@ impl<'a> Compiler<'a> {
         let gd_name = names::lisp_to_gd(&name);
         let extends = table.get_var(&extends).ok_or_else(|| Error::NoSuchVar(extends.clone()))?.name.clone();
         let extends = ClassExtends::try_from(extends)?;
-        let class = self.declare_class(pipeline, builder, table, gd_name, extends, constructor, decls)?;
+        let class = self.declare_class(pipeline, builder, table, gd_name, extends, *main_class, constructor, decls)?;
         if *main_class {
           self.flatten_class_into_main(builder, class);
           Ok(())
@@ -453,6 +453,7 @@ impl<'a> Compiler<'a> {
                        table: &mut SymbolTable,
                        gd_name: String,
                        extends: ClassExtends,
+                       main_class: bool,
                        constructor: &ir::decl::ConstructorDecl,
                        decls: &[ir::decl::ClassInnerDecl])
                        -> Result<decl::ClassDecl, Error> {
@@ -463,10 +464,22 @@ impl<'a> Compiler<'a> {
     let mut instance_table = table.clone();
     instance_table.with_local_var::<Result<(), Error>, _>(String::from("self"), self_var, |instance_table| {
       body.push(Decl::FnDecl(decl::Static::NonStatic, self.compile_constructor(pipeline, builder, instance_table, constructor)?));
+
+      // Modify all of the names in the instance / static table
+      if !main_class {
+        for (_, call, _) in instance_table.fns_mut() {
+          call.object.update_for_inner_scope(false, pipeline);
+        }
+        for (_, call, _) in table.fns_mut() {
+          call.object.update_for_inner_scope(true, pipeline);
+        }
+      }
+
       for d in decls {
         let tables = ClassTablePair { instance_table, static_table: table };
         body.push(self.compile_class_inner_decl(pipeline, builder, tables, d)?);
       }
+
       Ok(())
     })?;
 

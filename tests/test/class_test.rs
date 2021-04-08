@@ -370,6 +370,72 @@ pub fn macro_uses_class_test() {
 }
 
 #[test]
+#[ignore]
+pub fn reference_static_test_1() {
+  assert_eq!(parse_compile_decl("((defn foo ()) (defclass Foo (Node2D) (defn example () (foo))))"),
+             r#"extends Reference
+static func foo():
+    return null
+class Foo extends Node2D:
+    func _init():
+        pass
+    func example():
+        return load("res://TEST.gd").foo()
+static func run():
+    return null
+"#);
+}
+
+#[test]
+#[ignore]
+pub fn reference_static_test_2() {
+  assert_eq!(parse_compile_decl("((defn foo ()) (defclass Foo (Node2D) main (defn example () (foo))))"),
+             r#"extends Node2D
+static func foo():
+    return null
+func _init():
+    pass
+func example():
+    return foo()
+static func run():
+    return null
+"#);
+}
+
+#[test]
+#[ignore]
+pub fn reference_static_test_3() {
+  assert_eq!(parse_compile_decl("((defn foo ()) (defclass Foo (Node2D) (defn example () static (foo))))"),
+             r#"extends Reference
+static func foo():
+    return null
+class Foo extends Node2D:
+    func _init():
+        pass
+    static func example():
+        return load("res://TEST.gd").foo()
+static func run():
+    return null
+"#);
+}
+
+#[test]
+#[ignore]
+pub fn reference_static_test_4() {
+  assert_eq!(parse_compile_decl("((defn foo ()) (defclass Foo (Node2D) main (defn example () static (foo))))"),
+             r#"extends Node2D
+static func foo():
+    return null
+func _init():
+    pass
+static func example():
+    return foo()
+static func run():
+    return null
+"#);
+}
+
+#[test]
 pub fn main_class_test_1() {
   assert_eq!(parse_compile_decl("((defclass Foo (Node2D) main))"),
              r#"extends Node2D
@@ -440,6 +506,52 @@ pub fn reference_to_static_in_class_test() {
      (print (Foo:foo))
      (print ((Foo:new):foo)))"#),
              "\n98\n98\n");
+}
+
+#[test]
+#[ignore]
+pub fn reference_to_outer_in_class_test_1() {
+  let output = parse_and_run(r#"
+    ((defn outer () 100)
+     (defclass Foo (Reference)
+       (defn foo () (outer)))
+     (print ((Foo:new):foo)))"#);
+  assert_eq!(output, "\n100\n");
+}
+
+#[test]
+#[ignore]
+pub fn reference_to_outer_in_class_test_2() {
+  let output = parse_and_run(r#"
+    ((defn outer () 100)
+     (defclass Foo (Reference)
+       (defn foo () static (outer)))
+     (print ((Foo:new):foo))
+     (print (Foo:foo)))"#);
+  assert_eq!(output, "\n100\n100\n");
+}
+
+#[test]
+#[ignore]
+pub fn reference_to_outer_in_class_test_3() {
+  let output = parse_and_run(r#"
+    ((defn outer () 100)
+     (defclass Foo (Reference) main
+       (defn foo () (outer)))
+     (print ((Foo:new):foo)))"#);
+  assert_eq!(output, "\n100\n");
+}
+
+#[test]
+#[ignore]
+pub fn reference_to_outer_in_class_test_4() {
+  let output = parse_and_run(r#"
+    ((defn outer () 100)
+     (defclass Foo (Reference) main
+       (defn foo () static (outer)))
+     (print ((Foo:new):foo))
+     (print (Foo:foo)))"#);
+  assert_eq!(output, "\n100\n100\n");
 }
 
 #[test]

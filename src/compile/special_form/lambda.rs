@@ -336,7 +336,7 @@ pub fn locally_bind_fns<'a, 'b, I, U, L>(_compiler: &mut Compiler<'b>,
                                          table: &SymbolTable,
                                          lambda_table: &mut SymbolTable,
                                          closure_fns: I,
-                                         _static_binding: bool)
+                                         static_binding: bool)
                                          -> Result<(), Error>
 where I : Iterator<Item=&'a U>,
       U : Borrow<str>,
@@ -348,10 +348,7 @@ where I : Iterator<Item=&'a U>,
       None => { return Err(Error::NoSuchFn(func.borrow().to_owned())) }
       Some((call, magic)) => {
         let mut call = call.clone();
-        if call.object == FnName::FileConstant {
-          ///// Do something more efficient if non-static
-          call.object = FnName::inner_static_load(pipeline)
-        }
+        call.object.update_for_inner_scope(static_binding, pipeline);
         lambda_table.set_fn(func.borrow().to_owned(), call, dyn_clone::clone_box(magic));
       }
     };
