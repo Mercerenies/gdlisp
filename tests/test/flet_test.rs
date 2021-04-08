@@ -17,6 +17,13 @@ fn simple_flet_test_2() {
 
 #[test]
 #[ignore]
+fn simple_flet_test_3() {
+  let output = parse_and_run("((defn foo (x) (* x 2)) (flet ((f (x) (foo x))) (print (f 1)) (print (f 2))))");
+  assert_eq!(output, "\n2\n4\n");
+}
+
+#[test]
+#[ignore]
 fn closed_flet_test_1() {
   let output = parse_and_run(r#"
     ((let ((x 0))
