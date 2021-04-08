@@ -15,6 +15,21 @@ pub struct LocalVar {
   pub value_hint: Option<ValueHint>,
 }
 
+// VarName will eventually translate into an Expr (via the below From
+// instance) and consists of all expressions which denote valid
+// variable "name" translations.
+#[derive(PartialEq, Eq, Clone, Debug)]
+pub enum VarName {
+  // A variable which is local to the current scope.
+  Local(String),
+  // A file-level constant defined in the current file.
+  FileConstant(String),
+  // A superglobal name, such as built-in GDScript constants.
+  Superglobal(String),
+  // A file-level constant defined in another file and imported.
+  ImportedConstant(Box<VarName>, String),
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum VarScope { GlobalVar, LocalVar }
 
@@ -100,6 +115,39 @@ impl LocalVar {
   // TODO Put all of the declaration-site stuff here as well, like
   // .expr() for access, so we have it all in one place (i.e. the
   // difference between "var x = ..." and "var x = Cell.new(...)")
+
+}
+
+impl VarName {
+
+  pub fn local(name: &str) -> VarName {
+    VarName::Local(String::from(name))
+  }
+
+  pub fn file_constant(name: &str) -> VarName {
+    VarName::FileConstant(String::from(name))
+  }
+
+  pub fn superglobal(name: &str) -> VarName {
+    VarName::Superglobal(String::from(name))
+  }
+
+  pub fn imported_constant(orig_name: VarName, name: &str) -> VarName {
+    VarName::ImportedConstant(Box::new(orig_name), String::from(name))
+  }
+
+}
+
+impl From<VarName> for Expr {
+
+  fn from(var_name: VarName) -> Expr {
+    match var_name {
+      VarName::Local(s) => Expr::Var(s),
+      VarName::FileConstant(s) => Expr::Var(s),
+      VarName::Superglobal(s) => Expr::Var(s),
+      VarName::ImportedConstant(lhs, s) => Expr::Attribute(Box::new(Expr::from(*lhs)), s),
+    }
+  }
 
 }
 
