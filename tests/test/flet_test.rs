@@ -82,7 +82,7 @@ class _FunctionRefBlock_2 extends GDLisp.Function:
         self.__gdlisp_optional = 0
         self.__gdlisp_rest = 0
     func call_func(arg0):
-        return _flet_0(arg0)
+        return load("res://TEST.gd")._flet_0(arg0)
     func call_funcv(args):
         var required_0 = null
         if args == null:
