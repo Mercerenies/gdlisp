@@ -285,7 +285,9 @@ impl ClassInnerDecl {
         for name in fndecl.args.iter_vars() {
           loc.remove(name);
         }
-        loc.remove("self");
+        if !bool::from(fndecl.is_static) {
+          loc.remove("self");
+        }
         (loc, func)
       }
     }
