@@ -157,6 +157,9 @@ impl HasSymbolTable for SymbolTable {
 
 }
 
+// TODO This is a mess. Can we please store the value hints some way
+// that doesn't require a reverse lookup on GDScript names, because
+// that reverse lookup is just going to be awkward no matter what.
 impl ValueHintsTable for SymbolTable {
   fn get_value_hint(&self, name: &str) -> Option<&ValueHint> {
     self.get_var_by_gd_name(name).and_then(|var| var.value_hint.as_ref())
@@ -168,15 +171,11 @@ impl ValueHintsTable for SymbolTable {
 #[cfg(test)]
 mod tests {
   use super::*;
+  use local_var::VarName;
   use function_call::{FnSpecs, FnScope};
-  use crate::gdscript::expr::Expr;
 
-  fn from_var_name(e: &Expr) -> &str {
-    if let Expr::Var(v) = e {
-      v
-    } else {
-      panic!("Unexpected variable name")
-    }
+  fn from_var_name(e: &VarName) -> &str {
+    e.simple_name().expect("Unexpected nontrivial variable name")
   }
 
   #[test]

@@ -4,6 +4,7 @@ use crate::sxp::ast::AST;
 use crate::ir::arglist::ArgListParseError;
 use crate::ir::identifier::Namespace;
 use crate::ir::import::{ImportDeclParseError, ImportNameResolutionError};
+use crate::compile::symbol_table::local_var::VarNameIntoExtendsError;
 use crate::runner::path::RPathBuf;
 use crate::runner::macro_server::response;
 
@@ -145,6 +146,19 @@ impl From<ImportNameResolutionError> for Error {
       }
       ImportNameResolutionError::AmbiguousNamespace(s) => {
         Error::AmbiguousNamespace(s)
+      }
+    }
+  }
+}
+
+impl From<VarNameIntoExtendsError> for Error {
+  fn from(err: VarNameIntoExtendsError) -> Error {
+    match err {
+      VarNameIntoExtendsError::CannotExtendLocal(s) => {
+        Error::CannotExtend(s)
+      }
+      VarNameIntoExtendsError::CannotExtendCurrentFile(s) => {
+        Error::CannotExtend(s)
       }
     }
   }

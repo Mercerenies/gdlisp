@@ -174,7 +174,7 @@ fn bind_helper_symbols_comp(table: &mut SymbolTable) {
   table.set_fn(String::from("bar"), FnCall::unqualified(FnSpecs::new(0, 0, None), FnScope::Global, String::from("bar")), Box::new(DefaultCall));
   table.set_fn(String::from("bar"), FnCall::unqualified(FnSpecs::new(0, 0, None), FnScope::Global, String::from("bar")), Box::new(DefaultCall));
   table.set_var(String::from("foobar"), LocalVar::read(String::from("foobar")));
-  table.set_var(String::from("glob"), LocalVar::global(String::from("glob")));
+  table.set_var(String::from("glob"), LocalVar::file_constant(String::from("glob")));
 }
 
 // TODO Currently, this panics if it fails. This is okay-ish, since

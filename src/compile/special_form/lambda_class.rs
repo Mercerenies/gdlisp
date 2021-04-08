@@ -11,6 +11,8 @@ use crate::gdscript::decl::{self, Decl};
 use crate::pipeline::Pipeline;
 use super::lambda;
 
+use std::convert::TryFrom;
+
 pub fn compile_lambda_class<'a>(compiler: &mut Compiler<'a>,
                                 pipeline: &mut Pipeline,
                                 builder: &mut StmtBuilder,
@@ -25,7 +27,7 @@ pub fn compile_lambda_class<'a>(compiler: &mut Compiler<'a>,
     return Err(Error::CannotExtend(extends.clone()));
   }
   let extends = extends_var.name.clone();
-  let extends = Compiler::expr_to_extends(extends)?;
+  let extends = decl::ClassExtends::try_from(extends)?;
 
   // New GD name
   let gd_class_name = compiler.name_generator().generate_with("_AnonymousClass");
@@ -51,13 +53,13 @@ pub fn compile_lambda_class<'a>(compiler: &mut Compiler<'a>,
     let var = lambda_table.get_var(&ast_name).unwrap_or_else(|| {
       panic!("Internal error compiling lambda class variable {}", ast_name)
     }).to_owned();
-    if let Expr::Var(name) = var.name {
+    if let Some(name) = var.simple_name() {
       gd_closure_vars.push(name.to_owned());
     }
     let src_var = table.get_var(&ast_name).unwrap_or_else(|| {
       panic!("Internal error compiling lambda class variable {}", ast_name)
     }).to_owned();
-    if let Expr::Var(name) = src_var.name {
+    if let Some(name) = src_var.simple_name() {
       gd_src_closure_vars.push(name.to_owned());
     }
   }
@@ -90,7 +92,7 @@ pub fn compile_lambda_class<'a>(compiler: &mut Compiler<'a>,
   }
   let class = decl::ClassDecl {
     name: gd_class_name.clone(),
-    extends: decl::ClassExtends::Qualified(extends),
+    extends: extends,
     body: class_body,
   };
   builder.add_helper(Decl::ClassDecl(class));

@@ -18,21 +18,20 @@ use crate::sxp::reify::Reify;
 use crate::gdscript::literal::Literal;
 use crate::gdscript::expr::Expr;
 use crate::gdscript::stmt::Stmt;
-use crate::gdscript::decl::{self, Decl};
+use crate::gdscript::decl::{self, Decl, ClassExtends};
 use crate::gdscript::op;
 use crate::gdscript::library;
 use crate::gdscript::arglist::ArgList;
 use error::Error;
 use stmt_wrapper::StmtWrapper;
 use symbol_table::{HasSymbolTable, SymbolTable};
-use symbol_table::local_var::{LocalVar, VarScope, ValueHint};
+use symbol_table::local_var::{LocalVar, ValueHint};
 use symbol_table::function_call;
 use symbol_table::call_magic::DefaultCall;
 use crate::ir;
 use crate::ir::expr::{FuncRefTarget, AssignTarget};
 use crate::ir::import::{ImportName, ImportDecl, ImportDetails};
 use crate::ir::identifier::Namespace;
-use crate::ir::locals::AccessType;
 use crate::runner::path::RPathBuf;
 use crate::pipeline::error::{Error as PError};
 use crate::pipeline::Pipeline;
@@ -376,7 +375,7 @@ impl<'a> Compiler<'a> {
       IRDecl::ClassDecl(ir::decl::ClassDecl { name, extends, main_class, constructor, decls }) => {
         let gd_name = names::lisp_to_gd(&name);
         let extends = table.get_var(&extends).ok_or_else(|| Error::NoSuchVar(extends.clone()))?.name.clone();
-        let extends = Compiler::expr_to_extends(extends)?;
+        let extends = ClassExtends::try_from(extends)?;
         let class = self.declare_class(pipeline, builder, table, gd_name, extends, constructor, decls)?;
         if *main_class {
           self.flatten_class_into_main(builder, class);
@@ -403,22 +402,6 @@ impl<'a> Compiler<'a> {
         // (sys/declare ...) statements have no runtime presence and do
         // nothing here.
         Ok(())
-      }
-    }
-  }
-
-  fn expr_to_extends(expr: Expr) -> Result<Vec<String>, Error> {
-    match expr {
-      Expr::Var(v) => {
-        Ok(vec!(v))
-      }
-      Expr::Attribute(lhs, v) => {
-        let mut vec = Compiler::expr_to_extends(*lhs)?;
-        vec.push(v);
-        Ok(vec)
-      }
-      e => {
-        Err(Error::CannotExtend(e.to_gd()))
       }
     }
   }
@@ -469,7 +452,7 @@ impl<'a> Compiler<'a> {
                        builder: &mut impl HasDecls,
                        table: &mut SymbolTable,
                        gd_name: String,
-                       extends: Vec<String>,
+                       extends: ClassExtends,
                        constructor: &ir::decl::ConstructorDecl,
                        decls: &[ir::decl::ClassInnerDecl])
                        -> Result<decl::ClassDecl, Error> {
@@ -487,7 +470,7 @@ impl<'a> Compiler<'a> {
 
     let decl = decl::ClassDecl {
       name: gd_name,
-      extends: decl::ClassExtends::Qualified(extends),
+      extends: extends,
       body: body,
     };
     Ok(decl)
@@ -597,7 +580,7 @@ impl<'a> Compiler<'a> {
         table.set_fn(name.clone(), func, Box::new(DefaultCall));
       }
       IRDecl::ConstDecl(ir::decl::ConstDecl { name, value }) => {
-        let mut var = LocalVar::global(names::lisp_to_gd(name)).no_assign(); // Can't assign to constants
+        let mut var = LocalVar::file_constant(names::lisp_to_gd(name)); // Can't assign to constants
         if let IRExpr::Literal(value) = value {
           if let Ok(value) = Literal::try_from(value.clone()) {
             var = var.with_hint(ValueHint::Literal(value));
@@ -607,11 +590,10 @@ impl<'a> Compiler<'a> {
       }
       IRDecl::ClassDecl(ir::decl::ClassDecl { name, main_class, .. }) => {
         if *main_class {
-          let expr = pipeline.load_expr().expect("Loading file not recognized"); // TODO Expect?
-          let var = LocalVar { name: expr, access_type: AccessType::Read, scope: VarScope::GlobalVar, assignable: false, value_hint: Some(ValueHint::ClassName) };
+          let var = LocalVar::current_file(pipeline.current_filename().expect("Could not identify current filename").to_string()).with_hint(ValueHint::ClassName); // TODO Expect?
           table.set_var(name.clone(), var);
         } else {
-          let var = LocalVar::global(names::lisp_to_gd(name))
+          let var = LocalVar::file_constant(names::lisp_to_gd(name))
             .no_assign() // Can't assign to class names
             .with_hint(ValueHint::ClassName);
           table.set_var(name.clone(), var);
@@ -619,7 +601,7 @@ impl<'a> Compiler<'a> {
       }
       IRDecl::EnumDecl(edecl) => {
         let name = edecl.name.clone();
-        let var = LocalVar::global(names::lisp_to_gd(&name))
+        let var = LocalVar::file_constant(names::lisp_to_gd(&name))
           .no_assign() // Can't assign to constants
           .with_hint(ValueHint::enumeration(edecl.value_names()));
         table.set_var(name, var);
@@ -628,11 +610,11 @@ impl<'a> Compiler<'a> {
         let ir::decl::DeclareDecl { declare_type, name } = ddecl;
         match declare_type {
           ir::decl::DeclareType::Value => {
-            let var = LocalVar::global(names::lisp_to_gd(name));
+            let var = LocalVar::file_constant(names::lisp_to_gd(name));
             table.set_var(name.clone(), var);
           }
           ir::decl::DeclareType::Superglobal => {
-            let var = LocalVar::global(names::lisp_to_gd(name))
+            let var = LocalVar::superglobal(names::lisp_to_gd(name))
               .with_hint(ValueHint::Superglobal);
             table.set_var(name.clone(), var);
           }
@@ -746,21 +728,10 @@ impl<'a> Compiler<'a> {
             table.set_fn(import_name.clone(), call, Box::new(DefaultCall));
           }
           Namespace::Value => {
-            let matching_ir = unit.ir.decls.iter().find(|x| x.name() == export_name && matches!(x, IRDecl::ClassDecl(ir::decl::ClassDecl { main_class: true, .. })));
-            if matching_ir.is_some() {
-              // We have a special rule if we're importing the main
-              // class into scope, as it's wonky and needs to be
-              // treated differently.
-              let var = LocalVar::global(preload_name.clone())
-                .no_assign() // Can't assign to class name
-                .with_hint(ValueHint::ClassName);
-              table.set_var(import_name.clone(), var);
-            } else {
-              let mut var = unit_table.get_var(&export_name).ok_or(Error::NoSuchVar(export_name))?.clone();
-              var.name = Compiler::insert_object_into_call(preload_name.clone(), var.name);
-              table.set_var(import_name.clone(), var);
-            }
-        }
+            let mut var = unit_table.get_var(&export_name).ok_or(Error::NoSuchVar(export_name))?.clone();
+            var.name = var.name.into_imported(preload_name.clone());
+            table.set_var(import_name.clone(), var);
+          }
         }
       }
 
@@ -776,8 +747,7 @@ impl<'a> Compiler<'a> {
         ImportDetails::Named(s) => s.to_owned(),
         _ => return Err(PError::from(Error::InvalidImportOnResource(import.filename.to_string()))),
       };
-      let var = LocalVar::global(preload_name)
-        .no_assign(); // Cannot assign to constant
+      let var = LocalVar::file_constant(preload_name);
       // TODO Value hint? It would have to be based on the file extension / what resource type it is.
       // (e.g. *.gd would be ClassHint, but *.tres or *.png would not be)
       table.set_var(name, var);
