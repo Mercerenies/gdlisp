@@ -38,6 +38,7 @@ pub fn compile_lambda_class<'a>(compiler: &mut Compiler<'a>,
     closure_vars.merge_with(decl_vars);
     closure_fns.merge_with(decl_fns);
   }
+  closure_vars.remove("self"); // Don't close around self; we get a new self.
 
   let mut lambda_table = SymbolTable::new();
 

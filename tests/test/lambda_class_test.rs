@@ -1,5 +1,5 @@
 
-use super::common::{parse_compile_and_output, parse_compile_and_output_h, parse_and_run};
+use super::common::{parse_compile_and_output, parse_compile_and_output_h, parse_compile_decl, parse_and_run};
 
 #[test]
 pub fn basic_lambda_class_test() {
@@ -82,6 +82,31 @@ pub fn closure_and_args_lambda_class_test() {
     var z
     func foo():
         return self.z + a_0
+"#);
+
+}
+
+#[test]
+pub fn capture_self_lambda_class_test() {
+
+  // We use self in two ways here. First in an inner instance method,
+  // where it has the type of the lambda class and second in an inner
+  // static method, where it inherits the self from the enclosing
+  // class.
+  let result = parse_compile_decl("((defclass Foo (Reference) (defn f () (new Reference (defn g () self)))))");
+  assert_eq!(result, r#"extends Reference
+class _AnonymousClass_0 extends Reference:
+    func _init():
+        pass
+    func g():
+        return self
+class Foo extends Reference:
+    func _init():
+        pass
+    func f():
+        return _AnonymousClass_0.new()
+static func run():
+    return null
 "#);
 
 }
