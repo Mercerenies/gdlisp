@@ -370,7 +370,6 @@ pub fn macro_uses_class_test() {
 }
 
 #[test]
-#[ignore]
 pub fn reference_static_test_1() {
   assert_eq!(parse_compile_decl("((defn foo ()) (defclass Foo (Node2D) (defn example () (foo))))"),
              r#"extends Reference
@@ -380,14 +379,14 @@ class Foo extends Node2D:
     func _init():
         pass
     func example():
-        return load("res://TEST.gd").foo()
+        return __gdlisp_outer_class_0.foo()
+    var __gdlisp_outer_class_0 = load("res://TEST.gd")
 static func run():
     return null
 "#);
 }
 
 #[test]
-#[ignore]
 pub fn reference_static_test_2() {
   assert_eq!(parse_compile_decl("((defn foo ()) (defclass Foo (Node2D) main (defn example () (foo))))"),
              r#"extends Node2D
@@ -403,7 +402,6 @@ static func run():
 }
 
 #[test]
-#[ignore]
 pub fn reference_static_test_3() {
   assert_eq!(parse_compile_decl("((defn foo ()) (defclass Foo (Node2D) (defn example () static (foo))))"),
              r#"extends Reference
@@ -420,7 +418,6 @@ static func run():
 }
 
 #[test]
-#[ignore]
 pub fn reference_static_test_4() {
   assert_eq!(parse_compile_decl("((defn foo ()) (defclass Foo (Node2D) main (defn example () static (foo))))"),
              r#"extends Node2D

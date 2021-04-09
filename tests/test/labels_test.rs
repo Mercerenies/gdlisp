@@ -117,14 +117,15 @@ pub fn recursive_double_labels_test() {
 #[test]
 pub fn recursive_single_with_extra_beginning_labels_test() {
   let result0 = parse_compile_and_output_h("(labels ((f (x) (f (g x))) (g (x) 10)) (f 1))");
-  assert_eq!(result0.0, "var _locals_3 = _Labels_2.new()\nreturn _locals_3._fn_f_4(1)\n");
+  assert_eq!(result0.0, "var _locals_4 = _Labels_2.new()\nreturn _locals_4._fn_f_5(1)\n");
   assert_eq!(result0.1, r#"static func _flet_0(x_1):
     return 10
 class _Labels_2 extends Reference:
     func _init():
         pass
-    func _fn_f_4(x_5):
-        return _fn_f_4(load("res://TEST.gd")._flet_0(x_5))
+    func _fn_f_5(x_6):
+        return _fn_f_5(__gdlisp_outer_class_3._flet_0(x_6))
+    var __gdlisp_outer_class_3 = load("res://TEST.gd")
 "#);
 }
 
