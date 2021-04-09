@@ -52,7 +52,16 @@ impl MaybeConstant for Expr {
       Expr::Attribute(_, _) => {
         false // I know, but Godot seems to disallow this one on principle
       }
-      Expr::Call(_, _, _) | Expr::SuperCall(_, _) => {
+      Expr::Call(obj, name, args) => {
+        // Again, very conservative. I know Vector2 and Vector3 are safe.
+        if obj.is_none() {
+          if name == "Vector2" || name == "Vector3" {
+            return args.iter().all(|x| x.is_allowable_const(table));
+          }
+        }
+        false
+      }
+      Expr::SuperCall(_, _) => {
         false
       }
       Expr::Unary(_, a) => {
