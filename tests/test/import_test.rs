@@ -145,12 +145,48 @@ static func run():
 
 #[test]
 #[ignore]
-fn macro_from_other_file_import_test() {
+fn macro_from_other_file_import_test_1() {
   let mut loader = MockFileLoader::new();
   loader.add_file("example.lisp", "(defmacro add-one (x) (+ x 1))");
   loader.add_file("main.lisp", r#"
     (use "res://example.lisp" open)
     (add-one 43)
+  "#);
+  let mut pipeline = Pipeline::with_resolver(dummy_config(), Box::new(loader));
+  let result = pipeline.load_file("main.lisp").unwrap().gdscript.to_gd();
+  assert_eq!(result, r#"extends Node
+const _Import_0 = preload("res://example.gd")
+static func run():
+    return 44
+"#);
+}
+
+#[test]
+#[ignore]
+fn macro_from_other_file_import_test_2() {
+  let mut loader = MockFileLoader::new();
+  loader.add_file("example.lisp", "(defn outer () 44) (defclass Foo (Reference) (defn go () (outer))) (defmacro go () ((Foo:new):go))");
+  loader.add_file("main.lisp", r#"
+    (use "res://example.lisp" open)
+    (go)
+  "#);
+  let mut pipeline = Pipeline::with_resolver(dummy_config(), Box::new(loader));
+  let result = pipeline.load_file("main.lisp").unwrap().gdscript.to_gd();
+  assert_eq!(result, r#"extends Node
+const _Import_0 = preload("res://example.gd")
+static func run():
+    return 44
+"#);
+}
+
+#[test]
+#[ignore]
+fn macro_from_other_file_import_test_3() {
+  let mut loader = MockFileLoader::new();
+  loader.add_file("example.lisp", "(defn outer () 44) (defclass Foo (Reference) (defn go () static (outer))) (defmacro go () (Foo:go))");
+  loader.add_file("main.lisp", r#"
+    (use "res://example.lisp" open)
+    (go)
   "#);
   let mut pipeline = Pipeline::with_resolver(dummy_config(), Box::new(loader));
   let result = pipeline.load_file("main.lisp").unwrap().gdscript.to_gd();

@@ -180,3 +180,60 @@ static func run():
     return [[_G_1_2, _G_1_2], GDLisp.intern("_G_0")]
 "#);
 }
+
+#[test]
+#[ignore]
+pub fn macro_inner_class_test_1() {
+  let result = parse_compile_decl("((defclass Foo (Reference)) (defmacro foo () (Foo:new) 1) (foo))");
+  assert_eq!(result, r#"extends Reference
+class Foo extends Reference:
+    func _init():
+        pass
+    var __gdlisp_outer_class_0 = load("res://TEST.gd")
+static func foo():
+    Foo.new()
+    return 1
+static func run():
+    return 1
+"#);
+}
+
+#[test]
+#[ignore]
+pub fn macro_inner_class_test_2() {
+  let result = parse_compile_decl("((defclass Foo (Reference) (defn g () (f))) (defn f () 9) (defmacro foo () ((Foo:new):g)) (foo))");
+  assert_eq!(result, r#"extends Reference
+class Foo extends Reference:
+    func _init():
+        pass
+    func g():
+        return __gdlisp_outer_class_0.f()
+    var __gdlisp_outer_class_0 = load("res://TEST.gd")
+static func f():
+    return 9
+static func foo():
+    return Foo.new().g()
+static func run():
+    return 9
+"#);
+}
+
+#[test]
+#[ignore]
+pub fn macro_inner_class_test_3() {
+  let result = parse_compile_decl("((defclass Foo (Reference) (defn g () static (f))) (defn f () 9) (defmacro foo () (Foo:g)) (foo))");
+  assert_eq!(result, r#"extends Reference
+class Foo extends Reference:
+    func _init():
+        pass
+    static func g():
+        return load("res://TEST.gd").f()
+    var __gdlisp_outer_class_0 = load("res://TEST.gd")
+static func f():
+    return 9
+static func foo():
+    return Foo.g()
+static func run():
+    return 9
+"#);
+}
