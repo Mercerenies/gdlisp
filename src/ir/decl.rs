@@ -169,6 +169,7 @@ impl Decl {
       }
       Decl::ClassDecl(c) => {
         let mut ids = HashSet::new();
+        ids.insert(Id::new(Namespace::Value, c.extends.to_owned()));
         ids.extend(c.constructor.dependencies());
         for d in &c.decls {
           ids.extend(d.dependencies());
