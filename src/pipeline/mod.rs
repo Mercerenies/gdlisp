@@ -108,6 +108,10 @@ impl Pipeline {
       .rand_bytes(5)
       .tempfile()?;
 
+    let mut input_path_store_name = input_path.strip_prefix(&self.config.root_directory).expect("Non-local file load detected").to_owned(); // TODO Expect
+    input_path_store_name.set_extension("gd");
+    self.known_files_paths.insert(input_path_store_name, tmpfile.path().to_owned());
+
     let parser = parser::SomeASTParser::new();
     let ast = parser.parse(&contents)?;
     let resolver = self.make_preload_resolver();
@@ -123,10 +127,7 @@ impl Pipeline {
     }
 
     write!(tmpfile, "{}", tmpresult.to_gd())?;
-    let mut input_path_store_name = input_path.strip_prefix(&self.config.root_directory).expect("Non-local file load detected").to_owned(); // TODO Expect
-    input_path_store_name.set_extension("gd");
     tmpfile.flush()?;
-    self.known_files_paths.insert(input_path_store_name, tmpfile.path().to_owned());
     self.server.stand_up_file(String::from("(standalone file)"), tmpfile)?;
 
     mem::swap(&mut old_file_path, &mut self.current_file_path);
