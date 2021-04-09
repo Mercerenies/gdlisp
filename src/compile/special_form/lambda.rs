@@ -19,7 +19,7 @@ use crate::gdscript::decl::{self, Decl};
 use crate::gdscript::op;
 use crate::gdscript::arglist::ArgList;
 use crate::gdscript::library;
-use crate::gdscript::inner_class;
+use crate::gdscript::inner_class::{self, NeedsOuterClassRef};
 use crate::pipeline::Pipeline;
 use crate::pipeline::can_load::CanLoad;
 
@@ -167,8 +167,6 @@ pub fn compile_labels_scc<'a>(compiler: &mut Compiler<'a>,
                               -> Result<Vec<(String, FnCall)>, Error> {
   let class_name = compiler.name_generator().generate_with("_Labels");
 
-  let outer_ref_name = compiler.name_generator().generate_with(inner_class::OUTER_REFERENCE_NAME);
-
   let mut closure_vars = Locals::new();
   let mut closure_fns = Functions::new();
   let mut all_vars = Locals::new();
@@ -186,6 +184,12 @@ pub fn compile_labels_scc<'a>(compiler: &mut Compiler<'a>,
   // Function names are in scope for the duration of their own bodies
   for (name, _, _) in clauses {
     closure_fns.remove(&name);
+  }
+
+  let mut outer_ref_name = String::new();
+  let needs_outer_ref = closure_fns.needs_outer_class_ref(table);
+  if needs_outer_ref {
+    outer_ref_name = compiler.name_generator().generate_with(inner_class::OUTER_REFERENCE_NAME);
   }
 
   // No need to close around global variables, as they're available everywhere
@@ -289,7 +293,11 @@ pub fn compile_labels_scc<'a>(compiler: &mut Compiler<'a>,
     extends: decl::ClassExtends::named(String::from("Reference")),
     body: class_body,
   };
-  inner_class::add_outer_class_ref_named(&mut class, compiler.preload_resolver(), pipeline, outer_ref_name);
+
+  if needs_outer_ref {
+    inner_class::add_outer_class_ref_named(&mut class, compiler.preload_resolver(), pipeline, outer_ref_name);
+  }
+
   builder.add_helper(Decl::ClassDecl(class));
   let constructor_args: Vec<_> = gd_src_closure_vars.into_iter().map(Expr::Var).collect();
   let expr = Expr::Call(Some(Box::new(Expr::Var(class_name))), String::from("new"), constructor_args);
@@ -388,8 +396,6 @@ pub fn compile_lambda_stmt<'a>(compiler: &mut Compiler<'a>,
                                -> Result<StExpr, Error> {
   let (arglist, gd_args) = args.clone().into_gd_arglist(&mut compiler.name_generator());
 
-  let outer_ref_name = compiler.name_generator().generate_with(inner_class::OUTER_REFERENCE_NAME);
-
   let mut lambda_builder = StmtBuilder::new();
   let (all_vars, closure_fns) = body.get_names();
   let mut closure_vars = all_vars.clone();
@@ -400,6 +406,12 @@ pub fn compile_lambda_stmt<'a>(compiler: &mut Compiler<'a>,
   let mut lambda_table = SymbolTable::new();
   for arg in &gd_args {
     lambda_table.set_var(arg.0.to_owned(), LocalVar::local(arg.1.to_owned(), all_vars.get(&arg.0)));
+  }
+
+  let mut outer_ref_name = String::new();
+  let needs_outer_ref = closure_fns.needs_outer_class_ref(table);
+  if needs_outer_ref {
+    outer_ref_name = compiler.name_generator().generate_with(inner_class::OUTER_REFERENCE_NAME);
   }
 
   // No need to close around global variables, as they're available everywhere
@@ -443,7 +455,11 @@ pub fn compile_lambda_stmt<'a>(compiler: &mut Compiler<'a>,
   compiler.compile_stmt(pipeline, &mut lambda_builder, &mut lambda_table, &stmt_wrapper::Return, body)?;
   let lambda_body = lambda_builder.build_into(builder);
   let mut class = generate_lambda_class(compiler, pipeline, args.clone().into(), arglist, &gd_closure_vars, lambda_body, "_LambdaBlock");
-  inner_class::add_outer_class_ref_named(&mut class, compiler.preload_resolver(), pipeline, outer_ref_name);
+
+  if needs_outer_ref {
+    inner_class::add_outer_class_ref_named(&mut class, compiler.preload_resolver(), pipeline, outer_ref_name);
+  }
+
   let class_name = class.name.clone();
   builder.add_helper(Decl::ClassDecl(class));
   let constructor_args = gd_src_closure_vars.into_iter().map(Expr::Var).collect();

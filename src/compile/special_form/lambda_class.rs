@@ -9,7 +9,7 @@ use crate::compile::symbol_table::{SymbolTable, ClassTablePair};
 use crate::compile::symbol_table::local_var::{VarScope, LocalVar};
 use crate::gdscript::expr::Expr;
 use crate::gdscript::decl::{self, Decl};
-use crate::gdscript::inner_class;
+use crate::gdscript::inner_class::{self, NeedsOuterClassRef};
 use crate::pipeline::Pipeline;
 use super::lambda;
 
@@ -22,8 +22,6 @@ pub fn compile_lambda_class<'a>(compiler: &mut Compiler<'a>,
                                 class: &LambdaClass)
                                 -> Result<StExpr, Error> {
   let LambdaClass { extends, args: constructor_args, constructor, decls } = class.clone();
-
-  let outer_ref_name = compiler.name_generator().generate_with(inner_class::OUTER_REFERENCE_NAME);
 
   // Validate the extends declaration (must be a global variable)
   let extends_var = table.get_var(&extends).ok_or_else(|| Error::NoSuchVar(extends.clone()))?;
@@ -48,6 +46,12 @@ pub fn compile_lambda_class<'a>(compiler: &mut Compiler<'a>,
 
   let mut lambda_static_table = lambda_table.clone();
   lambda_table.set_var(String::from("self"), LocalVar::self_var());
+
+  let mut outer_ref_name = String::new();
+  let needs_outer_ref = closure_fns.needs_outer_class_ref(table);
+  if needs_outer_ref {
+    outer_ref_name = compiler.name_generator().generate_with(inner_class::OUTER_REFERENCE_NAME);
+  }
 
   lambda::purge_globals(&mut closure_vars, table);
 
@@ -117,7 +121,11 @@ pub fn compile_lambda_class<'a>(compiler: &mut Compiler<'a>,
     extends: extends,
     body: class_body,
   };
-  inner_class::add_outer_class_ref_named(&mut class, compiler.preload_resolver(), pipeline, outer_ref_name);
+
+  if needs_outer_ref {
+    inner_class::add_outer_class_ref_named(&mut class, compiler.preload_resolver(), pipeline, outer_ref_name);
+  }
+
   builder.add_helper(Decl::ClassDecl(class));
 
   let constructor_args = constructor_args.iter().map(|expr| compiler.compile_expr(pipeline, builder, table, expr, NeedsResult::Yes).map(|x| x.0)).collect::<Result<Vec<_>, _>>()?;

@@ -22,7 +22,7 @@ use crate::gdscript::decl::{self, Decl, ClassExtends};
 use crate::gdscript::op;
 use crate::gdscript::library;
 use crate::gdscript::arglist::ArgList;
-use crate::gdscript::inner_class;
+use crate::gdscript::inner_class::{self, NeedsOuterClassRef};
 use error::Error;
 use stmt_wrapper::StmtWrapper;
 use symbol_table::{HasSymbolTable, SymbolTable, ClassTablePair};
@@ -467,7 +467,9 @@ impl<'a> Compiler<'a> {
 
     let mut body = vec!();
     let mut outer_ref_name = String::new();
-    if !main_class {
+    let needs_outer_ref =
+      constructor.needs_outer_class_ref(table) || decls.iter().any(|x| x.needs_outer_class_ref(table));
+    if needs_outer_ref && !main_class {
       outer_ref_name = self.gen.generate_with(inner_class::OUTER_REFERENCE_NAME);
     }
 
@@ -476,7 +478,10 @@ impl<'a> Compiler<'a> {
     instance_table.with_local_var::<Result<(), Error>, _>(String::from("self"), self_var, |instance_table| {
       body.push(Decl::FnDecl(decl::Static::NonStatic, self.compile_constructor(pipeline, builder, instance_table, constructor)?));
 
-      // Modify all of the names in the instance / static table
+      // Modify all of the names in the instance / static table. We
+      // run this even if needs_outer_ref is false, because we might
+      // still need the static_table updates, and the instance_table
+      // updates will be harmlessly ignored in that case.
       if !main_class {
         for (_, call, _) in instance_table.fns_mut() {
           call.object.update_for_inner_scope(false, self.preload_resolver(), pipeline, &outer_ref_name);
@@ -499,7 +504,7 @@ impl<'a> Compiler<'a> {
       extends: extends,
       body: body,
     };
-    if !main_class {
+    if needs_outer_ref && !main_class {
       inner_class::add_outer_class_ref_named(&mut decl, self.preload_resolver(), pipeline, outer_ref_name);
     }
     Ok(decl)
