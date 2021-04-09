@@ -9,6 +9,7 @@ use crate::runner::into_gd_file::IntoGDFile;
 use crate::runner::macro_server::named_file_server::MacroID;
 use crate::pipeline::error::{Error as PError};
 use crate::pipeline::Pipeline;
+use crate::pipeline::can_load::CanLoad;
 use crate::ir;
 use crate::ir::import::ImportDecl;
 use crate::ir::decl::TopLevel;
@@ -51,7 +52,13 @@ pub fn create_macro_file(pipeline: &mut Pipeline, imports: Vec<ImportDecl>, src_
   let mut table = SymbolTable::new();
   library::bind_builtins(&mut table);
 
-  let mut compiler = Compiler::new(FreshNameGenerator::new(vec!()), Box::new(pipeline.make_preload_resolver()));
+  let current_filename = pipeline.current_filename().expect("Error identifying current filename"); // TODO Expect?
+  let mut tmp_file = make_tmp()?;
+  let mut resolver = pipeline.make_preload_resolver();
+  // Replace the current file name with the macro file name.
+  resolver.insert(current_filename.into_path(), tmp_file.path().to_owned());
+
+  let mut compiler = Compiler::new(FreshNameGenerator::new(vec!()), Box::new(resolver));
   let decls = Vec::from(src_table.filter(|d| names.contains(&*d.id_like())));
   let toplevel = {
     let mut toplevel = TopLevel { imports, decls };
@@ -68,7 +75,6 @@ pub fn create_macro_file(pipeline: &mut Pipeline, imports: Vec<ImportDecl>, src_
   compiler.compile_toplevel(pipeline, &mut builder, &mut table, &toplevel)?;
   let result = builder.build();
 
-  let mut tmp_file = make_tmp()?;
   result.write_to_gd(&mut tmp_file)?;
   tmp_file.flush()?;
   Ok(tmp_file)

@@ -22,6 +22,7 @@ use crate::gdscript::decl::{self, Decl, ClassExtends};
 use crate::gdscript::op;
 use crate::gdscript::library;
 use crate::gdscript::arglist::ArgList;
+use crate::gdscript::inner_class;
 use error::Error;
 use stmt_wrapper::StmtWrapper;
 use symbol_table::{HasSymbolTable, SymbolTable, ClassTablePair};
@@ -335,6 +336,10 @@ impl<'a> Compiler<'a> {
     &mut self.gen
   }
 
+  pub fn preload_resolver(&self) -> &dyn PreloadResolver {
+    &*self.resolver
+  }
+
   pub fn declare_var(&mut self, builder: &mut StmtBuilder, prefix: &str, value: Option<Expr>)
                      -> String {
     let var_name = self.gen.generate_with(prefix);
@@ -461,6 +466,11 @@ impl<'a> Compiler<'a> {
     let self_var = LocalVar::self_var();
 
     let mut body = vec!();
+    let mut outer_ref_name = String::new();
+    if !main_class {
+      outer_ref_name = self.gen.generate_with(inner_class::OUTER_REFERENCE_NAME);
+    }
+
     let mut instance_table = table.clone();
     instance_table.with_local_var::<Result<(), Error>, _>(String::from("self"), self_var, |instance_table| {
       body.push(Decl::FnDecl(decl::Static::NonStatic, self.compile_constructor(pipeline, builder, instance_table, constructor)?));
@@ -468,10 +478,10 @@ impl<'a> Compiler<'a> {
       // Modify all of the names in the instance / static table
       if !main_class {
         for (_, call, _) in instance_table.fns_mut() {
-          call.object.update_for_inner_scope(false, pipeline);
+          call.object.update_for_inner_scope(false, self.preload_resolver(), pipeline, &outer_ref_name);
         }
         for (_, call, _) in table.fns_mut() {
-          call.object.update_for_inner_scope(true, pipeline);
+          call.object.update_for_inner_scope(true, self.preload_resolver(), pipeline, &outer_ref_name);
         }
       }
 
@@ -483,11 +493,14 @@ impl<'a> Compiler<'a> {
       Ok(())
     })?;
 
-    let decl = decl::ClassDecl {
+    let mut decl = decl::ClassDecl {
       name: gd_name,
       extends: extends,
       body: body,
     };
+    if !main_class {
+      inner_class::add_outer_class_ref_named(&mut decl, self.preload_resolver(), pipeline, outer_ref_name);
+    }
     Ok(decl)
   }
 

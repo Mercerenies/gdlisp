@@ -9,6 +9,7 @@ use crate::compile::symbol_table::{SymbolTable, ClassTablePair};
 use crate::compile::symbol_table::local_var::{VarScope, LocalVar};
 use crate::gdscript::expr::Expr;
 use crate::gdscript::decl::{self, Decl};
+use crate::gdscript::inner_class;
 use crate::pipeline::Pipeline;
 use super::lambda;
 
@@ -21,6 +22,8 @@ pub fn compile_lambda_class<'a>(compiler: &mut Compiler<'a>,
                                 class: &LambdaClass)
                                 -> Result<StExpr, Error> {
   let LambdaClass { extends, args: constructor_args, constructor, decls } = class.clone();
+
+  let outer_ref_name = compiler.name_generator().generate_with(inner_class::OUTER_REFERENCE_NAME);
 
   // Validate the extends declaration (must be a global variable)
   let extends_var = table.get_var(&extends).ok_or_else(|| Error::NoSuchVar(extends.clone()))?;
@@ -49,11 +52,11 @@ pub fn compile_lambda_class<'a>(compiler: &mut Compiler<'a>,
   lambda::purge_globals(&mut closure_vars, table);
 
   lambda::locally_bind_vars(compiler, table, &mut lambda_table, closure_vars.names())?;
-  lambda::locally_bind_fns(compiler, pipeline, table, &mut lambda_table, closure_fns.names(), false)?;
+  lambda::locally_bind_fns(compiler, pipeline, table, &mut lambda_table, closure_fns.names(), false, &outer_ref_name)?;
   lambda::copy_global_vars(table, &mut lambda_table);
 
   lambda::locally_bind_vars(compiler, table, &mut lambda_static_table, closure_vars.names())?;
-  lambda::locally_bind_fns(compiler, pipeline, table, &mut lambda_static_table, closure_fns.names(), true)?;
+  lambda::locally_bind_fns(compiler, pipeline, table, &mut lambda_static_table, closure_fns.names(), true, &outer_ref_name)?;
   lambda::copy_global_vars(table, &mut lambda_static_table);
 
   let mut gd_src_closure_vars = Vec::new();
@@ -109,11 +112,12 @@ pub fn compile_lambda_class<'a>(compiler: &mut Compiler<'a>,
     class_body.push(compiler.compile_class_inner_decl(pipeline, builder, tables, d)?);
 
   }
-  let class = decl::ClassDecl {
+  let mut class = decl::ClassDecl {
     name: gd_class_name.clone(),
     extends: extends,
     body: class_body,
   };
+  inner_class::add_outer_class_ref_named(&mut class, compiler.preload_resolver(), pipeline, outer_ref_name);
   builder.add_helper(Decl::ClassDecl(class));
 
   let constructor_args = constructor_args.iter().map(|expr| compiler.compile_expr(pipeline, builder, table, expr, NeedsResult::Yes).map(|x| x.0)).collect::<Result<Vec<_>, _>>()?;

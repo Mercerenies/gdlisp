@@ -5,6 +5,7 @@ use crate::compile::Compiler;
 use crate::compile::error::Error;
 use crate::compile::body::builder::StmtBuilder;
 use crate::compile::stateful::StExpr;
+use crate::compile::preload_resolver::PreloadResolver;
 use crate::pipeline::can_load::CanLoad;
 use super::call_magic::{CallMagic, DefaultCall};
 use super::local_var::VarName;
@@ -187,15 +188,24 @@ impl FnName {
   // This is to get around Issue #30. A nested inner class cannot
   // access the enclosing static scope, so we need to provide a means
   // to get the outer scope.
-  pub fn inner_static_load(loader: &impl CanLoad) -> FnName {
-    let fname = loader.current_filename().expect("Cannot identify currently-loading filename");
+  pub fn inner_static_load<'a>(resolver: &(impl PreloadResolver + ?Sized), loader: &impl CanLoad) -> FnName {
+    let fname = loader.current_filename()
+      .and_then(|fname| resolver.resolve_preload(&fname))
+      .expect("Cannot identify currently-loading filename");
     FnName::on_local_var(VarName::CurrentFile(fname.to_string()))
   }
 
-  pub fn update_for_inner_scope(&mut self, _static_binding: bool, loader: &impl CanLoad) {
+  pub fn update_for_inner_scope(&mut self,
+                                static_binding: bool,
+                                resolver: &(impl PreloadResolver + ?Sized),
+                                loader: &impl CanLoad,
+                                outer_ref_name: &str) {
     if *self == FnName::FileConstant {
-      ///// Do something more efficient if non-static
-      *self = FnName::inner_static_load(loader);
+      if static_binding {
+        *self = FnName::inner_static_load(resolver, loader);
+      } else {
+        *self = FnName::OnLocalVar(Box::new(VarName::local(outer_ref_name)));
+      }
     }
   }
 

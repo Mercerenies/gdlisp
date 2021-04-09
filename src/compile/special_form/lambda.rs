@@ -19,6 +19,7 @@ use crate::gdscript::decl::{self, Decl};
 use crate::gdscript::op;
 use crate::gdscript::arglist::ArgList;
 use crate::gdscript::library;
+use crate::gdscript::inner_class;
 use crate::pipeline::Pipeline;
 use crate::pipeline::can_load::CanLoad;
 
@@ -101,7 +102,7 @@ fn generate_lambda_vararg(specs: FnSpecs) -> decl::FnDecl {
 }
 
 fn generate_lambda_class<'a, 'b>(compiler: &mut Compiler<'a>,
-                                 pipeline: &mut Pipeline,
+                                 _pipeline: &mut Pipeline,
                                  specs: FnSpecs,
                                  args: ArgList,
                                  closed_vars: &[String],
@@ -145,13 +146,11 @@ fn generate_lambda_class<'a, 'b>(compiler: &mut Compiler<'a>,
     Decl::FnDecl(decl::Static::NonStatic, func),
     Decl::FnDecl(decl::Static::NonStatic, funcv),
   ));
-  let mut class = decl::ClassDecl {
+  decl::ClassDecl {
     name: class_name,
     extends: decl::ClassExtends::Qualified(vec!(String::from("GDLisp"), String::from("Function"))),
     body: class_body,
-  };
-  /////
-  class
+  }
 }
 
 pub fn purge_globals(vars: &mut Locals, table: &SymbolTable) {
@@ -167,6 +166,8 @@ pub fn compile_labels_scc<'a>(compiler: &mut Compiler<'a>,
                               clauses: &[&(String, IRArgList, IRExpr)])
                               -> Result<Vec<(String, FnCall)>, Error> {
   let class_name = compiler.name_generator().generate_with("_Labels");
+
+  let outer_ref_name = compiler.name_generator().generate_with(inner_class::OUTER_REFERENCE_NAME);
 
   let mut closure_vars = Locals::new();
   let mut closure_fns = Functions::new();
@@ -192,7 +193,7 @@ pub fn compile_labels_scc<'a>(compiler: &mut Compiler<'a>,
 
   let mut lambda_table = SymbolTable::new();
   locally_bind_vars(compiler, table, &mut lambda_table, closure_vars.names())?;
-  locally_bind_fns(compiler, pipeline, table, &mut lambda_table, closure_fns.names(), false)?;
+  locally_bind_fns(compiler, pipeline, table, &mut lambda_table, closure_fns.names(), false, &outer_ref_name)?;
   copy_global_vars(table, &mut lambda_table);
 
   let mut gd_src_closure_vars = Vec::new();
@@ -283,11 +284,12 @@ pub fn compile_labels_scc<'a>(compiler: &mut Compiler<'a>,
   for func in functions {
     class_body.push(Decl::FnDecl(decl::Static::NonStatic, func));
   }
-  let class = decl::ClassDecl {
+  let mut class = decl::ClassDecl {
     name: class_name.clone(),
     extends: decl::ClassExtends::named(String::from("Reference")),
     body: class_body,
   };
+  inner_class::add_outer_class_ref_named(&mut class, compiler.preload_resolver(), pipeline, outer_ref_name);
   builder.add_helper(Decl::ClassDecl(class));
   let constructor_args: Vec<_> = gd_src_closure_vars.into_iter().map(Expr::Var).collect();
   let expr = Expr::Call(Some(Box::new(Expr::Var(class_name))), String::from("new"), constructor_args);
@@ -331,12 +333,13 @@ where I : Iterator<Item=&'a U>,
   Ok(())
 }
 
-pub fn locally_bind_fns<'a, 'b, I, U, L>(_compiler: &mut Compiler<'b>,
+pub fn locally_bind_fns<'a, 'b, I, U, L>(compiler: &mut Compiler<'b>,
                                          pipeline: &L,
                                          table: &SymbolTable,
                                          lambda_table: &mut SymbolTable,
                                          closure_fns: I,
-                                         static_binding: bool)
+                                         static_binding: bool,
+                                         outer_reference_name: &str)
                                          -> Result<(), Error>
 where I : Iterator<Item=&'a U>,
       U : Borrow<str>,
@@ -348,7 +351,7 @@ where I : Iterator<Item=&'a U>,
       None => { return Err(Error::NoSuchFn(func.borrow().to_owned())) }
       Some((call, magic)) => {
         let mut call = call.clone();
-        call.object.update_for_inner_scope(static_binding, pipeline);
+        call.object.update_for_inner_scope(static_binding, compiler.preload_resolver(), pipeline, &outer_reference_name);
         lambda_table.set_fn(func.borrow().to_owned(), call, dyn_clone::clone_box(magic));
       }
     };
@@ -385,6 +388,8 @@ pub fn compile_lambda_stmt<'a>(compiler: &mut Compiler<'a>,
                                -> Result<StExpr, Error> {
   let (arglist, gd_args) = args.clone().into_gd_arglist(&mut compiler.name_generator());
 
+  let outer_ref_name = compiler.name_generator().generate_with(inner_class::OUTER_REFERENCE_NAME);
+
   let mut lambda_builder = StmtBuilder::new();
   let (all_vars, closure_fns) = body.get_names();
   let mut closure_vars = all_vars.clone();
@@ -401,7 +406,7 @@ pub fn compile_lambda_stmt<'a>(compiler: &mut Compiler<'a>,
   purge_globals(&mut closure_vars, table);
 
   locally_bind_vars(compiler, table, &mut lambda_table, closure_vars.names())?;
-  locally_bind_fns(compiler, pipeline, table, &mut lambda_table, closure_fns.names(), false)?;
+  locally_bind_fns(compiler, pipeline, table, &mut lambda_table, closure_fns.names(), false, &outer_ref_name)?;
   copy_global_vars(table, &mut lambda_table);
 
   let mut gd_src_closure_vars = Vec::new();
@@ -437,7 +442,8 @@ pub fn compile_lambda_stmt<'a>(compiler: &mut Compiler<'a>,
   }
   compiler.compile_stmt(pipeline, &mut lambda_builder, &mut lambda_table, &stmt_wrapper::Return, body)?;
   let lambda_body = lambda_builder.build_into(builder);
-  let class = generate_lambda_class(compiler, pipeline, args.clone().into(), arglist, &gd_closure_vars, lambda_body, "_LambdaBlock");
+  let mut class = generate_lambda_class(compiler, pipeline, args.clone().into(), arglist, &gd_closure_vars, lambda_body, "_LambdaBlock");
+  inner_class::add_outer_class_ref_named(&mut class, compiler.preload_resolver(), pipeline, outer_ref_name);
   let class_name = class.name.clone();
   builder.add_helper(Decl::ClassDecl(class));
   let constructor_args = gd_src_closure_vars.into_iter().map(Expr::Var).collect();
@@ -468,7 +474,7 @@ pub fn compile_function_ref<'a>(compiler: &mut Compiler<'a>,
     }).collect();
 
     // TODO This into().map(Box::new) pattern needs to be written into FnName itself
-    let object = if func.object == FnName::FileConstant { FnName::inner_static_load(pipeline) } else { func.object };
+    let object = if func.object == FnName::FileConstant { FnName::inner_static_load(compiler.preload_resolver(), pipeline) } else { func.object };
     let object: Option<Expr> = object.into();
     let body = Stmt::ReturnStmt(
       Expr::Call(object.map(Box::new), func.function, arg_names.into_iter().map(Expr::Var).collect())
