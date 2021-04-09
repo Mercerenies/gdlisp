@@ -237,3 +237,41 @@ static func run():
     return 9
 "#);
 }
+
+#[test]
+#[ignore]
+pub fn macro_inner_class_test_4() {
+  // Can we do it with inheritance in the way?
+  let result = parse_compile_decl(r#"
+    ((defn add-one (x) (+ x 1))
+     (defclass Foo (Reference)
+       (defn f () (add-one 10)))
+     (defclass Bar (Foo)
+       (defn g () (add-one 5)))
+     (defmacro foo ()
+       (let ((x (Bar:new)))
+         (+ (x:f) (x:g))))
+     (foo))
+"#);
+  assert_eq!(result, r#"extends Reference
+static func add_one(x_0):
+    return x_0 + 1
+class Foo extends Reference:
+    func _init():
+        pass
+    func f():
+        return __gdlisp_outer_class_1.add_one(10)
+    var __gdlisp_outer_class_1 = load("res://TEST.gd")
+class Bar extends Foo:
+    func _init():
+        pass
+    func g():
+        return __gdlisp_outer_class_2.add_one(5)
+    var __gdlisp_outer_class_2 = load("res://TEST.gd")
+static func foo():
+    var x_3 = Bar.new()
+    return x_3.f() + x_3.g()
+static func run():
+    return 17
+"#);
+}
