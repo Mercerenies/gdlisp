@@ -476,7 +476,6 @@ impl<'a> Compiler<'a> {
     let mut instance_table = table.clone();
     let mut static_table = table.clone();
     instance_table.with_local_var::<Result<(), Error>, _>(String::from("self"), self_var, |instance_table| {
-      body.push(Decl::FnDecl(decl::Static::NonStatic, self.compile_constructor(pipeline, builder, instance_table, constructor)?));
 
       // Modify all of the names in the instance / static table. We
       // run this even if needs_outer_ref is false, because we might
@@ -490,6 +489,8 @@ impl<'a> Compiler<'a> {
           call.object.update_for_inner_scope(true, self.preload_resolver(), pipeline, &outer_ref_name);
         }
       }
+
+      body.push(Decl::FnDecl(decl::Static::NonStatic, self.compile_constructor(pipeline, builder, instance_table, constructor)?));
 
       for d in decls {
         let tables = ClassTablePair { instance_table, static_table: &mut static_table };
