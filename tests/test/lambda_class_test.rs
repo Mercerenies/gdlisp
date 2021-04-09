@@ -88,11 +88,6 @@ pub fn closure_and_args_lambda_class_test() {
 
 #[test]
 pub fn capture_self_lambda_class_test() {
-
-  // We use self in two ways here. First in an inner instance method,
-  // where it has the type of the lambda class and second in an inner
-  // static method, where it inherits the self from the enclosing
-  // class.
   let result = parse_compile_decl("((defclass Foo (Reference) (defn f () (new Reference (defn g () self)))))");
   assert_eq!(result, r#"extends Reference
 class _AnonymousClass_0 extends Reference:
@@ -108,7 +103,28 @@ class Foo extends Reference:
 static func run():
     return null
 "#);
+}
 
+#[test]
+pub fn constructor_uses_outer_ref_lambda_class_test() {
+  let result = parse_compile_decl("((defn foo () 1) (new Reference (defn _init () (foo))))");
+  assert_eq!(result, r#"extends Reference
+static func foo():
+    return 1
+class _AnonymousClass_0 extends Reference:
+    func _init():
+        __gdlisp_outer_class_1.foo()
+    var __gdlisp_outer_class_1 = load("res://TEST.gd")
+static func run():
+    return _AnonymousClass_0.new()
+"#);
+}
+
+#[test]
+#[ignore]
+pub fn constructor_uses_outer_ref_lambda_class_test_run() {
+  let result = parse_and_run("((defn foo () (print 10)) (new Reference (defn _init () (foo))))");
+  assert_eq!(result, "\n10\n");
 }
 
 #[test]

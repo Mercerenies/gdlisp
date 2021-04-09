@@ -189,7 +189,6 @@ pub fn macro_inner_class_test_1() {
 class Foo extends Reference:
     func _init():
         pass
-    var __gdlisp_outer_class_0 = load("res://TEST.gd")
 static func foo():
     Foo.new()
     return 1
@@ -228,7 +227,6 @@ class Foo extends Reference:
         pass
     static func g():
         return load("res://TEST.gd").f()
-    var __gdlisp_outer_class_0 = load("res://TEST.gd")
 static func f():
     return 9
 static func foo():

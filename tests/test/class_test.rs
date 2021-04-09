@@ -320,7 +320,8 @@ static func example(x_1):
     return x_1
 class Foo extends Reference:
     func _init():
-        example(3)
+        __gdlisp_outer_class_2.example(3)
+    var __gdlisp_outer_class_2 = load("res://TEST.gd")
 static func run():
     return null
 "#);
