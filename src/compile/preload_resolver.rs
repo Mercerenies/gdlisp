@@ -21,6 +21,14 @@ pub trait PreloadResolver {
   fn include_resource(&self, res: ResourceType) -> bool;
 }
 
+impl LookupPreloadResolver {
+
+  pub fn insert(&mut self, key: PathBuf, value: PathBuf) -> Option<PathBuf> {
+    self.0.insert(key, value)
+  }
+
+}
+
 impl PreloadResolver for DefaultPreloadResolver {
 
   fn resolve_preload(&self, path: &RPathBuf) -> Option<String> {
