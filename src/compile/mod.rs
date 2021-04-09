@@ -472,6 +472,7 @@ impl<'a> Compiler<'a> {
     }
 
     let mut instance_table = table.clone();
+    let mut static_table = table.clone();
     instance_table.with_local_var::<Result<(), Error>, _>(String::from("self"), self_var, |instance_table| {
       body.push(Decl::FnDecl(decl::Static::NonStatic, self.compile_constructor(pipeline, builder, instance_table, constructor)?));
 
@@ -480,13 +481,13 @@ impl<'a> Compiler<'a> {
         for (_, call, _) in instance_table.fns_mut() {
           call.object.update_for_inner_scope(false, self.preload_resolver(), pipeline, &outer_ref_name);
         }
-        for (_, call, _) in table.fns_mut() {
+        for (_, call, _) in static_table.fns_mut() {
           call.object.update_for_inner_scope(true, self.preload_resolver(), pipeline, &outer_ref_name);
         }
       }
 
       for d in decls {
-        let tables = ClassTablePair { instance_table, static_table: table };
+        let tables = ClassTablePair { instance_table, static_table: &mut static_table };
         body.push(self.compile_class_inner_decl(pipeline, builder, tables, d)?);
       }
 
