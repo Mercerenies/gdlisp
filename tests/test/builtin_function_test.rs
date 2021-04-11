@@ -429,6 +429,36 @@ pub fn array_subscript_test() {
 }
 
 #[test]
+#[ignore]
+pub fn array_subscript_test_run() {
+  assert_eq!(parse_and_run("((let ((x [10 20 30])) (print (elt x 2))))"), "\n30\n");
+}
+
+#[test]
+#[ignore]
+pub fn array_subscript_test_run_indirect() {
+  assert_eq!(parse_and_run("((let ((x [10 20 30])) (print (funcall #'elt x 2))))"), "\n30\n");
+}
+
+#[test]
+#[ignore]
+pub fn array_subscript_assign_test_run_1() {
+  assert_eq!(parse_and_run("((let ((x [10 20 30])) (set (elt x 1) 999) (print x)))"), "\n[10, 999, 30]\n");
+}
+
+#[test]
+#[ignore]
+pub fn array_subscript_assign_test_run_2() {
+  assert_eq!(parse_and_run("((let ((x [10 20 30])) (set-elt 999 x 1) (print x)))"), "\n[10, 999, 30]\n");
+}
+
+#[test]
+#[ignore]
+pub fn array_subscript_assign_test_run_3() {
+  assert_eq!(parse_and_run("((let ((x [10 20 30])) (funcall #'set-elt 999 x 1) (print x)))"), "\n[10, 999, 30]\n");
+}
+
+#[test]
 pub fn attribute_test() {
   assert_eq!(parse_compile_and_output("(let ((foo 1)) foo:bar)"), "var foo_0 = 1\nreturn foo_0.bar\n");
   assert_eq!(parse_compile_and_output("(let ((foo 1)) foo:bar 2)"), "var foo_0 = 1\nreturn 2\n");
