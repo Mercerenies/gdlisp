@@ -10,11 +10,18 @@ use crate::sxp::ast::AST;
 
 // TODO Can we use this for defvar export statements too?
 
+// Constant is a parse rule which looks for an AST::Symbol with a
+// specific string value. If it finds it, it returns a preset value.
+// The M type must implement Clone to be usable as a ParseRule.
 pub struct Constant<M> {
   pub symbol_value: String,
   pub result: M,
 }
 
+// Several is a ParseRule which will attempt to parse all of the
+// modifiers in its values field in order, taking the first one which
+// succeeds. The Several instance will only fail if all constituent
+// parsers fail on the same input.
 pub struct Several<M> {
   pub values: Vec<Box<dyn ParseRule<Modifier=M>>>,
 }
@@ -23,11 +30,20 @@ pub enum ParseError {
   GenericError,
 }
 
+// A ParseRule takes an AST and attempts to parse it as a particular
+// modifier type. If successful, the modifier is returned. Otherwise,
+// ParseError::GenericError is returned (there is only one instance of
+// ParseError right now; we may opt to provide more specific errors in
+// the future).
 pub trait ParseRule {
   type Modifier;
 
   fn parse_once(&self, ast: &AST) -> Result<Self::Modifier, ParseError>;
 
+  // parse(args) takes a slice of AST's and attempts to parse them
+  // each using the current parse rule. Whenever a parse fails,
+  // parsing stops and the successfully parsed modifiers are returned,
+  // alongside the rest of the slice that was not parsed successfully.
   fn parse<'a, 'b>(&self, args: &'a [&'b AST]) -> (Vec<Self::Modifier>, &'a [&'b AST]) {
     let mut modifiers = Vec::new();
 
