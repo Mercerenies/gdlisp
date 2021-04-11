@@ -129,6 +129,13 @@ pub fn bad_member_const_class_test() {
 }
 
 #[test]
+#[should_panic]
+pub fn bad_static_constructor_class_test() {
+  // Constructors cannot be static
+  parse_compile_decl("((defclass ClassName (Node) (defn _init () statc)))");
+}
+
+#[test]
 pub fn signal_class_test_1() {
   assert_eq!(parse_compile_decl("((defclass ClassName (Node) (defsignal my-signal)))"),
              r#"extends Reference

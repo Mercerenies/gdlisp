@@ -453,36 +453,26 @@ impl IncCompiler {
             let args: Vec<_> = DottedExpr::new(vec[2]).try_into()?;
             let args = SimpleArgList::parse(args)?;
 
-            // Determine if static (TODO We'll want to abstract this into a identify_modifiers helper)
-            let (is_static, body) = {
-              let mut is_static = Static::NonStatic;
-              let mut body = &vec[3..];
-              if vec.len() > 3 {
-                match vec[3] {
-                  AST::Symbol(static_) if static_ == "static" => {
-                    is_static = Static::IsStatic;
-                    body = &vec[4..];
-                  }
-                  _ => {}
-                }
-              }
-              (is_static, body)
-            };
+            // Determine if static
+            let (mods, body) = modifier::instance_method::parser().parse(&vec[3..]);
 
             let body = body.iter().map(|expr| self.compile_expr(pipeline, expr)).collect::<Result<Vec<_>, _>>()?;
             if fname == "_init" {
               // Constructor
-              if is_static == Static::IsStatic {
-                return Err(PError::from(Error::StaticConstructor));
-              }
               acc.constructor = decl::ConstructorDecl { args, body: Expr::Progn(body) };
+              for m in mods {
+                m.apply_to_constructor(&mut acc.constructor)?;
+              }
             } else {
-              let decl = decl::ClassFnDecl {
-                is_static: is_static,
+              let mut decl = decl::ClassFnDecl {
+                is_static: Static::NonStatic,
                 name: fname.to_owned(),
                 args,
                 body: Expr::Progn(body),
               };
+              for m in mods {
+                m.apply(&mut decl);
+              }
               acc.decls.push(decl::ClassInnerDecl::ClassFnDecl(decl));
             }
             Ok(())

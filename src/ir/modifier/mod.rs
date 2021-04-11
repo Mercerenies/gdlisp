@@ -1,5 +1,6 @@
 
 pub mod class;
+pub mod instance_method;
 
 use crate::sxp::ast::AST;
 
@@ -7,7 +8,7 @@ use crate::sxp::ast::AST;
 // optional sequence of modifiers from a list and then return the rest
 // of the list. Here, we capture that common pattern.
 
-///// (use on (defclass ... main), (defn ... static), and maybe even (defvar ... (export ...))
+// TODO Can we use this for defvar export statements too?
 
 pub struct Constant<M> {
   pub symbol_value: String,
