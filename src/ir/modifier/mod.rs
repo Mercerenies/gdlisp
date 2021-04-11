@@ -43,6 +43,15 @@ pub trait ParseRule {
 
 }
 
+impl<M> Constant<M> {
+  pub fn new(symbol_value: &str, result: M) -> Constant<M> {
+    Constant {
+      symbol_value: String::from(symbol_value),
+      result
+    }
+  }
+}
+
 impl<M> ParseRule for Constant<M> where M: Clone {
   type Modifier = M;
   fn parse_once(&self, ast: &AST) -> Result<M, ParseError> {
