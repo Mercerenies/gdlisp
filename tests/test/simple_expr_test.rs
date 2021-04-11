@@ -52,6 +52,29 @@ pub fn assignment_test() {
 }
 
 #[test]
+pub fn custom_assign_test() {
+  let result = parse_compile_decl("((defn set-foo (c a b)) (set (foo 1 2) 3))");
+  assert_eq!(result, r#"extends Reference
+static func set_foo(c_0, a_1, b_2):
+    return null
+static func run():
+    return set_foo(3, 1, 2)
+"#);
+}
+
+#[test]
+pub fn slot_assign_test_1() {
+  let result = parse_compile_and_output("(let ((a 1)) (set a:b 3))");
+  assert_eq!(result, "var a_0 = 1\na_0.b = 3\nreturn a_0.b\n");
+}
+
+#[test]
+pub fn slot_assign_test_2() {
+  let result = parse_compile_and_output("(let ((a 1)) (set (access-slot a b) 3))");
+  assert_eq!(result, "var a_0 = 1\na_0.b = 3\nreturn a_0.b\n");
+}
+
+#[test]
 #[should_panic]
 pub fn assign_to_self_test() {
   parse_compile_decl("((defclass Foo (Node) (defn _init () (set self 1))))");

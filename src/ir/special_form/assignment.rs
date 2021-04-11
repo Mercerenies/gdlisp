@@ -12,7 +12,7 @@ pub enum AssignmentForm {
 impl AssignmentForm {
 
   pub fn to_setter_prefix(name: &str) -> String {
-    format!("set_{}", name)
+    format!("set-{}", name)
   }
 
   pub fn into_expr(self, rhs: Expr) -> Expr {
