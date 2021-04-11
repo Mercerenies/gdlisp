@@ -185,7 +185,7 @@ pub fn assign_form(icompiler: &mut IncCompiler,
           return Err(Error::from(GDError::InvalidArg(String::from("set"), x.clone(), String::from("symbol"))));
         }
       } else if let AST::Symbol(s) = inner[0] {
-        let head = AssignmentForm::to_setter_prefix(s);
+        let head = AssignmentForm::str_to_setter_prefix(s);
         let args = inner[1..].iter().map(|x| icompiler.compile_expr(pipeline, x)).collect::<Result<_, _>>()?;
         AssignmentForm::SetterCall(head, args)
       } else {

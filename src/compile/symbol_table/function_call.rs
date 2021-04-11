@@ -188,11 +188,11 @@ impl FnName {
   // This is to get around Issue #30. A nested inner class cannot
   // access the enclosing static scope, so we need to provide a means
   // to get the outer scope.
-  pub fn inner_static_load<'a>(resolver: &(impl PreloadResolver + ?Sized), loader: &impl CanLoad) -> FnName {
+  pub fn inner_static_load(resolver: &(impl PreloadResolver + ?Sized), loader: &impl CanLoad) -> FnName {
     let fname = loader.current_filename()
       .and_then(|fname| resolver.resolve_preload(&fname))
       .expect("Cannot identify currently-loading filename");
-    FnName::on_local_var(VarName::CurrentFile(fname.to_string()))
+    FnName::on_local_var(VarName::CurrentFile(fname))
   }
 
   pub fn update_for_inner_scope(&mut self,

@@ -54,6 +54,7 @@ impl MaybeConstant for Expr {
       }
       Expr::Call(obj, name, args) => {
         // Again, very conservative. I know Vector2 and Vector3 are safe.
+        #[allow(clippy::collapsible_if)] // (Meh, it's more readable this way IMO)
         if obj.is_none() {
           if name == "Vector2" || name == "Vector3" {
             return args.iter().all(|x| x.is_allowable_const(table));

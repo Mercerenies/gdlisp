@@ -33,7 +33,7 @@ pub fn on_gdlisp_root(name: String) -> Expr {
 }
 
 fn toplevel_enum(name: &str, values: &[&str]) -> LocalVar {
-  let hint = ValueHint::enumeration(values.into_iter().map(|x| *x));
+  let hint = ValueHint::enumeration(values.iter().copied());
   let mut var = LocalVar::file_constant(name.to_owned()).with_hint(hint);
   var.name = var.name.into_imported(GDLISP_NAME.to_owned());
   var
@@ -344,31 +344,31 @@ pub fn bind_builtins(table: &mut SymbolTable) {
 
   // BUTTON_* Constants
   table.set_var("Mouse".to_owned(),
-                toplevel_enum("Mouse", &vec!("LEFT", "RIGHT", "MIDDLE", "XBUTTON1",
-                                             "XBUTTON2", "WHEEL_UP", "WHEEL_DOWN",
-                                             "WHEEL_LEFT", "WHEEL_RIGHT", "MASK_LEFT",
-                                             "MASK_RIGHT", "MASK_MIDDLE", "MASK_XBUTTON1",
-                                             "MASK_XBUTTON2")));
+                toplevel_enum("Mouse", &["LEFT", "RIGHT", "MIDDLE", "XBUTTON1",
+                                         "XBUTTON2", "WHEEL_UP", "WHEEL_DOWN",
+                                         "WHEEL_LEFT", "WHEEL_RIGHT", "MASK_LEFT",
+                                         "MASK_RIGHT", "MASK_MIDDLE", "MASK_XBUTTON1",
+                                         "MASK_XBUTTON2"]));
 
   // MARGIN_* Constants
   table.set_var("Margin".to_owned(),
-                toplevel_enum("Margin", &vec!("LEFT", "TOP", "RIGHT", "BOTTOM")));
+                toplevel_enum("Margin", &["LEFT", "TOP", "RIGHT", "BOTTOM"]));
 
   // CORNER_* Constants
   table.set_var("Corner".to_owned(),
-                toplevel_enum("Corner", &vec!("TOP_LEFT", "TOP_RIGHT", "BOTTOM_RIGHT", "BOTTOM_LEFT")));
+                toplevel_enum("Corner", &["TOP_LEFT", "TOP_RIGHT", "BOTTOM_RIGHT", "BOTTOM_LEFT"]));
 
   // ORIENTATION_* Constants
   table.set_var("Orientation".to_owned(),
-                toplevel_enum("Orientation", &vec!("VERTICAL", "HORIZONTAL")));
+                toplevel_enum("Orientation", &["VERTICAL", "HORIZONTAL"]));
 
   // HALIGN_* Constants
   table.set_var("HAlign".to_owned(),
-                toplevel_enum("HAlign", &vec!("LEFT", "CENTER", "RIGHT")));
+                toplevel_enum("HAlign", &["LEFT", "CENTER", "RIGHT"]));
 
   // VALIGN_* Constants
   table.set_var("VAlign".to_owned(),
-                toplevel_enum("VAlign", &vec!("TOP", "CENTER", "BOTTOM")));
+                toplevel_enum("VAlign", &["TOP", "CENTER", "BOTTOM"]));
 
   // KEY_* Constants
   table.set_var("Key".to_owned(),
@@ -376,29 +376,29 @@ pub fn bind_builtins(table: &mut SymbolTable) {
 
   // KEY_MASK_* Constants
   table.set_var("KeyMask".to_owned(),
-                toplevel_enum("KeyMask", &vec!("CODE_MASK", "MODIFIER_MASK", "SHIFT", "ALT",
-                                               "META", "CTRL", "CMD", "KPAD", "GROUP_SWITCH")));
+                toplevel_enum("KeyMask", &["CODE_MASK", "MODIFIER_MASK", "SHIFT", "ALT",
+                                           "META", "CTRL", "CMD", "KPAD", "GROUP_SWITCH"]));
 
   // JOY_* Constants
   table.set_var("Joy".to_owned(),
-                toplevel_enum("Joy", &vec!("BUTTON_0", "BUTTON_1", "BUTTON_2",
-                                           "BUTTON_3", "BUTTON_4", "BUTTON_5", "BUTTON_6", "BUTTON_7",
-                                           "BUTTON_8", "BUTTON_9", "BUTTON_10", "BUTTON_11", "BUTTON_12",
-                                           "BUTTON_13", "BUTTON_14", "BUTTON_15", "BUTTON_MAX", "SONY_CIRCLE",
-                                           "SONY_X", "SONY_SQUARE", "SONY_TRIANGLE", "XBOX_B", "XBOX_A",
-                                           "XBOX_X", "XBOX_Y", "DS_A", "DS_B", "DS_X", "DS_Y", "VR_GRIP",
-                                           "VR_PAD", "VR_TRIGGER", "OCULUS_AX", "OCULUS_BY", "OCULUS_MENU",
-                                           "OPENVR_MENU", "SELECT", "START", "DPAD_UP", "DPAD_DOWN", "DPAD_LEFT",
-                                           "DPAD_RIGHT", "L", "L2", "L3", "R", "R2", "R3", "AXIS_0", "AXIS_1",
-                                           "AXIS_2", "AXIS_3", "AXIS_4", "AXIS_5", "AXIS_6", "AXIS_7", "AXIS_8",
-                                           "AXIS_9", "AXIS_MAX", "ANALOG_LX", "ANALOG_LY", "ANALOG_RX", "ANALOG_RY",
-                                           "ANALOG_L2", "ANALOG_R2", "VR_ANALOG_TRIGGER", "VR_ANALOG_GRIP",
-                                           "OPENVR_TOUCHPADX", "OPENVR_TOUCHPADY")));
+                toplevel_enum("Joy", &["BUTTON_0", "BUTTON_1", "BUTTON_2",
+                                       "BUTTON_3", "BUTTON_4", "BUTTON_5", "BUTTON_6", "BUTTON_7",
+                                       "BUTTON_8", "BUTTON_9", "BUTTON_10", "BUTTON_11", "BUTTON_12",
+                                       "BUTTON_13", "BUTTON_14", "BUTTON_15", "BUTTON_MAX", "SONY_CIRCLE",
+                                       "SONY_X", "SONY_SQUARE", "SONY_TRIANGLE", "XBOX_B", "XBOX_A",
+                                       "XBOX_X", "XBOX_Y", "DS_A", "DS_B", "DS_X", "DS_Y", "VR_GRIP",
+                                       "VR_PAD", "VR_TRIGGER", "OCULUS_AX", "OCULUS_BY", "OCULUS_MENU",
+                                       "OPENVR_MENU", "SELECT", "START", "DPAD_UP", "DPAD_DOWN", "DPAD_LEFT",
+                                       "DPAD_RIGHT", "L", "L2", "L3", "R", "R2", "R3", "AXIS_0", "AXIS_1",
+                                       "AXIS_2", "AXIS_3", "AXIS_4", "AXIS_5", "AXIS_6", "AXIS_7", "AXIS_8",
+                                       "AXIS_9", "AXIS_MAX", "ANALOG_LX", "ANALOG_LY", "ANALOG_RX", "ANALOG_RY",
+                                       "ANALOG_L2", "ANALOG_R2", "VR_ANALOG_TRIGGER", "VR_ANALOG_GRIP",
+                                       "OPENVR_TOUCHPADX", "OPENVR_TOUCHPADY"]));
 
   // MIDI_MESSAGE_* Constants
   table.set_var("MIDIMessage".to_owned(),
-                toplevel_enum("MIDIMessage", &vec!("NOTE_OFF", "NOTE_ON", "AFTERTOUCH", "CONTROL_CHANGE",
-                                                   "PROGRAM_CHANGE", "CHANNEL_PRESSURE", "PITCH_BEND")));
+                toplevel_enum("MIDIMessage", &["NOTE_OFF", "NOTE_ON", "AFTERTOUCH", "CONTROL_CHANGE",
+                                               "PROGRAM_CHANGE", "CHANNEL_PRESSURE", "PITCH_BEND"]));
 
   // TODO The remaining constants from @GlobalScope need to be copied over here
 
