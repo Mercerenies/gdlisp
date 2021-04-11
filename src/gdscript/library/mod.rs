@@ -238,6 +238,11 @@ pub fn bind_builtins(table: &mut SymbolTable) {
                gdlisp_function("map", FnSpecs::new(2, 0, None)),
                Box::new(call_magic::DefaultCall));
 
+  // filter (For lists and arrays)
+  table.set_fn("filter".to_owned(),
+               gdlisp_function("filter", FnSpecs::new(2, 0, None)),
+               Box::new(call_magic::DefaultCall));
+
   // ---- GDScript built-ins that we use unmodified ----
 
   table.set_fn("str".to_owned(),

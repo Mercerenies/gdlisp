@@ -652,3 +652,22 @@ func map(f, xs):
         for i in len(xs):
             result[i] = f.call_funcv(Cons.new(xs[i], null))
         return result
+
+func filter(p, xs):
+    if xs is Cons || xs == null:
+        # List filter
+        var outer = Cons.new(null, null)
+        var curr = outer
+        while xs != null:
+            if p.call_funcv(Cons.new(xs.car, null)):
+                curr.cdr = Cons.new(xs.car, null)
+                curr = curr.cdr
+            xs = xs.cdr
+        return outer.cdr
+    else:
+        # Array filter
+        var result = []
+        for i in len(xs):
+            if p.call_funcv(Cons.new(xs[i], null)):
+                result.push_back(xs[i])
+        return result

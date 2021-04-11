@@ -548,4 +548,36 @@ pub fn map_test_2() {
   assert_eq!(result, "\n3\n5\n6\n7\n");
 }
 
+#[test]
+#[ignore]
+pub fn filter_test_1() {
+  let result = parse_and_run(r#"
+    ((print (filter (lambda (x) (= (mod x 2) 0)) [1 2 3 4 5 6])))
+  "#);
+  assert_eq!(result, "\n[2, 4, 6]\n");
+}
+
+#[test]
+#[ignore]
+pub fn filter_test_2() {
+  let result = parse_and_run(r#"
+    ((let ((x (filter (lambda (x) (= (mod x 2) 0)) '(1 2 3 4 5 6))))
+       (print (length x))
+       (print x:car)
+       (print x:cdr:car)
+       (print x:cdr:cdr:car)))
+  "#);
+  assert_eq!(result, "\n3\n2\n4\n6\n");
+}
+
+#[test]
+#[ignore]
+pub fn filter_test_3() {
+  let result = parse_and_run(r#"
+    ((let ((x (filter (lambda (x) #f) '(1 2 3 4 5 6))))
+       (print (length x))))
+  "#);
+  assert_eq!(result, "\n0\n");
+}
+
 // TODO Test gensym at runtime once we can pretty-print symbols
