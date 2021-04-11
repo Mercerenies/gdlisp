@@ -161,7 +161,7 @@ pub fn yield_star_function(state: MacroState<'_, '_>, arg: &[&AST]) -> Result<AS
   // (let ((symbol ...))
   //   (while (and (instance? symbol GDScriptFunctionState) (symbol:is_valid))
   //     (yield)
-  //     (setq symbol (symbol:resume)))
+  //     (set symbol (symbol:resume)))
   //   symbol)
   let result = AST::list(vec!(
     AST::symbol("let"),
@@ -187,7 +187,7 @@ pub fn yield_star_function(state: MacroState<'_, '_>, arg: &[&AST]) -> Result<AS
         AST::symbol("yield")
       )),
       AST::list(vec!(
-        AST::symbol("setq"),
+        AST::symbol("set"),
         AST::symbol(&symbol),
         AST::list(vec!(
           AST::list(vec!(

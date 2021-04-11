@@ -30,7 +30,7 @@ static func run():
 
 #[test]
 pub fn member_var_class_test_2() {
-  assert_eq!(parse_compile_decl("((defclass ClassName (Node) (defvar x) (defn _init (x) (setq self:x x)) (defn get-x () self:x)))"),
+  assert_eq!(parse_compile_decl("((defclass ClassName (Node) (defvar x) (defn _init (x) (set self:x x)) (defn get-x () self:x)))"),
              r#"extends Reference
 class ClassName extends Node:
     func _init(x_0):
@@ -45,7 +45,7 @@ static func run():
 
 #[test]
 pub fn member_var_class_test_3() {
-  assert_eq!(parse_compile_decl("((defclass ClassName (Node) (defvar x 999) (defn _init (x) (setq self:x x)) (defn get-x () self:x)))"),
+  assert_eq!(parse_compile_decl("((defclass ClassName (Node) (defvar x 999) (defn _init (x) (set self:x x)) (defn get-x () self:x)))"),
              r#"extends Reference
 class ClassName extends Node:
     func _init(x_0):
@@ -60,7 +60,7 @@ static func run():
 
 #[test]
 pub fn member_var_class_test_4() {
-  assert_eq!(parse_compile_decl("((defclass ClassName (Node) main (defvar x (export int 1 2)) (defn _init (x) (setq self:x x)) (defn get-x () self:x)))"),
+  assert_eq!(parse_compile_decl("((defclass ClassName (Node) main (defvar x (export int 1 2)) (defn _init (x) (set self:x x)) (defn get-x () self:x)))"),
              r#"extends Node
 func _init(x_0):
     self.x = x_0
@@ -74,7 +74,7 @@ static func run():
 
 #[test]
 pub fn member_var_class_test_5() {
-  assert_eq!(parse_compile_decl(r#"((defclass ClassName (Node) main (defvar x "foo" (export String "foo" "bar")) (defn _init (x) (setq self:x x)) (defn get-x () self:x)))"#),
+  assert_eq!(parse_compile_decl(r#"((defclass ClassName (Node) main (defvar x "foo" (export String "foo" "bar")) (defn _init (x) (set self:x x)) (defn get-x () self:x)))"#),
              r#"extends Node
 func _init(x_0):
     self.x = x_0
@@ -104,14 +104,14 @@ static func run():
 #[test]
 #[should_panic]
 pub fn bad_member_var_class_test_1() {
-  parse_compile_decl("((defclass ClassName (Node) (defvar x (if 1 2 3)) (defn _init (x) (setq self:x x)) (defn get-x () self:x)))");
+  parse_compile_decl("((defclass ClassName (Node) (defvar x (if 1 2 3)) (defn _init (x) (set self:x x)) (defn get-x () self:x)))");
 }
 
 #[test]
 #[should_panic]
 pub fn bad_member_var_class_test_2() {
   // Can't have export on inner class
-  parse_compile_decl("((defclass ClassName (Node) (defvar x (export int)) (defn _init (x) (setq self:x x)) (defn get-x () self:x)))");
+  parse_compile_decl("((defclass ClassName (Node) (defvar x (export int)) (defn _init (x) (set self:x x)) (defn get-x () self:x)))");
 }
 
 #[test]
@@ -275,12 +275,12 @@ pub fn simple_self_run_class_test() {
     ((defclass Foo (Reference)
        (defvar x)
        (defn _init (x)
-         (setq self:x x))
+         (set self:x x))
        (defn double ()
          (* self:x 2)))
      (let ((foo (Foo:new 100)))
        (print (foo:double))
-       (setq foo:x 101)
+       (set foo:x 101)
        (print (foo:double))))
   "#), "\n200\n202\n");
 }
@@ -292,10 +292,10 @@ pub fn self_with_closure_run_class_test() {
     ((defclass Foo (Reference)
        (defvar x)
        (defn _init ()
-         (setq self:x 1))
+         (set self:x 1))
        (defn increment ()
          (lambda ()
-           (setq self:x (+ self:x 1)))))
+           (set self:x (+ self:x 1)))))
      (let ((fn (let ((tmp (Foo:new))) (tmp:increment))))
        (print (funcall fn))
        (print (funcall fn))
@@ -364,7 +364,7 @@ pub fn macro_uses_class_test() {
        (defvar x))
      (defmacro through-foo ()
        (let ((foo (Foo:new)))
-         (setq foo:x 5)
+         (set foo:x 5)
          foo:x))
      (print (through-foo)))"#),
              "\n5\n");
@@ -478,7 +478,7 @@ pub fn macro_uses_main_class_test() {
        (defvar x))
      (defmacro through-foo ()
        (let ((foo (Foo:new)))
-         (setq foo:x 5)
+         (set foo:x 5)
          foo:x))
      (print (through-foo)))"#),
              "\n5\n");

@@ -9,13 +9,13 @@ fn floating_test() {
   // side when I do that.
   let output = parse_and_run(r#"
     ((let (x)
-      (setq x 1.0000)
-      (setq x -0.29199)
-      (setq x 3e19)
-      (setq x +3e19)
-      (setq x -4.1E3)
-      (setq x -4.1E+3)
-      (setq x 1e-2)))
+      (set x 1.0000)
+      (set x -0.29199)
+      (set x 3e19)
+      (set x +3e19)
+      (set x -4.1E3)
+      (set x -4.1E+3)
+      (set x 1e-2)))
   "#);
   assert_eq!(output, "\n");
 }

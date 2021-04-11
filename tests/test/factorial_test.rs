@@ -12,7 +12,7 @@ fn factorial_test_global() {
     (let ((x 0))
       (while (< x 6)
         (print (fact x))
-        (setq x (+ x 1)))))
+        (set x (+ x 1)))))
   "#);
   assert_eq!(output, "\n1\n1\n2\n6\n24\n120\n");
 }
@@ -28,7 +28,7 @@ fn factorial_test_labels() {
      (let ((x 0))
         (while (< x 6)
            (print (fact x))
-           (setq x (+ x 1))))))
+           (set x (+ x 1))))))
   "#);
   assert_eq!(output, "\n1\n1\n2\n6\n24\n120\n");
 }

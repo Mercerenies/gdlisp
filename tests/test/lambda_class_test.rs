@@ -25,7 +25,7 @@ pub fn basic_lambda_class_test() {
 #[test]
 pub fn constructor_lambda_class_test() {
 
-  let result0 = parse_compile_and_output_h("(new Node (defvar x) (defn _init () (setq self:x 1)) (defn foo () self:x))");
+  let result0 = parse_compile_and_output_h("(new Node (defvar x) (defn _init () (set self:x 1)) (defn foo () self:x))");
   assert_eq!(result0.0, "return _AnonymousClass_0.new()\n");
   assert_eq!(result0.1, r#"class _AnonymousClass_0 extends Node:
     func _init():
@@ -40,7 +40,7 @@ pub fn constructor_lambda_class_test() {
 #[test]
 pub fn constructor_args_lambda_class_test() {
 
-  let result0 = parse_compile_and_output_h("(new (Node 99) (defvar x) (defvar y) (defn _init (y) (setq self:x 1) (setq self:y y)) (defn foo () [self:x self:y]))");
+  let result0 = parse_compile_and_output_h("(new (Node 99) (defvar x) (defvar y) (defn _init (y) (set self:x 1) (set self:y y)) (defn foo () [self:x self:y]))");
   assert_eq!(result0.0, "return _AnonymousClass_0.new(99)\n");
   assert_eq!(result0.1, r#"class _AnonymousClass_0 extends Node:
     func _init(y_1):
@@ -72,7 +72,7 @@ pub fn closure_lambda_class_test() {
 #[test]
 pub fn closure_and_args_lambda_class_test() {
 
-  let result0 = parse_compile_and_output_h("(let ((a 1)) (new (Node 77) (defvar z) (defn _init (z) (setq self:z z)) (defn foo () (+ self:z a))))");
+  let result0 = parse_compile_and_output_h("(let ((a 1)) (new (Node 77) (defvar z) (defn _init (z) (set self:z z)) (defn foo () (+ self:z a))))");
   assert_eq!(result0.0, "var a_0 = 1\nreturn _AnonymousClass_1.new(a_0, 77)\n");
   assert_eq!(result0.1, r#"class _AnonymousClass_1 extends Node:
     func _init(a_0, z_2):
@@ -178,7 +178,7 @@ pub fn lambda_class_running_test_5() {
   // Note: This one requires x to be wrapped in a Cell.
   let output = parse_and_run(r#"
     ((let ((x 1))
-       (let ((foo (new Reference (defn increment () (setq x (+ x 1))))))
+       (let ((foo (new Reference (defn increment () (set x (+ x 1))))))
          (print x)
          (print (foo:increment))
          (print x))))
@@ -189,7 +189,7 @@ pub fn lambda_class_running_test_5() {
 #[test]
 #[ignore]
 pub fn lambda_class_running_test_6() {
-  let output = parse_and_run("((let ((x (let ((y 99)) (new (Reference 1) (defvar z) (defn _init (z) (setq self:z z)) (defn foo () (+ self:z y)))))) (print (x:foo))))");
+  let output = parse_and_run("((let ((x (let ((y 99)) (new (Reference 1) (defvar z) (defn _init (z) (set self:z z)) (defn foo () (+ self:z y)))))) (print (x:foo))))");
   assert_eq!(output, "\n100\n");
 }
 
@@ -203,6 +203,6 @@ pub fn lambda_class_access_static_fn_test_1() {
 #[test]
 #[ignore]
 pub fn lambda_class_access_static_fn_test_2() {
-  let output = parse_and_run("((defn foo () 100) (let ((x (new Reference (defvar x) (defn _init () (setq self:x (foo)))))) (print x:x)))");
+  let output = parse_and_run("((defn foo () 100) (let ((x (new Reference (defvar x) (defn _init () (set self:x (foo)))))) (print x:x)))");
   assert_eq!(output, "\n100\n");
 }

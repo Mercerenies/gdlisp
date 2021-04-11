@@ -11,7 +11,7 @@ fn even_odd_test_labels() {
       (while (< x 11)
         (print (is-even x))
         (print (is-odd x))
-        (setq x (+ x 1))))))
+        (set x (+ x 1))))))
   "#);
   assert_eq!(output, "\nTrue\nFalse\nFalse\nTrue\nTrue\nFalse\nFalse\nTrue\nTrue\nFalse\nFalse\nTrue\nTrue\nFalse\nFalse\nTrue\nTrue\nFalse\nFalse\nTrue\nTrue\nFalse\n");
 }

@@ -145,8 +145,8 @@ mod tests {
   }
 
   #[test]
-  fn compile_setq() {
-    assert_eq!(do_compile_expr(&AST::list(vec!(AST::Symbol(String::from("setq")),
+  fn compile_set() {
+    assert_eq!(do_compile_expr(&AST::list(vec!(AST::Symbol(String::from("set")),
                                                AST::Symbol(String::from("foobar")),
                                                AST::Int(1)))).unwrap(),
                Expr::Assign(AssignTarget::Variable(String::from("foobar")), Box::new(Expr::Literal(Literal::Int(1)))));

@@ -31,7 +31,7 @@ pub fn dispatch_form(icompiler: &mut IncCompiler,
     "labels" => flet_form(icompiler, pipeline, tail, LabelsLocalBinding).map(Some),
     "lambda" => lambda_form(icompiler, pipeline, tail).map(Some),
     "function" => function_form(tail).map(Some),
-    "setq" => assign_form(icompiler, pipeline, tail).map(Some),
+    "set" => assign_form(icompiler, pipeline, tail).map(Some),
     "quote" => quote_form(tail).map(Some),
     "quasiquote" => quasiquote_form(icompiler, pipeline, tail).map(Some),
     "unquote" => Err(Error::from(GDError::UnquoteOutsideQuasiquote)),
@@ -165,10 +165,10 @@ pub fn assign_form(icompiler: &mut IncCompiler,
                    tail: &[&AST])
                    -> Result<Expr, Error> {
   if tail.len() < 2 {
-    return Err(Error::from(GDError::TooFewArgs(String::from("setq"), 2)))
+    return Err(Error::from(GDError::TooFewArgs(String::from("set"), 2)))
   }
   if tail.len() > 2 {
-    return Err(Error::from(GDError::TooManyArgs(String::from("setq"), 2)))
+    return Err(Error::from(GDError::TooManyArgs(String::from("set"), 2)))
   }
   let assign_target = match tail[0] {
     AST::Symbol(s) => {
@@ -180,10 +180,10 @@ pub fn assign_form(icompiler: &mut IncCompiler,
         if let Expr::FieldAccess(lhs, slot_name) = access_slot_form(icompiler, pipeline, &inner[1..])? {
           AssignTarget::InstanceField(lhs, slot_name)
         } else {
-          return Err(Error::from(GDError::InvalidArg(String::from("setq"), x.clone(), String::from("symbol"))));
+          return Err(Error::from(GDError::InvalidArg(String::from("set"), x.clone(), String::from("symbol"))));
         }
       } else {
-        return Err(Error::from(GDError::InvalidArg(String::from("setq"), x.clone(), String::from("symbol"))));
+        return Err(Error::from(GDError::InvalidArg(String::from("set"), x.clone(), String::from("symbol"))));
       }
     }
   };

@@ -40,7 +40,7 @@ static func run():
 
 #[test]
 pub fn closed_rw_in_function_declaration_test() {
-  assert_eq!(parse_compile_decl("((defn foo (x) (lambda () (setq x 1)) x))"), r#"extends Reference
+  assert_eq!(parse_compile_decl("((defn foo (x) (lambda () (set x 1)) x))"), r#"extends Reference
 class _LambdaBlock_1 extends GDLisp.Function:
     var x_0
     func _init(x_0):
