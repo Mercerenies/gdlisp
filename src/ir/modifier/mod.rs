@@ -1,4 +1,6 @@
 
+pub mod class;
+
 use crate::sxp::ast::AST;
 
 // There are a few situations in the compiler where we want to read an

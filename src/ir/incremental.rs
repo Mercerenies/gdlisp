@@ -13,6 +13,7 @@ use super::depends::Dependencies;
 use super::decl::{self, Decl};
 use super::macros::{self, MacroData};
 use super::identifier::{Id, IdLike, Namespace};
+use super::modifier::{self, ParseRule};
 use crate::sxp::dotted::{DottedExpr, TryFromDottedExprError};
 use crate::sxp::ast::AST;
 use crate::sxp::reify::Reify;
@@ -263,11 +264,10 @@ impl IncCompiler {
                 },
               _ => return Err(PError::from(Error::InvalidDecl(decl.clone()))),
             };
+            let (mods, decl_body) = modifier::class::parser().parse(&vec[3..]);
             let mut class = decl::ClassDecl::new(name, superclass);
-            let mut decl_body = &vec[3..];
-            if vec.len() > 3 && vec[3] == &AST::Symbol(String::from("main")) {
-              class.main_class = true;
-              decl_body = &vec[4..];
+            for m in mods {
+              m.apply(&mut class);
             }
             for decl in decl_body {
               self.compile_class_inner_decl(pipeline, &mut class, decl)?;
