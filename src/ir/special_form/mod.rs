@@ -1,5 +1,6 @@
 
 pub mod local_binding;
+pub mod assignment;
 
 use crate::sxp::ast::AST;
 use crate::sxp::dotted::DottedExpr;
@@ -13,6 +14,7 @@ use crate::ir::incremental::IncCompiler;
 use crate::ir::identifier::{Id, Namespace};
 use crate::pipeline::Pipeline;
 use local_binding::{FLetLocalBinding, LabelsLocalBinding, LocalBinding};
+use assignment::AssignmentForm;
 
 use std::convert::{TryFrom, TryInto};
 
@@ -172,13 +174,13 @@ pub fn assign_form(icompiler: &mut IncCompiler,
   }
   let assign_target = match tail[0] {
     AST::Symbol(s) => {
-      AssignTarget::Variable(s.to_owned())
+      AssignmentForm::Simple(AssignTarget::Variable(s.to_owned()))
     }
     x => {
       let inner: Vec<_> = DottedExpr::new(x).try_into()?;
       if inner[0] == &AST::Symbol(String::from("access-slot")) {
         if let Expr::FieldAccess(lhs, slot_name) = access_slot_form(icompiler, pipeline, &inner[1..])? {
-          AssignTarget::InstanceField(lhs, slot_name)
+          AssignmentForm::Simple(AssignTarget::InstanceField(lhs, slot_name))
         } else {
           return Err(Error::from(GDError::InvalidArg(String::from("set"), x.clone(), String::from("symbol"))));
         }
@@ -188,7 +190,7 @@ pub fn assign_form(icompiler: &mut IncCompiler,
     }
   };
   let value = icompiler.compile_expr(pipeline, tail[1])?;
-  Ok(Expr::Assign(assign_target, Box::new(value)))
+  Ok(assign_target.into_expr(value))
 }
 
 pub fn flet_form(icompiler: &mut IncCompiler,
