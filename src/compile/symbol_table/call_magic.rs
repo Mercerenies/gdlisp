@@ -23,6 +23,7 @@
 use dyn_clone::{self, DynClone};
 
 use crate::gdscript::expr::Expr;
+use crate::gdscript::stmt::Stmt;
 use crate::gdscript::op;
 use crate::gdscript::library;
 use crate::gdscript::expr_wrapper;
@@ -67,6 +68,8 @@ pub struct ListOperation;
 pub struct VectorOperation;
 #[derive(Clone)]
 pub struct ArraySubscript;
+#[derive(Clone)]
+pub struct ArraySubscriptAssign;
 #[derive(Clone)]
 pub struct ElementOf;
 #[derive(Clone)]
@@ -419,6 +422,33 @@ impl CallMagic for ArraySubscript {
         let n = args.pop().expect("Internal error in ArraySubscript");
         let arr = args.pop().expect("Internal error in ArraySubscript");
         Ok(Expr::Subscript(Box::new(arr), Box::new(n)))
+      }
+      _ => {
+        Err(Error::TooManyArgs(call.function, args.len()))
+      }
+    }
+  }
+}
+
+impl CallMagic for ArraySubscriptAssign {
+  fn compile<'a>(&self,
+                 call: FnCall,
+                 _compiler: &mut Compiler<'a>,
+                 builder: &mut StmtBuilder,
+                 _table: &mut SymbolTable,
+                 args: Vec<StExpr>) -> Result<Expr, Error> {
+    let mut args = strip_st(args);
+    match args.len() {
+      0 | 1 | 2 => {
+        Err(Error::TooFewArgs(call.function, args.len()))
+      }
+      3 => {
+        let n = args.pop().expect("Internal error in ArraySubscriptAssign");
+        let arr = args.pop().expect("Internal error in ArraySubscriptAssign");
+        let x = args.pop().expect("Internal error in ArraySubscriptAssign");
+        let assign_target = Expr::Subscript(Box::new(arr), Box::new(n));
+        builder.append(Stmt::Assign(Box::new(assign_target.clone()), op::AssignOp::Eq, Box::new(x)));
+        Ok(assign_target)
       }
       _ => {
         Err(Error::TooManyArgs(call.function, args.len()))

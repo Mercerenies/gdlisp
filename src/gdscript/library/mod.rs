@@ -213,6 +213,10 @@ pub fn bind_builtins(table: &mut SymbolTable) {
                gdlisp_function("elt", FnSpecs::new(2, 0, None)),
                Box::new(call_magic::ArraySubscript));
 
+  table.set_fn("set-elt".to_owned(),
+               gdlisp_function("set_elt", FnSpecs::new(3, 0, None)),
+               Box::new(call_magic::ArraySubscriptAssign));
+
   // instance? (TODO This can be a multimethod, or if we decide not to go that route then we can call-magic away some of the checks if we know we're looking at a class name)
   table.set_fn("instance?".to_owned(),
                gdlisp_function("istype", FnSpecs::new(2, 0, None)),

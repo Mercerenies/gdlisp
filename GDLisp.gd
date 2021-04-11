@@ -620,6 +620,10 @@ func elt(arr, n):
 func is_elt(value, arr):
     return value in arr
 
+func set_elt(x, arr, n):
+    arr[n] = x
+    return arr[n]
+
 func istype(value, type):
     if typeof(type) == TYPE_INT:
         return typeof(value) == type
