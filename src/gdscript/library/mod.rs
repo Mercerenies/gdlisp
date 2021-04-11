@@ -233,6 +233,11 @@ pub fn bind_builtins(table: &mut SymbolTable) {
                gdlisp_function("elt", FnSpecs::new(2, 0, None)),
                Box::new(call_magic::ElementOf));
 
+  // map (For lists and arrays)
+  table.set_fn("map".to_owned(),
+               gdlisp_function("map", FnSpecs::new(2, 0, None)),
+               Box::new(call_magic::DefaultCall));
+
   // ---- GDScript built-ins that we use unmodified ----
 
   table.set_fn("str".to_owned(),

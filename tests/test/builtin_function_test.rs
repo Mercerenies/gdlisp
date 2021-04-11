@@ -526,4 +526,26 @@ pub fn instance_check_test() {
   assert_eq!(result, "\nTrue\nTrue\nFalse\nTrue\nTrue\nFalse\nFalse\n");
 }
 
+#[test]
+#[ignore]
+pub fn map_test_1() {
+  let result = parse_and_run(r#"
+    ((print (map (lambda (x) (+ x 1)) [4 5 6])))
+  "#);
+  assert_eq!(result, "\n[5, 6, 7]\n");
+}
+
+#[test]
+#[ignore]
+pub fn map_test_2() {
+  let result = parse_and_run(r#"
+    ((let ((x (map (lambda (x) (+ x 1)) '(4 5 6))))
+       (print (length x))
+       (print x:car)
+       (print x:cdr:car)
+       (print x:cdr:cdr:car)))
+  "#);
+  assert_eq!(result, "\n3\n5\n6\n7\n");
+}
+
 // TODO Test gensym at runtime once we can pretty-print symbols

@@ -634,3 +634,21 @@ func gensym(prefix):
         return Symbol.new(global_name_generator.generate())
     else:
         return Symbol.new(global_name_generator.generate_with(prefix))
+
+func map(f, xs):
+    if xs is Cons || xs == null:
+        # List map
+        var outer = Cons.new(null, null)
+        var curr = outer
+        while xs != null:
+            curr.cdr = Cons.new(f.call_funcv(Cons.new(xs.car, null)), null)
+            curr = curr.cdr
+            xs = xs.cdr
+        return outer.cdr
+    else:
+        # Array map
+        var result = []
+        result.resize(len(xs))
+        for i in len(xs):
+            result[i] = f.call_funcv(Cons.new(xs[i], null))
+        return result
