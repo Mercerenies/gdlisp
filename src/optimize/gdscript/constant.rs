@@ -76,8 +76,9 @@ pub fn expr_is_constant(expr: &Expr) -> bool {
     Expr::Binary(a, _, b) => expr_is_constant(&*a) && expr_is_constant(&*b),
     Expr::TernaryIf(expr::TernaryIf { true_case: a, cond: b, false_case: c }) =>
       expr_is_constant(&*a) && expr_is_constant(&*b) && expr_is_constant(&*c),
-    Expr::ArrayLit(es) => es.iter().all(expr_is_constant),
-    Expr::DictionaryLit(es) => es.iter().all(|(k, v)| expr_is_constant(k) && expr_is_constant(v)),
+    // These two produce mutable values that cannot be blindly substituted
+    Expr::ArrayLit(_) => false,
+    Expr::DictionaryLit(_) => false,
   }
 }
 
