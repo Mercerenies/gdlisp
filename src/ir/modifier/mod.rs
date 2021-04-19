@@ -27,6 +27,14 @@ pub struct Several<M> {
   pub values: Vec<Box<dyn ParseRule<Modifier=M>>>,
 }
 
+// Map is a ParseRule which will perform another parse rule and then
+// apply a function to the result, effectively postprocessing the
+// value.
+pub struct Map<R, F> {
+  rule: R,
+  function: F,
+}
+
 pub enum ParseError {
   GenericError,
 }
@@ -59,6 +67,12 @@ pub trait ParseRule {
     }
 
     (modifiers, &args[position..])
+  }
+
+  fn map<N, F>(self, f: F) -> Map<Self, F>
+  where Self : Sized,
+        F : FnMut(Self::Modifier) -> N {
+    Map { rule: self, function: f }
   }
 
 }
@@ -99,5 +113,15 @@ impl<M> ParseRule for Several<M> {
       }
     }
     Err(ParseError::GenericError)
+  }
+}
+
+impl<M, N, R, F> ParseRule for Map<R, F>
+where F : FnMut(M) -> N,
+      R : ParseRule<Modifier=M> {
+  type Modifier = N;
+  fn parse_once(&mut self, ast: &AST) -> Result<N, ParseError> {
+    let result = self.rule.parse_once(ast)?;
+    Ok((self.function)(result))
   }
 }
