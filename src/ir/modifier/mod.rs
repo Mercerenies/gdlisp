@@ -39,13 +39,13 @@ pub enum ParseError {
 pub trait ParseRule {
   type Modifier;
 
-  fn parse_once(&self, ast: &AST) -> Result<Self::Modifier, ParseError>;
+  fn parse_once(&mut self, ast: &AST) -> Result<Self::Modifier, ParseError>;
 
   // parse(args) takes a slice of AST's and attempts to parse them
   // each using the current parse rule. Whenever a parse fails,
   // parsing stops and the successfully parsed modifiers are returned,
   // alongside the rest of the slice that was not parsed successfully.
-  fn parse<'a, 'b>(&self, args: &'a [&'b AST]) -> (Vec<Self::Modifier>, &'a [&'b AST]) {
+  fn parse<'a, 'b>(&mut self, args: &'a [&'b AST]) -> (Vec<Self::Modifier>, &'a [&'b AST]) {
     let mut modifiers = Vec::new();
 
     let mut position = 0;
@@ -74,7 +74,7 @@ impl<M> Constant<M> {
 
 impl<M> ParseRule for Constant<M> where M: Clone {
   type Modifier = M;
-  fn parse_once(&self, ast: &AST) -> Result<M, ParseError> {
+  fn parse_once(&mut self, ast: &AST) -> Result<M, ParseError> {
     if let AST::Symbol(s) = ast {
       if *s == self.symbol_value {
         return Ok(self.result.clone());
@@ -92,8 +92,8 @@ impl<M> Several<M> {
 
 impl<M> ParseRule for Several<M> {
   type Modifier = M;
-  fn parse_once(&self, ast: &AST) -> Result<M, ParseError> {
-    for value in &self.values {
+  fn parse_once(&mut self, ast: &AST) -> Result<M, ParseError> {
+    for value in &mut self.values {
       if let Ok(modifier) = value.parse_once(ast) {
         return Ok(modifier);
       }
