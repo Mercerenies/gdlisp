@@ -14,6 +14,7 @@ use super::decl::{self, Decl};
 use super::macros::{self, MacroData};
 use super::identifier::{Id, IdLike, Namespace};
 use super::modifier::{self, ParseRule};
+use super::export::Visibility;
 use crate::sxp::dotted::{DottedExpr, TryFromDottedExprError};
 use crate::sxp::ast::AST;
 use crate::sxp::reify::Reify;
@@ -215,6 +216,7 @@ impl IncCompiler {
             let args = ArgList::parse(args)?;
             let body = vec[3..].iter().map(|expr| self.compile_expr(pipeline, expr)).collect::<Result<Vec<_>, _>>()?;
             Ok(Decl::FnDecl(decl::FnDecl {
+              visibility: Visibility::FUNCTION,
               name: name.to_owned(),
               args: args,
               body: Expr::Progn(body),
@@ -232,6 +234,7 @@ impl IncCompiler {
             let args = ArgList::parse(args)?;
             let body = vec[3..].iter().map(|expr| self.compile_expr(pipeline, expr)).collect::<Result<Vec<_>, _>>()?;
             Ok(Decl::MacroDecl(decl::MacroDecl {
+              visibility: Visibility::MACRO,
               name: name.to_owned(),
               args: args,
               body: Expr::Progn(body),
@@ -578,6 +581,7 @@ impl IncCompiler {
       self.compile_decl_or_expr(pipeline, &mut main, curr)?;
     }
     let main_decl = Decl::FnDecl(decl::FnDecl {
+      visibility: Visibility::FUNCTION,
       name: MAIN_BODY_NAME.to_owned(),
       args: ArgList::empty(),
       body: Expr::Progn(main),

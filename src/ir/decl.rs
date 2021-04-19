@@ -29,6 +29,7 @@ pub enum Decl {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct FnDecl {
+  pub visibility: Visibility,
   pub name: String,
   pub args: ArgList,
   pub body: Expr,
@@ -36,6 +37,7 @@ pub struct FnDecl {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct MacroDecl {
+  pub visibility: Visibility,
   pub name: String,
   pub args: ArgList,
   pub body: Expr,
@@ -197,6 +199,12 @@ impl Decl {
     matches!(self, Decl::MacroDecl(_))
   }
 
+  pub fn is_exported_by_default(&self) -> bool {
+    // (sys/declare ...) statements are never exported and are always
+    // file-local by default.
+    !(matches!(self, Decl::DeclareDecl(_)))
+  }
+
   pub fn namespace(&self) -> Namespace {
     match self {
       Decl::FnDecl(_) => Namespace::Function,
@@ -210,8 +218,8 @@ impl Decl {
 
   pub fn visibility(&self) -> Visibility {
     match self {
-      Decl::FnDecl(_) => Visibility::Public,
-      Decl::MacroDecl(_) => Visibility::Public,
+      Decl::FnDecl(d) => d.visibility,
+      Decl::MacroDecl(d) => d.visibility,
       Decl::ConstDecl(_) => Visibility::Public,
       Decl::ClassDecl(_) => Visibility::Public,
       Decl::EnumDecl(_) => Visibility::Public,

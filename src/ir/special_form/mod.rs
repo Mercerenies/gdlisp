@@ -12,6 +12,7 @@ use crate::pipeline::error::Error;
 use crate::compile::error::{Error as GDError};
 use crate::ir::incremental::IncCompiler;
 use crate::ir::identifier::{Id, Namespace};
+use crate::ir::export::Visibility;
 use crate::pipeline::Pipeline;
 use local_binding::{FLetLocalBinding, LabelsLocalBinding, LocalBinding};
 use assignment::AssignmentForm;
@@ -378,7 +379,7 @@ pub fn macrolet_form(icompiler: &mut IncCompiler,
     let args: Vec<_> = DottedExpr::new(func[1]).try_into()?;
     let args = ArgList::parse(args)?;
     let body = func[2..].iter().map(|expr| icompiler.compile_expr(pipeline, expr)).collect::<Result<Vec<_>, _>>()?;
-    Ok(decl::MacroDecl { name, args, body: Expr::Progn(body) })
+    Ok(decl::MacroDecl { visibility: Visibility::MACRO, name, args, body: Expr::Progn(body) })
   }).collect::<Result<Vec<_>, _>>()?;
 
   macrolet_bind_locals(icompiler, pipeline, &mut fn_clauses.into_iter(), |icompiler, pipeline| {

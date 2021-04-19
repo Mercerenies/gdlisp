@@ -63,6 +63,7 @@ mod tests {
   use crate::ir::literal::Literal;
   use crate::ir::expr::{Expr, AssignTarget};
   use crate::ir::arglist::ArgList;
+  use crate::ir::export::Visibility;
   use crate::pipeline::Pipeline;
   use crate::pipeline::config::ProjectConfig;
 
@@ -125,6 +126,7 @@ mod tests {
                                                            AST::Symbol("b".to_owned()))),
                                                AST::Int(20)))).unwrap(),
                Decl::FnDecl(decl::FnDecl {
+                 visibility: Visibility::FUNCTION,
                  name: "foobar".to_owned(),
                  args: ArgList::required(vec!("a".to_owned(), "b".to_owned())),
                  body: Expr::Progn(vec!(Expr::Literal(Literal::Int(20)))),
@@ -139,6 +141,7 @@ mod tests {
                                                               AST::Symbol("b".to_owned()))),
                                                AST::Int(20)))).unwrap(),
                Decl::MacroDecl(decl::MacroDecl {
+                 visibility: Visibility::MACRO,
                  name: "foobar".to_owned(),
                  args: ArgList::required(vec!("a".to_owned(), "b".to_owned())),
                  body: Expr::Progn(vec!(Expr::Literal(Literal::Int(20)))),
