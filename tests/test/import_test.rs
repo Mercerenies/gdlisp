@@ -250,10 +250,21 @@ static func run():
 #[test]
 #[ignore]
 #[should_panic]
-fn import_declare_test_failed() {
+fn import_declare_test_failed_1() {
   let mut loader = MockFileLoader::new();
   loader.add_file("a.lisp", "(sys/declare value a)");
   loader.add_file("main.lisp", r#"(use "res://a.lisp" open) a"#);
+  let mut pipeline = Pipeline::with_resolver(dummy_config(), Box::new(loader));
+  pipeline.load_file("main.lisp").unwrap();
+}
+
+#[test]
+#[ignore]
+#[should_panic]
+fn import_declare_test_failed_2() {
+  let mut loader = MockFileLoader::new();
+  loader.add_file("a.lisp", "(sys/declare value a)");
+  loader.add_file("main.lisp", r#"(use "res://a.lisp" (a))"#);
   let mut pipeline = Pipeline::with_resolver(dummy_config(), Box::new(loader));
   pipeline.load_file("main.lisp").unwrap();
 }
