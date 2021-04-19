@@ -45,18 +45,21 @@ pub struct MacroDecl {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ConstDecl {
+  pub visibility: Visibility,
   pub name: String,
   pub value: Expr,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct EnumDecl {
+  pub visibility: Visibility,
   pub name: String,
   pub clauses: Vec<(String, Option<Expr>)>,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ClassDecl {
+  pub visibility: Visibility,
   pub name: String,
   pub extends: String,
   pub main_class: bool,
@@ -101,6 +104,7 @@ pub struct ClassFnDecl {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct DeclareDecl {
+  pub visibility: Visibility,
   pub declare_type: DeclareType,
   pub name: String,
 }
@@ -220,10 +224,10 @@ impl Decl {
     match self {
       Decl::FnDecl(d) => d.visibility,
       Decl::MacroDecl(d) => d.visibility,
-      Decl::ConstDecl(_) => Visibility::Public,
-      Decl::ClassDecl(_) => Visibility::Public,
-      Decl::EnumDecl(_) => Visibility::Public,
-      Decl::DeclareDecl(_) => Visibility::Private, // Private by default
+      Decl::ConstDecl(d) => d.visibility,
+      Decl::ClassDecl(d) => d.visibility,
+      Decl::EnumDecl(d) => d.visibility,
+      Decl::DeclareDecl(d) => d.visibility,
     }
 
   }
@@ -242,6 +246,7 @@ impl ClassDecl {
 
   pub fn new(name: String, extends: String) -> ClassDecl {
     ClassDecl {
+      visibility: Visibility::CLASS,
       name: name,
       extends: extends,
       main_class: false,

@@ -370,14 +370,14 @@ impl<'a> Compiler<'a> {
         builder.add_decl(Decl::FnDecl(decl::Static::IsStatic, function));
         Ok(())
       }
-      IRDecl::ConstDecl(ir::decl::ConstDecl { name, value }) => {
+      IRDecl::ConstDecl(ir::decl::ConstDecl { visibility: _, name, value }) => {
         let gd_name = names::lisp_to_gd(&name);
         let value = self.compile_simple_expr(pipeline, table, name, value, NeedsResult::Yes)?;
         value.validate_const_expr(&name, table)?;
         builder.add_decl(Decl::ConstDecl(gd_name, value));
         Ok(())
       }
-      IRDecl::ClassDecl(ir::decl::ClassDecl { name, extends, main_class, constructor, decls }) => {
+      IRDecl::ClassDecl(ir::decl::ClassDecl { visibility: _, name, extends, main_class, constructor, decls }) => {
         let gd_name = names::lisp_to_gd(&name);
         let extends = table.get_var(&extends).ok_or_else(|| Error::NoSuchVar(extends.clone()))?.name.clone();
         let extends = ClassExtends::try_from(extends)?;
@@ -390,7 +390,7 @@ impl<'a> Compiler<'a> {
           Ok(())
         }
       }
-      IRDecl::EnumDecl(ir::decl::EnumDecl { name, clauses }) => {
+      IRDecl::EnumDecl(ir::decl::EnumDecl { visibility: _, name, clauses }) => {
         let gd_name = names::lisp_to_gd(&name);
         let gd_clauses = clauses.iter().map(|(const_name, const_value)| {
           let gd_const_name = names::lisp_to_gd(const_name);
@@ -615,7 +615,7 @@ impl<'a> Compiler<'a> {
         );
         table.set_fn(name.clone(), func, Box::new(DefaultCall));
       }
-      IRDecl::ConstDecl(ir::decl::ConstDecl { name, value }) => {
+      IRDecl::ConstDecl(ir::decl::ConstDecl { visibility: _, name, value }) => {
         let mut var = LocalVar::file_constant(names::lisp_to_gd(name)); // Can't assign to constants
         if let IRExpr::Literal(value) = value {
           if let Ok(value) = Literal::try_from(value.clone()) {
@@ -624,7 +624,7 @@ impl<'a> Compiler<'a> {
         }
         table.set_var(name.clone(), var);
       }
-      IRDecl::ClassDecl(ir::decl::ClassDecl { name, main_class, .. }) => {
+      IRDecl::ClassDecl(ir::decl::ClassDecl { visibility: _, name, main_class, .. }) => {
         if *main_class {
           let var = LocalVar::current_file(pipeline.current_filename().expect("Could not identify current filename").to_string()).with_hint(ValueHint::ClassName); // TODO Expect?
           table.set_var(name.clone(), var);
@@ -643,7 +643,7 @@ impl<'a> Compiler<'a> {
         table.set_var(name, var);
       }
       IRDecl::DeclareDecl(ddecl) => {
-        let ir::decl::DeclareDecl { declare_type, name } = ddecl;
+        let ir::decl::DeclareDecl { visibility: _, declare_type, name } = ddecl;
         match declare_type {
           ir::decl::DeclareType::Value => {
             let var = LocalVar::file_constant(names::lisp_to_gd(name));

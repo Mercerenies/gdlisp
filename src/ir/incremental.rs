@@ -249,7 +249,7 @@ impl IncCompiler {
               _ => return Err(PError::from(Error::InvalidDecl(decl.clone()))),
             };
             let value = self.compile_expr(pipeline, vec[2])?;
-            Ok(Decl::ConstDecl(decl::ConstDecl { name, value }))
+            Ok(Decl::ConstDecl(decl::ConstDecl { visibility: Visibility::CONST, name, value }))
           }
           "defclass" => {
             if vec.len() < 3 {
@@ -303,7 +303,7 @@ impl IncCompiler {
               let value = value.map(|v| self.compile_expr(pipeline, v)).transpose()?;
               Ok((name, value))
             }).collect::<Result<_, _>>()?;
-            let enum_decl = decl::EnumDecl { name, clauses };
+            let enum_decl = decl::EnumDecl { visibility: Visibility::ENUM, name, clauses };
             Ok(Decl::EnumDecl(enum_decl))
           }
           "sys/declare" => {
@@ -321,8 +321,15 @@ impl IncCompiler {
                   AST::Symbol(s) => s.to_owned(),
                   _ => return Err(PError::from(Error::InvalidDecl(decl.clone()))),
                 };
+                let declare_type =
+                  if value == "superglobal" {
+                    decl::DeclareType::Superglobal
+                  } else {
+                    decl::DeclareType::Value
+                  };
                 let declare = decl::DeclareDecl {
-                  declare_type: if value == "superglobal" { decl::DeclareType::Superglobal } else { decl::DeclareType::Value },
+                  visibility: Visibility::DECLARE,
+                  declare_type,
                   name
                 };
                 Ok(Decl::DeclareDecl(declare))
@@ -338,6 +345,7 @@ impl IncCompiler {
                 let args: Vec<_> = DottedExpr::new(vec[3]).try_into()?;
                 let args = ArgList::parse(args)?;
                 let declare = decl::DeclareDecl {
+                  visibility: Visibility::DECLARE,
                   declare_type: decl::DeclareType::Function(args),
                   name
                 };
@@ -398,7 +406,7 @@ impl IncCompiler {
             _ => return Err(PError::from(Error::InvalidDecl(curr.clone()))),
           };
           let value = self.compile_expr(pipeline, vec[2])?;
-          acc.decls.push(decl::ClassInnerDecl::ClassConstDecl(decl::ConstDecl { name, value }));
+          acc.decls.push(decl::ClassInnerDecl::ClassConstDecl(decl::ConstDecl { visibility: Visibility::CONST, name, value }));
           Ok(())
         }
         "defvar" => {

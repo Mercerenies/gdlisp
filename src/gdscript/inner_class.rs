@@ -64,7 +64,7 @@ impl NeedsOuterClassRef for ir::decl::ConstructorDecl {
 
 impl NeedsOuterClassRef for ir::decl::ClassDecl {
   fn needs_outer_class_ref(&self, table: &SymbolTable) -> bool {
-    let ir::decl::ClassDecl { name: _, extends: _, main_class: _, constructor, decls } = self;
+    let ir::decl::ClassDecl { visibility: _, name: _, extends: _, main_class: _, constructor, decls } = self;
     constructor.needs_outer_class_ref(table) || decls.iter().any(|x| x.needs_outer_class_ref(table))
   }
 }
