@@ -6,10 +6,13 @@ use super::identifier::Id;
 // file (i.e. not imported or built-in) is exported. We'll provide
 // tons of capabilities to customize this later.
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum Visibility { Public, Private }
+
 pub fn get_export_list<'a>(decls: impl IntoIterator<Item=&'a Decl>) -> Vec<Id> {
   let mut exports = Vec::new();
   for decl in decls {
-    if decl.is_exported_by_default() {
+    if decl.visibility() == Visibility::Public {
       exports.push(decl.to_id());
     }
   }

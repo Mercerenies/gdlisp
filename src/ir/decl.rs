@@ -6,6 +6,7 @@ use super::import::ImportDecl;
 use super::identifier::{Namespace, Id, IdLike};
 use super::locals::Locals;
 use super::functions::Functions;
+use super::export::Visibility;
 use crate::gdscript::decl::Static;
 
 use std::collections::HashSet;
@@ -196,12 +197,6 @@ impl Decl {
     matches!(self, Decl::MacroDecl(_))
   }
 
-  pub fn is_exported_by_default(&self) -> bool {
-    // (sys/declare ...) statements are never exported and are always
-    // file-local by default.
-    !(matches!(self, Decl::DeclareDecl(_)))
-  }
-
   pub fn namespace(&self) -> Namespace {
     match self {
       Decl::FnDecl(_) => Namespace::Function,
@@ -211,6 +206,18 @@ impl Decl {
       Decl::EnumDecl(_) => Namespace::Value,
       Decl::DeclareDecl(d) => d.declare_type.namespace(),
     }
+  }
+
+  pub fn visibility(&self) -> Visibility {
+    match self {
+      Decl::FnDecl(_) => Visibility::Public,
+      Decl::MacroDecl(_) => Visibility::Public,
+      Decl::ConstDecl(_) => Visibility::Public,
+      Decl::ClassDecl(_) => Visibility::Public,
+      Decl::EnumDecl(_) => Visibility::Public,
+      Decl::DeclareDecl(_) => Visibility::Private, // Private by default
+    }
+
   }
 
 }
