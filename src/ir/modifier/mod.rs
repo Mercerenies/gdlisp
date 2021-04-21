@@ -1,6 +1,7 @@
 
 pub mod class;
 pub mod instance_method;
+pub mod function;
 pub mod visibility;
 
 use crate::sxp::ast::AST;

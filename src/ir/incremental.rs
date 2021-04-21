@@ -214,13 +214,18 @@ impl IncCompiler {
             };
             let args: Vec<_> = DottedExpr::new(vec[2]).try_into()?;
             let args = ArgList::parse(args)?;
-            let body = vec[3..].iter().map(|expr| self.compile_expr(pipeline, expr)).collect::<Result<Vec<_>, _>>()?;
-            Ok(Decl::FnDecl(decl::FnDecl {
+            let (mods, body) = modifier::function::parser().parse(&vec[3..]);
+            let body = body.iter().map(|expr| self.compile_expr(pipeline, expr)).collect::<Result<Vec<_>, _>>()?;
+            let mut decl = decl::FnDecl {
               visibility: Visibility::FUNCTION,
               name: name.to_owned(),
               args: args,
               body: Expr::Progn(body),
-            }))
+            };
+            for m in mods {
+              m.apply(&mut decl);
+            }
+            Ok(Decl::FnDecl(decl))
           }
           "defmacro" => {
             if vec.len() < 3 {

@@ -268,3 +268,70 @@ fn import_declare_test_failed_2() {
   let mut pipeline = Pipeline::with_resolver(dummy_config(), Box::new(loader));
   pipeline.load_file("main.lisp").unwrap();
 }
+
+#[test]
+#[ignore]
+fn public_fn_import_test() {
+  let mut loader = MockFileLoader::new();
+  loader.add_file("a.lisp", "(defn foo () public 1)");
+  loader.add_file("main.lisp", r#"(use "res://a.lisp") (a/foo)"#);
+  let mut pipeline = Pipeline::with_resolver(dummy_config(), Box::new(loader));
+  let result = pipeline.load_file("main.lisp").unwrap().gdscript.to_gd();
+  assert_eq!(result, r#"extends Node
+const a_0 = preload("res://a.gd")
+static func run():
+    return a_0.foo()
+"#);
+}
+
+#[test]
+#[ignore]
+fn private_fn_import_test_1() {
+  let mut loader = MockFileLoader::new();
+  loader.add_file("a.lisp", "(defn foo () private 1)");
+  loader.add_file("main.lisp", r#"(use "res://a.lisp")"#);
+  let mut pipeline = Pipeline::with_resolver(dummy_config(), Box::new(loader));
+  let result = pipeline.load_file("main.lisp").unwrap().gdscript.to_gd();
+  assert_eq!(result, r#"extends Node
+const a_0 = preload("res://a.gd")
+static func run():
+    return null
+"#);
+}
+
+#[test]
+#[ignore]
+fn private_fn_import_test_2() {
+  let mut loader = MockFileLoader::new();
+  loader.add_file("a.lisp", "(defn foo () private 1)");
+  loader.add_file("main.lisp", r#"(use "res://a.lisp" open)"#);
+  let mut pipeline = Pipeline::with_resolver(dummy_config(), Box::new(loader));
+  let result = pipeline.load_file("main.lisp").unwrap().gdscript.to_gd();
+  assert_eq!(result, r#"extends Node
+const _Import_0 = preload("res://a.gd")
+static func run():
+    return null
+"#);
+}
+
+#[test]
+#[ignore]
+#[should_panic]
+fn private_fn_import_test_3() {
+  let mut loader = MockFileLoader::new();
+  loader.add_file("a.lisp", "(defn foo () private 1)");
+  loader.add_file("main.lisp", r#"(use "res://a.lisp" open) (foo)"#);
+  let mut pipeline = Pipeline::with_resolver(dummy_config(), Box::new(loader));
+  pipeline.load_file("main.lisp").unwrap();
+}
+
+#[test]
+#[ignore]
+#[should_panic]
+fn private_fn_import_test_4() {
+  let mut loader = MockFileLoader::new();
+  loader.add_file("a.lisp", "(defn foo () private 1)");
+  loader.add_file("main.lisp", r#"(use "res://a.lisp" (foo))"#);
+  let mut pipeline = Pipeline::with_resolver(dummy_config(), Box::new(loader));
+  pipeline.load_file("main.lisp").unwrap();
+}

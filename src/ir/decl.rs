@@ -229,7 +229,17 @@ impl Decl {
       Decl::EnumDecl(d) => d.visibility,
       Decl::DeclareDecl(d) => d.visibility,
     }
+  }
 
+  pub fn visibility_mut(&mut self) -> &mut Visibility {
+    match self {
+      Decl::FnDecl(d) => &mut d.visibility,
+      Decl::MacroDecl(d) => &mut d.visibility,
+      Decl::ConstDecl(d) => &mut d.visibility,
+      Decl::ClassDecl(d) => &mut d.visibility,
+      Decl::EnumDecl(d) => &mut d.visibility,
+      Decl::DeclareDecl(d) => &mut d.visibility,
+    }
   }
 
 }
