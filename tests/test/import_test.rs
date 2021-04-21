@@ -413,3 +413,55 @@ fn private_enum_import_test() {
   let mut pipeline = Pipeline::with_resolver(dummy_config(), Box::new(loader));
   pipeline.load_file("main.lisp").unwrap();
 }
+
+#[test]
+#[ignore]
+fn public_class_import_test_1() {
+  let mut loader = MockFileLoader::new();
+  loader.add_file("a.lisp", "(defclass foo (Node) public (defvar example 1))");
+  loader.add_file("main.lisp", r#"(use "res://a.lisp" (foo))"#);
+  let mut pipeline = Pipeline::with_resolver(dummy_config(), Box::new(loader));
+  let result = pipeline.load_file("main.lisp").unwrap().gdscript.to_gd();
+  assert_eq!(result, r#"extends Node
+const _Import_0 = preload("res://a.gd")
+static func run():
+    return null
+"#);
+}
+
+#[test]
+#[ignore]
+fn public_class_import_test_2() {
+  let mut loader = MockFileLoader::new();
+  loader.add_file("a.lisp", "(defclass foo (Node) main public (defvar example 1))");
+  loader.add_file("main.lisp", r#"(use "res://a.lisp" (foo))"#);
+  let mut pipeline = Pipeline::with_resolver(dummy_config(), Box::new(loader));
+  let result = pipeline.load_file("main.lisp").unwrap().gdscript.to_gd();
+  assert_eq!(result, r#"extends Node
+const _Import_0 = preload("res://a.gd")
+static func run():
+    return null
+"#);
+}
+
+#[test]
+#[ignore]
+#[should_panic]
+fn private_class_import_test_1() {
+  let mut loader = MockFileLoader::new();
+  loader.add_file("a.lisp", "(defclass foo (Node) private (defvar example 1))");
+  loader.add_file("main.lisp", r#"(use "res://a.lisp" (foo))"#);
+  let mut pipeline = Pipeline::with_resolver(dummy_config(), Box::new(loader));
+  pipeline.load_file("main.lisp").unwrap();
+}
+
+#[test]
+#[ignore]
+#[should_panic]
+fn private_class_import_test_2() {
+  let mut loader = MockFileLoader::new();
+  loader.add_file("a.lisp", "(defclass foo (Node) main private (defvar example 1))");
+  loader.add_file("main.lisp", r#"(use "res://a.lisp" (foo))"#);
+  let mut pipeline = Pipeline::with_resolver(dummy_config(), Box::new(loader));
+  pipeline.load_file("main.lisp").unwrap();
+}

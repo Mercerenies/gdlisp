@@ -1,10 +1,13 @@
 
 use crate::ir::decl::ClassDecl;
+use crate::ir::export::Visibility;
 use super::{ParseRule, Several, Constant};
+use super::visibility;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum ClassMod {
   Main,
+  Visibility(Visibility),
 }
 
 impl ClassMod {
@@ -13,6 +16,9 @@ impl ClassMod {
       ClassMod::Main => {
         decl.main_class = true;
       }
+      ClassMod::Visibility(vis) => {
+        decl.visibility = *vis;
+      }
     }
   }
 }
@@ -20,5 +26,6 @@ impl ClassMod {
 pub fn parser() -> impl ParseRule<Modifier=ClassMod> {
   Several::new(vec!(
     Box::new(Constant::new("main", ClassMod::Main)),
+    Box::new(visibility::parser().map(ClassMod::Visibility)),
   ))
 }
