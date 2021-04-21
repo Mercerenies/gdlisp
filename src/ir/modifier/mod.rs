@@ -28,6 +28,7 @@ pub struct Constant<M> {
 // succeeds. The Several instance will only fail if all constituent
 // parsers fail on the same input.
 pub struct Several<M> {
+  pub name: String,
   pub values: Vec<Box<dyn ParseRule<Modifier=M>>>,
 }
 
@@ -52,6 +53,10 @@ pub trait ParseRule {
   type Modifier;
 
   fn parse_once(&mut self, ast: &AST) -> Result<Self::Modifier, ParseError>;
+
+  // The name of a parse rule is used to generate more friendly error
+  // messages and does not affect the act of parsing itself.
+  fn name(&self) -> &str;
 
   // parse(args) takes a slice of AST's and attempts to parse them
   // each using the current parse rule. Whenever a parse fails,
@@ -92,6 +97,7 @@ impl<M> Constant<M> {
 
 impl<M> ParseRule for Constant<M> where M: Clone {
   type Modifier = M;
+
   fn parse_once(&mut self, ast: &AST) -> Result<M, ParseError> {
     if let AST::Symbol(s) = ast {
       if *s == self.symbol_value {
@@ -100,16 +106,26 @@ impl<M> ParseRule for Constant<M> where M: Clone {
     }
     Err(ParseError::GenericError)
   }
+
+  fn name(&self) -> &str {
+    &self.symbol_value
+  }
+
 }
 
 impl<M> Several<M> {
   pub fn new(values: Vec<Box<dyn ParseRule<Modifier=M>>>) -> Several<M> {
-    Several { values }
+    Several { name: String::from("(union parse rule)"), values }
+  }
+  pub fn named(mut self, name: &str) -> Self {
+    self.name = String::from(name);
+    self
   }
 }
 
 impl<M> ParseRule for Several<M> {
   type Modifier = M;
+
   fn parse_once(&mut self, ast: &AST) -> Result<M, ParseError> {
     for value in &mut self.values {
       if let Ok(modifier) = value.parse_once(ast) {
@@ -118,14 +134,25 @@ impl<M> ParseRule for Several<M> {
     }
     Err(ParseError::GenericError)
   }
+
+  fn name(&self) -> &str {
+    &self.name
+  }
+
 }
 
 impl<M, N, R, F> ParseRule for Map<R, F>
 where F : FnMut(M) -> N,
       R : ParseRule<Modifier=M> {
   type Modifier = N;
+
   fn parse_once(&mut self, ast: &AST) -> Result<N, ParseError> {
     let result = self.rule.parse_once(ast)?;
     Ok((self.function)(result))
   }
+
+  fn name(&self) -> &str {
+    self.rule.name()
+  }
+
 }
