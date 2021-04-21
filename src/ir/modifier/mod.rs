@@ -34,13 +34,23 @@ pub struct Several<M> {
 
 // Map is a ParseRule which will perform another parse rule and then
 // apply a function to the result, effectively postprocessing the
-// value.
+// value. This rule is constructed using ParseRule::map
 pub struct Map<R, F> {
   rule: R,
   function: F,
 }
 
+// Unique is a ParseRule which keeps track of whether or not its inner
+// parse rule has been tripped before. If it has and it would trigger
+// a second time successfully, an appropriate error is signaled. This
+// rule is constructed using ParseRule::unique.
+pub struct Unique<R> {
+  triggered: bool,
+  rule: R,
+}
+
 pub enum ParseError {
+  UniquenessError(String),
   GenericError,
 }
 
@@ -82,6 +92,11 @@ pub trait ParseRule {
   where Self : Sized,
         F : FnMut(Self::Modifier) -> N {
     Map { rule: self, function: f }
+  }
+
+  fn unique(self) -> Unique<Self>
+  where Self : Sized {
+    Unique { triggered: false, rule: self }
   }
 
 }
@@ -149,6 +164,26 @@ where F : FnMut(M) -> N,
   fn parse_once(&mut self, ast: &AST) -> Result<N, ParseError> {
     let result = self.rule.parse_once(ast)?;
     Ok((self.function)(result))
+  }
+
+  fn name(&self) -> &str {
+    self.rule.name()
+  }
+
+}
+
+impl<R> ParseRule for Unique<R>
+where R : ParseRule {
+  type Modifier = R::Modifier;
+
+  fn parse_once(&mut self, ast: &AST) -> Result<Self::Modifier, ParseError> {
+    let result = self.rule.parse_once(ast)?;
+    if self.triggered {
+      Err(ParseError::UniquenessError(self.name().to_owned()))
+    } else {
+      self.triggered = true;
+      Ok(result)
+    }
   }
 
   fn name(&self) -> &str {

@@ -141,3 +141,9 @@ static func run():
     return f(1, 2)
 "#);
 }
+
+#[test]
+#[should_panic]
+pub fn nonsense_modifier_function_test() {
+  parse_compile_decl(r#"((defn foo () public private 1))"#);
+}

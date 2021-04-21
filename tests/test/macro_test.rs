@@ -273,3 +273,10 @@ static func run():
     return 17
 "#);
 }
+
+#[test]
+#[ignore]
+#[should_panic]
+pub fn nonsense_modifier_macro_test() {
+  parse_compile_decl(r#"((defmacro foo () public private 1))"#);
+}

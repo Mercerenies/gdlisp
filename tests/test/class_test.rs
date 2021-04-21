@@ -588,3 +588,27 @@ static func run():
     return null
 "#);
 }
+
+#[test]
+#[should_panic]
+pub fn nonsense_modifier_class_test_1() {
+  parse_compile_decl(r#"((defclass Foo (Node) main main))"#);
+}
+
+#[test]
+#[should_panic]
+pub fn nonsense_modifier_class_test_2() {
+  parse_compile_decl(r#"((defclass Foo (Node) public public))"#);
+}
+
+#[test]
+#[should_panic]
+pub fn nonsense_modifier_class_test_3() {
+  parse_compile_decl(r#"((defclass Foo (Node) public private))"#);
+}
+
+#[test]
+#[should_panic]
+pub fn nonsense_modifier_class_test_4() {
+  parse_compile_decl(r#"((defclass Foo (Node) public (defn example () static static)))"#);
+}

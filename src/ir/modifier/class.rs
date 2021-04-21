@@ -25,7 +25,7 @@ impl ClassMod {
 
 pub fn parser() -> impl ParseRule<Modifier=ClassMod> {
   Several::new(vec!(
-    Box::new(Constant::new("main", ClassMod::Main)),
+    Box::new(Constant::new("main", ClassMod::Main).unique()),
     Box::new(visibility::parser().map(ClassMod::Visibility)),
   ))
 }

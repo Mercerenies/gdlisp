@@ -28,6 +28,6 @@ impl FnMod {
 
 pub fn parser() -> impl ParseRule<Modifier=FnMod> {
   Several::new(vec!(
-    Box::new(Constant::new("static", FnMod::Static))
+    Box::new(Constant::new("static", FnMod::Static).unique())
   ))
 }
