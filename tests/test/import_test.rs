@@ -335,3 +335,81 @@ fn private_fn_import_test_4() {
   let mut pipeline = Pipeline::with_resolver(dummy_config(), Box::new(loader));
   pipeline.load_file("main.lisp").unwrap();
 }
+
+#[test]
+#[ignore]
+fn public_macro_import_test() {
+  let mut loader = MockFileLoader::new();
+  loader.add_file("a.lisp", "(defmacro foo () public 1)");
+  loader.add_file("main.lisp", r#"(use "res://a.lisp" (foo))"#);
+  let mut pipeline = Pipeline::with_resolver(dummy_config(), Box::new(loader));
+  let result = pipeline.load_file("main.lisp").unwrap().gdscript.to_gd();
+  assert_eq!(result, r#"extends Node
+const _Import_0 = preload("res://a.gd")
+static func run():
+    return null
+"#);
+}
+
+#[test]
+#[ignore]
+#[should_panic]
+fn private_macro_import_test() {
+  let mut loader = MockFileLoader::new();
+  loader.add_file("a.lisp", "(defmacro foo () private 1)");
+  loader.add_file("main.lisp", r#"(use "res://a.lisp" (foo))"#);
+  let mut pipeline = Pipeline::with_resolver(dummy_config(), Box::new(loader));
+  pipeline.load_file("main.lisp").unwrap();
+}
+
+#[test]
+#[ignore]
+fn public_const_import_test() {
+  let mut loader = MockFileLoader::new();
+  loader.add_file("a.lisp", "(defconst foo 1 public)");
+  loader.add_file("main.lisp", r#"(use "res://a.lisp" (foo))"#);
+  let mut pipeline = Pipeline::with_resolver(dummy_config(), Box::new(loader));
+  let result = pipeline.load_file("main.lisp").unwrap().gdscript.to_gd();
+  assert_eq!(result, r#"extends Node
+const _Import_0 = preload("res://a.gd")
+static func run():
+    return null
+"#);
+}
+
+#[test]
+#[ignore]
+#[should_panic]
+fn private_const_import_test() {
+  let mut loader = MockFileLoader::new();
+  loader.add_file("a.lisp", "(defconst foo 1 private)");
+  loader.add_file("main.lisp", r#"(use "res://a.lisp" (foo))"#);
+  let mut pipeline = Pipeline::with_resolver(dummy_config(), Box::new(loader));
+  pipeline.load_file("main.lisp").unwrap();
+}
+
+#[test]
+#[ignore]
+fn public_enum_import_test() {
+  let mut loader = MockFileLoader::new();
+  loader.add_file("a.lisp", "(defenum foo public A B)");
+  loader.add_file("main.lisp", r#"(use "res://a.lisp" (foo))"#);
+  let mut pipeline = Pipeline::with_resolver(dummy_config(), Box::new(loader));
+  let result = pipeline.load_file("main.lisp").unwrap().gdscript.to_gd();
+  assert_eq!(result, r#"extends Node
+const _Import_0 = preload("res://a.gd")
+static func run():
+    return null
+"#);
+}
+
+#[test]
+#[ignore]
+#[should_panic]
+fn private_enum_import_test() {
+  let mut loader = MockFileLoader::new();
+  loader.add_file("a.lisp", "(defenum foo private A B)");
+  loader.add_file("main.lisp", r#"(use "res://a.lisp" (foo))"#);
+  let mut pipeline = Pipeline::with_resolver(dummy_config(), Box::new(loader));
+  pipeline.load_file("main.lisp").unwrap();
+}

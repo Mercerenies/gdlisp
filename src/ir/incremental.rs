@@ -237,16 +237,21 @@ impl IncCompiler {
             };
             let args: Vec<_> = DottedExpr::new(vec[2]).try_into()?;
             let args = ArgList::parse(args)?;
-            let body = vec[3..].iter().map(|expr| self.compile_expr(pipeline, expr)).collect::<Result<Vec<_>, _>>()?;
-            Ok(Decl::MacroDecl(decl::MacroDecl {
+            let (mods, body) = modifier::macros::parser().parse(&vec[3..]);
+            let body = body.iter().map(|expr| self.compile_expr(pipeline, expr)).collect::<Result<Vec<_>, _>>()?;
+            let mut decl = decl::MacroDecl {
               visibility: Visibility::MACRO,
               name: name.to_owned(),
               args: args,
               body: Expr::Progn(body),
-            }))
+            };
+            for m in mods {
+              m.apply(&mut decl);
+            }
+            Ok(Decl::MacroDecl(decl))
           }
           "defconst" => {
-            if vec.len() != 3 {
+            if vec.len() < 3 {
               return Err(PError::from(Error::InvalidDecl(decl.clone())));
             }
             let name = match vec[1] {
@@ -254,7 +259,15 @@ impl IncCompiler {
               _ => return Err(PError::from(Error::InvalidDecl(decl.clone()))),
             };
             let value = self.compile_expr(pipeline, vec[2])?;
-            Ok(Decl::ConstDecl(decl::ConstDecl { visibility: Visibility::CONST, name, value }))
+            let (mods, body) = modifier::constant::parser().parse(&vec[3..]);
+            if !body.is_empty() {
+              return Err(PError::from(Error::InvalidDecl(decl.clone())));
+            }
+            let mut decl = decl::ConstDecl { visibility: Visibility::CONST, name, value };
+            for m in mods {
+              m.apply(&mut decl);
+            }
+            Ok(Decl::ConstDecl(decl))
           }
           "defclass" => {
             if vec.len() < 3 {
@@ -290,7 +303,8 @@ impl IncCompiler {
               AST::Symbol(s) => s.to_owned(),
               _ => return Err(PError::from(Error::InvalidDecl(decl.clone()))),
             };
-            let clauses = vec[2..].iter().map(|clause| {
+            let (mods, body) = modifier::enums::parser().parse(&vec[2..]);
+            let clauses = body.iter().map(|clause| {
               let clause = match clause {
                 AST::Symbol(_) => AST::list(vec!((*clause).clone())),
                 _ => (*clause).clone(),
@@ -308,7 +322,10 @@ impl IncCompiler {
               let value = value.map(|v| self.compile_expr(pipeline, v)).transpose()?;
               Ok((name, value))
             }).collect::<Result<_, _>>()?;
-            let enum_decl = decl::EnumDecl { visibility: Visibility::ENUM, name, clauses };
+            let mut enum_decl = decl::EnumDecl { visibility: Visibility::ENUM, name, clauses };
+            for m in mods {
+              m.apply(&mut enum_decl);
+            }
             Ok(Decl::EnumDecl(enum_decl))
           }
           "sys/declare" => {
