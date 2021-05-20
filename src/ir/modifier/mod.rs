@@ -29,9 +29,9 @@ pub struct Constant<M> {
 // modifiers in its values field in order, taking the first one which
 // succeeds. The Several instance will only fail if all constituent
 // parsers fail on the same input.
-pub struct Several<M> {
+pub struct Several<'a, M> {
   pub name: String,
-  pub values: Vec<Box<dyn ParseRule<Modifier=M>>>,
+  pub values: Vec<Box<dyn ParseRule<Modifier=M> + 'a>>,
 }
 
 // Map is a ParseRule which will perform another parse rule and then
@@ -162,8 +162,8 @@ impl<M> ParseRule for Constant<M> where M: Clone {
 
 }
 
-impl<M> Several<M> {
-  pub fn new(values: Vec<Box<dyn ParseRule<Modifier=M>>>) -> Several<M> {
+impl<'a, M> Several<'a, M> {
+  pub fn new(values: Vec<Box<dyn ParseRule<Modifier=M> + 'a>>) -> Several<'a, M> {
     Several { name: String::from("(union parse rule)"), values }
   }
   pub fn named(mut self, name: &str) -> Self {
@@ -172,7 +172,7 @@ impl<M> Several<M> {
   }
 }
 
-impl<M> ParseRule for Several<M> {
+impl<'a, M> ParseRule for Several<'a, M> {
   type Modifier = M;
 
   fn parse_once(&mut self, ast: &AST) -> Result<M, ParseError> {
