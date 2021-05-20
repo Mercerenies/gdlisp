@@ -4,6 +4,7 @@
 pub mod classes;
 pub mod macros;
 pub mod keys;
+pub mod magic;
 
 use super::expr::Expr;
 use super::literal::Literal;
