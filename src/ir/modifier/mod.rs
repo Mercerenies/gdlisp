@@ -53,7 +53,7 @@ pub struct Unique<R> {
 
 #[derive(Debug)]
 pub enum ParseError {
-  UniquenessError(String),
+  UniquenessError(String), // (this one is fatal)
   Expecting(String, AST),
   ExhaustedAlternatives,
 }
