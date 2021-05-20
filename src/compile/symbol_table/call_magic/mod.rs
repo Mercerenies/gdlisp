@@ -20,6 +20,8 @@
 // specific case of certain GDScript functions written in GDLisp.gd
 // which I know how to inline effectively by hand.
 
+pub mod table;
+
 use dyn_clone::{self, DynClone};
 
 use crate::gdscript::expr::Expr;
