@@ -84,7 +84,7 @@ pub fn bind_magic(table: &mut MagicTable) {
 
 }
 
-pub fn new_magic_table() -> MagicTable {
+pub fn standard_magic_table() -> MagicTable {
   let mut table = MagicTable::new();
   bind_magic(&mut table);
   table
