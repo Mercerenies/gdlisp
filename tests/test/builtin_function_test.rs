@@ -1,5 +1,5 @@
 
-use super::common::{parse_compile_and_output, parse_and_run};
+use super::common::{parse_compile_and_output, parse_compile_decl, parse_and_run};
 
 #[test]
 #[ignore]
@@ -608,6 +608,23 @@ pub fn filter_test_3() {
        (print (length x))))
   "#);
   assert_eq!(result, "\n0\n");
+}
+
+#[test]
+pub fn custom_call_magic_test() {
+  assert_eq!(parse_compile_decl("((defn foo (x y) (sys/call-magic ADDITION) 9) (foo 10 20))"),
+             r#"extends Reference
+static func foo(x_0, y_1):
+    return 9
+static func run():
+    return 10 + 20
+"#);
+}
+
+#[test]
+#[should_panic]
+pub fn custom_call_magic_test_failed() {
+  parse_compile_decl("((defn foo (x y) (sys/call-magic THIS-MAGIC-DOES-NOT-EXIST) 9))");
 }
 
 // TODO Test gensym at runtime once we can pretty-print symbols
