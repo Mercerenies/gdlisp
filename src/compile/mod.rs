@@ -28,7 +28,8 @@ use stmt_wrapper::StmtWrapper;
 use symbol_table::{HasSymbolTable, SymbolTable, ClassTablePair};
 use symbol_table::local_var::{LocalVar, ValueHint};
 use symbol_table::function_call;
-use symbol_table::call_magic::DefaultCall;
+use symbol_table::call_magic::{CallMagic, DefaultCall};
+use symbol_table::call_magic::table::MagicTable;
 use crate::ir;
 use crate::ir::expr::{FuncRefTarget, AssignTarget};
 use crate::ir::import::{ImportName, ImportDecl, ImportDetails};
@@ -55,12 +56,14 @@ type IRLiteral = ir::literal::Literal;
 pub struct Compiler<'a> {
   gen: FreshNameGenerator<'a>,
   resolver: Box<dyn PreloadResolver>,
+  magic_table: MagicTable,
 }
 
 impl<'a> Compiler<'a> {
 
   pub fn new(gen: FreshNameGenerator<'a>, resolver: Box<dyn PreloadResolver>) -> Compiler<'a> {
-    Compiler { gen, resolver }
+    let magic_table = library::magic::standard_magic_table();
+    Compiler { gen, resolver, magic_table }
   }
 
   pub fn compile_stmts(&mut self,
@@ -355,7 +358,7 @@ impl<'a> Compiler<'a> {
                       decl: &IRDecl)
                       -> Result<(), Error> {
     match decl {
-      IRDecl::FnDecl(ir::decl::FnDecl { visibility: _, name, args, body }) => {
+      IRDecl::FnDecl(ir::decl::FnDecl { visibility: _, call_magic: _, name, args, body }) => {
         let gd_name = names::lisp_to_gd(&name);
         let function = self.declare_function(pipeline, builder, table, gd_name, args.clone(), body, &stmt_wrapper::Return)?;
         builder.add_decl(Decl::FnDecl(decl::Static::IsStatic, function));
@@ -591,18 +594,30 @@ impl<'a> Compiler<'a> {
     }
   }
 
-  fn bind_decl(pipeline: &mut Pipeline,
+  fn bind_decl(magic_table: &MagicTable,
+               pipeline: &mut Pipeline,
                table: &mut SymbolTable,
                decl: &IRDecl)
                -> Result<(), Error> {
     match decl {
-      IRDecl::FnDecl(ir::decl::FnDecl { visibility: _, name, args, body: _ }) => {
+      IRDecl::FnDecl(ir::decl::FnDecl { visibility: _, call_magic, name, args, body: _ }) => {
         let func = function_call::FnCall::file_constant(
           function_call::FnSpecs::from(args.to_owned()),
           function_call::FnScope::Global,
           names::lisp_to_gd(name)
         );
-        table.set_fn(name.clone(), func, Box::new(DefaultCall));
+        let call_magic: Box<dyn CallMagic> = match call_magic {
+          None => Box::new(DefaultCall),
+          Some(m) => {
+            // If a call magic declaration was specified, it MUST
+            // exist or it's a compile error.
+            match magic_table.get(m) {
+              None => return Err(Error::NoSuchMagic(m.to_owned())),
+              Some(magic) => dyn_clone::clone_box(magic),
+            }
+          }
+        };
+        table.set_fn(name.clone(), func, call_magic);
       }
       IRDecl::MacroDecl(ir::decl::MacroDecl { visibility: _, name, args, body: _ }) => {
         // As above, macros compile basically the same as functions in
@@ -763,7 +778,7 @@ impl<'a> Compiler<'a> {
                        decls: &[IRDecl])
                        -> Result<(), PError> {
     for decl in decls {
-      Compiler::bind_decl(pipeline, table, decl)?;
+      Compiler::bind_decl(&self.magic_table, pipeline, table, decl)?;
     }
     for decl in decls {
       self.compile_decl(pipeline, builder, table, decl)?;

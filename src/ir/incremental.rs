@@ -218,6 +218,7 @@ impl IncCompiler {
             let body = body.iter().map(|expr| self.compile_expr(pipeline, expr)).collect::<Result<Vec<_>, _>>()?;
             let mut decl = decl::FnDecl {
               visibility: Visibility::FUNCTION,
+              call_magic: None,
               name: name.to_owned(),
               args: args,
               body: Expr::Progn(body),
@@ -612,6 +613,7 @@ impl IncCompiler {
     }
     let main_decl = Decl::FnDecl(decl::FnDecl {
       visibility: Visibility::FUNCTION,
+      call_magic: None,
       name: MAIN_BODY_NAME.to_owned(),
       args: ArgList::empty(),
       body: Expr::Progn(main),

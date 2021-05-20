@@ -30,6 +30,7 @@ pub enum Decl {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct FnDecl {
   pub visibility: Visibility,
+  pub call_magic: Option<String>,
   pub name: String,
   pub args: ArgList,
   pub body: Expr,

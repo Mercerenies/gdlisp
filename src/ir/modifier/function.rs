@@ -1,12 +1,14 @@
 
 use crate::ir::decl::FnDecl;
 use crate::ir::export::Visibility;
-use super::ParseRule;
+use super::{ParseRule, Several};
 use super::visibility;
+use super::magic;
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone)]
 pub enum FnMod {
   Visibility(Visibility),
+  Magic(String),
 }
 
 impl FnMod {
@@ -15,10 +17,16 @@ impl FnMod {
       FnMod::Visibility(vis) => {
         decl.visibility = *vis;
       }
+      FnMod::Magic(m) => {
+        decl.call_magic = Some(m.clone());
+      }
     }
   }
 }
 
 pub fn parser() -> impl ParseRule<Modifier=FnMod> {
-  visibility::parser().map(FnMod::Visibility)
+  Several::new(vec!(
+    Box::new(visibility::parser().map(FnMod::Visibility)),
+    Box::new(magic::parser().map(FnMod::Magic)),
+  ))
 }

@@ -127,6 +127,7 @@ mod tests {
                                                AST::Int(20)))).unwrap(),
                Decl::FnDecl(decl::FnDecl {
                  visibility: Visibility::FUNCTION,
+                 call_magic: None,
                  name: "foobar".to_owned(),
                  args: ArgList::required(vec!("a".to_owned(), "b".to_owned())),
                  body: Expr::Progn(vec!(Expr::Literal(Literal::Int(20)))),
