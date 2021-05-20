@@ -9,6 +9,8 @@ pub mod visibility;
 
 use crate::sxp::ast::AST;
 
+use std::fmt;
+
 // There are a few situations in the compiler where we want to read an
 // optional sequence of modifiers from a list and then return the rest
 // of the list. Here, we capture that common pattern.
@@ -52,14 +54,13 @@ pub struct Unique<R> {
 #[derive(Debug)]
 pub enum ParseError {
   UniquenessError(String),
-  GenericError, // TODO Get rid of this ////
+  Expecting(String, AST),
+  ExhaustedAlternatives,
 }
 
 // A ParseRule takes an AST and attempts to parse it as a particular
 // modifier type. If successful, the modifier is returned. Otherwise,
-// ParseError::GenericError is returned (there is only one instance of
-// ParseError right now; we may opt to provide more specific errors in
-// the future).
+// a ParseError is returned.
 pub trait ParseRule {
   type Modifier;
 
@@ -114,10 +115,24 @@ impl ParseError {
   pub fn is_fatal(&self) -> bool {
     match self {
       ParseError::UniquenessError(_) => true,
-      ParseError::GenericError => false,
+      ParseError::Expecting(_, _) => false,
+      ParseError::ExhaustedAlternatives => false,
     }
   }
 
+}
+
+impl fmt::Display for ParseError {
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    match self {
+      ParseError::UniquenessError(e) =>
+        write!(f, "Got duplicate modifiers for {}, expecting at most one", e),
+      ParseError::Expecting(expected, actual) =>
+        write!(f, "Expecting modifier '{}', found {}", expected, actual),
+      ParseError::ExhaustedAlternatives =>
+        write!(f, "Invalid modifier, no alternatives matched"),
+    }
+  }
 }
 
 impl<M> Constant<M> {
@@ -138,7 +153,7 @@ impl<M> ParseRule for Constant<M> where M: Clone {
         return Ok(self.result.clone());
       }
     }
-    Err(ParseError::GenericError)
+    Err(ParseError::Expecting(self.symbol_value.clone(), ast.clone()))
   }
 
   fn name(&self) -> &str {
@@ -174,7 +189,7 @@ impl<M> ParseRule for Several<M> {
         }
       }
     }
-    Err(ParseError::GenericError)
+    Err(ParseError::ExhaustedAlternatives)
   }
 
   fn name(&self) -> &str {

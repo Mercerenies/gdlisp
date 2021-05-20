@@ -119,8 +119,8 @@ impl fmt::Display for Error {
       Error::StaticMethodOnLambdaClass(s) => {
         write!(f, "Static method {} is not allowed on anonymous class instance", s)
       }
-      Error::ModifierParseError(_) => {
-        write!(f, "Error parsing modifiers") // TODO Use argument ////
+      Error::ModifierParseError(m) => {
+        write!(f, "Modifier error: {}", m)
       }
     }
   }
