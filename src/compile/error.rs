@@ -4,6 +4,7 @@ use crate::sxp::ast::AST;
 use crate::ir::arglist::ArgListParseError;
 use crate::ir::identifier::Namespace;
 use crate::ir::import::{ImportDeclParseError, ImportNameResolutionError};
+use crate::ir::modifier::{ParseError as ModifierParseError};
 use crate::compile::symbol_table::local_var::VarNameIntoExtendsError;
 use crate::runner::path::RPathBuf;
 use crate::runner::macro_server::response;
@@ -40,6 +41,7 @@ pub enum Error {
   GodotServerError(response::Failure),
   StaticConstructor,
   StaticMethodOnLambdaClass(String),
+  ModifierParseError(ModifierParseError),
 }
 
 impl fmt::Display for Error {
@@ -117,6 +119,9 @@ impl fmt::Display for Error {
       Error::StaticMethodOnLambdaClass(s) => {
         write!(f, "Static method {} is not allowed on anonymous class instance", s)
       }
+      Error::ModifierParseError(_) => {
+        write!(f, "Error parsing modifiers") // TODO Use argument ////
+      }
     }
   }
 }
@@ -171,5 +176,11 @@ impl From<VarNameIntoExtendsError> for Error {
 impl From<response::Failure> for Error {
   fn from(err: response::Failure) -> Error {
     Error::GodotServerError(err)
+  }
+}
+
+impl From<ModifierParseError> for Error {
+  fn from(err: ModifierParseError) -> Error {
+    Error::ModifierParseError(err)
   }
 }

@@ -214,7 +214,7 @@ impl IncCompiler {
             };
             let args: Vec<_> = DottedExpr::new(vec[2]).try_into()?;
             let args = ArgList::parse(args)?;
-            let (mods, body) = modifier::function::parser().parse(&vec[3..]);
+            let (mods, body) = modifier::function::parser().parse(&vec[3..])?;
             let body = body.iter().map(|expr| self.compile_expr(pipeline, expr)).collect::<Result<Vec<_>, _>>()?;
             let mut decl = decl::FnDecl {
               visibility: Visibility::FUNCTION,
@@ -237,7 +237,7 @@ impl IncCompiler {
             };
             let args: Vec<_> = DottedExpr::new(vec[2]).try_into()?;
             let args = ArgList::parse(args)?;
-            let (mods, body) = modifier::macros::parser().parse(&vec[3..]);
+            let (mods, body) = modifier::macros::parser().parse(&vec[3..])?;
             let body = body.iter().map(|expr| self.compile_expr(pipeline, expr)).collect::<Result<Vec<_>, _>>()?;
             let mut decl = decl::MacroDecl {
               visibility: Visibility::MACRO,
@@ -259,7 +259,7 @@ impl IncCompiler {
               _ => return Err(PError::from(Error::InvalidDecl(decl.clone()))),
             };
             let value = self.compile_expr(pipeline, vec[2])?;
-            let (mods, body) = modifier::constant::parser().parse(&vec[3..]);
+            let (mods, body) = modifier::constant::parser().parse(&vec[3..])?;
             if !body.is_empty() {
               return Err(PError::from(Error::InvalidDecl(decl.clone())));
             }
@@ -285,7 +285,7 @@ impl IncCompiler {
                 },
               _ => return Err(PError::from(Error::InvalidDecl(decl.clone()))),
             };
-            let (mods, decl_body) = modifier::class::parser().parse(&vec[3..]);
+            let (mods, decl_body) = modifier::class::parser().parse(&vec[3..])?;
             let mut class = decl::ClassDecl::new(name, superclass);
             for m in mods {
               m.apply(&mut class);
@@ -303,7 +303,7 @@ impl IncCompiler {
               AST::Symbol(s) => s.to_owned(),
               _ => return Err(PError::from(Error::InvalidDecl(decl.clone()))),
             };
-            let (mods, body) = modifier::enums::parser().parse(&vec[2..]);
+            let (mods, body) = modifier::enums::parser().parse(&vec[2..])?;
             let clauses = body.iter().map(|clause| {
               let clause = match clause {
                 AST::Symbol(_) => AST::list(vec!((*clause).clone())),
@@ -487,7 +487,7 @@ impl IncCompiler {
             let args = SimpleArgList::parse(args)?;
 
             // Determine if static
-            let (mods, body) = modifier::instance_method::parser().parse(&vec[3..]);
+            let (mods, body) = modifier::instance_method::parser().parse(&vec[3..])?;
 
             let body = body.iter().map(|expr| self.compile_expr(pipeline, expr)).collect::<Result<Vec<_>, _>>()?;
             if fname == "_init" {

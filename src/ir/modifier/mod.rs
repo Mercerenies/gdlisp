@@ -49,9 +49,10 @@ pub struct Unique<R> {
   rule: R,
 }
 
+#[derive(Debug)]
 pub enum ParseError {
   UniquenessError(String),
-  GenericError,
+  GenericError, // TODO Get rid of this ////
 }
 
 // A ParseRule takes an AST and attempts to parse it as a particular
@@ -70,22 +71,26 @@ pub trait ParseRule {
 
   // parse(args) takes a slice of AST's and attempts to parse them
   // each using the current parse rule. Whenever a parse fails,
-  // parsing stops and the successfully parsed modifiers are returned,
-  // alongside the rest of the slice that was not parsed successfully.
-  fn parse<'a, 'b>(&mut self, args: &'a [&'b AST]) -> (Vec<Self::Modifier>, &'a [&'b AST]) {
+  // parsing stops. If the parse failed with a non-fatal (continuable)
+  // error, then the successfully parsed modifiers are returned, along
+  // with the rest of the slice that was not parsed successfully. If
+  // the parse failed with a fatal error, then that error is returned
+  // instead.
+  fn parse<'a, 'b>(&mut self, args: &'a [&'b AST]) -> Result<(Vec<Self::Modifier>, &'a [&'b AST]), ParseError> {
     let mut modifiers = Vec::new();
 
     let mut position = 0;
     while position < args.len() {
       let curr = args[position];
       match self.parse_once(curr) {
+        Err(e) if e.is_fatal() => return Err(e),
         Err(_) => break,
         Ok(m) => modifiers.push(m),
       }
       position += 1;
     }
 
-    (modifiers, &args[position..])
+    Ok((modifiers, &args[position..]))
   }
 
   fn map<N, F>(self, f: F) -> Map<Self, F>
@@ -97,6 +102,20 @@ pub trait ParseRule {
   fn unique(self) -> Unique<Self>
   where Self : Sized {
     Unique { triggered: false, rule: self }
+  }
+
+}
+
+impl ParseError {
+
+  // Fatal errors should abort the entire parse process, not allowing
+  // any alternatives to run. Non-fatal errors allow alternative parse
+  // attempts to be run.
+  pub fn is_fatal(&self) -> bool {
+    match self {
+      ParseError::UniquenessError(_) => true,
+      ParseError::GenericError => false,
+    }
   }
 
 }
@@ -143,8 +162,16 @@ impl<M> ParseRule for Several<M> {
 
   fn parse_once(&mut self, ast: &AST) -> Result<M, ParseError> {
     for value in &mut self.values {
-      if let Ok(modifier) = value.parse_once(ast) {
-        return Ok(modifier);
+      match value.parse_once(ast) {
+        Ok(modifier) => {
+          return Ok(modifier);
+        }
+        Err(err) if err.is_fatal() => {
+          return Err(err);
+        }
+        Err(_) => {
+          // Continue with any other possible parses
+        }
       }
     }
     Err(ParseError::GenericError)
