@@ -31,6 +31,7 @@ pub enum Error {
   UnknownDecl(AST),
   InvalidDecl(AST),
   UnquoteOutsideQuasiquote,
+  UnquoteSplicedOutsideQuasiquote,
   NoSuchFile(RPathBuf),
   AmbiguousNamespace(String),
   NotConstantEnough(String),
@@ -89,6 +90,9 @@ impl fmt::Display for Error {
       }
       Error::UnquoteOutsideQuasiquote => {
         write!(f, "Unquote (,) can only be used inside quasiquote (`)")
+      }
+      Error::UnquoteSplicedOutsideQuasiquote => {
+        write!(f, "Spliced unquote (,.) can only be used inside quasiquote (`)")
       }
       Error::NoSuchFile(p) => {
         write!(f, "Cannot locate file {}", p)
