@@ -675,3 +675,15 @@ func filter(p, xs):
             if p.call_funcv(Cons.new(xs[i], null)):
                 result.push_back(xs[i])
         return result
+
+func append(args):
+    var outer = Cons.new(null, null)
+    var curr = outer
+    while args != null:
+        var inner_value = args.car
+        while inner_value != null:
+            curr.cdr = Cons.new(inner_value.car, null)
+            curr = curr.cdr
+            inner_value = inner_value.cdr
+        args = args.cdr
+    return outer.cdr

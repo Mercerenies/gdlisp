@@ -248,6 +248,11 @@ pub fn bind_builtins(table: &mut SymbolTable) {
                gdlisp_function("filter", FnSpecs::new(2, 0, None)),
                Box::new(call_magic::DefaultCall));
 
+  // append (For lists)
+  table.set_fn("append".to_owned(),
+               gdlisp_function("append", FnSpecs::new(0, 0, Some(VarArg::RestArg))),
+               Box::new(call_magic::DefaultCall));
+
   // ---- GDScript built-ins that we use unmodified ----
 
   table.set_fn("str".to_owned(),
