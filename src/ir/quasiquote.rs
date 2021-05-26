@@ -83,15 +83,26 @@ fn quasiquote_spliced(icompiler: &mut IncCompiler,
           Expr::Literal(Literal::Float(*f))
         }
         AST::String(s) => {
-        Expr::Literal(Literal::String(s.to_owned()))
+          Expr::Literal(Literal::String(s.to_owned()))
         }
         AST::Symbol(s) => {
           Expr::Literal(Literal::Symbol(s.to_owned()))
         }
         AST::Cons(car, cdr) => {
-          Expr::Call(String::from("cons"), vec!(quasiquote(icompiler, pipeline, car)?, quasiquote(icompiler, pipeline, cdr)?))
+          let car = quasiquote_spliced(icompiler, pipeline, car)?;
+          let cdr = quasiquote(icompiler, pipeline, cdr)?;
+          match car {
+            QQSpliced::Single(car) => {
+              Expr::Call(String::from("cons"), vec!(car, cdr))
+            }
+            QQSpliced::Several(car) => {
+              let converted_car = Expr::Call(String::from("sys/qq-smart-list"), vec!(car));
+              Expr::Call(String::from("append"), vec!(converted_car, cdr))
+            }
+          }
         }
         AST::Array(v) => {
+          ////
           let v1 = v.iter().map(|x| quasiquote(icompiler, pipeline, x)).collect::<Result<Vec<_>, _>>()?;
           Expr::Array(v1)
         }

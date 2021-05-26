@@ -687,3 +687,24 @@ func append(args):
             inner_value = inner_value.cdr
         args = args.cdr
     return outer.cdr
+
+func qq_smart_list(a):
+    var t = typeof(a)
+    if t >= TYPE_ARRAY and t <= TYPE_COLOR_ARRAY:
+        return array_to_list(a)
+    else:
+        return a
+
+func qq_smart_array(a):
+    var t = typeof(a)
+    if t >= TYPE_ARRAY and t <= TYPE_COLOR_ARRAY:
+        return a
+    else:
+        return list_to_array(a)
+
+func qq_smart_append(a, b):
+    var t = typeof(a)
+    if t >= TYPE_ARRAY and t <= TYPE_COLOR_ARRAY:
+        return append(Cons.new(a, Cons.new(array_to_list(b), null)))
+    else:
+        return append(Cons.new(a, Cons.new(b, null)))

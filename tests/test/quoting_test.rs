@@ -1,5 +1,5 @@
 
-use super::common::parse_compile_and_output;
+use super::common::{parse_compile_and_output, parse_and_run};
 
 #[test]
 pub fn quote_test() {
@@ -72,4 +72,15 @@ pub fn vector_quote_test() {
 pub fn vector_quasiquote_test() {
   assert_eq!(parse_compile_and_output("(let ((a 1)) `V{a ,a})"), "var a_0 = 1\nreturn Vector2(GDLisp.intern(\"a\"), a_0)\n");
   assert_eq!(parse_compile_and_output("(let ((a 1)) `V{a ,a a})"), "var a_0 = 1\nreturn Vector3(GDLisp.intern(\"a\"), a_0, GDLisp.intern(\"a\"))\n");
+}
+
+#[test]
+pub fn quasiquote_unquote_spliced_list_test() {
+  assert_eq!(parse_compile_and_output("(let ((a [2 3])) `(1 ,.a 4))"),
+             "var a_0 = [2, 3]\nreturn GDLisp.cons(1, GDLisp.append(GDLisp.Cons.new(GDLisp.qq_smart_list(a_0), GDLisp.Cons.new(GDLisp.cons(4, null), null))))\n");
+}
+
+#[test]
+pub fn quasiquote_unquote_spliced_list_test_runner() {
+  assert_eq!(parse_and_run("((let ((a [2 3])) (print (list->array `(1 ,.a 4)))))"), "\n[1, 2, 3, 4]\n");
 }
