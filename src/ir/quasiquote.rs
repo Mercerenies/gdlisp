@@ -102,9 +102,29 @@ fn quasiquote_spliced(icompiler: &mut IncCompiler,
           }
         }
         AST::Array(v) => {
-          ////
-          let v1 = v.iter().map(|x| quasiquote(icompiler, pipeline, x)).collect::<Result<Vec<_>, _>>()?;
-          Expr::Array(v1)
+          let v1 = v.iter().map(|x| quasiquote_spliced(icompiler, pipeline, x)).collect::<Result<Vec<_>, _>>()?;
+
+          let mut acc: Vec<Expr> = vec!();
+          let mut current_vec: Vec<Expr> = vec!();
+          for value in v1 {
+            match value {
+              QQSpliced::Single(x) => {
+                current_vec.push(x)
+              }
+              QQSpliced::Several(x) => {
+                let x = Expr::Call(String::from("sys/qq-smart-array"), vec!(x));
+                if current_vec.len() > 0 {
+                  acc.push(Expr::Array(current_vec));
+                  current_vec = vec!();
+                }
+                acc.push(x);
+              }
+            }
+          }
+          if current_vec.len() > 0 {
+            acc.push(Expr::Array(current_vec));
+          }
+          Expr::Call(String::from("+"), acc)
         }
         AST::Dictionary(v) => {
           // TODO Does unquote-spliced make sense in this context?

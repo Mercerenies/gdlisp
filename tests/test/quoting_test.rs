@@ -81,6 +81,49 @@ pub fn quasiquote_unquote_spliced_list_test() {
 }
 
 #[test]
-pub fn quasiquote_unquote_spliced_list_test_runner() {
+#[ignore]
+pub fn quasiquote_unquote_spliced_list_test_runner_1() {
   assert_eq!(parse_and_run("((let ((a [2 3])) (print (list->array `(1 ,.a 4)))))"), "\n[1, 2, 3, 4]\n");
+}
+
+#[test]
+#[ignore]
+pub fn quasiquote_unquote_spliced_list_test_runner_2() {
+  assert_eq!(parse_and_run("((let ((a '(2 3))) (print (list->array `(1 ,.a 4)))))"), "\n[1, 2, 3, 4]\n");
+}
+
+#[test]
+pub fn quasiquote_unquote_spliced_array_test() {
+  assert_eq!(parse_compile_and_output("(let ((a [3 4])) `[1 2 ,.a 5 6])"),
+             "var a_0 = [3, 4]\nreturn [1, 2] + GDLisp.qq_smart_array(a_0) + [5, 6]\n");
+}
+
+#[test]
+#[ignore]
+pub fn quasiquote_unquote_spliced_array_test_runner_1() {
+  assert_eq!(parse_and_run("((let ((a [3 4])) (print `[1 2 ,.a 5 6])))"), "\n[1, 2, 3, 4, 5, 6]\n");
+}
+
+#[test]
+#[ignore]
+pub fn quasiquote_unquote_spliced_array_test_runner_2() {
+  assert_eq!(parse_and_run("((let ((a '(3 4))) (print `[1 2 ,.a 5 6])))"), "\n[1, 2, 3, 4, 5, 6]\n");
+}
+
+#[test]
+#[ignore]
+pub fn quasiquote_unquote_spliced_array_test_runner_3() {
+  assert_eq!(parse_and_run("((let ((a '(3 4))) (print `[1 2 ,.a])))"), "\n[1, 2, 3, 4]\n");
+}
+
+#[test]
+#[ignore]
+pub fn quasiquote_unquote_spliced_array_test_runner_4() {
+  assert_eq!(parse_and_run("((let ((a '(3 4))) (print `[1 2 ,.a ,.a])))"), "\n[1, 2, 3, 4, 3, 4]\n");
+}
+
+#[test]
+#[ignore]
+pub fn quasiquote_unquote_spliced_array_test_runner_5() {
+  assert_eq!(parse_and_run("((let ((a '(3 4))) (print `[,.a 10 ,.a])))"), "\n[3, 4, 10, 3, 4]\n");
 }
