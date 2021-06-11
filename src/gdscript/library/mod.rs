@@ -248,6 +248,21 @@ pub fn bind_builtins(table: &mut SymbolTable) {
                gdlisp_function("filter", FnSpecs::new(2, 0, None)),
                Box::new(call_magic::DefaultCall));
 
+  // append (For lists)
+  table.set_fn("append".to_owned(),
+               gdlisp_function("append", FnSpecs::new(0, 0, Some(VarArg::RestArg))),
+               Box::new(call_magic::DefaultCall));
+
+  // sys/qq-smart-list (Used in quasiquote expansion)
+  table.set_fn("sys/qq-smart-list".to_owned(),
+               gdlisp_function("qq_smart_list", FnSpecs::new(1, 0, None)),
+               Box::new(call_magic::DefaultCall));
+
+  // sys/qq-smart-array (Used in quasiquote expansion)
+  table.set_fn("sys/qq-smart-array".to_owned(),
+               gdlisp_function("qq_smart_array", FnSpecs::new(1, 0, None)),
+               Box::new(call_magic::DefaultCall));
+
   // ---- GDScript built-ins that we use unmodified ----
 
   table.set_fn("str".to_owned(),

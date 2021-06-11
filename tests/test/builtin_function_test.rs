@@ -611,6 +611,42 @@ pub fn filter_test_3() {
 }
 
 #[test]
+#[ignore]
+pub fn append_test_1() {
+  let result = parse_and_run(r#"
+    ((print (list->array (append))))
+  "#);
+  assert_eq!(result, "\n[]\n");
+}
+
+#[test]
+#[ignore]
+pub fn append_test_2() {
+  let result = parse_and_run(r#"
+    ((print (list->array (append '(1 2 3 4)))))
+  "#);
+  assert_eq!(result, "\n[1, 2, 3, 4]\n");
+}
+
+#[test]
+#[ignore]
+pub fn append_test_3() {
+  let result = parse_and_run(r#"
+    ((print (list->array (append '(1 2 3 4) '(5 6 7 8)))))
+  "#);
+  assert_eq!(result, "\n[1, 2, 3, 4, 5, 6, 7, 8]\n");
+}
+
+#[test]
+#[ignore]
+pub fn append_test_4() {
+  let result = parse_and_run(r#"
+    ((print (list->array (append '(1 2 3 4) () '(5 6 7 8) () ()))))
+  "#);
+  assert_eq!(result, "\n[1, 2, 3, 4, 5, 6, 7, 8]\n");
+}
+
+#[test]
 pub fn custom_call_magic_test() {
   assert_eq!(parse_compile_decl("((defn foo (x y) (sys/call-magic ADDITION) 9) (foo 10 20))"),
              r#"extends Reference
