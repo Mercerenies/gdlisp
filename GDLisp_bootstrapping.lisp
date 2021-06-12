@@ -1040,3 +1040,24 @@
       (set arg arg:cdr))
     rev))
 
+(defmacro or (&rest args)
+  (let ((args (reverse args)))
+    (if args
+        (let ((result `((#t ,(car args)))))
+          (set args (cdr args))
+          (while (/= args nil)
+            (set result `((,(car args)) . ,result))
+            (set args (cdr args)))
+          `(cond . ,result))
+        #f)))
+
+(defmacro and (&rest args)
+  (let ((args (reverse args)))
+    (if args
+        (let ((result `((#t ,(car args)))))
+          (set args (cdr args))
+          (while (/= args nil)
+            (set result `(((not ,(car args)) #f) . ,result))
+            (set args (cdr args)))
+          `(cond . ,result))
+        #t)))
