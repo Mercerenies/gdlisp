@@ -1031,3 +1031,12 @@
           (when (funcall p (elt xs i))
             (result:push_back (elt xs i))))
         result)))
+
+(defn reverse (arg)
+  ;; Only works on lists right now (TODO Arrays)
+  (let ((rev nil))
+    (while (/= arg nil)
+      (set rev `(,(car arg) . ,rev))
+      (set arg arg:cdr))
+    rev))
+
