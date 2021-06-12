@@ -1061,3 +1061,22 @@
             (set args (cdr args)))
           `(cond . ,result))
         #t)))
+
+(defmacro let* (vars &rest body)
+  (if (= vars nil)
+      `(progn ,.body)
+      `(let (,(car vars))
+         (let* ,(cdr vars) ,.body))))
+
+(defmacro defvars (&rest args)
+  `(progn ,.(map (lambda (arg) (list 'defvar arg)) args)))
+
+(defmacro when (cnd &rest args)
+  `(if ,cnd
+       (progn ,.args)
+       ()))
+
+(defmacro unless (cnd &rest args)
+  `(if ,cnd
+       ()
+       (progn ,.args)))
