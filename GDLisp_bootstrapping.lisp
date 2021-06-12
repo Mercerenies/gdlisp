@@ -809,8 +809,9 @@
   (defn _init ()
     (set self:global_name_generator (FreshNameGenerator:new [] 0))))
 
-(defn cons (a b)
-  (Cons:new a b))
+;; This needs to be commented for now so macro expansion uses the *actual* GDLisp.cons, not this one.
+;; (defn cons (a b)
+;;   (Cons:new a b))
 
 (defn intern (a)
   (Symbol:new a))
