@@ -813,6 +813,12 @@
 ;; (defn cons (a b)
 ;;   (Cons:new a b))
 
+(defn car (a)
+  a:car)
+
+(defn cdr (a)
+  a:cdr)
+
 (defn intern (a)
   (Symbol:new a))
 
