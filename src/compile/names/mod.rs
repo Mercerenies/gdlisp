@@ -17,7 +17,7 @@ const KNOWN_GDSCRIPT_KEYWORDS: &[&str] = &[
   "is", "as", "self", "tool", "signal", "func", "static", "const",
   "enum", "var", "onready", "export", "setget", "breakpoint", "preload",
   "yield", "assert", "remote", "master", "puppet", "remotesync", "mastersync",
-  "puppetsync", "PI", "TAU", "INF", "NAN", "not",
+  "puppetsync", "PI", "TAU", "INF", "NAN", "not", "and", "or",
 ];
 
 pub fn is_valid_gd_char(ch: char) -> bool {
