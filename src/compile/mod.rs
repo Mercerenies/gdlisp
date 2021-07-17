@@ -268,19 +268,6 @@ impl<'a> Compiler<'a> {
           .collect::<Result<Vec<_>, _>>()?;
         Ok(StExpr(Expr::Call(Some(Box::new(lhs)), names::lisp_to_gd(sym), args), SideEffects::ModifiesState))
       }
-      IRExpr::Vector2(x, y) => {
-        let StExpr(x, xs) = self.compile_expr(pipeline, builder, table, x, NeedsResult::Yes)?;
-        let StExpr(y, ys) = self.compile_expr(pipeline, builder, table, y, NeedsResult::Yes)?;
-        let side_effects = max(xs, ys);
-        Ok(StExpr(Expr::Call(None, String::from("Vector2"), vec!(x, y)), side_effects))
-      }
-      IRExpr::Vector3(x, y, z) => {
-        let StExpr(x, xs) = self.compile_expr(pipeline, builder, table, x, NeedsResult::Yes)?;
-        let StExpr(y, ys) = self.compile_expr(pipeline, builder, table, y, NeedsResult::Yes)?;
-        let StExpr(z, zs) = self.compile_expr(pipeline, builder, table, z, NeedsResult::Yes)?;
-        let side_effects = max(xs, max(ys, zs));
-        Ok(StExpr(Expr::Call(None, String::from("Vector3"), vec!(x, y, z)), side_effects))
-      }
       IRExpr::LambdaClass(cls) => {
         lambda_class::compile_lambda_class(self, pipeline, builder, table, cls)
       }
