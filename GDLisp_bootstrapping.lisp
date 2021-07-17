@@ -1080,6 +1080,11 @@
      (,cnd ())
      (#t (progn ,.args))))
 
+(defmacro if (cnd t f)
+  `(cond
+     (,cnd ,t)
+     (#t ,f)))
+
 (defmacro yield* (arg)
   (let ((symbol (gensym "_yield")))
     `(let ((,symbol ,arg))
