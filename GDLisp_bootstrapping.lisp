@@ -7,7 +7,8 @@
 (defconst nil ())
 
 (defclass Cons (Reference)
-  (defvars car cdr)
+  (defvar car)
+  (defvar cdr)
   (defn _init (car cdr)
     (set self:car car)
     (set self:cdr cdr)))
@@ -40,7 +41,8 @@
 
   (defconst DEFAULT_PREFIX "_G")
 
-  (defvars reserved index)
+  (defvar reserved)
+  (defvar index)
 
   (defn _init (reserved index) ; NOTE: Lack of arglist modifier
     (set self:reserved reserved)
@@ -52,9 +54,9 @@
   (defn generate_with (prefix)
     (let ((name ("{}_{}":format [prefix self:index] "{}")))
       (set self:index (+ self:index 1))
-      (if (member? name self:reserved)
-          (self:generate_with prefix)
-          name)))
+      (cond
+        ((member? name self:reserved) (self:generate_with prefix))
+        (#t name))))
 
   (defn to_json ()
     {"reserved" self:reserved "index" self:index})
@@ -830,20 +832,21 @@
     result))
 
 (defn funcall (f &rest args)
-  (if (sys/instance-direct? f Function)
-      (f:call_funcv args)
-      (push-error "Attempt to call non-function")))
+  (cond
+    ((sys/instance-direct? f Function) (f:call_funcv args))
+    (#t (push-error "Attempt to call non-function"))))
 
 (defn + (&rest args)
   (sys/call-magic ADDITION)
-  (if (sys/instance-direct? args Cons)
-      (let ((result args:car))
-        (set args args:cdr)
-        (while (sys/instance-direct? args Cons)
-          (set result (+ result args:car))
-          (set args args:cdr))
-        result)
-      0))
+  (cond
+    ((sys/instance-direct? args Cons)
+     (let ((result args:car))
+       (set args args:cdr)
+       (while (sys/instance-direct? args Cons)
+         (set result (+ result args:car))
+         (set args args:cdr))
+       result))
+    (#t 0)))
 
 (defn * (&rest args)
   (sys/call-magic MULTIPLICATION)
@@ -855,33 +858,36 @@
 
 (defn - (x &rest args)
   (sys/call-magic SUBTRACTION)
-  (if (sys/instance-direct? args Cons)
-      (let ((result x))
-        (while (sys/instance-direct? args Cons)
-          (set result (- result args:car))
-          (set args args:cdr))
-        result)
-      (- x)))
+  (cond
+    ((sys/instance-direct? args Cons)
+     (let ((result x))
+       (while (sys/instance-direct? args Cons)
+         (set result (- result args:car))
+         (set args args:cdr))
+       result))
+    (#t (- x))))
 
 (defn / (x &rest args)
   (sys/call-magic DIVISION)
-  (if (sys/instance-direct? args Cons)
-      (let ((result x))
-        (while (sys/instance-direct? args Cons)
-          (set result (/ result args:car))
-          (set args args:cdr))
-        result)
-      (/ x)))
+  (cond
+    ((sys/instance-direct? args Cons)
+     (let ((result x))
+       (while (sys/instance-direct? args Cons)
+         (set result (/ result args:car))
+         (set args args:cdr))
+       result))
+    (#t (/ x))))
 
 (defn div (x &rest args)
   (sys/call-magic INTEGER-DIVISION)
-  (if (sys/instance-direct? args Cons)
-      (let ((result x))
-        (while (sys/instance-direct? args Cons)
-          (set result (div result args:car))
-          (set args args:cdr))
-        result)
-      (div x)))
+  (cond
+    ((sys/instance-direct? args Cons)
+     (let ((result x))
+       (while (sys/instance-direct? args Cons)
+         (set result (div result args:car))
+         (set args args:cdr))
+       result))
+    (#t (div x))))
 
 (defn mod (x y)
   (sys/call-magic MODULO)
@@ -890,8 +896,9 @@
 (defn = (x &rest args)
   (sys/call-magic EQUAL)
   (while (sys/instance-direct? args Cons)
-    (unless (= x args:car)
-      (return #f))
+    (cond
+      ((= x args:car) ())
+      (#t (return #f)))
     (set x args:car)
     (set args args:cdr))
   #t)
@@ -899,8 +906,9 @@
 (defn < (x &rest args)
   (sys/call-magic LESS-THAN)
   (while (sys/instance-direct? args Cons)
-    (unless (< x args:car)
-      (return #f))
+    (cond
+      ((< x args:car) ())
+      (#t (return #f)))
     (set x args:car)
     (set args args:cdr))
   #t)
@@ -908,8 +916,9 @@
 (defn > (x &rest args)
   (sys/call-magic GREATER-THAN)
   (while (sys/instance-direct? args Cons)
-    (unless (> x args:car)
-      (return #f))
+    (cond
+      ((> x args:car) ())
+      (#t (return #f)))
     (set x args:car)
     (set args args:cdr))
   #t)
@@ -917,8 +926,9 @@
 (defn <= (x &rest args)
   (sys/call-magic LESS-THAN-OR-EQUAL)
   (while (sys/instance-direct? args Cons)
-    (unless (<= x args:car)
-      (return #f))
+    (cond
+      ((<= x args:car) ())
+      (#t (return #f)))
     (set x args:car)
     (set args args:cdr))
   #t)
@@ -926,8 +936,9 @@
 (defn >= (x &rest args)
   (sys/call-magic GREATER-THAN-OR-EQUAL)
   (while (sys/instance-direct? args Cons)
-    (unless (>= x args:car)
-      (return #f))
+    (cond
+      ((>= x args:car) ())
+      (#t (return #f)))
     (set x args:car)
     (set args args:cdr))
   #t)
@@ -938,8 +949,9 @@
     (while (sys/instance-direct? outer Cons)
       (let ((inner outer:cdr))
         (while (sys/instance-direct? inner Cons)
-          (unless (/= outer:car inner:car)
-            (return #f))
+          (cond
+            ((/= outer:car inner:car) ())
+            (#t (return #f)))
           (set inner inner:cdr)))
       (set outer outer:cdr)))
   #t)
@@ -954,9 +966,9 @@
 
 (defn vector (x y &opt z)
   (sys/call-magic VECTOR)
-  (if (= z ())
-      V{x y}
-      V{x y z}))
+  (cond
+    ((= z ()) V{x y})
+    (#t V{x y z})))
 
 (defn list->array (list)
   (let ((arr []))
@@ -986,51 +998,57 @@
   (member? value arr))
 
 (defn instance? (value type)
-  (if (= (typeof type) Int)
-      (= (typeof value) type)
-      (sys/instance-direct? value type)))
+  (cond
+    ((= (typeof type) Int) (= (typeof value) type))
+    (#t (sys/instance-direct? value type))))
 
 (defn sys/instance-direct? (value type)
   (sys/call-magic DIRECT-INSTANCE-CHECK)
   (sys/instance-direct? value type))
 
 (defn gensym (&opt prefix)
-  (if (= prefix ())
-      (Symbol:new (GDLisp:global_name_generator:generate))
-      (Symbol:new (GDLisp:global_name_generator:generate_with prefix))))
+  (cond
+    ((= prefix ()) (Symbol:new (GDLisp:global_name_generator:generate)))
+    (#t (Symbol:new (GDLisp:global_name_generator:generate_with prefix)))))
 
 (defn map (f xs)
-  (if (or (sys/instance-direct? xs Cons) (= xs nil))
-      ;; List map
-      (let ((outer (cons nil nil)))
-        (let ((curr outer))
-          (while (/= xs nil)
-            (set curr:cdr (cons (funcall f xs:car) nil))
-            (set curr curr:cdr)
-            (set xs xs:cdr))
-          outer:cdr))
-      ;; Array map
-      (let ((result []))
-        (for i (len xs)
-          (set (elt result i) (funcall f (elt xs i))))
-        result)))
+  (cond
+    ((or (sys/instance-direct? xs Cons) (= xs nil))
+     ;; List map
+     (let ((outer (cons nil nil)))
+       (let ((curr outer))
+         (while (/= xs nil)
+           (set curr:cdr (cons (funcall f xs:car) nil))
+           (set curr curr:cdr)
+           (set xs xs:cdr))
+         outer:cdr)))
+    (#t
+     ;; Array map
+     (let ((result []))
+       (for i (len xs)
+         (set (elt result i) (funcall f (elt xs i))))
+       result))))
 
 (defn filter (p xs)
-  (if (or (sys/instance-direct? xs Cons) (= xs nil))
-      ;; List filter
-      (let ((outer (cons nil nil)))
-        (let ((curr outer))
-          (while (/= xs nil)
-            (when (funcall p xs:car)
+  (cond
+    ((or (sys/instance-direct? xs Cons) (= xs nil))
+     ;; List filter
+     (let ((outer (cons nil nil)))
+       (let ((curr outer))
+         (while (/= xs nil)
+           (cond
+             ((funcall p xs:car)
               (set curr:cdr (cons xs:car nil))
-              (set curr curr:cdr))
-            (set xs xs:cdr))
-          outer:cdr))
-      (let ((result []))
-        (for i (len xs)
-          (when (funcall p (elt xs i))
-            (result:push_back (elt xs i))))
-        result)))
+              (set curr curr:cdr)))
+           (set xs xs:cdr))
+         outer:cdr)))
+    (#t
+     (let ((result []))
+       (for i (len xs)
+            (cond
+              ((funcall p (elt xs i))
+               (result:push_back (elt xs i)))))
+       result))))
 
 (defn reverse (arg)
   ;; Only works on lists right now (TODO Arrays)
@@ -1042,31 +1060,33 @@
 
 (defmacro or (&rest args)
   (let ((args (reverse args)))
-    (if args
-        (let ((result `((#t ,(car args)))))
-          (set args (cdr args))
-          (while (/= args nil)
-            (set result `((,(car args)) . ,result))
-            (set args (cdr args)))
-          `(cond . ,result))
-        #f)))
+    (cond
+      (args
+       (let ((result `((#t ,(car args)))))
+         (set args (cdr args))
+         (while (/= args nil)
+           (set result `((,(car args)) . ,result))
+           (set args (cdr args)))
+         `(cond . ,result)))
+      (#t #f))))
 
 (defmacro and (&rest args)
   (let ((args (reverse args)))
-    (if args
-        (let ((result `((#t ,(car args)))))
-          (set args (cdr args))
-          (while (/= args nil)
-            (set result `(((not ,(car args)) #f) . ,result))
-            (set args (cdr args)))
-          `(cond . ,result))
-        #t)))
+    (cond
+      (args
+       (let ((result `((#t ,(car args)))))
+         (set args (cdr args))
+         (while (/= args nil)
+           (set result `(((not ,(car args)) #f) . ,result))
+           (set args (cdr args)))
+         `(cond . ,result)))
+       (#t #t))))
 
 (defmacro let* (vars &rest body)
-  (if (= vars nil)
-      `(progn ,.body)
-      `(let (,(car vars))
-         (let* ,(cdr vars) ,.body))))
+  (cond
+    ((= vars nil) `(progn ,.body))
+    (#t `(let (,(car vars))
+           (let* ,(cdr vars) ,.body)))))
 
 (defmacro defvars (&rest args)
   `(progn ,.(map (lambda (arg) `(defvar ,arg)) args)))
