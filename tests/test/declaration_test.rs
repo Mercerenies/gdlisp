@@ -143,6 +143,15 @@ static func run():
 }
 
 #[test]
+pub fn declare_function_test_3() {
+  assert_eq!(parse_compile_decl("((sys/declare superfunction f (a &opt b)) (f 1) (f 1 2))"), r#"extends Reference
+static func run():
+    f(1, null)
+    return f(1, 2)
+"#);
+}
+
+#[test]
 #[should_panic]
 pub fn nonsense_modifier_function_test() {
   parse_compile_decl(r#"((defn foo () public private 1))"#);

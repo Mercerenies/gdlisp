@@ -353,7 +353,7 @@ impl IncCompiler {
                 };
                 Ok(Decl::DeclareDecl(declare))
               }
-              AST::Symbol(function) if function == "function" => {
+              AST::Symbol(function) if function == "function" || function == "superfunction" => {
                 if vec.len() != 4 {
                   return Err(PError::from(Error::InvalidDecl(decl.clone())));
                 }
@@ -363,9 +363,15 @@ impl IncCompiler {
                 };
                 let args: Vec<_> = DottedExpr::new(vec[3]).try_into()?;
                 let args = ArgList::parse(args)?;
+                let declare_type =
+                  if function == "superfunction" {
+                    decl::DeclareType::SuperglobalFn(args)
+                  } else {
+                    decl::DeclareType::Function(args)
+                  };
                 let declare = decl::DeclareDecl {
                   visibility: Visibility::DECLARE,
-                  declare_type: decl::DeclareType::Function(args),
+                  declare_type,
                   name
                 };
                 Ok(Decl::DeclareDecl(declare))

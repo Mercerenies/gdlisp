@@ -663,7 +663,15 @@ impl<'a> Compiler<'a> {
               names::lisp_to_gd(name)
             );
             table.set_fn(name.clone(), func, Box::new(DefaultCall));
-          } // TODO Superglobal function declare capability
+          }
+          ir::decl::DeclareType::SuperglobalFn(args) => {
+            let func = function_call::FnCall::file_constant(
+              function_call::FnSpecs::from(args.to_owned()),
+              function_call::FnScope::Superglobal,
+              names::lisp_to_gd(name)
+            );
+            table.set_fn(name.clone(), func, Box::new(DefaultCall));
+          }
         }
       }
     };
