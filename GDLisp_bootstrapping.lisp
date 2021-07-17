@@ -803,7 +803,7 @@
   (CHANNEL_PRESSURE MIDI_MESSAGE_CHANNEL_PRESSURE)
   (PITCH_BEND MIDI_MESSAGE_PITCH_BEND))
 
-(defclass GDLisp (Node) main
+(defclass _GDLisp (Node) main
   (defvar global_name_generator)
 
   (defn _init ()
