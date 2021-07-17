@@ -144,7 +144,7 @@ pub fn parse_and_run(input: &str) -> String {
   let mut compiler = Compiler::new(FreshNameGenerator::new(used_names), Box::new(DefaultPreloadResolver));
   let mut table = SymbolTable::new();
   bind_helper_symbols(&mut table);
-  library::bind_builtins(&mut table);
+  library::bind_builtins(&mut table, false);
 
   let mut pipeline = dummy_pipeline();
 
@@ -192,7 +192,7 @@ pub fn parse_compile_and_output_h(input: &str) -> (String, String) {
   let mut compiler = Compiler::new(FreshNameGenerator::new(used_names), Box::new(DefaultPreloadResolver));
   let mut table = SymbolTable::new();
   bind_helper_symbols_comp(&mut table);
-  library::bind_builtins(&mut table);
+  library::bind_builtins(&mut table, false);
 
   let mut pipeline = dummy_pipeline();
 
@@ -213,7 +213,7 @@ pub fn parse_compile_decl(input: &str) -> String {
   let used_names = value.all_symbols();
   let mut compiler = Compiler::new(FreshNameGenerator::new(used_names), Box::new(DefaultPreloadResolver));
   let mut table = SymbolTable::new();
-  library::bind_builtins(&mut table);
+  library::bind_builtins(&mut table, false);
 
   let mut pipeline = dummy_pipeline();
 

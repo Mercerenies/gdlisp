@@ -817,7 +817,7 @@ mod tests {
     let mut compiler = Compiler::new(FreshNameGenerator::new(used_names), Box::new(DefaultPreloadResolver));
     let mut table = SymbolTable::new();
     bind_helper_symbols(&mut table);
-    library::bind_builtins(&mut table);
+    library::bind_builtins(&mut table, true);
     let mut builder = StmtBuilder::new();
     let expr = ir::compile_expr(&mut pipeline, ast)?;
     let () = compiler.compile_stmt(&mut pipeline, &mut builder, &mut table, &mut stmt_wrapper::Return, &expr)?;
