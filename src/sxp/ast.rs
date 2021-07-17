@@ -1,19 +1,43 @@
 
+//! Defines the basic [`AST`] type.
+
 use ordered_float::OrderedFloat;
 
 use std::fmt;
 use std::convert::Infallible;
 
+/// The basic type used for representing Lisp S-expressions.
 #[derive(PartialEq, Eq, Hash, Clone)]
 pub enum AST {
+  /// A nil value, or `()`. This is comparable to `null` in some
+  /// languages but also functions as the empty list.
   Nil,
+  /// A pair of values. The first value is referred to as the car and
+  /// the second as the cdr. All Lisp lists are made up of cons cells
+  /// and [`AST::Nil`]. Displays as `(car . cdr)`.
   Cons(Box<AST>, Box<AST>),
+  /// A literal array of values. Whereas a list in Lisp is a linked
+  /// list made of cons cells, an array is a constant-time sequential
+  /// chunk of memory. Displays as `[x0 x1 ... xn]`
   Array(Vec<AST>),
+  /// A constant-time array of pairs. Note that, while this structure
+  /// *compiles* to a dictionary in GDScript, the [`AST`] structure
+  /// itself is *not* an associative container. It can contain
+  /// duplicate keys and preserves the order in which the keys are
+  /// entered. Displays as `{k1 v1 k2 v2 ... kn vn}`
   Dictionary(Vec<(AST, AST)>),
+  /// A literal 32-bit integer value.
   Int(i32),
+  /// A literal Boolean value.
   Bool(bool),
+  /// A literal floating-point value. For AST purposes, we do not use
+  /// standard IEEE comparison semantics and instead use
+  /// [`OrderedFloat`], whose ordering and equality relations satisfy
+  /// convenient abstract mathematical properties.
   Float(OrderedFloat<f32>),
+  /// A literal string.
   String(String),
+  /// A literal symbol.
   Symbol(String),
 }
 
@@ -35,22 +59,61 @@ fn fmt_list(a: &AST, b: &AST, f: &mut fmt::Formatter<'_>) -> fmt::Result {
 
 impl AST {
 
+  /// An [`AST::Cons`] cell. This is more convenient than calling the
+  /// constructor directly, as you needn't explicitly box the values.
   pub fn cons(car: AST, cdr: AST) -> AST {
     AST::Cons(Box::new(car), Box::new(cdr))
   }
 
+  /// An [`AST::String`]. Copies the string argument into a new
+  /// [`AST`] value.
   pub fn string(s: &str) -> AST {
     AST::String(s.to_owned())
   }
 
+  /// An [`AST::Symbol`]. Copies the string argument into a new
+  /// [`AST`] value.
   pub fn symbol(s: &str) -> AST {
     AST::Symbol(s.to_string())
   }
 
+  /// In Lisp, we generally think of a *dotted list* as a sequence of
+  /// zero or more cons cells, where the cdr of each cell is the next
+  /// cons cell, eventually terminated by some non-cons value. For
+  /// instance, `(1 . (2 . (3 . 4)))` would be a dotted list where the
+  /// values in the "list" portion are `1`, `2`, and `3`, and the
+  /// terminator is `4`.
+  ///
+  /// We call a dotted list which terminates in `()` (i.e.
+  /// [`AST::Nil`]) a *proper list*. Some sources explicitly define a
+  /// dotted list to *not* be a proper list, but this documentation
+  /// does not make that distinction.
+  ///
+  /// This function constructs an [`AST`] value from a sequence of
+  /// values `vec` and a terminator `terminal`. For each value in the
+  /// sequence, a [`AST::Cons`] cell will be constructed, and the
+  /// final cdr will be `terminal`.
+  ///
+  /// For the inverse operation of converted an [`AST`] *back* into a
+  /// sequence and terminator, see [`super::dotted::DottedExpr`].
+  ///
+  /// # Examples
+  ///
+  /// ```
+  /// # use gdlisp::sxp::ast::AST;
+  /// let value = AST::dotted_list(vec!(AST::Int(1), AST::Int(2)), AST::Int(3));
+  /// assert_eq!(value, AST::cons(AST::Int(1), AST::cons(AST::Int(2), AST::Int(3))));
+  /// ```
   pub fn dotted_list(vec: Vec<AST>, terminal: AST) -> AST {
     vec.into_iter().rev().fold(terminal, |cdr, car| AST::cons(car, cdr)) // NOTE: Arguments reversed
   }
 
+  /// A dotted list terminated by [`AST::Nil`].
+  ///
+  /// Equivalent to:
+  /// ```rust,ignore
+  /// AST::dotted_list(vec, AST::Nil)
+  /// ```
   pub fn list(vec: Vec<AST>) -> AST {
     AST::dotted_list(vec, AST::Nil)
   }
