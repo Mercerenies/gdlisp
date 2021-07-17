@@ -17,7 +17,11 @@ const KNOWN_GDSCRIPT_KEYWORDS: &[&str] = &[
   "is", "as", "self", "tool", "signal", "func", "static", "const",
   "enum", "var", "onready", "export", "setget", "breakpoint", "preload",
   "yield", "assert", "remote", "master", "puppet", "remotesync", "mastersync",
-  "puppetsync", "PI", "TAU", "INF", "NAN", "not", "and", "or",
+  "puppetsync", "PI", "TAU", "INF", "NAN", "not", "and", "or", "Array",
+  "Dictionary", "PoolByteArray", "PoolIntArray", "PoolRealArray", "PoolStringArray",
+  "PoolVector2Array", "PoolVector3Array", "PoolColorArray", "String", "Vector2",
+  "Rect2", "Vector3", "Transform2D", "Plane", "Quat", "AABB", "Basis", "Transform",
+  "Color", "NodePath", "RID", "Object",
 ];
 
 pub fn is_valid_gd_char(ch: char) -> bool {
