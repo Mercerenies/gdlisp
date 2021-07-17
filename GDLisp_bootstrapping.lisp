@@ -813,9 +813,8 @@
   (defn _init ()
     (set self:global_name_generator (FreshNameGenerator:new [] 0))))
 
-;; This needs to be commented for now so macro expansion uses the *actual* GDLisp.cons, not this one.
-;; (defn cons (a b)
-;;   (Cons:new a b))
+(defn cons (a b)
+  (Cons:new a b))
 
 (defn car (a)
   a:car)
@@ -1059,6 +1058,30 @@
       (set rev `(,(car arg) . ,rev))
       (set arg arg:cdr))
     rev))
+
+(defn append (&rest args)
+  (let ((outer (cons nil nil)))
+    (let ((curr outer))
+      (while (/= args nil)
+        (let ((inner-value args:car))
+          (while (/= inner-value nil)
+            (set curr:cdr (cons inner-value:car nil))
+            (set curr curr:cdr)
+            (set inner-value inner-value:cdr)))
+        (set args args:cdr))
+      outer:cdr)))
+
+(defn sys/qq-smart-list (a)
+  (let ((t (typeof a)))
+    (cond
+      ((<= Array t PoolColorArray) (array->list a))
+      (#t a))))
+
+(defn sys/qq-smart-array (a)
+  (let ((t (typeof a)))
+    (cond
+      ((<= Array t PoolColorArray) a)
+      (#t (list->array a)))))
 
 (defmacro or (&rest args)
   (let ((args (reverse args)))

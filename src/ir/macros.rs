@@ -50,7 +50,7 @@ impl MacroData {
 
 pub fn create_macro_file(pipeline: &mut Pipeline, imports: Vec<ImportDecl>, src_table: &IRSymbolTable, names: HashSet<Id>, minimalist: bool) -> Result<NamedTempFile, PError> {
   let mut table = SymbolTable::new();
-  library::bind_builtins(&mut table);
+  library::bind_builtins(&mut table, minimalist);
 
   let current_filename = pipeline.current_filename().expect("Error identifying current filename"); // TODO Expect?
   let mut tmp_file = make_tmp()?;

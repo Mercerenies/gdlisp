@@ -68,10 +68,12 @@ impl Pipeline {
     let ast = parser.parse(input)?;
 
     let mut compiler = Compiler::new(FreshNameGenerator::new(ast.all_symbols()), Box::new(DefaultPreloadResolver));
-    let mut table = SymbolTable::new();
-    library::bind_builtins(&mut table);
 
     let (ir, macros) = ir::compile_toplevel(self, &ast)?;
+
+    let mut table = SymbolTable::new();
+    library::bind_builtins(&mut table, ir.minimalist_flag);
+
     let mut builder = CodeBuilder::new(decl::ClassExtends::named("Node".to_owned()));
     compiler.compile_toplevel(self, &mut builder, &mut table, &ir)?;
     let mut result = builder.build();
@@ -117,7 +119,8 @@ impl Pipeline {
     let resolver = self.make_preload_resolver();
     let mut compiler = Compiler::new(FreshNameGenerator::new(ast.all_symbols()), Box::new(resolver));
     let mut table = SymbolTable::new();
-    library::bind_builtins(&mut table);
+
+    library::bind_builtins(&mut table, unit.ir.minimalist_flag);
 
     let mut builder = CodeBuilder::new(decl::ClassExtends::named("Node".to_owned()));
     compiler.compile_toplevel(self, &mut builder, &mut table, &unit.ir)?;
