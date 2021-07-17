@@ -1069,17 +1069,16 @@
          (let* ,(cdr vars) ,.body))))
 
 (defmacro defvars (&rest args)
-  `(progn ,.(map (lambda (arg) (list 'defvar arg)) args)))
+  `(progn ,.(map (lambda (arg) `(defvar ,arg)) args)))
 
 (defmacro when (cnd &rest args)
-  `(if ,cnd
-       (progn ,.args)
-       ()))
+  `(cond
+     (,cnd (progn ,.args))))
 
 (defmacro unless (cnd &rest args)
-  `(if ,cnd
-       ()
-       (progn ,.args)))
+  `(cond
+     (,cnd ())
+     (#t (progn ,.args))))
 
 (defmacro yield* (arg)
   (let ((symbol (gensym "_yield")))
