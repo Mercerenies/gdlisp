@@ -16,6 +16,7 @@ enum QQSpliced {
 #[derive(Clone, Debug, PartialEq, Eq)]
 enum UnquotedValue<'a> {
   SimpleValue(&'a AST),
+  Quasiquote(&'a AST),
   Unquote(&'a AST),
   UnquoteSpliced(&'a AST),
 }
@@ -29,13 +30,21 @@ impl QQSpliced {
   }
 }
 
+impl<'a> UnquotedValue<'a> {
+  fn verbatim(arg: &'a AST) -> UnquotedValue<'a> {
+    UnquotedValue::SimpleValue(arg)
+  }
+}
+
 impl<'a> From<&'a AST> for UnquotedValue<'a> {
   fn from(arg: &'a AST) -> UnquotedValue<'a> {
     if let AST::Cons(car, cdr) = arg {
       if let AST::Symbol(name) = &**car {
         if let AST::Cons(cadr, cddr) = &**cdr {
           if **cddr == AST::Nil {
-            if name == "unquote" {
+            if name == "quasiquote" {
+              return UnquotedValue::Quasiquote(&*cadr);
+            } else if name == "unquote" {
               return UnquotedValue::Unquote(&*cadr);
             } else if name == "unquote-spliced" {
               return UnquotedValue::UnquoteSpliced(&*cadr);
@@ -52,21 +61,56 @@ pub fn quasiquote(icompiler: &mut IncCompiler,
                   pipeline: &mut Pipeline,
                   arg: &AST)
                   -> Result<Expr, Error> {
-  quasiquote_spliced(icompiler, pipeline, arg).and_then(|qq| {
+  quasiquote_indexed(icompiler, pipeline, arg, 0)
+}
+
+fn quasiquote_indexed(icompiler: &mut IncCompiler,
+                      pipeline: &mut Pipeline,
+                      arg: &AST,
+                      depth: u32)
+                      -> Result<Expr, Error> {
+  quasiquote_spliced(icompiler, pipeline, arg, depth).and_then(|qq| {
     qq.into_single(arg).map_err(Error::from)
   })
 }
 
 fn quasiquote_spliced(icompiler: &mut IncCompiler,
                       pipeline: &mut Pipeline,
-                      arg: &AST)
+                      arg: &AST,
+                      depth: u32)
                       -> Result<QQSpliced, Error> {
-  match UnquotedValue::from(arg) {
+  let unquoted_value = UnquotedValue::from(arg);
+
+  // Deal with nesting issues
+  let (unquoted_value, depth) = match unquoted_value {
+    UnquotedValue::SimpleValue(_) => {
+      (UnquotedValue::verbatim(arg), depth)
+    }
+    UnquotedValue::Quasiquote(_) => {
+      (UnquotedValue::verbatim(arg), depth + 1)
+    }
+    UnquotedValue::Unquote(_) | UnquotedValue::UnquoteSpliced(_) => {
+      if depth > 0 {
+        // We're inside a nested quasiquote, so do NOT unquote the value.
+        (UnquotedValue::verbatim(arg), depth - 1)
+      } else {
+        (unquoted_value, depth)
+      }
+    }
+  };
+
+  match unquoted_value {
     UnquotedValue::Unquote(arg) => {
       icompiler.compile_expr(pipeline, arg).map(QQSpliced::Single)
     }
     UnquotedValue::UnquoteSpliced(arg) => {
       icompiler.compile_expr(pipeline, arg).map(QQSpliced::Several)
+    }
+    UnquotedValue::Quasiquote(_) => {
+      // The above nesting handler should always eliminate
+      // UnquotedValue::Quasiquote and convert it into
+      // UnquotedValue::SimpleValue, so this should never happen.
+      panic!("Internal error in quasiquote_spliced (impossible UnquotedValue::Quasiquote branch was reached)")
     }
     UnquotedValue::SimpleValue(arg) => {
       let body = match arg {
@@ -89,8 +133,8 @@ fn quasiquote_spliced(icompiler: &mut IncCompiler,
           Expr::Literal(Literal::Symbol(s.to_owned()))
         }
         AST::Cons(car, cdr) => {
-          let car = quasiquote_spliced(icompiler, pipeline, car)?;
-          let cdr = quasiquote(icompiler, pipeline, cdr)?;
+          let car = quasiquote_spliced(icompiler, pipeline, car, depth)?;
+          let cdr = quasiquote_indexed(icompiler, pipeline, cdr, depth)?;
           match car {
             QQSpliced::Single(car) => {
               Expr::Call(String::from("cons"), vec!(car, cdr))
@@ -102,7 +146,7 @@ fn quasiquote_spliced(icompiler: &mut IncCompiler,
           }
         }
         AST::Array(v) => {
-          let v1 = v.iter().map(|x| quasiquote_spliced(icompiler, pipeline, x)).collect::<Result<Vec<_>, _>>()?;
+          let v1 = v.iter().map(|x| quasiquote_spliced(icompiler, pipeline, x, depth)).collect::<Result<Vec<_>, _>>()?;
 
           let mut acc: Vec<Expr> = vec!();
           let mut current_vec: Vec<Expr> = vec!();
@@ -128,7 +172,7 @@ fn quasiquote_spliced(icompiler: &mut IncCompiler,
         }
         AST::Dictionary(v) => {
           // TODO Does unquote-spliced make sense in this context?
-          let v1 = v.iter().map(|(k, v)| Ok((quasiquote(icompiler, pipeline, k)?, quasiquote(icompiler, pipeline, v)?))).collect::<Result<Vec<_>, Error>>()?;
+          let v1 = v.iter().map(|(k, v)| Ok((quasiquote_indexed(icompiler, pipeline, k, depth)?, quasiquote_indexed(icompiler, pipeline, v, depth)?))).collect::<Result<Vec<_>, Error>>()?;
           Expr::Dictionary(v1)
         }
       };

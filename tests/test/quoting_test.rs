@@ -81,6 +81,12 @@ pub fn quasiquote_unquote_spliced_list_test() {
 }
 
 #[test]
+pub fn quasiquote_nested_test() {
+  assert_eq!(parse_compile_and_output("``(,a)"),
+             "return GDLisp.cons(GDLisp.intern(\"quasiquote\"), GDLisp.cons(GDLisp.cons(GDLisp.cons(GDLisp.intern(\"unquote\"), GDLisp.cons(GDLisp.intern(\"a\"), null)), null), null))\n");
+}
+
+#[test]
 #[ignore]
 pub fn quasiquote_unquote_spliced_list_test_runner_1() {
   assert_eq!(parse_and_run("((let ((a [2 3])) (print (list->array `(1 ,.a 4)))))"), "\n[1, 2, 3, 4]\n");
