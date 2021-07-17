@@ -1013,7 +1013,7 @@
 
 (defn map (f xs)
   (cond
-    ((or (sys/instance-direct? xs Cons) (= xs nil))
+    ((cond ((sys/instance-direct? xs Cons) #t) ((= xs nil) #t) (#f #t))
      ;; List map
      (let ((outer (cons nil nil)))
        (let ((curr outer))
@@ -1031,7 +1031,7 @@
 
 (defn filter (p xs)
   (cond
-    ((or (sys/instance-direct? xs Cons) (= xs nil))
+    ((cond ((sys/instance-direct? xs Cons) #t) ((= xs nil) #t) (#t #f))
      ;; List filter
      (let ((outer (cons nil nil)))
        (let ((curr outer))
