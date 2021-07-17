@@ -45,7 +45,10 @@ pub enum Error {
   StaticConstructor,
   StaticMethodOnLambdaClass(String),
   ModifierParseError(ModifierParseError),
+  MacroInMinimalistError(String),
 }
+
+const INTERNAL_ERROR_NOTE: &str = "Note: Unless you're doing something really strange, you should probably report this as a compiler bug";
 
 impl fmt::Display for Error {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -81,7 +84,7 @@ impl fmt::Display for Error {
         write!(f, "No such enum value {}:{}", name, subname)
       }
       Error::NoSuchMagic(name) => {
-        write!(f, "No such call magic {} (Note: Unless you're doing something really strange, you should probably report this as a compiler bug)", name)
+        write!(f, "No such call magic {} ({})", name, INTERNAL_ERROR_NOTE)
       }
       Error::UnknownDecl(ast) => {
         write!(f, "Unknown declaration {}", ast)
@@ -133,6 +136,9 @@ impl fmt::Display for Error {
       }
       Error::ModifierParseError(m) => {
         write!(f, "Modifier error: {}", m)
+      }
+      Error::MacroInMinimalistError(m) => {
+        write!(f, "Attempt to expand macro {} in minimalist file ({})", m, INTERNAL_ERROR_NOTE)
       }
     }
   }

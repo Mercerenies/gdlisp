@@ -7,6 +7,7 @@ pub mod constant;
 pub mod enums;
 pub mod visibility;
 pub mod magic;
+pub mod file;
 
 use crate::sxp::ast::AST;
 

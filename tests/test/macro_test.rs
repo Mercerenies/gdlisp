@@ -280,3 +280,10 @@ static func run():
 pub fn nonsense_modifier_macro_test() {
   parse_compile_decl(r#"((defmacro foo () public private 1))"#);
 }
+
+#[test]
+#[ignore]
+#[should_panic]
+pub fn macro_in_minimalist_test() {
+  parse_compile_decl("((sys/nostdlib) (defmacro foo () 10) (foo))6");
+}

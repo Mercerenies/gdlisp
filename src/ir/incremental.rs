@@ -42,6 +42,7 @@ pub struct IncCompiler {
   symbols: SymbolTable,
   macros: HashMap<String, MacroData>,
   imports: Vec<ImportDecl>,
+  minimalist: bool, // A minimalist compiler doesn't use stdlib and doesn't do macro expansion
 }
 
 #[allow(clippy::new_without_default)]
@@ -54,6 +55,7 @@ impl IncCompiler {
       symbols: SymbolTable::new(),
       macros: HashMap::new(),
       imports: vec!(),
+      minimalist: false,
     }
   }
 
@@ -61,6 +63,11 @@ impl IncCompiler {
                         -> Result<AST, PError> {
     match self.macros.get(head) {
       Some(MacroData { id, args: parms, .. }) => {
+        // If we're in a minimalist file, then macro expansion is automatically an error
+        if self.minimalist {
+          return Err(PError::from(Error::MacroInMinimalistError(head.to_owned())));
+        }
+
         if id.is_reserved() {
           // Reserved for built-in macros; it runs in Rust
           let func = library::macros::get_builtin_macro(*id).ok_or_else(|| PError::from(Error::NoSuchFn(head.to_owned())))?;
@@ -596,6 +603,14 @@ impl IncCompiler {
                           -> Result<(decl::TopLevel, HashMap<String, MacroData>), PError> {
     let body: Result<Vec<_>, TryFromDottedExprError> = DottedExpr::new(body).try_into();
     let body: Vec<_> = body?; // *sigh* Sometimes the type checker just doesn't get it ...
+
+    // File-level modifiers
+    let (mods, body) = modifier::file::parser().parse(&body)?;
+    for m in mods {
+      m.apply(&mut self);
+    }
+
+    // Compile
     let mut main: Vec<Expr> = Vec::new();
     for curr in body {
       self.compile_decl_or_expr(pipeline, &mut main, curr)?;
@@ -608,6 +623,7 @@ impl IncCompiler {
       body: Expr::Progn(main),
     });
     self.symbols.set(Id::new(Namespace::Function, MAIN_BODY_NAME.to_owned()), main_decl);
+
     Ok(self.into())
   }
 
@@ -658,6 +674,10 @@ impl IncCompiler {
 
   pub fn symbol_table(&mut self) -> &mut SymbolTable {
     &mut self.symbols
+  }
+
+  pub fn mark_as_minimalist(&mut self) {
+    self.minimalist = true;
   }
 
 }
