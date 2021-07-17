@@ -64,20 +64,26 @@ pub fn array_quasiquote_test() {
 
 #[test]
 pub fn vector_quote_test() {
-  assert_eq!(parse_compile_and_output("(let ((a 1)) 'V{a a})"), "var a_0 = 1\nreturn Vector2(GDLisp.intern(\"a\"), GDLisp.intern(\"a\"))\n");
-  assert_eq!(parse_compile_and_output("(let ((a 1)) 'V{a a a})"), "var a_0 = 1\nreturn Vector3(GDLisp.intern(\"a\"), GDLisp.intern(\"a\"), GDLisp.intern(\"a\"))\n");
+  assert_eq!(parse_compile_and_output("(let ((a 1)) 'V{a a})"), "var a_0 = 1\nreturn GDLisp.cons(GDLisp.intern(\"vector\"), GDLisp.cons(GDLisp.intern(\"a\"), GDLisp.cons(GDLisp.intern(\"a\"), null)))\n");
+  assert_eq!(parse_compile_and_output("(let ((a 1)) 'V{a a a})"), "var a_0 = 1\nreturn GDLisp.cons(GDLisp.intern(\"vector\"), GDLisp.cons(GDLisp.intern(\"a\"), GDLisp.cons(GDLisp.intern(\"a\"), GDLisp.cons(GDLisp.intern(\"a\"), null))))\n");
 }
 
 #[test]
 pub fn vector_quasiquote_test() {
-  assert_eq!(parse_compile_and_output("(let ((a 1)) `V{a ,a})"), "var a_0 = 1\nreturn Vector2(GDLisp.intern(\"a\"), a_0)\n");
-  assert_eq!(parse_compile_and_output("(let ((a 1)) `V{a ,a a})"), "var a_0 = 1\nreturn Vector3(GDLisp.intern(\"a\"), a_0, GDLisp.intern(\"a\"))\n");
+  assert_eq!(parse_compile_and_output("(let ((a 1)) `V{a ,a})"), "var a_0 = 1\nreturn GDLisp.cons(GDLisp.intern(\"vector\"), GDLisp.cons(GDLisp.intern(\"a\"), GDLisp.cons(a_0, null)))\n");
+  assert_eq!(parse_compile_and_output("(let ((a 1)) `V{a ,a a})"), "var a_0 = 1\nreturn GDLisp.cons(GDLisp.intern(\"vector\"), GDLisp.cons(GDLisp.intern(\"a\"), GDLisp.cons(a_0, GDLisp.cons(GDLisp.intern(\"a\"), null))))\n");
 }
 
 #[test]
 pub fn quasiquote_unquote_spliced_list_test() {
   assert_eq!(parse_compile_and_output("(let ((a [2 3])) `(1 ,.a 4))"),
              "var a_0 = [2, 3]\nreturn GDLisp.cons(1, GDLisp.append(GDLisp.Cons.new(GDLisp.qq_smart_list(a_0), GDLisp.Cons.new(GDLisp.cons(4, null), null))))\n");
+}
+
+#[test]
+pub fn quasiquote_nested_test() {
+  assert_eq!(parse_compile_and_output("``(,a)"),
+             "return GDLisp.cons(GDLisp.intern(\"quasiquote\"), GDLisp.cons(GDLisp.cons(GDLisp.cons(GDLisp.intern(\"unquote\"), GDLisp.cons(GDLisp.intern(\"a\"), null)), null), null))\n");
 }
 
 #[test]

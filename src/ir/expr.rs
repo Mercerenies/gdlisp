@@ -31,8 +31,6 @@ pub enum Expr {
   Quote(AST),
   FieldAccess(Box<Expr>, String),
   MethodCall(Box<Expr>, String, Vec<Expr>),
-  Vector2(Box<Expr>, Box<Expr>),
-  Vector3(Box<Expr>, Box<Expr>, Box<Expr>),
   LambdaClass(Box<LambdaClass>),
   Yield(Option<(Box<Expr>, Box<Expr>)>),
   Return(Box<Expr>),
@@ -204,15 +202,6 @@ impl Expr {
         for expr in args {
           expr.walk_locals(acc_vars, acc_fns);
         }
-      }
-      Expr::Vector2(x, y) => {
-        x.walk_locals(acc_vars, acc_fns);
-        y.walk_locals(acc_vars, acc_fns);
-      }
-      Expr::Vector3(x, y, z) => {
-        x.walk_locals(acc_vars, acc_fns);
-        y.walk_locals(acc_vars, acc_fns);
-        z.walk_locals(acc_vars, acc_fns);
       }
       Expr::LambdaClass(cls) => {
         let LambdaClass { extends, args, constructor, decls } = &**cls;
