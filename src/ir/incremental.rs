@@ -644,7 +644,7 @@ impl IncCompiler {
     // Aside from built-in functions, it must be the case that
     // all referenced functions are already defined.
     let names = deps.try_into_knowns().map_err(Error::from)?;
-    let tmpfile = macros::create_macro_file(pipeline, self.imports.clone(), &self.symbols, names)?;
+    let tmpfile = macros::create_macro_file(pipeline, self.imports.clone(), &self.symbols, names, self.minimalist)?;
     let m_id = pipeline.get_server_mut().stand_up_file(name.to_owned(), tmpfile)?;
     self.macros.insert(name.to_owned(), MacroData { id: m_id, args: decl.args, imported: false });
 
@@ -688,6 +688,7 @@ impl From<IncCompiler> for (decl::TopLevel, HashMap<String, MacroData>) {
     let toplevel = decl::TopLevel {
       imports: compiler.imports,
       decls: compiler.symbols.into(),
+      minimalist_flag: compiler.minimalist,
     };
     let macros: HashMap<_, _> = compiler.macros.into_iter().filter(|(_, x)| !x.imported).collect();
     (toplevel, macros)

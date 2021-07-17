@@ -15,6 +15,7 @@ use std::collections::HashSet;
 pub struct TopLevel {
   pub imports: Vec<ImportDecl>,
   pub decls: Vec<Decl>,
+  pub minimalist_flag: bool,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]

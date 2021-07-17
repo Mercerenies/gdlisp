@@ -285,5 +285,13 @@ pub fn nonsense_modifier_macro_test() {
 #[ignore]
 #[should_panic]
 pub fn macro_in_minimalist_test() {
-  parse_compile_decl("((sys/nostdlib) (defmacro foo () 10) (foo))6");
+  parse_compile_decl("((sys/nostdlib) (defmacro foo () 10) (foo))");
+}
+
+#[test]
+pub fn simple_minimalist_test() {
+  assert_eq!(parse_compile_decl("((sys/nostdlib))"), r#"extends Reference
+static func run():
+    return null
+"#);
 }

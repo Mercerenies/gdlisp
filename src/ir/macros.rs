@@ -48,7 +48,7 @@ impl MacroData {
 
 }
 
-pub fn create_macro_file(pipeline: &mut Pipeline, imports: Vec<ImportDecl>, src_table: &IRSymbolTable, names: HashSet<Id>) -> Result<NamedTempFile, PError> {
+pub fn create_macro_file(pipeline: &mut Pipeline, imports: Vec<ImportDecl>, src_table: &IRSymbolTable, names: HashSet<Id>, minimalist: bool) -> Result<NamedTempFile, PError> {
   let mut table = SymbolTable::new();
   library::bind_builtins(&mut table);
 
@@ -61,7 +61,7 @@ pub fn create_macro_file(pipeline: &mut Pipeline, imports: Vec<ImportDecl>, src_
   let mut compiler = Compiler::new(FreshNameGenerator::new(vec!()), Box::new(resolver));
   let decls = Vec::from(src_table.filter(|d| names.contains(&*d.id_like())));
   let toplevel = {
-    let mut toplevel = TopLevel { imports, decls };
+    let mut toplevel = TopLevel { imports, decls, minimalist_flag: minimalist };
     // Strip main class qualifier; we don't need or want it during macro expansion.
     for d in &mut toplevel.decls {
       if let ir::decl::Decl::ClassDecl(cdecl) = d {
