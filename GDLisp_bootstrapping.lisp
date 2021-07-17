@@ -1080,3 +1080,11 @@
   `(if ,cnd
        ()
        (progn ,.args)))
+
+(defmacro yield* (arg)
+  (let ((symbol (gensym "_yield")))
+    `(let ((,symbol ,arg))
+       (while (and (instance? ,symbol GDScriptFunctionState) (,symbol:is-valid))
+         (yield)
+         (set ,symbol (,symbol:resume)))
+       ,symbol)))
