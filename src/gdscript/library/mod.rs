@@ -265,106 +265,102 @@ pub fn bind_builtins(table: &mut SymbolTable, minimalist: bool) {
                  gdlisp_function("qq_smart_array", FnSpecs::new(1, 0, None)),
                  Box::new(call_magic::DefaultCall));
 
-  }
+    // ---- GDScript built-ins that we use unmodified ----
 
-  // ---- GDScript built-ins that we use unmodified ----
+    // TODO sys/declare these in GDLisp_bootstrapping.lisp
 
-  // TODO sys/declare these in GDLisp_bootstrapping.lisp
+    table.set_fn("str".to_owned(),
+                 FnCall::superglobal(FnSpecs::new(1, 0, None), FnScope::Superglobal, "str".to_owned()),
+                 Box::new(call_magic::DefaultCall));
 
-  table.set_fn("str".to_owned(),
-               FnCall::superglobal(FnSpecs::new(1, 0, None), FnScope::Superglobal, "str".to_owned()),
-               Box::new(call_magic::DefaultCall));
+    table.set_fn("int".to_owned(),
+                 FnCall::superglobal(FnSpecs::new(1, 0, None), FnScope::Superglobal, "int".to_owned()),
+                 Box::new(call_magic::DefaultCall));
 
-  table.set_fn("int".to_owned(),
-               FnCall::superglobal(FnSpecs::new(1, 0, None), FnScope::Superglobal, "int".to_owned()),
-               Box::new(call_magic::DefaultCall));
+    table.set_fn("bool".to_owned(),
+                 FnCall::superglobal(FnSpecs::new(1, 0, None), FnScope::Superglobal, "bool".to_owned()),
+                 Box::new(call_magic::DefaultCall));
 
-  table.set_fn("bool".to_owned(),
-               FnCall::superglobal(FnSpecs::new(1, 0, None), FnScope::Superglobal, "bool".to_owned()),
-               Box::new(call_magic::DefaultCall));
+    table.set_fn("randomize".to_owned(),
+                 FnCall::superglobal(FnSpecs::new(0, 0, None), FnScope::Superglobal, "randomize".to_owned()),
+                 Box::new(call_magic::DefaultCall));
 
-  table.set_fn("randomize".to_owned(),
-               FnCall::superglobal(FnSpecs::new(0, 0, None), FnScope::Superglobal, "randomize".to_owned()),
-               Box::new(call_magic::DefaultCall));
+    // (TODO Should we wrap this and the other random functions and make a nice interface to them?)
+    table.set_fn("randi".to_owned(),
+                 FnCall::superglobal(FnSpecs::new(0, 0, None), FnScope::Superglobal, "randi".to_owned()),
+                 Box::new(call_magic::DefaultCall));
 
-  // (TODO Should we wrap this and the other random functions and make a nice interface to them?)
-  table.set_fn("randi".to_owned(),
-               FnCall::superglobal(FnSpecs::new(0, 0, None), FnScope::Superglobal, "randi".to_owned()),
-               Box::new(call_magic::DefaultCall));
+    table.set_fn("randf".to_owned(),
+                 FnCall::superglobal(FnSpecs::new(0, 0, None), FnScope::Superglobal, "randf".to_owned()),
+                 Box::new(call_magic::DefaultCall));
 
-  table.set_fn("randf".to_owned(),
-               FnCall::superglobal(FnSpecs::new(0, 0, None), FnScope::Superglobal, "randf".to_owned()),
-               Box::new(call_magic::DefaultCall));
+    table.set_fn("rand-range".to_owned(),
+                 FnCall::superglobal(FnSpecs::new(2, 0, None), FnScope::Superglobal, "rand_range".to_owned()),
+                 Box::new(call_magic::DefaultCall));
 
-  table.set_fn("rand-range".to_owned(),
-               FnCall::superglobal(FnSpecs::new(2, 0, None), FnScope::Superglobal, "rand_range".to_owned()),
-               Box::new(call_magic::DefaultCall));
+    table.set_fn("clamp".to_owned(),
+                 FnCall::superglobal(FnSpecs::new(3, 0, None), FnScope::Superglobal, "clamp".to_owned()),
+                 Box::new(call_magic::DefaultCall));
 
-  table.set_fn("clamp".to_owned(),
-               FnCall::superglobal(FnSpecs::new(3, 0, None), FnScope::Superglobal, "clamp".to_owned()),
-               Box::new(call_magic::DefaultCall));
+    table.set_fn("abs".to_owned(),
+                 FnCall::superglobal(FnSpecs::new(1, 0, None), FnScope::Superglobal, "abs".to_owned()),
+                 Box::new(call_magic::DefaultCall));
 
-  table.set_fn("abs".to_owned(),
-               FnCall::superglobal(FnSpecs::new(1, 0, None), FnScope::Superglobal, "abs".to_owned()),
-               Box::new(call_magic::DefaultCall));
+    // TODO Eventually we'll want this to be a multimethod which works
+    // on lists as well as arrays. (And possibly elt as well?)
+    table.set_fn("len".to_owned(),
+                 FnCall::superglobal(FnSpecs::new(1, 0, None), FnScope::Superglobal, "len".to_owned()),
+                 Box::new(call_magic::DefaultCall));
 
-  // TODO Eventually we'll want this to be a multimethod which works
-  // on lists as well as arrays. (And possibly elt as well?)
-  table.set_fn("len".to_owned(),
-               FnCall::superglobal(FnSpecs::new(1, 0, None), FnScope::Superglobal, "len".to_owned()),
-               Box::new(call_magic::DefaultCall));
+    // TODO Definitely want to wrap this (and all of the mouse functions) in a nice namespace or module or something.
+    table.set_fn("get-global-mouse-position".to_owned(),
+                 FnCall::superglobal(FnSpecs::new(0, 0, None), FnScope::Superglobal, "get_global_mouse_position".to_owned()),
+                 Box::new(call_magic::DefaultCall));
 
-  // TODO Definitely want to wrap this (and all of the mouse functions) in a nice namespace or module or something.
-  table.set_fn("get-global-mouse-position".to_owned(),
-               FnCall::superglobal(FnSpecs::new(0, 0, None), FnScope::Superglobal, "get_global_mouse_position".to_owned()),
-               Box::new(call_magic::DefaultCall));
+    table.set_fn("push-error".to_owned(),
+                 FnCall::superglobal(FnSpecs::new(1, 0, None), FnScope::Superglobal, "push_error".to_owned()),
+                 Box::new(call_magic::DefaultCall));
 
-  table.set_fn("push-error".to_owned(),
-               FnCall::superglobal(FnSpecs::new(1, 0, None), FnScope::Superglobal, "push_error".to_owned()),
-               Box::new(call_magic::DefaultCall));
+    table.set_fn("push-warning".to_owned(),
+                 FnCall::superglobal(FnSpecs::new(1, 0, None), FnScope::Superglobal, "push_warning".to_owned()),
+                 Box::new(call_magic::DefaultCall));
 
-  table.set_fn("push-warning".to_owned(),
-               FnCall::superglobal(FnSpecs::new(1, 0, None), FnScope::Superglobal, "push_warning".to_owned()),
-               Box::new(call_magic::DefaultCall));
+    table.set_fn("typeof".to_owned(),
+                 FnCall::superglobal(FnSpecs::new(1, 0, None), FnScope::Superglobal, "typeof".to_owned()),
+                 Box::new(call_magic::DefaultCall));
 
-  table.set_fn("typeof".to_owned(),
-               FnCall::superglobal(FnSpecs::new(1, 0, None), FnScope::Superglobal, "typeof".to_owned()),
-               Box::new(call_magic::DefaultCall));
+    table.set_var("PI".to_owned(), LocalVar::superglobal("PI".to_owned()));
+    table.set_var("SPKEY".to_owned(), LocalVar::superglobal("SPKEY".to_owned()));
 
-  table.set_var("PI".to_owned(), LocalVar::superglobal("PI".to_owned()));
-  table.set_var("SPKEY".to_owned(), LocalVar::superglobal("SPKEY".to_owned()));
-
-  // TYPE_* Constants
-  table.set_var("Null".to_owned(), LocalVar::superglobal("TYPE_NIL".to_owned()));
-  table.set_var("Bool".to_owned(), LocalVar::superglobal("TYPE_BOOL".to_owned()));
-  table.set_var("Int".to_owned(), LocalVar::superglobal("TYPE_INT".to_owned()));
-  table.set_var("Float".to_owned(), LocalVar::superglobal("TYPE_REAL".to_owned()));
-  table.set_var("String".to_owned(), LocalVar::superglobal("TYPE_STRING".to_owned()));
-  table.set_var("Vector2".to_owned(), LocalVar::superglobal("TYPE_VECTOR2".to_owned()));
-  table.set_var("Rect2".to_owned(), LocalVar::superglobal("TYPE_RECT2".to_owned()));
-  table.set_var("Vector3".to_owned(), LocalVar::superglobal("TYPE_VECTOR3".to_owned()));
-  table.set_var("Transform2D".to_owned(), LocalVar::superglobal("TYPE_TRANSFORM2D".to_owned()));
-  table.set_var("Plane".to_owned(), LocalVar::superglobal("TYPE_PLANE".to_owned()));
-  table.set_var("Quat".to_owned(), LocalVar::superglobal("TYPE_QUAT".to_owned()));
-  table.set_var("AABB".to_owned(), LocalVar::superglobal("TYPE_AABB".to_owned()));
-  table.set_var("Basis".to_owned(), LocalVar::superglobal("TYPE_BASIS".to_owned()));
-  table.set_var("Transform".to_owned(), LocalVar::superglobal("TYPE_TRANSFORM".to_owned()));
-  table.set_var("Color".to_owned(), LocalVar::superglobal("TYPE_COLOR".to_owned()));
-  table.set_var("NodePath".to_owned(), LocalVar::superglobal("TYPE_NODE_PATH".to_owned()));
-  table.set_var("RID".to_owned(), LocalVar::superglobal("TYPE_RID".to_owned()));
-  table.set_var("Object".to_owned(), LocalVar::superglobal("TYPE_OBJECT".to_owned()));
-  table.set_var("Dictionary".to_owned(), LocalVar::superglobal("TYPE_DICTIONARY".to_owned()));
-  table.set_var("Array".to_owned(), LocalVar::superglobal("TYPE_ARRAY".to_owned()));
-  table.set_var("PoolByteArray".to_owned(), LocalVar::superglobal("TYPE_RAW_ARRAY".to_owned()));
-  table.set_var("PoolIntArray".to_owned(), LocalVar::superglobal("TYPE_INT_ARRAY".to_owned()));
-  table.set_var("PoolRealArray".to_owned(), LocalVar::superglobal("TYPE_REAL_ARRAY".to_owned()));
-  table.set_var("PoolStringArray".to_owned(), LocalVar::superglobal("TYPE_STRING_ARRAY".to_owned()));
-  table.set_var("PoolVector2Array".to_owned(), LocalVar::superglobal("TYPE_VECTOR2_ARRAY".to_owned()));
-  table.set_var("PoolVector3Array".to_owned(), LocalVar::superglobal("TYPE_VECTOR3_ARRAY".to_owned()));
-  table.set_var("PoolColorArray".to_owned(), LocalVar::superglobal("TYPE_COLOR_ARRAY".to_owned()));
-  table.set_var("TYPE_MAX".to_owned(), LocalVar::superglobal("TYPE_MAX".to_owned()));
-
-  if !minimalist {
+    // TYPE_* Constants
+    table.set_var("Null".to_owned(), LocalVar::superglobal("TYPE_NIL".to_owned()));
+    table.set_var("Bool".to_owned(), LocalVar::superglobal("TYPE_BOOL".to_owned()));
+    table.set_var("Int".to_owned(), LocalVar::superglobal("TYPE_INT".to_owned()));
+    table.set_var("Float".to_owned(), LocalVar::superglobal("TYPE_REAL".to_owned()));
+    table.set_var("String".to_owned(), LocalVar::superglobal("TYPE_STRING".to_owned()));
+    table.set_var("Vector2".to_owned(), LocalVar::superglobal("TYPE_VECTOR2".to_owned()));
+    table.set_var("Rect2".to_owned(), LocalVar::superglobal("TYPE_RECT2".to_owned()));
+    table.set_var("Vector3".to_owned(), LocalVar::superglobal("TYPE_VECTOR3".to_owned()));
+    table.set_var("Transform2D".to_owned(), LocalVar::superglobal("TYPE_TRANSFORM2D".to_owned()));
+    table.set_var("Plane".to_owned(), LocalVar::superglobal("TYPE_PLANE".to_owned()));
+    table.set_var("Quat".to_owned(), LocalVar::superglobal("TYPE_QUAT".to_owned()));
+    table.set_var("AABB".to_owned(), LocalVar::superglobal("TYPE_AABB".to_owned()));
+    table.set_var("Basis".to_owned(), LocalVar::superglobal("TYPE_BASIS".to_owned()));
+    table.set_var("Transform".to_owned(), LocalVar::superglobal("TYPE_TRANSFORM".to_owned()));
+    table.set_var("Color".to_owned(), LocalVar::superglobal("TYPE_COLOR".to_owned()));
+    table.set_var("NodePath".to_owned(), LocalVar::superglobal("TYPE_NODE_PATH".to_owned()));
+    table.set_var("RID".to_owned(), LocalVar::superglobal("TYPE_RID".to_owned()));
+    table.set_var("Object".to_owned(), LocalVar::superglobal("TYPE_OBJECT".to_owned()));
+    table.set_var("Dictionary".to_owned(), LocalVar::superglobal("TYPE_DICTIONARY".to_owned()));
+    table.set_var("Array".to_owned(), LocalVar::superglobal("TYPE_ARRAY".to_owned()));
+    table.set_var("PoolByteArray".to_owned(), LocalVar::superglobal("TYPE_RAW_ARRAY".to_owned()));
+    table.set_var("PoolIntArray".to_owned(), LocalVar::superglobal("TYPE_INT_ARRAY".to_owned()));
+    table.set_var("PoolRealArray".to_owned(), LocalVar::superglobal("TYPE_REAL_ARRAY".to_owned()));
+    table.set_var("PoolStringArray".to_owned(), LocalVar::superglobal("TYPE_STRING_ARRAY".to_owned()));
+    table.set_var("PoolVector2Array".to_owned(), LocalVar::superglobal("TYPE_VECTOR2_ARRAY".to_owned()));
+    table.set_var("PoolVector3Array".to_owned(), LocalVar::superglobal("TYPE_VECTOR3_ARRAY".to_owned()));
+    table.set_var("PoolColorArray".to_owned(), LocalVar::superglobal("TYPE_COLOR_ARRAY".to_owned()));
+    table.set_var("TYPE_MAX".to_owned(), LocalVar::superglobal("TYPE_MAX".to_owned()));
 
     // BUTTON_* Constants
     table.set_var("Mouse".to_owned(),
