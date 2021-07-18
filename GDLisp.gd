@@ -670,5 +670,49 @@ const _PoolStringArray = TYPE_STRING_ARRAY
 const _PoolVector2Array = TYPE_VECTOR2_ARRAY
 const _PoolVector3Array = TYPE_VECTOR3_ARRAY
 const _PoolColorArray = TYPE_COLOR_ARRAY
+static func _or(args_108):
+    var args_109 = reverse(args_108)
+    var _cond_110 = null
+    if args_109:
+        var result_111 = cons(cons(true, cons(car(args_109), null)), null)
+        args_109 = cdr(args_109)
+        while args_109 != nil:
+            result_111 = cons(cons(car(args_109), null), result_111)
+            args_109 = cdr(args_109)
+        _cond_110 = cons(GDLisp.intern("cond"), result_111)
+    else:
+        _cond_110 = false
+    return _cond_110
+static func _and(args_112):
+    var args_113 = reverse(args_112)
+    var _cond_114 = null
+    if args_113:
+        var result_115 = cons(cons(true, cons(car(args_113), null)), null)
+        args_113 = cdr(args_113)
+        while args_113 != nil:
+            result_115 = cons(cons(cons(GDLisp.intern("not"), cons(car(args_113), null)), cons(false, null)), result_115)
+            args_113 = cdr(args_113)
+        _cond_114 = cons(GDLisp.intern("cond"), result_115)
+    else:
+        _cond_114 = true
+    return _cond_114
+static func let_u002A(vars_116, body_117):
+    var _cond_118 = cons(GDLisp.intern("progn"), append(GDLisp.Cons.new(sys_u002Fqq_smart_list(body_117), GDLisp.Cons.new(null, null)))) if vars_116 == nil else cons(GDLisp.intern("let"), cons(cons(car(vars_116), null), cons(cons(GDLisp.intern("let*"), cons(cdr(vars_116), append(GDLisp.Cons.new(sys_u002Fqq_smart_list(body_117), GDLisp.Cons.new(null, null))))), null)))
+    return _cond_118
+static func defvars(args_119):
+    var arr_120 = []
+    while args_119 != nil:
+        arr_120.push_back(GDLisp.Cons.new(GDLisp.intern("defvar"), GDLisp.Cons.new(args_119.car, null)))
+        args_119 = args_119.cdr
+    return cons(GDLisp.intern("progn"), append(GDLisp.Cons.new(sys_u002Fqq_smart_list(arr_120), GDLisp.Cons.new(null, null))))
+static func when(cnd_121, args_122):
+    return cons(GDLisp.intern("cond"), cons(cons(cnd_121, cons(cons(GDLisp.intern("progn"), append(GDLisp.Cons.new(sys_u002Fqq_smart_list(args_122), GDLisp.Cons.new(null, null)))), null)), null))
+static func unless(cnd_123, args_124):
+    return cons(GDLisp.intern("cond"), cons(cons(cnd_123, cons(null, null)), cons(cons(true, cons(cons(GDLisp.intern("progn"), append(GDLisp.Cons.new(sys_u002Fqq_smart_list(args_124), GDLisp.Cons.new(null, null)))), null)), null)))
+static func _if(cnd_125, t_126, f_127):
+    return cons(GDLisp.intern("cond"), cons(cons(cnd_125, cons(t_126, null)), cons(cons(true, cons(f_127, null)), null)))
+static func yield_u002A(arg_128):
+    var symbol_129 = gensym("_yield")
+    return cons(GDLisp.intern("let"), cons(cons(cons(symbol_129, cons(arg_128, null)), null), cons(cons(GDLisp.intern("while"), cons(cons(GDLisp.intern("and"), cons(cons(GDLisp.intern("instance?"), cons(symbol_129, cons(GDLisp.intern("GDScriptFunctionState"), null))), cons(cons(cons(GDLisp.intern("access-slot"), cons(symbol_129, cons(GDLisp.intern("is-valid"), null))), null), null))), cons(cons(GDLisp.intern("yield"), null), cons(cons(GDLisp.intern("set"), cons(symbol_129, cons(cons(cons(GDLisp.intern("access-slot"), cons(symbol_129, cons(GDLisp.intern("resume"), null))), null), null))), null)))), cons(symbol_129, null))))
 static func run():
     return null

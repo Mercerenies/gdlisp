@@ -1165,57 +1165,61 @@
 
 ;; BUILT-IN MACROS
 
-;; (defmacro or (&rest args)
-;;   (let ((args (reverse args)))
-;;     (cond
-;;       (args
-;;        (let ((result `((#t ,(car args)))))
-;;          (set args (cdr args))
-;;          (while (/= args nil)
-;;            (set result `((,(car args)) . ,result))
-;;            (set args (cdr args)))
-;;          `(cond . ,result)))
-;;       (#t #f))))
+(defmacro or (&rest args)
+  (let ((args (reverse args)))
+    (cond
+      (args
+       (let ((result `((#t ,(car args)))))
+         (set args (cdr args))
+         (while (/= args nil)
+           (set result `((,(car args)) . ,result))
+           (set args (cdr args)))
+         `(cond . ,result)))
+      (#t #f))))
 
-;; (defmacro and (&rest args)
-;;   (let ((args (reverse args)))
-;;     (cond
-;;       (args
-;;        (let ((result `((#t ,(car args)))))
-;;          (set args (cdr args))
-;;          (while (/= args nil)
-;;            (set result `(((not ,(car args)) #f) . ,result))
-;;            (set args (cdr args)))
-;;          `(cond . ,result)))
-;;        (#t #t))))
+(defmacro and (&rest args)
+  (let ((args (reverse args)))
+    (cond
+      (args
+       (let ((result `((#t ,(car args)))))
+         (set args (cdr args))
+         (while (/= args nil)
+           (set result `(((not ,(car args)) #f) . ,result))
+           (set args (cdr args)))
+         `(cond . ,result)))
+       (#t #t))))
 
-;; (defmacro let* (vars &rest body)
-;;   (cond
-;;     ((= vars nil) `(progn ,.body))
-;;     (#t `(let (,(car vars))
-;;            (let* ,(cdr vars) ,.body)))))
+(defmacro let* (vars &rest body)
+  (cond
+    ((= vars nil) `(progn ,.body))
+    (#t `(let (,(car vars))
+           (let* ,(cdr vars) ,.body)))))
 
-;; (defmacro defvars (&rest args)
-;;   `(progn ,.(map (lambda (arg) `(defvar ,arg)) args)))
+(defmacro defvars (&rest args)
+  (let ((arr []))
+    (while (/= args nil)
+      (arr:push_back (list 'defvar args:car))
+      (set args args:cdr))
+    `(progn ,.arr)))
 
-;; (defmacro when (cnd &rest args)
-;;   `(cond
-;;      (,cnd (progn ,.args))))
+(defmacro when (cnd &rest args)
+  `(cond
+     (,cnd (progn ,.args))))
 
-;; (defmacro unless (cnd &rest args)
-;;   `(cond
-;;      (,cnd ())
-;;      (#t (progn ,.args))))
+(defmacro unless (cnd &rest args)
+  `(cond
+     (,cnd ())
+     (#t (progn ,.args))))
 
-;; (defmacro if (cnd t f)
-;;   `(cond
-;;      (,cnd ,t)
-;;      (#t ,f)))
+(defmacro if (cnd t f)
+  `(cond
+     (,cnd ,t)
+     (#t ,f)))
 
-;; (defmacro yield* (arg)
-;;   (let ((symbol (gensym "_yield")))
-;;     `(let ((,symbol ,arg))
-;;        (while (and (instance? ,symbol GDScriptFunctionState) ((unquote symbol):is-valid))
-;;          (yield)
-;;          (set ,symbol ((unquote symbol):resume)))
-;;        ,symbol)))
+(defmacro yield* (arg)
+  (let ((symbol (gensym "_yield")))
+    `(let ((,symbol ,arg))
+       (while (and (instance? ,symbol GDScriptFunctionState) ((unquote symbol):is-valid))
+         (yield)
+         (set ,symbol ((unquote symbol):resume)))
+       ,symbol)))

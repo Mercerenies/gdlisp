@@ -635,6 +635,11 @@ impl IncCompiler {
 
   pub fn bind_macro(&mut self, pipeline: &mut Pipeline, name: &str, decl: decl::MacroDecl) -> Result<(), PError> {
 
+    // bind_macro is a no-op in a minimalist compile
+    if self.minimalist {
+      return Ok(());
+    }
+
     let translation_names = self.imports.iter().map(|import| {
       let unit = pipeline.load_file(&import.filename.path())?;
       Ok(import.names(&unit.exports))
