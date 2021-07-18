@@ -110,10 +110,7 @@ impl AST {
 
   /// A dotted list terminated by [`AST::Nil`].
   ///
-  /// Equivalent to:
-  /// ```rust,ignore
-  /// AST::dotted_list(vec, AST::Nil)
-  /// ```
+  /// Equivalent to `AST::dotted_list(vec, AST::Nil)`
   pub fn list(vec: Vec<AST>) -> AST {
     AST::dotted_list(vec, AST::Nil)
   }
@@ -159,12 +156,28 @@ impl AST {
     func(self)
   }
 
+  /// Walk the `AST`, calling a function on the node itself and every
+  /// child recursively. That includes both elements of an
+  /// [`AST::Cons`], all elements of an [`AST::Array`], and any other
+  /// children of nodes. The function will be called on the current
+  /// node *before* recursing on its children.
+  ///
+  /// Any error that occurs during walking will be propagated to the
+  /// caller.
   pub fn walk_preorder<'a, 'b, F, E>(&'a self, mut func: F) -> Result<(), E>
   where F: FnMut(&'b AST) -> Result<(), E>,
         'a: 'b {
     self._walk_preorder(&mut func)
   }
 
+  /// Walk the `AST`, calling a function on the node itself and every
+  /// child recursively. That includes both elements of an
+  /// [`AST::Cons`], all elements of an [`AST::Array`], and any other
+  /// children of nodes. The function will be called on the current
+  /// node only *after* recursing on its children.
+  ///
+  /// Any error that occurs during walking will be propagated to the
+  /// caller.
   pub fn walk_postorder<'a, 'b, F, E>(&'a self, mut func: F) -> Result<(), E>
   where F: FnMut(&'b AST) -> Result<(), E>,
         'a: 'b {
@@ -178,6 +191,19 @@ impl AST {
     }
   }
 
+  /// Walk the `AST`, producing a list of all symbols that appear (as
+  /// [`AST::Symbol`]) anywhere in the tree. The symbols will appear
+  /// in the resulting list in the order they appear in the `AST`, and
+  /// any duplicates will be represented multiple times, once for each
+  /// appearance.
+  ///
+  /// # Examples
+  ///
+  /// ```
+  /// # use gdlisp::sxp::ast::AST;
+  /// let value = AST::cons(AST::Array(vec!(AST::symbol("a"), AST::symbol("b"))), AST::symbol("a"));
+  /// assert_eq!(value.all_symbols(), vec!("a", "b", "a"));
+  /// ```
   pub fn all_symbols<'a>(&'a self) -> Vec<&'a str> {
     let mut result: Vec<&'a str> = Vec::new();
     let err = self.walk_preorder::<_, Infallible>(|x| {
@@ -192,6 +218,9 @@ impl AST {
 
 }
 
+/// Pretty-print an AST, using a format compatible with [`parser`](crate::parser).
+/// Cons cells whose cdr is a cons cell will be pretty-printed as list
+/// prefixes.
 impl fmt::Display for AST {
 
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {

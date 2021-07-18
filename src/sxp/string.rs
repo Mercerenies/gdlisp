@@ -1,10 +1,26 @@
 
+//! Helper functions for working with strings within
+//! [`AST`](super::ast::AST) values.
+
+/// The type of errors produced by [`parse_escapes`].
 #[derive(Debug)]
 pub enum Error {
+  /// An escape sequence `\` was not terminated.
   UnfinishedEscape,
+  /// An escape sequence `\` was not recognized.
   InvalidEscape(char),
 }
 
+/// Given a string, parse escape sequences beginning with `\` and
+/// produce a string containing the result.
+///
+/// # Examples
+///
+/// ```
+/// # use gdlisp::sxp::string::parse_escapes;
+/// assert_eq!(parse_escapes(r#"foobar"#).unwrap(), "foobar");
+/// assert_eq!(parse_escapes(r#"foo\"\"bar\\"#).unwrap(), "foo\"\"bar\\");
+/// ```
 pub fn parse_escapes(input: &str) -> Result<String, Error> {
   let length = input.chars().count();
   let mut result = String::with_capacity(length);
@@ -27,12 +43,6 @@ pub fn parse_escapes(input: &str) -> Result<String, Error> {
 #[cfg(test)]
 mod tests {
   use super::*;
-
-  #[test]
-  fn escaping() {
-    assert_eq!(parse_escapes(r#"foobar"#).unwrap(), "foobar");
-    assert_eq!(parse_escapes(r#"foo\"\"bar\\"#).unwrap(), "foo\"\"bar\\");
-  }
 
   #[test]
   fn failed_escaping() {

@@ -1,14 +1,31 @@
 
+//! Parsing of [`AST`](super::ast::AST) values as dotted S-expressions.
+//!
+//! This module provides the inverse operation to
+//! [`AST::dotted_list`](super::ast::AST::dotted_list). That function
+//! takes a vector and a terminator and produces an `AST` value, while
+//! [`DottedExpr::new`] takes an `AST` value and interprets it as a
+//! vector and a terminator.
+
 use super::ast::AST;
 
 use std::convert::TryFrom;
 
+/// A dotted list expression consists of a sequence of elements and a
+/// final terminator.
+///
+/// Note that a `DottedExpr` does not *own* any data itself. Instead,
+/// it acts as a view on an existing [`AST`](super::ast::AST) owned by
+/// someone else.
 #[derive(Clone, Debug, Eq, PartialEq, Hash)]
 pub struct DottedExpr<'a> {
+  /// The sequence of elements leading up to the terminator.
   pub elements: Vec<&'a AST>,
+  /// The terminator element.
   pub terminal: &'a AST,
 }
 
+/// The type of errors produced by [`TryFrom::<DottedExpr>::try_from`].
 #[derive(Clone, Copy, Eq, PartialEq, Debug)]
 pub struct TryFromDottedExprError {}
 
@@ -24,6 +41,19 @@ fn accumulate_ast<'a>(vec: &mut Vec<&'a AST>, ast: &'a AST) -> &'a AST {
 
 impl<'a> DottedExpr<'a> {
 
+  /// Given an `AST`, construct a `DottedExpr` view representing it.
+  ///
+  /// A dotted list is, here, defined to be a collection of zero or
+  /// more cons cells, linked together by their cdr, and terminated by
+  /// an arbitrary element. Note that, under this definition, *every*
+  /// `AST` can be meaningfully interpreted as a dotted list, which is
+  /// why this function cannot fail.
+  ///
+  /// If `ast` is not a cons cell, then it is a dotted list of zero
+  /// elements where the terminator is `ast`. If `ast` is a cons cell,
+  /// then the first element of the dotted list is its car, and the
+  /// rest of the dotted list, as well as its terminator, is
+  /// calculated recursively on the cdr of `ast`.
   pub fn new(ast: &'a AST) -> DottedExpr<'a> {
     let mut elements = Vec::new();
     let terminal = accumulate_ast(&mut elements, ast);
@@ -32,6 +62,13 @@ impl<'a> DottedExpr<'a> {
 
 }
 
+/// A dotted list whose terminator is
+/// [`AST::Nil`](super::ast::AST::Nil) is called a proper list. It is
+/// reasonable to interpret a proper list as a simple vector, since
+/// the nil terminator is merely a placeholder for the end of the
+/// list. [`TryFrom::<DottedExpr>::try_from`] performs this
+/// conversion, returning [`DottedExpr::elements`] if
+/// [`DottedExpr::terminal`] is nil and producing an error otherwise.
 impl<'a> TryFrom<DottedExpr<'a>> for Vec<&'a AST> {
   type Error = TryFromDottedExprError;
 

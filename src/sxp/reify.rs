@@ -1,10 +1,17 @@
 
+//! Provides the [`Reify`] trait.
+
 use crate::gdscript::expr::Expr;
 use crate::gdscript::library;
 use super::ast::AST;
 
 use ordered_float::OrderedFloat;
 
+/// This trait describes any type for which there is a reasonable way
+/// to convert a `&self` into [`crate::gdscript::expr::Expr`]. Note
+/// that this is subtly different from [`Into`], which requires
+/// ownership of `self` to do the conversion. The resulting `Expr`
+/// should not share any data with `&self`.
 pub trait Reify {
   fn reify(&self) -> Expr;
 }
