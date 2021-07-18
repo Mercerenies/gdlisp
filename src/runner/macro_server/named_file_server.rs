@@ -6,6 +6,7 @@ use crate::compile::names::fresh::FreshNameGenerator;
 use crate::compile::symbol_table::function_call::{FnCall, FnScope, FnSpecs, FnName};
 use crate::compile::symbol_table::call_magic::compile_default_call;
 use crate::gdscript::expr::{Expr as GDExpr};
+use crate::gdscript::library;
 use crate::ir::arglist::ArgList;
 use crate::pipeline::error::{Error as PError};
 use crate::parser;
@@ -87,6 +88,26 @@ impl NamedFileServer {
       scope: FnScope::Global,
       object: FnName::MacroCall(Box::new(call_object)),
       function: call.name.to_owned(),
+      specs: specs,
+      is_macro: true,
+    };
+    let server = self.server.get_mut()?;
+    let eval_str = compile_default_call(call, args)?.to_gd();
+    let result = response_to_string(server.issue_command(&ServerCommand::Eval(eval_str))?)?;
+    let parser = parser::ASTParser::new();
+    let parsed = parser.parse(&result)?;
+    Ok(parsed)
+  }
+
+  // TODO Unify this with run_server_file.
+  pub fn run_builtin_macro(&mut self, macro_name: &str, parms: ArgList, args: Vec<GDExpr>)
+                           -> Result<AST, PError> {
+    let specs = FnSpecs::from(parms);
+    let call_object = library::gdlisp_root();
+    let call = FnCall {
+      scope: FnScope::Global,
+      object: FnName::MacroCall(Box::new(call_object)),
+      function: macro_name.to_owned(),
       specs: specs,
       is_macro: true,
     };

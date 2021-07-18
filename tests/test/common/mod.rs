@@ -19,6 +19,7 @@ use gdlisp::runner::into_gd_file::IntoGDFile;
 use gdlisp::runner::path::{RPathBuf, PathSrc};
 use gdlisp::parser;
 use gdlisp::ir;
+use gdlisp::ir::incremental::IncCompiler;
 use gdlisp::gdscript::library;
 use gdlisp::gdscript::decl;
 use gdlisp::pipeline::Pipeline;
@@ -197,7 +198,11 @@ pub fn parse_compile_and_output_h(input: &str) -> (String, String) {
   let mut pipeline = dummy_pipeline();
 
   let mut builder = StmtBuilder::new();
-  let value = ir::compile_expr(&mut pipeline, &value).unwrap();
+  let value = {
+    let mut icompiler = IncCompiler::new(value.all_symbols());
+    icompiler.bind_builtin_macros();
+    icompiler.compile_expr(&mut pipeline, &value)
+  }.unwrap();
   let () = compiler.compile_stmt(&mut pipeline, &mut builder, &mut table, &mut stmt_wrapper::Return, &value).unwrap();
   let (stmts, helpers) = builder.build();
   let a = stmts.into_iter().map(|stmt| stmt.to_gd(0)).collect::<String>();

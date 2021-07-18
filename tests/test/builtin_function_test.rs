@@ -498,7 +498,7 @@ pub fn unknown_gdscript_classes_test() {
 #[test]
 pub fn return_test() {
   assert_eq!(parse_compile_and_output("(progn (if 1 (return 2)) 3)"),
-             "if 1:\n    return 2\nelse:\n    pass\nreturn 3\n");
+             "if 1:\n    return 2\nelse:\n    if true:\n        pass\n    else:\n        pass\nreturn 3\n");
 }
 
 #[test]

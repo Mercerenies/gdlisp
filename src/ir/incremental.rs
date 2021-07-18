@@ -20,11 +20,11 @@ use crate::sxp::ast::AST;
 use crate::sxp::reify::Reify;
 use crate::compile::error::Error;
 use crate::compile::resource_type::ResourceType;
+use crate::compile::names;
 use crate::compile::names::fresh::FreshNameGenerator;
 use crate::gdscript::library;
-use crate::gdscript::library::macros::MacroState;
 use crate::gdscript::decl::Static;
-use crate::runner::macro_server::named_file_server::MacroCall;
+use crate::runner::macro_server::named_file_server::{NamedFileServer, MacroCall};
 use crate::pipeline::error::{Error as PError};
 use crate::pipeline::Pipeline;
 use crate::pipeline::translation_unit::TranslationUnit;
@@ -68,27 +68,22 @@ impl IncCompiler {
           return Err(PError::from(Error::MacroInMinimalistError(head.to_owned())));
         }
 
-        if id.is_reserved() {
-          // Reserved for built-in macros; it runs in Rust
-          let func = library::macros::get_builtin_macro(*id).ok_or_else(|| PError::from(Error::NoSuchFn(head.to_owned())))?;
-          let state = MacroState { generator: &mut self.names };
-          let ast = func(state, tail)?;
-          Ok(ast)
+        let args: Vec<_> = tail.iter().map(|x| x.reify()).collect();
+        let server = pipeline.get_server_mut();
+        server.set_global_name_generator(&self.names)?;
+
+        let ast = if id.is_reserved() {
+          // Reserved for built-in macros; runs in Godot
+          let gd_name = names::lisp_to_gd(head);
+          server.run_builtin_macro(&gd_name, parms.clone(), args)
         } else {
           // User-defined macro; runs in Godot
-          let call = self.get_macro_file(pipeline, &head).expect("Could not find macro file").clone();
-          let args: Vec<_> = tail.iter().map(|x| x.reify()).collect();
+          let call = self.get_macro_file(server, &head).expect("Could not find macro file").clone();
+          server.run_server_file(&call, parms.clone(), args)
+        };
+        server.reset_global_name_generator()?;
 
-          let server = pipeline.get_server_mut();
-          server.set_global_name_generator(&self.names)?;
-          let ast = server.run_server_file(&call, parms.clone(), args);
-          server.reset_global_name_generator()?;
-
-          // Check the error on `ast' here, not above, because we want
-          // reset_global_name_generator to run if and only if
-          // set_global_name_generator runs.
-          Ok(ast?)
-        }
+        ast
       }
       _ => {
         Err(PError::from(Error::NoSuchFn(head.to_owned())))
@@ -96,8 +91,8 @@ impl IncCompiler {
     }
   }
 
-  fn get_macro_file<'a, 'b, 'c>(&'a self, pipeline: &'b Pipeline, head: &'c str) -> Option<&'b MacroCall> {
-    self.macros.get(head).map(|x| x.id).and_then(|id| pipeline.get_server().get_file(id))
+  fn get_macro_file<'a, 'b, 'c>(&'a self, server: &'b NamedFileServer, head: &'c str) -> Option<&'b MacroCall> {
+    self.macros.get(head).map(|x| x.id).and_then(|id| server.get_file(id))
   }
 
   fn try_resolve_macro_call(&mut self, pipeline: &mut Pipeline, ast: &AST) -> Result<Option<AST>, PError> {
@@ -616,6 +611,8 @@ impl IncCompiler {
       m.apply(&mut self);
     }
 
+    self.bind_builtin_macros(); // No-op if minimalist is true.
+
     // Compile
     let mut main: Vec<Expr> = Vec::new();
     for curr in body {
@@ -680,7 +677,9 @@ impl IncCompiler {
   }
 
   pub fn bind_builtin_macros(&mut self) {
-    library::bind_builtin_macros(&mut self.macros);
+    if !self.minimalist {
+      library::bind_builtin_macros(&mut self.macros);
+    }
   }
 
   pub fn symbol_table(&mut self) -> &mut SymbolTable {

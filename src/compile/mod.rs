@@ -809,6 +809,7 @@ mod tests {
   use crate::compile::symbol_table::function_call::{FnCall, FnScope, FnSpecs};
   use crate::pipeline::config::ProjectConfig;
   use crate::compile::preload_resolver::DefaultPreloadResolver;
+  use crate::ir::incremental::IncCompiler;
 
   use std::path::PathBuf;
 
@@ -833,7 +834,11 @@ mod tests {
     bind_helper_symbols(&mut table);
     library::bind_builtins(&mut table, true);
     let mut builder = StmtBuilder::new();
-    let expr = ir::compile_expr(&mut pipeline, ast)?;
+    let expr = {
+      let mut icompiler = IncCompiler::new(ast.all_symbols());
+      icompiler.bind_builtin_macros();
+      icompiler.compile_expr(&mut pipeline, ast)
+    }?;
     let () = compiler.compile_stmt(&mut pipeline, &mut builder, &mut table, &mut stmt_wrapper::Return, &expr)?;
     Ok(builder.build())
   }

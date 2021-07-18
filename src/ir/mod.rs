@@ -25,7 +25,6 @@ pub mod export;
 pub mod identifier;
 pub mod modifier;
 
-use expr::Expr;
 use decl::Decl;
 use crate::sxp::ast::AST;
 use crate::pipeline::error::{Error as PError};
@@ -36,24 +35,9 @@ use std::collections::HashMap;
 
 pub const MAIN_BODY_NAME: &str = "run";
 
-pub fn compile_expr(pipeline: &mut Pipeline, expr: &AST)
-                    -> Result<Expr, PError> {
-  let mut compiler = incremental::IncCompiler::new(expr.all_symbols());
-  compiler.bind_builtin_macros();
-  compiler.compile_expr(pipeline, expr)
-}
-
-pub fn compile_decl(pipeline: &mut Pipeline, decl: &AST)
-                    -> Result<Decl, PError> {
-  let mut compiler = incremental::IncCompiler::new(decl.all_symbols());
-  compiler.bind_builtin_macros();
-  compiler.compile_decl(pipeline, decl)
-}
-
 pub fn compile_toplevel(pipeline: &mut Pipeline, body: &AST)
                         -> Result<(decl::TopLevel, HashMap<String, MacroData>), PError> {
-  let mut compiler = incremental::IncCompiler::new(body.all_symbols());
-  compiler.bind_builtin_macros();
+  let compiler = incremental::IncCompiler::new(body.all_symbols());
   compiler.compile_toplevel(pipeline, body)
 }
 
@@ -68,6 +52,20 @@ mod tests {
   use crate::pipeline::config::ProjectConfig;
 
   use std::path::PathBuf;
+
+  fn compile_expr(pipeline: &mut Pipeline, expr: &AST)
+                  -> Result<Expr, PError> {
+    let mut compiler = incremental::IncCompiler::new(expr.all_symbols());
+    compiler.bind_builtin_macros();
+    compiler.compile_expr(pipeline, expr)
+  }
+
+  fn compile_decl(pipeline: &mut Pipeline, decl: &AST)
+                  -> Result<Decl, PError> {
+    let mut compiler = incremental::IncCompiler::new(decl.all_symbols());
+    compiler.bind_builtin_macros();
+    compiler.compile_decl(pipeline, decl)
+  }
 
   fn do_compile_expr(expr: &AST) -> Result<Expr, PError> {
     let mut pipeline = Pipeline::new(ProjectConfig { root_directory: PathBuf::from("."), optimizations: false });

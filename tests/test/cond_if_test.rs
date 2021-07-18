@@ -4,7 +4,7 @@ use super::common::{parse_compile_and_output, parse_and_run};
 #[test]
 pub fn if_tests_expr() {
   assert_eq!(parse_compile_and_output("(if 1 2 3)"), "var _cond_0 = null\nif 1:\n    _cond_0 = 2\nelse:\n    if true:\n        _cond_0 = 3\n    else:\n        _cond_0 = null\nreturn _cond_0\n");
-  assert_eq!(parse_compile_and_output("(if 1 2)"), "var _cond_0 = null\nif 1:\n    _cond_0 = 2\nelse:\n    _cond_0 = null\nreturn _cond_0\n");
+  assert_eq!(parse_compile_and_output("(if 1 2)"), "var _cond_0 = null\nif 1:\n    _cond_0 = 2\nelse:\n    if true:\n        _cond_0 = null\n    else:\n        _cond_0 = null\nreturn _cond_0\n");
   assert_eq!(parse_compile_and_output("(if 1 2 ())"), "var _cond_0 = null\nif 1:\n    _cond_0 = 2\nelse:\n    if true:\n        _cond_0 = null\n    else:\n        _cond_0 = null\nreturn _cond_0\n");
   assert_eq!(parse_compile_and_output("(if 1 (foo) (bar))"), "var _cond_0 = null\nif 1:\n    _cond_0 = foo()\nelse:\n    if true:\n        _cond_0 = bar()\n    else:\n        _cond_0 = null\nreturn _cond_0\n");
 }
@@ -81,10 +81,7 @@ if 1:
     foo()
     _cond_0 = bar()
 else:
-    if true:
-        _cond_0 = null
-    else:
-        _cond_0 = null
+    _cond_0 = null
 return _cond_0
 "#);
 }

@@ -191,39 +191,21 @@ pub fn all_builtin_names(minimalist: bool) -> HashSet<Id> {
   names
 }
 
+const RESERVED_MACRO_ID: u32 = 1;
+
 /// Bind all of the built-in GDLisp macros to the macro table given.
 pub fn bind_builtin_macros(macros: &mut HashMap<String, MacroData>) {
 
-  // or
-  macros.insert(String::from("or"),
-                MacroData { id: MacroID(macros::ID_OR_FUNCTION), args: ArgList::rest(), imported: true });
-
-  // and
-  macros.insert(String::from("and"),
-                MacroData { id: MacroID(macros::ID_AND_FUNCTION), args: ArgList::rest(), imported: true });
-
-  // let*
-  macros.insert(String::from("let*"),
-                MacroData { id: MacroID(macros::ID_LETSTAR_FUNCTION), args: ArgList::rest(), imported: true });
-
-  // defvars
-  macros.insert(String::from("defvars"),
-                MacroData { id: MacroID(macros::ID_DEFVARS_FUNCTION), args: ArgList::rest(), imported: true });
-
-  // when
-  macros.insert(String::from("when"),
-                MacroData { id: MacroID(macros::ID_WHEN_FUNCTION), args: ArgList::rest(), imported: true });
-
-  // unless
-  macros.insert(String::from("unless"),
-                MacroData { id: MacroID(macros::ID_UNLESS_FUNCTION), args: ArgList::rest(), imported: true });
-
-  // if
-  macros.insert(String::from("if"),
-                MacroData { id: MacroID(macros::ID_IF_FUNCTION), args: ArgList::rest(), imported: true });
-
-  // yield*
-  macros.insert(String::from("yield*"),
-                MacroData { id: MacroID(macros::ID_YIELDSTAR_FUNCTION), args: ArgList::rest(), imported: true });
+  let unit = get_stdlib();
+  for (name, func, _magic) in unit.table.fns() {
+    if func.is_macro {
+      let data = MacroData {
+        id: MacroID(RESERVED_MACRO_ID),
+        args: ArgList::from_specs(func.specs),
+        imported: true,
+      };
+      macros.insert(name.to_owned(), data);
+    }
+  }
 
 }
