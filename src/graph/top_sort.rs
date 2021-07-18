@@ -1,11 +1,22 @@
 
+//! Topological sorting of a graph.
+
 use super::*;
 
 use std::collections::HashSet;
 
+/// Error type produced if [`top_sort()`] finds a cycle.
 #[derive(Clone, Copy, Eq, PartialEq, Debug)]
 pub struct CycleInTopSortError {}
 
+/// Any directed acyclic graph can be topologically sorted. A valid
+/// topological sorting of an acyclic graph is a total order of the
+/// nodes in that graph such that, for any edge from `u` to `v` in the
+/// graph, `u <= v` in the total order.
+///
+/// This function finds some valid topological sorting of the nodes in
+/// the graph. If there is a cycle in the graph, then an error is
+/// returned.
 pub fn top_sort<T>(graph: &Graph<T>) -> Result<Vec<&T>, CycleInTopSortError>
 where T : Eq + Hash {
   let nodes: HashSet<_> = graph.nodes().collect();

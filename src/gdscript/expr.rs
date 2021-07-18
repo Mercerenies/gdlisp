@@ -1,4 +1,15 @@
 
+//! GDScript expressions.
+//!
+//! This module defines a [datatype](Expr) for representing
+//! expressions in the GDScript language, as well as [`Expr::to_gd`]
+//! for converting to GDScript syntax.
+//!
+//! Note: For names (such as strings), we expect that they've already
+//! been sanitized for GDScript output. That should've happened
+//! earlier in the compilation process. This precondition is not
+//! checked anywhere in this module.
+
 use crate::gdscript::op::{self, UnaryOp, BinaryOp, OperatorHasInfo};
 use crate::gdscript::literal::Literal;
 
@@ -7,25 +18,31 @@ pub const PRECEDENCE_SUBSCRIPT: i32 = 21;
 pub const PRECEDENCE_ATTRIBUTE: i32 = 20;
 pub const PRECEDENCE_CALL: i32 = 19;
 
-// Note: For names (such as strings), we expect that they've already
-// been sanitized for GDScript output. That should've happened earlier
-// in the compilation process.
-
+/// The type of GDScript expressions.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Expr {
   Var(String),
   Literal(Literal),
+  /// Subscript access, i.e. `foo[bar]`.
   Subscript(Box<Expr>, Box<Expr>),
+  /// Attribute access, i.e. `foo.bar`.
   Attribute(Box<Expr>, String),
+  /// A function call, possibly qualified by a value name. If the
+  /// first argument is `None`, then this is akin to a call of the
+  /// form `bar(...)`. If the first argument is `Some(foo)`, then this
+  /// is akin to `foo.bar(...)`.
   Call(Option<Box<Expr>>, String, Vec<Expr>),
+  /// A super call, i.e. `.bar(...)`.
   SuperCall(String, Vec<Expr>),
   Unary(UnaryOp, Box<Expr>),
   Binary(Box<Expr>, BinaryOp, Box<Expr>),
+  /// A use of the ternary-if operator `foo if bar else baz`.
   TernaryIf(TernaryIf),
   ArrayLit(Vec<Expr>),
   DictionaryLit(Vec<(Expr, Expr)>),
 }
 
+/// The type used by [`Expr::TernaryIf`].
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct TernaryIf {
   pub true_case: Box<Expr>,
@@ -43,18 +60,27 @@ fn maybe_parens(cond: bool, inner: String) -> String {
 
 impl Expr {
 
+  /// The literal expression `null`.
   pub fn null() -> Expr {
     Expr::Literal(Literal::Null)
   }
 
+  /// A literal string.
   pub fn str_lit(a: &str) -> Expr {
     Expr::from(a.to_owned())
   }
 
+  /// An [`Expr::Var`], referenced by name. The name will be cloned
+  /// into the resulting value.
   pub fn var(a: &str) -> Expr {
     Expr::Var(a.to_owned())
   }
 
+  /// A GDScript `yield` call.
+  ///
+  /// `yield` takes either zero or two arguments, so this function can
+  /// produce either form of `yield` (by passing either `None` or
+  /// `Some(a, b)`).
   pub fn yield_expr(args: Option<(Expr, Expr)>) -> Expr {
     let args = match args {
       None => vec!(),
@@ -63,6 +89,11 @@ impl Expr {
     Expr::Call(None, String::from("yield"), args)
   }
 
+  /// Convert to a GDScript string, assuming the ambient precedence is
+  /// a specific value.
+  ///
+  /// Generally, callers will want to invoke [`Expr::to_gd`] and let the
+  /// expression manage its own precedence.
   pub fn to_gd_prec(&self, prec: i32) -> String {
     match self {
       Expr::Var(s) => s.clone(),
@@ -144,6 +175,8 @@ impl Expr {
     }
   }
 
+  /// Convert a GDScript expression to a string. The result will
+  /// contain valid GDScript syntax.
   pub fn to_gd(&self) -> String {
     self.to_gd_prec(PRECEDENCE_LOWEST)
   }
