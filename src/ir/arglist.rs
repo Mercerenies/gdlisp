@@ -94,6 +94,14 @@ impl ArgList {
     }
   }
 
+  pub fn from_specs(specs: FnSpecs) -> ArgList {
+    // Uses dummy names for variables.
+    let required_args = (0..specs.required).into_iter().map(|i| format!("required_arg{}", i)).collect();
+    let optional_args = (0..specs.optional).into_iter().map(|i| format!("optional_arg{}", i)).collect();
+    let rest_arg = specs.rest.map(|arg| (String::from("rest_arg"), arg));
+    ArgList { required_args, optional_args, rest_arg }
+  }
+
   pub fn parse<'a>(args: impl IntoIterator<Item = &'a AST>)
                    -> Result<ArgList, ArgListParseError> {
     let mut state = ParseState::Required;
