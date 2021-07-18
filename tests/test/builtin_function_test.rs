@@ -381,7 +381,7 @@ pub fn ne_compile_test() {
   assert_eq!(parse_compile_and_output("(/= 1)"), "return true\n");
   assert_eq!(parse_compile_and_output("(/= (foo))"), "foo()\nreturn true\n");
   assert_eq!(parse_compile_and_output("(/= 1 2)"), "return 1 != 2\n");
-  assert_eq!(parse_compile_and_output("(/= 1 2 3)"), "return GDLisp.ne(1, GDLisp.Cons.new(2, GDLisp.Cons.new(3, null)))\n");
+  assert_eq!(parse_compile_and_output("(/= 1 2 3)"), "return GDLisp._u002F_EQ_(1, GDLisp.Cons.new(2, GDLisp.Cons.new(3, null)))\n");
 }
 
 #[test]
@@ -480,13 +480,13 @@ pub fn simple_builtin_test() {
 #[test]
 pub fn known_gdscript_classes_test_1() {
   assert_eq!(parse_compile_and_output("[Sprite Node Node2D GDScript Object]"),
-             "return [Sprite, Node, Node2D, GDScript, TYPE_OBJECT]\n");
+             "return [Sprite, Node, Node2D, GDScript, GDLisp._Object]\n");
 }
 
 #[test]
 pub fn known_gdscript_classes_test_2() {
   // Note: They all get checked, but all except the last is elided by the statefulness rules.
-  assert_eq!(parse_compile_and_output("(progn Sprite Node Node2D GDScript Object)"), "return TYPE_OBJECT\n");
+  assert_eq!(parse_compile_and_output("(progn Sprite Node Node2D GDScript Object)"), "return GDLisp._Object\n");
 }
 
 #[test]
