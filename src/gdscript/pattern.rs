@@ -1,6 +1,13 @@
 
+//! GDScript patterns for use in pattern matching.
+//!
+//! This module defines a [datatype](Pattern) for representing
+//! patterns in the GDScript language, as well as [`Pattern::to_gd`]
+//! for converting to GDScript syntax.
+
 use crate::gdscript::literal::Literal;
 
+/// The type of GDScript patterns.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Pattern {
   Literal(Literal),
@@ -11,6 +18,8 @@ pub enum Pattern {
   Dictionary(Vec<(Literal, Pattern)>, Wildcard),
 }
 
+/// This type is isomorphic to [`bool`] and indicates whether or not a
+/// wildcard was supplied to a pattern.
 #[derive(PartialEq, Eq, PartialOrd, Ord, Hash, Debug, Clone, Copy)]
 pub enum Wildcard {
   NoWildcard, Wildcard,
@@ -18,6 +27,8 @@ pub enum Wildcard {
 
 impl Pattern {
 
+  /// Convert a GDScript pattern to a string. The result will contain
+  /// valid GDScript syntax.
   pub fn to_gd(&self) -> String {
     match self {
       Pattern::Literal(lit) => lit.to_gd(),

@@ -1,23 +1,36 @@
 
-// Functionality for checking whether an expression is actually an
-// allowable constant expression.
-//
-// For the moment, what's allowable as a constant expression is
-// *extremely* conservative. Even things like if-statements where all
-// arguments are constant are disallowed, as we have no way to compile
-// that on the GDScript side. Long term, it would be nice to support
-// things like that which are constant "in spirit" and work around
-// GDScript limitations. But for now, we're being super strict.
+//! Functionality for checking whether an expression is actually an
+//! allowable constant expression.
+//!
+//! For the moment, what's allowable as a constant expression is
+//! *extremely* conservative. Even things like if-statements where all
+//! arguments are constant are disallowed, as we have no way to
+//! compile that on the GDScript side. Long term, it would be nice to
+//! support things like that which are constant "in spirit" and work
+//! around GDScript limitations. But for now, we're being super
+//! strict.
 
 use super::error::Error;
 use super::symbol_table::local_var::{ValueHint, ValueHintsTable};
 use crate::gdscript::expr::Expr;
 use crate::gdscript::op;
 
+/// Trait representing data which can be checked for a const-ness
+/// property.
 pub trait MaybeConstant {
 
+  /// Returns whether or not the expression is an allowable constant
+  /// value. `table` should contain information which can provide
+  /// useful hints ([`ValueHint`]) about the sort of value a given
+  /// name refers to. If there are no hints to be provided, then
+  /// [`VacuousValueHintsTable`](crate::compile::symbol_table::local_var::VacuousValueHintsTable)
+  /// can be provided as a null implementation of the trait.
   fn is_allowable_const(&self, table: &impl ValueHintsTable) -> bool;
 
+  /// Check whether [`MaybeConstant::is_allowable_const`] is true. If
+  /// not, return [`Error::NotConstantEnough`]. The `name` is used to
+  /// produce a more convenient error message and is not used to
+  /// determine whether or not the value is constant.
   fn validate_const_expr(&self, name: &str, table: &impl ValueHintsTable) -> Result<(), Error> {
     if self.is_allowable_const(table) {
       Ok(())

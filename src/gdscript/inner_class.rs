@@ -1,4 +1,20 @@
 
+//! Helpers for construction of GDLisp inner classes.
+//!
+//! Helpers to make sure GDLisp inner classes (and any feature of
+//! GDLisp that compiles to inner classes, like lambdas and lambda
+//! classes) can access statics from the enclosing scope.
+//!
+//! There are two key pieces of functionality in this module. The
+//! first is [`NeedsOuterClassRef`], a trait whose sole method
+//! determines whether a given type of declaration needs to retain a
+//! reference to the enclosing class. By default, inner classes in
+//! GDScript cannot access the outer class, so in the cases where we
+//! require this behavior, we have to go to special effort to get it.
+//! In the cases where we *do* need this behavior, the second core
+//! functionality of this module, [`add_outer_class_ref_named`] adds a
+//! reference to the outer class to the given scope.
+
 use super::decl::{self, Decl};
 use crate::pipeline::can_load::CanLoad;
 use crate::compile::symbol_table::SymbolTable;
@@ -8,12 +24,20 @@ use crate::compile::preload_resolver::PreloadResolver;
 use crate::ir;
 use crate::ir::identifier::{Id, Namespace};
 
-// Helpers to make sure GDLisp inner classes (and any feature of
-// GDLisp that compiles to inner classes, like lambdas and lambda
-// classes) can access statics from the enclosing scope.
-
+/// By convention, this name is used as the basis for outer class
+/// reference names. Note that this name should not be used *directly*
+/// unless you first check that there are no conflicts. Normally, this
+/// would be passed to
+/// [`generate_with`](crate::compile::names::fresh::FreshNameGenerator::generate_with).
 pub const OUTER_REFERENCE_NAME: &str = "__gdlisp_outer_class";
 
+/// Add a declaration to the outer class with the given name to
+/// `inner_class`.
+///
+/// When the class referenced by `inner_class` is constructed, the
+/// variable with name `var_name` will be initialized on the instance
+/// to be equal to the enclosing class resource. This resource will be
+/// loaded using `load`. The path to load is determined by `resolver`.
 pub fn add_outer_class_ref_named(inner_class: &mut decl::ClassDecl, resolver: &dyn PreloadResolver, current_file: &impl CanLoad, var_name: String) {
   let current_filename = current_file.current_filename()
     .and_then(|fname| resolver.resolve_preload(&fname))
@@ -23,7 +47,18 @@ pub fn add_outer_class_ref_named(inner_class: &mut decl::ClassDecl, resolver: &d
   inner_class.body.push(var_decl);
 }
 
+/// Trait for objects, such as declarations, which may need an outer
+/// class reference.
+///
+/// Before blindly throwing unnecessary references on every inner
+/// class (which, in addition to being hilariously inefficient, would
+/// cause significant memory leaks since GDScript resources are
+/// reference counted), the compiler should use this trait to check
+/// whether an outer reference is actually warranted.
 pub trait NeedsOuterClassRef {
+  /// Given the names that are in scope at the current point in the
+  /// code, determine whether this declaration requires an outer class
+  /// reference.
   fn needs_outer_class_ref(&self, table: &SymbolTable) -> bool;
 }
 

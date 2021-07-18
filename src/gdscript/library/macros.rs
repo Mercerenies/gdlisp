@@ -1,4 +1,10 @@
 
+//! All of the built-in GDLisp macros are implemented in Rust here.
+//!
+//! Eventually, we will write all of these in GDLisp and bootstrap
+//! from that, rendering this module obsolete. For now, however, this
+//! module is necessary for compilation.
+
 use crate::runner::macro_server::named_file_server::MacroID;
 use crate::sxp::ast::AST;
 use crate::sxp::dotted::DottedExpr;
@@ -16,12 +22,20 @@ pub const ID_UNLESS_FUNCTION:    u32 = 5;
 pub const ID_IF_FUNCTION:        u32 = 6;
 pub const ID_YIELDSTAR_FUNCTION: u32 = 7;
 
+/// The state given to Rust-side macros.
 pub struct MacroState<'a, 'b> {
   pub generator: &'a mut FreshNameGenerator<'b>,
 }
 
+/// The type of Rust-side built-in macros.
+///
+/// Note carefully that this type is the primitive `fn` type, *not*
+/// the trait [`Fn`]. All built-in macros are implemented in Rust as
+/// concrete top-level functions, not closures or other function-like
+/// objects.
 pub type BuiltInMacro = fn(MacroState<'_, '_>, &[&AST]) -> Result<AST, Error>;
 
+/// Get the macro with the given ID.
 pub fn get_builtin_macro(id: MacroID) -> Option<BuiltInMacro> {
   match id.0 {
     0 => {

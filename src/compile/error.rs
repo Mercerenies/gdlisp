@@ -1,4 +1,6 @@
 
+//! Errors that can occur as a result of GDLisp code.
+
 use crate::sxp;
 use crate::sxp::ast::AST;
 use crate::ir::arglist::ArgListParseError;
@@ -15,6 +17,14 @@ use std::fmt;
 // to specify expected # of args and sometimes use it to specify the
 // given # of args. Standardize this, likely by taking two arguments.
 
+/// This type captures all errors that can occur during compilation of
+/// GDLisp code.
+///
+/// This type does *not* include I/O errors, which are considered to
+/// be outside of GDLisp's purview. This type also excludes parsing
+/// errors, for which LALRPOP provides its own error types. See
+/// [`crate::pipeline::error`] for an error type which includes this
+/// one and is more general.
 #[derive(Debug)]
 pub enum Error {
   DottedListError,

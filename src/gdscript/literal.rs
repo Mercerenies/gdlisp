@@ -1,4 +1,11 @@
 
+//! GDScript literal values.
+//!
+//! This module represents the subset of [GDScript
+//! expressions](super::expr) which are literal values, i.e. which
+//! evaluate to themselves. This includes literal integers, strings,
+//! and the special value `null`.
+
 // TODO Just a basic stub right now; we'll support all Godot literal
 // types soon.
 
@@ -8,6 +15,7 @@ use ordered_float::OrderedFloat;
 
 use std::convert::TryFrom;
 
+/// The type of GDScript literal values.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Literal {
   Int(i32),
@@ -17,11 +25,18 @@ pub enum Literal {
   Bool(bool),
 }
 
+/// In most cases, we can convert an
+/// [`ir::literal::Literal`](IRLiteral) to a [`Literal`]. However,
+/// there are a handful of corner cases where `ir::literal::Literal`
+/// compiles to something nontrivial in GDScript. In those cases, this
+/// error will be returned.
 #[derive(Debug, Clone, Default)]
 pub struct IRToExprLiteralError;
 
 impl Literal {
 
+  /// Convert a GDScript literal to a string. The result will contain
+  /// valid GDScript syntax.
   pub fn to_gd(&self) -> String {
     match self {
       Literal::Int(n) => n.to_string(),

@@ -1,7 +1,8 @@
 
-// All of the key constants. There are a lot, which is why over here
-// rather than cluttering up gdscript::library.
+//! All of the GDScript key constants.
 
+/// All of the key constants. There are a lot, which is why over here
+/// rather than cluttering up [`gdscript::library`](super).
 pub static GDSCRIPT_KEY_NAMES: [&str; 242] = [
   "ESCAPE",
   "TAB",

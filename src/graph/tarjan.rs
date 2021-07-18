@@ -1,7 +1,10 @@
 
-// Implementation of Tarjan's SCC Algorithm
-//
-// https://en.wikipedia.org/wiki/Tarjan%E2%80%99s_strongly_connected_components_algorithm
+//! Implementation of [Tarjan's SCC Algorithm](https://en.wikipedia.org/wiki/Tarjan%E2%80%99s_strongly_connected_components_algorithm)
+//!
+//! Given a graph, we say that a nonempty set of nodes is a *strongly
+//! connected component* if, given any `u` and `v` in that set, there
+//! is a path in the graph from `u` to `v`. This module implements an
+//! algorithm to find all strongly connected components in a graph.
 
 use super::*;
 
@@ -10,9 +13,11 @@ use std::collections::HashSet;
 use std::cmp::min;
 use std::mem::swap;
 
+/// A strongly connected component is a nonempty set of nodes.
 #[derive(Clone, Debug)]
 pub struct SCC<'a, T>(pub HashSet<&'a T>);
 
+/// The result type of [`find_scc`].
 #[derive(Clone, Debug)]
 pub struct SCCSummary<'a, T> {
   sccs: Vec<SCC<'a, T>>,
@@ -44,18 +49,31 @@ impl<'a, T> Default for SCC<'a, T> {
 impl<'a, T> SCCSummary<'a, T>
 where T : Eq + Hash {
 
+  /// Given an ID value, get the strongly connected component
+  /// associated to that ID.
+  ///
+  /// The ID values are integers from 0 up to (and excluding) the
+  /// total number of SCCs. The order of ID values is unspecified.
+  /// Given a node, the relevant ID value for the SCC can be obtained
+  /// from [`SCCSummary::get_scc_id`], which this function serves as a spiritual
+  /// inverse to.
   pub fn get_scc_by_id(&self, id: usize) -> Option<&SCC<'a, T>> {
     self.sccs.get(id)
   }
 
+  /// Given a node, get the ID value of the SCC containing that node.
   pub fn get_scc_id(&self, node: &'a T) -> Option<usize> {
     self.scc_lookup.get(node).copied()
   }
 
+  /// Given a node, get the SCC containing that node.
   pub fn get_scc(&self, node: &'a T) -> Option<&SCC<'a, T>> {
     self.scc_lookup.get(node).map(|idx| &self.sccs[*idx])
   }
 
+  /// Return whether two nodes are in the same SCC or not.
+  ///
+  /// If either node is not in the graph, returns false.
   pub fn is_in_same(&self, a: &'a T, b: &'a T) -> bool {
     match self.get_scc(a) {
       None => false,
@@ -63,6 +81,10 @@ where T : Eq + Hash {
     }
   }
 
+  /// Return the total number of SCCs.
+  ///
+  /// The valid ID values for [`SCCSummary::get_scc_by_id`] range from 0 up to
+  /// (and excluding) [`SCCSummary::count()`].
   pub fn count(&self) -> usize {
     self.sccs.len()
   }
@@ -131,6 +153,7 @@ where T : Eq + Hash {
 
 }
 
+/// Given a graph, identify all of its strongly connected components.
 pub fn find_scc<T>(graph: &Graph<T>) -> SCCSummary<'_, T>
 where T : Eq + Hash {
   let mut alg = Algorithm::new(graph);
@@ -142,6 +165,15 @@ where T : Eq + Hash {
   alg.into()
 }
 
+/// Given a graph, produce a graph where the nodes are SCCs.
+///
+/// The `summary` argument must be equivalent to `find_scc(graph)`.
+///
+/// The resulting graph contains nodes from 0 up to (and excluding)
+/// `summary.count()`. The graph contains no loopback edges and no
+/// duplicate edges. Given two SCCs `u` and `v`, the graph has an edge
+/// from `u` to `v` iff there is a path from some node in `u` to some
+/// node in `v`.
 pub fn build_scc_graph<'a, 'b, T>(graph: &'a Graph<T>, summary: &'b SCCSummary<'a, T>) -> Graph<usize>
 where T : Eq + Hash {
   let mut new_graph = Graph::from_nodes(0..summary.count());

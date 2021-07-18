@@ -1,4 +1,11 @@
 
+//! GDScript statements.
+//!
+//! This module defines a [datatype](Stmt) for representing statements
+//! in the GDScript language, as well as [`Stmt::write_gd`] for
+//! writing statements as GDScript syntax to a [`fmt::Write`]
+//! instance.
+
 use crate::gdscript::expr::Expr;
 use crate::gdscript::op::{self, AssignOp, OperatorHasInfo};
 use crate::gdscript::pattern::Pattern;
@@ -6,8 +13,10 @@ use crate::gdscript::indent;
 
 use std::fmt;
 
+/// The type of GDScript statements.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Stmt {
+  /// An expression alone can stand as a statement.
   Expr(Expr),
   IfStmt(IfStmt),
   ForLoop(ForLoop),
@@ -16,11 +25,19 @@ pub enum Stmt {
   BreakStmt,
   ContinueStmt,
   MatchStmt(Expr, Vec<(Pattern, Vec<Stmt>)>),
+  /// A variable declaration. Note that while GDScript allows variable
+  /// declarations which do *not* assign a value, here we require that
+  /// all declarations assign an initial value.
   VarDecl(String, Expr),
   ReturnStmt(Expr),
+  /// An assignment. Note that GDScript restricts what can appear on
+  /// the left-hand side of an assignment, whereas this type allows
+  /// any [`Expr`]. Care must be taken to ensure that the left-hand
+  /// side is syntactically valid.
   Assign(Box<Expr>, AssignOp, Box<Expr>),
 }
 
+/// The type of if statements, used in [`Stmt::IfStmt`].
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct IfStmt {
   pub if_clause: (Expr, Vec<Stmt>),
@@ -28,6 +45,7 @@ pub struct IfStmt {
   pub else_clause: Option<Vec<Stmt>>,
 }
 
+/// The type of for loops, used in [`Stmt::ForLoop`].
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ForLoop {
   pub iter_var: String,
@@ -35,12 +53,14 @@ pub struct ForLoop {
   pub body: Vec<Stmt>,
 }
 
+/// The type of while loops, used in [`Stmt::WhileLoop`].
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct WhileLoop {
   pub condition: Expr,
   pub body: Vec<Stmt>,
 }
 
+/// Construct an `if` statement with no `elif` or `else` branches.
 pub fn if_then(cond: Expr, true_branch: Vec<Stmt>) -> Stmt {
   Stmt::IfStmt(IfStmt {
     if_clause: (cond, true_branch),
@@ -49,6 +69,8 @@ pub fn if_then(cond: Expr, true_branch: Vec<Stmt>) -> Stmt {
   })
 }
 
+/// Construct an `if` statement with an `else` branch but no `elif`
+/// branches.
 pub fn if_else(cond: Expr, true_branch: Vec<Stmt>, false_branch: Vec<Stmt>) -> Stmt {
   Stmt::IfStmt(IfStmt {
     if_clause: (cond, true_branch),
@@ -57,6 +79,18 @@ pub fn if_else(cond: Expr, true_branch: Vec<Stmt>, false_branch: Vec<Stmt>) -> S
   })
 }
 
+/// General-purpose `if` statement constructor.
+///
+/// Construct a sequence of statements which represents the branches.
+/// The first element of `cases` will be the `if_clause` of the
+/// statement, all remaining `cases` will be `elif_clauses`, and the
+/// `default` shall be `else_clause`.
+///
+/// As a special corner case, if `cases` is empty, then `default` is
+/// returned unmodified. This is the only case in which more than one
+/// value might be returned. If `cases` is nonempty, then
+/// `if_branches` will always return a vector containing a single
+/// statement.
 pub fn if_branches(cases: Vec<(Expr, Vec<Stmt>)>, default: Vec<Stmt>) -> Vec<Stmt> {
   if cases.is_empty() {
     default
@@ -75,6 +109,16 @@ pub fn if_branches(cases: Vec<(Expr, Vec<Stmt>)>, default: Vec<Stmt>) -> Vec<Stm
 
 impl Stmt {
 
+  /// Write the statement, as GDScript code, to the [`fmt::Write`]
+  /// instance `w`.
+  ///
+  /// We are assumed to be at the indentation level `ind`, so that all
+  /// lines in the result will be indented to that level.
+  ///
+  /// The writer `w` should currently be either empty or immediately
+  /// after a newline. The statement will always end by printing a
+  /// newline, making it suitable for writing a subsequent statement
+  /// immediately after.
   pub fn write_gd<W : fmt::Write>(&self, w: &mut W, ind: u32) -> Result<(), fmt::Error> {
     indent(w, ind)?;
     match self {
@@ -144,6 +188,9 @@ impl Stmt {
     }
   }
 
+  /// Write several statements in sequence, using [`Stmt::write_gd`].
+  ///
+  /// If `iter` is empty, then `"pass\n"` will be written.
   pub fn write_gd_stmts<'a, W, I>(iter: I, w: &mut W, ind: u32) -> Result<(), fmt::Error>
   where W : fmt::Write,
         I : IntoIterator<Item = &'a Stmt> {
@@ -158,6 +205,13 @@ impl Stmt {
     Ok(())
   }
 
+  /// Write the statement to a string, using [`Stmt::write_gd`].
+  ///
+  /// # Panics
+  ///
+  /// This function panics if there is a write error to the string. If
+  /// you wish to handle that case yourself, use [`Stmt::write_gd`]
+  /// explicitly.
   pub fn to_gd(&self, ind: u32) -> String {
     let mut string = String::new();
     self.write_gd(&mut string, ind).expect("Could not write to string in Stmt::to_gd");

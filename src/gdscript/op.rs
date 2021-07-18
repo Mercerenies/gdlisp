@@ -1,41 +1,79 @@
 
+//! All of the operators recognized by GDScript.
+
+/// Unary operators.
 #[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Hash, Debug)]
 pub enum UnaryOp {
   BitNot, Negate, Not,
 }
 
+/// Binary operators.
 #[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Hash, Debug)]
 pub enum BinaryOp {
   Times, Div, Mod, Add, Sub, LShift, RShift, BitAnd, BitXor,
   BitOr, LT, GT, Eq, NE, LE, GE, Is, In, And, Or, Cast,
 }
 
+/// Assignment operators.
 #[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Hash, Debug)]
 pub enum AssignOp {
   Eq, Add, Sub, Times, Div, Mod, BitAnd, BitOr,
 }
 
-// There is only one ternary op in Godot: if conditionals.
+/// Ternary operators.
+///
+/// There is only one ternary op in Godot: if conditionals. Hence,
+/// this struct is a singleton whose unique value represents ternary
+/// if conditions.
 #[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Hash, Debug)]
 pub struct TernaryOp;
 
+/// Information about an operator.
 #[derive(PartialEq, Eq, Clone, Hash, Debug)]
 pub struct OperatorInfo {
+  /// The operator's precedence. Operators with higher precedence will
+  /// bind more tightly.
   pub precedence: i32,
+  /// The operator's name, as a string.
   pub name: &'static str,
+  /// How spaces should be applied around an operator.
   pub padding: Padding,
 }
 
+/// This enum describes different mechanisms for providing padding
+/// around an operator.
+///
+/// There are some operators in GDScript that require spaces around
+/// them, such as `is`. There are many more that, while surrounding
+/// spaces are not required, tend to be more readable if padding is
+/// added. Finally, there are some (especially unary operators) which
+/// simply do not require spaces for readability.
+///
+/// An [operator's info](OperatorInfo) contains a [Padding] which
+/// describes how that operator would like to be spaced.
 #[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Hash, Debug)]
 pub enum Padding {
-  NotRequired, Preferred, Required
+  /// The operator is ambivalent to padding. It may be added if needed
+  /// for some other reason but is not required.
+  NotRequired,
+  /// The operator is more readable if spaces are added. It is not
+  /// incorrect to omit spaces, but they should be added unless there
+  /// is a good reason not to.
+  Preferred,
+  /// The operator requires spaces around it. Failing to include them
+  /// may result in incorrect code.
+  Required,
 }
 
 fn info(prec: i32, name: &'static str, padding: Padding) -> OperatorInfo {
   OperatorInfo { precedence: prec, name: name, padding: padding }
 }
 
+/// All of the operator types in this module can produce an
+/// [OperatorInfo] value describing their properties. This trait
+/// describes any type which can produce such an [OperatorInfo].
 pub trait OperatorHasInfo {
+  /// Produce [OperatorInfo].
   fn op_info(&self) -> OperatorInfo;
 }
 
