@@ -83,7 +83,7 @@ func pretty(value):
     if value == null:
         return "()"
     elif value is GDLisp.Cons:
-        return "({} . {})".format([pretty(value.car), pretty(value.cdr)], "{}")
+        return "(" + pretty(value.car) + " . " + pretty(value.cdr) + ")"
     elif value is Array:
         var s = "["
         var first = true
