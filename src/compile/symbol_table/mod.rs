@@ -86,6 +86,15 @@ impl SymbolTable {
     })
   }
 
+  pub fn assign_from(&mut self, other: &SymbolTable) {
+    for (name, value) in other.vars() {
+      self.set_var(name.to_owned(), value.to_owned());
+    }
+    for (name, call, magic) in other.fns() {
+      self.set_fn(name.to_owned(), call.to_owned(), dyn_clone::clone_box(magic));
+    }
+  }
+
 }
 
 // So this probably doesn't need to be a trait anymore. It could
