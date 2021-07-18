@@ -55,7 +55,8 @@ fn compile_flet_call<'a>(compiler: &mut Compiler<'a>,
       scope: FnScope::SemiGlobal,
       object: FnName::FileConstant,
       function: gd_name,
-      specs
+      specs,
+      is_macro: false,
     })
   } else {
     // Have to make a full closure object.
@@ -66,7 +67,8 @@ fn compile_flet_call<'a>(compiler: &mut Compiler<'a>,
       scope: FnScope::Local(local_name.clone()),
       object: FnName::on_local_var(VarName::Local(local_name)),
       function: "call_func".to_owned(),
-      specs
+      specs,
+      is_macro: false,
     })
   }
 }

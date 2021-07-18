@@ -239,6 +239,7 @@ pub fn compile_labels_scc<'a>(compiler: &mut Compiler<'a>,
       object: FnName::OnLocalScope,
       function: func_name.clone(),
       specs: FnSpecs::from(args.to_owned()),
+      is_macro: false,
     }, Box::new(DefaultCall));
     func_name
   }).collect();
@@ -266,6 +267,7 @@ pub fn compile_labels_scc<'a>(compiler: &mut Compiler<'a>,
       object: FnName::on_local_var(VarName::local(&local_var_name)),
       function: func_name,
       specs: FnSpecs::from(args.to_owned()),
+      is_macro: false,
     };
     functions.push(func);
     Ok((name.to_owned(), call))

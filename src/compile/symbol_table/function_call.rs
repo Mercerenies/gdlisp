@@ -17,6 +17,7 @@ pub struct FnCall {
   pub object: FnName,
   pub function: String,
   pub specs: FnSpecs,
+  pub is_macro: bool,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -75,12 +76,16 @@ pub struct FnSpecs {
 
 impl FnCall {
 
+  pub fn file_macro(specs: FnSpecs, scope: FnScope, function: String) -> FnCall {
+    FnCall { specs, scope, object: FnName::FileConstant, function, is_macro: true }
+  }
+
   pub fn file_constant(specs: FnSpecs, scope: FnScope, function: String) -> FnCall {
-    FnCall { specs, scope, object: FnName::FileConstant, function }
+    FnCall { specs, scope, object: FnName::FileConstant, function, is_macro: false }
   }
 
   pub fn superglobal(specs: FnSpecs, scope: FnScope, function: String) -> FnCall {
-    FnCall { specs, scope, object: FnName::Superglobal, function }
+    FnCall { specs, scope, object: FnName::Superglobal, function, is_macro: false }
   }
 
   pub fn into_expr<'a>(self,

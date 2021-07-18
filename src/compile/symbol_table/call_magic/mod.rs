@@ -109,7 +109,7 @@ fn strip_st(x: Vec<StExpr>) -> Vec<Expr> {
 // supplied in the CallMagic contract, so this is the DefaultCall case
 // of CallMagic, refined down only to the arguments it actually uses.
 pub fn compile_default_call(call: FnCall, mut args: Vec<Expr>) -> Result<Expr, Error> {
-  let FnCall { scope: _, object, function, specs } = call;
+  let FnCall { scope: _, object, function, specs, is_macro: _ } = call;
   // First, check arity
   if args.len() < specs.min_arity() as usize {
     return Err(Error::TooFewArgs(function, args.len()));

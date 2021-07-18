@@ -143,6 +143,10 @@ impl<'a> Compiler<'a> {
           None => return Err(Error::NoSuchFn(f.clone())),
           Some((p, m)) => (p.clone(), dyn_clone::clone_box(m))
         };
+        // Macro calls should not occur at this stage in compilation.
+        if fcall.is_macro {
+          panic!("Macro call failed to resolve in IR; reached compile stage (this is a bug in the GDLisp compiler)");
+        }
         // Call magic is used to implement some commonly used wrappers
         // for simple GDScript operations.
         let args = args.iter()
@@ -610,7 +614,7 @@ impl<'a> Compiler<'a> {
         // As above, macros compile basically the same as functions in
         // terms of call semantics and should be resolved during the
         // IR stage.
-        let func = function_call::FnCall::file_constant(
+        let func = function_call::FnCall::file_macro(
           function_call::FnSpecs::from(args.to_owned()),
           function_call::FnScope::Global,
           names::lisp_to_gd(name)

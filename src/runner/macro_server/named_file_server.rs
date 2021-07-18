@@ -88,6 +88,7 @@ impl NamedFileServer {
       object: FnName::MacroCall(Box::new(call_object)),
       function: call.name.to_owned(),
       specs: specs,
+      is_macro: true,
     };
     let server = self.server.get_mut()?;
     let eval_str = compile_default_call(call, args)?.to_gd();
