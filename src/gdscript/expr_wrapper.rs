@@ -1,7 +1,12 @@
 
+//! Miscellaneous helpers for wrapping commonly-used operations as
+//! GDScript expressions.
+
 use super::expr::Expr;
 use super::literal::Literal;
 
+/// Call the GDScript function `int` on the expression, unless the
+/// expression is provably already an integer.
 pub fn int(expr: Expr) -> Expr {
   if let Expr::Literal(Literal::Int(_)) = &expr {
     expr
@@ -10,6 +15,8 @@ pub fn int(expr: Expr) -> Expr {
   }
 }
 
+/// Call the GDScript function `float` on the expression, unless the
+/// expression is provably already a floating-point value.
 pub fn float(expr: Expr) -> Expr {
   if let Expr::Literal(Literal::Float(_)) = &expr {
     expr

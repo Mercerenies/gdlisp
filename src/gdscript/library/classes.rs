@@ -1,17 +1,22 @@
 
-// This list comes from the Godot Docs and is reproduced here under CC-BY 3.0.
-//
-// © Copyright 2014-2020, Juan Linietsky, Ariel Manzur and the Godot community (CC-BY 3.0) Revision 3239b4b5.
-// https://docs.godotengine.org/en/stable/classes/index.html
+//! A list of all built-in GDScript classes.
 
-// Also note: @GlobalScope and @GDScript are not included here, as we
-// cannot access them directly from GDScript anyway.
-
-// This list is not perfect. There are some things here that are not
-// first-class objects on the Godot side. I already removed a few
-// (int, float, Vector2, Vector3, etc.), but I'm sure there are more
-// that need to be dealt with.
-
+/// A list of all built-in GDScript classes which are always available
+/// from the top-level scope.
+///
+/// This list comes from the Godot Docs and is reproduced here under CC-BY 3.0.
+///
+/// © Copyright 2014-2020, Juan Linietsky, Ariel Manzur and the Godot community (CC-BY 3.0) Revision 3239b4b5.
+///
+/// [https://docs.godotengine.org/en/stable/classes/index.html]
+///
+/// Also note: `@GlobalScope` and `@GDScript` are not included here, as we
+/// cannot access them directly from GDScript anyway.
+///
+/// This list is not perfect. There are some things here that are not
+/// first-class objects on the Godot side. I already removed a few
+/// (`int`, `float`, `Vector2`, `Vector3`, etc.), but I'm sure there are more
+/// that need to be dealt with.
 pub static GDSCRIPT_CLASS_NAMES: [&str; 625] = [
 //"AABB",
   "AcceptDialog",

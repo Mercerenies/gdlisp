@@ -1,9 +1,34 @@
 
+//! GDLisp call magic.
+//!
+//! Call magic can be thought of as a sort of optimization and
+//! bootstrapping technique. In essence, a function call like `(+ a
+//! b)` in GDLisp should, in full generality, compile to a GDScript
+//! function call of the form `GDLisp.plus(GDLisp.cons(a,
+//! GDLisp.cons(b, null)))`. However, for obvious reasons, we would
+//! prefer that this simply compile to `a + b`.
+//!
+//! This is exactly what call magic accomplishes. The function `+` in
+//! GDLisp is marked with a special flag which indicates that it is
+//! eligible for call magic. There is a `GDLisp.gd` implementation of
+//! `+` in full generality which will get called if the programmer
+//! ever uses `+` as a first-class function (i.e. `(function +)` or
+//! `#'+`). However, if the programmer ever calls `+` directly, then
+//! the call magic is guaranteed to fire and replace the call with the
+//! correct syntax.
+//!
+//! As mentioned above, this is not *merely* an optimization. The `+`
+//! function in GDLisp could ostensibly be implemented in terms of
+//! itself. Since call magic is guaranteed behavior, this bootstrapped
+//! function would be guaranteed to compile to actual addition and not
+//! be recursive.
+
 use crate::compile::symbol_table::call_magic;
 use crate::compile::symbol_table::call_magic::table::MagicTable;
 use crate::gdscript::op;
 use crate::gdscript::expr::Expr;
 
+/// Bind all GDLisp call magic to the magic table given.
 pub fn bind_magic(table: &mut MagicTable) {
 
   // Default magic (used by default for all user-defined functions and
@@ -84,6 +109,8 @@ pub fn bind_magic(table: &mut MagicTable) {
 
 }
 
+/// Produce a new [`MagicTable`] with all of the magic bound as though
+/// via [`bind_magic`].
 pub fn standard_magic_table() -> MagicTable {
   let mut table = MagicTable::new();
   bind_magic(&mut table);

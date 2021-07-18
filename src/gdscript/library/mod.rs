@@ -1,5 +1,10 @@
 
-// Convenient access to the builtins in GDLisp.gd
+//! Convenient access to the builtins in `GDLisp.gd`.
+//!
+//! The most commonly-used functions from this module are
+//! [`bind_builtins`], [`bind_builtin_macros`], and
+//! [`all_builtin_names`], though the module also provides several
+//! simpler helper functions for commonly-used GDLisp builtins.
 
 pub mod classes;
 pub mod macros;
@@ -21,14 +26,21 @@ use classes::GDSCRIPT_CLASS_NAMES;
 
 use std::collections::{HashSet, HashMap};
 
+/// The name of the top-level GDLisp singleton object.
 pub const GDLISP_NAME: &str = "GDLisp";
+
+/// The name of the sole field in the `Cell` class.
 pub const CELL_CONTENTS: &str = "contents";
+
+/// The name of a GDScript constructor.
 pub const CONSTRUCTOR_NAME: &str = "_init";
 
+/// An expression which accesses the global GDLisp singleton object.
 pub fn gdlisp_root() -> Expr {
   Expr::Var(String::from(GDLISP_NAME))
 }
 
+/// An expression which accesses a specific field on [`gdlisp_root`].
 pub fn on_gdlisp_root(name: String) -> Expr {
   Expr::Attribute(Box::new(gdlisp_root()), name)
 }
@@ -46,32 +58,46 @@ fn gdlisp_function(name: &str, specs: FnSpecs) -> FnCall {
   func
 }
 
+/// The GDScript `null` value.
 pub fn nil() -> Expr {
   Expr::null()
 }
 
+/// An expression representing the GDLisp `Cons` class.
 pub fn cons_class() -> Expr {
   on_gdlisp_root(String::from("Cons"))
 }
 
+/// An expression representing the GDLisp `Symbol` class.
 pub fn symbol_class() -> Expr {
   on_gdlisp_root(String::from("Symbol"))
 }
 
+/// An expression representing the GDLisp `Cell` class.
 pub fn cell_class() -> Expr {
   on_gdlisp_root(String::from("Cell"))
 }
 
+/// Given a vector of expressions `vec`, produce an expression which
+/// produces a GDLisp list containing those expressions in order.
 pub fn construct_list(vec: Vec<Expr>) -> Expr {
   vec.into_iter().rev().fold(nil(), |rest, first| {
     Expr::Call(Some(Box::new(cons_class())), String::from("new"), vec!(first, rest))
   })
 }
 
+/// Given a GDLisp expression, produce an expression which constructs
+/// a cell containing it.
 pub fn construct_cell(expr: Expr) -> Expr {
   Expr::Call(Some(Box::new(cell_class())), String::from("new"), vec!(expr))
 }
 
+/// Bind all GDLisp and GDScript built-in names to the given symbol
+/// table.
+///
+/// This function does *not* bind built-in macros.
+/// [`bind_builtin_macros`] is a separate function provided for that
+/// behavior.
 pub fn bind_builtins(table: &mut SymbolTable) {
 
   // All built-in global class names
@@ -420,6 +446,8 @@ pub fn bind_builtins(table: &mut SymbolTable) {
 
 }
 
+/// Get a collection of all of the built-in names in GDLisp and
+/// GDScript, in no particular order.
 pub fn all_builtin_names() -> HashSet<Id> {
   // This is a *really* roundabout way of doing this, but whatever.
   // The canonical list is given in bind_builtins, so for the sake of
@@ -436,6 +464,7 @@ pub fn all_builtin_names() -> HashSet<Id> {
   names
 }
 
+/// Bind all of the built-in GDLisp macros to the macro table given.
 pub fn bind_builtin_macros(macros: &mut HashMap<String, MacroData>) {
 
   // or

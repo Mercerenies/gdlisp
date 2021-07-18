@@ -1,4 +1,7 @@
 
+//! Data structures for representing and manipulating valid GDScript
+//! code.
+
 pub mod expr;
 pub mod stmt;
 pub mod op;

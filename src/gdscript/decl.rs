@@ -1,4 +1,11 @@
 
+//! GDScript declarations.
+//!
+//! This module defines a [datatype](Decl) for representing
+//! declarations in the GDScript language, as well as
+//! [`Decl::write_gd`] for writing declarations as GDScript syntax to
+//! a [`fmt::Write`] instance.
+
 use crate::gdscript::expr::Expr;
 use crate::gdscript::stmt::Stmt;
 use crate::gdscript::indent;
@@ -7,6 +14,8 @@ use crate::gdscript::arglist::ArgList;
 use std::fmt::{self, Write};
 
 // TODO _init has some special syntax that we need to be prepared to handle.
+
+/// The type of GDScript declarations.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum Decl {
   VarDecl(Option<Export>, String, Option<Expr>),
@@ -24,6 +33,11 @@ pub struct ClassDecl {
   pub body: Vec<Decl>,
 }
 
+/// The top-level class is a special kind of class, similar to a
+/// [`ClassDecl`].
+///
+/// The top-level class, however, is not required to have a name and
+/// will print using subtly different syntax.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct TopLevelClass {
   pub name: Option<String>, // The top-level class is not required to have a name.
@@ -31,8 +45,11 @@ pub struct TopLevelClass {
   pub body: Vec<Decl>,
 }
 
+/// A descriptor of what class is being extended.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum ClassExtends {
+  /// A qualified name. `Qualified(vec!("foo", "bar", "baz"))`
+  /// represents the name `foo.bar.baz`.
   Qualified(Vec<String>),
   // StringLit(String), // TODO Support string literals (once we have them in general)
 }
@@ -50,11 +67,18 @@ pub struct EnumDecl {
   pub clauses: Vec<(String, Option<Expr>)>,
 }
 
+/// A GDScript export declaration attached to a variable.
+///
+/// Not all expressions are valid in an export declaration, so the
+/// user should take care to use this type only with valid
+/// expressions.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Export {
   pub args: Vec<Expr>,
 }
 
+/// A Boolean-isomorphic type which indicates whether or not a
+/// function is static.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum Static {
   NonStatic, IsStatic,
@@ -70,6 +94,16 @@ fn empty_class_body() -> Decl {
 
 impl Decl {
 
+  /// Write the declaration, as GDScript code, to the [`fmt::Write`]
+  /// instance `w`.
+  ///
+  /// We are assumed to be at the indentation level `ind`, so that all
+  /// lines in the result will be indented to that level.
+  ///
+  /// The writer `w` should currently be either empty or immediately
+  /// after a newline. The declaration will always end by printing a
+  /// newline, making it suitable for writing a subsequent declaration
+  /// immediately after.
   pub fn write_gd<W : fmt::Write>(&self, w: &mut W, ind: u32) -> Result<(), fmt::Error> {
     indent(w, ind)?;
     match self {
@@ -128,6 +162,9 @@ impl Decl {
     }
   }
 
+  /// Write several declarations in sequence, using [`Decl::write_gd`].
+  ///
+  /// If `iter` is empty, then ``default` will be written instead.
   pub fn write_gd_decls<'a, W, I>(iter: I, default: &Decl, w: &mut W, ind: u32) -> Result<(), fmt::Error>
   where W : fmt::Write,
         I : IntoIterator<Item = &'a Decl> {
@@ -142,6 +179,13 @@ impl Decl {
     Ok(())
   }
 
+  /// Write the declaration to a string, using [`Decl::write_gd`].
+  ///
+  /// # Panics
+  ///
+  /// This function panics if there is a write error to the string. If
+  /// you wish to handle that case yourself, use [`Stmt::write_gd`]
+  /// explicitly.
   pub fn to_gd(&self, ind: u32) -> String {
     let mut string = String::new();
     self.write_gd(&mut string, ind).expect("Could not write to string in Decl::to_gd");
@@ -152,10 +196,21 @@ impl Decl {
 
 impl ClassExtends {
 
+  /// A simple unqualified name.
+  ///
+  /// # Examples
+  ///
+  /// ```
+  /// # use gdlisp::gdscript::decl::ClassExtends;
+  /// let named = ClassExtends::named(String::from("Foobar"));
+  /// assert_eq!(named, ClassExtends::Qualified(vec!(String::from("Foobar"))));
+  /// ```
   pub fn named(name: String) -> ClassExtends {
     ClassExtends::Qualified(vec!(name))
   }
 
+  /// Convert `self` to a string suitable as the tail end of a
+  /// `extends` clause in GDScript.
   pub fn to_gd(&self) -> String {
     match self {
       ClassExtends::Qualified(names) => names.join("."),
@@ -166,6 +221,7 @@ impl ClassExtends {
 
 impl TopLevelClass {
 
+  /// Convert `self` to a string suitable for writing to a `.gd` file.
   pub fn to_gd(&self) -> String {
     let mut string = String::new();
     if let Some(name) = &self.name {
