@@ -706,8 +706,10 @@ impl<'a> Compiler<'a> {
     self.gen.generate_with(&prefix)
   }
 
-  fn translate_call(import_name: String, mut call: function_call::FnCall) -> function_call::FnCall {
-    call.object = call.object.into_imported(import_name);
+  pub fn translate_call(import_name: String, mut call: function_call::FnCall) -> function_call::FnCall {
+    if call.scope != function_call::FnScope::Superglobal {
+      call.object = call.object.into_imported(import_name);
+    }
     call
   }
 
