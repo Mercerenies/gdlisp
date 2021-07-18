@@ -1211,7 +1211,7 @@
      (,cnd ())
      (#t (progn ,.args))))
 
-(defmacro if (cnd t f)
+(defmacro if (cnd t &opt f)
   `(cond
      (,cnd ,t)
      (#t ,f)))
