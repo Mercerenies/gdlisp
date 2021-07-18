@@ -1,9 +1,11 @@
 
+#![deprecated]
+
 //! All of the built-in GDLisp macros are implemented in Rust here.
 //!
-//! Eventually, we will write all of these in GDLisp and bootstrap
-//! from that, rendering this module obsolete. For now, however, this
-//! module is necessary for compilation.
+//! This module is obsolete and should not be used. Macro resolution
+//! is bootstrapped from `GDLisp.lisp` now and does not reference this
+//! module. `library::macros` exists for historical reasons only.
 
 use crate::runner::macro_server::named_file_server::MacroID;
 use crate::sxp::ast::AST;
