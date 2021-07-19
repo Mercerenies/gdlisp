@@ -106,20 +106,26 @@ fn get_stdlib() -> &'static TranslationUnit {
   // TODO This is a nasty hack that uses global variables to get what
   // I want. To be honest, I'm not fully sure how we're going to fix
   // it, but it needs to not stay this way long-term.
-  static mut PIPELINE: *mut Pipeline = ptr::null_mut();
   static mut UNIT: *const TranslationUnit = ptr::null();
   static ONCE: Once = Once::new();
 
   unsafe {
     ONCE.call_once(|| {
-      {
-        let pipeline = Box::new(Pipeline::new(gdlisp_project_config()));
-        PIPELINE = Box::into_raw(pipeline);
-      }
-      {
-        let stdlib = load_stdlib_file(&mut *PIPELINE);
-        UNIT = stdlib;
-      }
+      // We don't want to keep a Pipeline in static storage. Pipeline
+      // contains a macro server child process, and if Drop doesn't
+      // get called, then that process will remain even after the
+      // compiler terminates. Thus, we use a Pipeline locally here,
+      // get the translation unit, detach the translation unit from
+      // the pipeline, and then drop the pipeline. The detach function
+      // is only safe as long as the standard library doesn't define
+      // any non-reserved macros. But this definition is tautological,
+      // because all macros defined in the standard library are, by
+      // definition, reserved macros with special behavior. Hence,
+      // detaching the translation unit is tautologically safe.
+      let mut pipeline = Pipeline::new(gdlisp_project_config());
+      let stdlib = load_stdlib_file(&mut pipeline);
+      let unit = Box::new(stdlib.clone_detached());
+      UNIT = Box::into_raw(unit);
     });
     &*UNIT
   }

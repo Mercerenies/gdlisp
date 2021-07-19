@@ -29,6 +29,33 @@ impl TranslationUnit {
     TranslationUnit { filename, table, ir, gdscript, exports, macros }
   }
 
+  /// Clone the [`TranslationUnit`].
+  ///
+  /// `TranslationUnit` does not directly implement [`Clone`], and for
+  /// good reason. The identifiers in a given translation unit (for
+  /// example, those in [`TranslationUnit::macros`]) apply to a
+  /// particular [`Pipeline`](super::Pipeline). Associating a
+  /// translation unit with a different pipeline can result in
+  /// unintended consequences. Thus, we provide this explicit
+  /// mechanism for cloning a translation unit. This method should
+  /// only be called if you *definitely* know what you're doing.
+  ///
+  /// In particular, `clone_detached` is safe on translation units
+  /// which do not define any macros, or which define only macros
+  /// using reserved identifiers. That means that `clone_detached` is
+  /// safe to use on the translation unit describing the GDLisp
+  /// standard library.
+  pub fn clone_detached(&self) -> TranslationUnit {
+    TranslationUnit {
+      filename: self.filename.clone(),
+      table: self.table.clone(),
+      ir: self.ir.clone(),
+      gdscript: self.gdscript.clone(),
+      exports: self.exports.clone(),
+      macros: self.macros.clone(),
+    }
+  }
+
 }
 
 impl From<TranslationUnit> for TopLevelClass {
