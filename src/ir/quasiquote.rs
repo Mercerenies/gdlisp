@@ -157,7 +157,7 @@ fn quasiquote_spliced(icompiler: &mut IncCompiler,
               }
               QQSpliced::Several(x) => {
                 let x = Expr::Call(String::from("sys/qq-smart-array"), vec!(x));
-                if current_vec.len() > 0 {
+                if !current_vec.is_empty() {
                   acc.push(Expr::Array(current_vec));
                   current_vec = vec!();
                 }
@@ -165,7 +165,7 @@ fn quasiquote_spliced(icompiler: &mut IncCompiler,
               }
             }
           }
-          if current_vec.len() > 0 {
+          if !current_vec.is_empty() {
             acc.push(Expr::Array(current_vec));
           }
           Expr::Call(String::from("+"), acc)
