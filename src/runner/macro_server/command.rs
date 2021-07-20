@@ -1,15 +1,15 @@
 
+//! The types representing commands which can be sent to a
+//! [`MacroServer`](super::MacroServer).
+//!
+//! [`ServerCommand`] represents the various commands which can be
+//! sent to the macro server. Commands are eventually encoded as JSON
+//! and passed onto the server. Eventually, the server will receive a
+//! [`ServerResponse`](super::response::ServerResponse) back as reply.
+
 use json::JsonValue;
 
-/*
- * Commands are sent as JSON objects which have the following keys.
- *
- * command (required) - The name of the command.
- *
- * args (required) - An array of values, usually strings. Its
- * interpretation depends on the command being run.
- */
-
+/// A server command.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum ServerCommand {
   Quit,
@@ -21,6 +21,7 @@ pub enum ServerCommand {
 
 impl ServerCommand {
 
+  /// The name of the command, as a string.
   pub fn name(&self) -> &'static str {
     match self {
       ServerCommand::Quit => "quit",
@@ -31,6 +32,7 @@ impl ServerCommand {
     }
   }
 
+  /// The arguments to the command, as a sequence of strings.
   pub fn arguments(&self) -> Vec<&str> {
     match self {
       ServerCommand::Quit => vec!(),
@@ -41,6 +43,14 @@ impl ServerCommand {
     }
   }
 
+  /// Convert the command to JSON.
+  ///
+  /// Commands are sent as JSON objects which have the following keys.
+  ///
+  /// * command (required) - The name of the command.
+  ///
+  /// * args (required) - An array of values, usually strings. Its
+  /// interpretation depends on the command being run.
   pub fn to_json(&self) -> JsonValue {
     let command = String::from(self.name());
     let args = self.arguments().into_iter().map(JsonValue::from).collect();

@@ -1,4 +1,23 @@
 
+//! Structure for representing a Godot resource path.
+//!
+//! Godot resource paths are represented using a special syntax. There
+//! are three types of paths that can be represented in this way.
+//!
+//! 1. **Absolute paths** have no prefix and are written as-is. These
+//! paths start from the file-system root and refer to a specific
+//! location.
+//!
+//! 2. **Resource paths** begin with `res://` and represent a path
+//! relative to the project directory.
+//!
+//! 3. **User paths** begin with `user://` and represent a path
+//! relative to some user-local storage directory, usually used for
+//! save files or the like.
+//!
+//! This module defines [`RPathBuf`], a [`PathBuf`]-like structure
+//! which represents the above file path formats.
+
 // An RPathBuf consists of a PathBuf together with a specifier
 
 use std::path::{PathBuf, Path, Components};
@@ -7,22 +26,47 @@ use std::str::FromStr;
 use std::fmt;
 use std::ffi::OsStr;
 
+/// An `RPathBuf` represents a file path using Godot's format.
+///
+/// See the [module-level documentation](crate::runner::path) for more
+/// details.
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct RPathBuf {
   source: PathSrc,
   path: PathBuf,
 }
 
+/// An [`RPathBuf`] can refer to an absolute path, a resource path, or
+/// a user path.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
-pub enum PathSrc { User, Res, Absolute }
+pub enum PathSrc {
+  /// A user path, relative to some user-local storage directory.
+  User,
+  /// A resource path, relative to the project direction.
+  Res,
+  /// An absolute path, from the file system root directory.
+  Absolute,
+}
 
+/// Errors which can occur when constructing an [`RPathBuf`] object.
 #[derive(Clone, Copy, Debug)]
 pub enum TryFromRPathBufError {
-  ExpectedRelative, ExpectedAbsolute
+  /// A relative path was expected (based on the [`PathSrc`]) but an
+  /// absolute one was provided.
+  ExpectedRelative,
+  /// An absolute path was expected (based on the [`PathSrc`]) but a
+  /// relative one was provided.
+  ExpectedAbsolute,
 }
 
 impl RPathBuf {
 
+  /// Construct an `RPathBuf` from a source and a file path.
+  ///
+  /// Note that `path` should be a relative path if and only if
+  /// [`source.should_be_relative_path()`](PathSrc::should_be_relative_path)
+  /// is true. If this condition is violated, then an error will be
+  /// returned from this function.
   pub fn new(source: PathSrc, path: PathBuf) -> Result<RPathBuf, TryFromRPathBufError> {
     if source.should_be_relative_path() == path.is_relative() {
       Ok(RPathBuf { source, path })
@@ -33,30 +77,45 @@ impl RPathBuf {
     }
   }
 
+  /// Gets the path's source type.
   pub fn source(&self) -> PathSrc {
     self.source
   }
 
+  /// Gets the file path.
   pub fn path(&self) -> &Path {
     &self.path
   }
 
+  /// Gets the file path, mutably.
+  ///
+  /// Callers of this function are expected to maintain the
+  /// constructor's precondition, namely that the path is relative if
+  /// and only if [`PathSrc::should_be_relative_path`] is true.
   pub fn path_mut(&mut self) -> &mut PathBuf {
     &mut self.path
   }
 
+  /// Consumes `self` and produce its file path as a [`PathBuf`].
   pub fn into_path(self) -> PathBuf {
     self.path
   }
 
+  /// Returns the path's components. Equivalent to
+  /// `self.path().components()`.
   pub fn components(&self) -> Components<'_> {
     self.path().components()
   }
 
+  /// Returns the path's extension. Equivalent to
+  /// `self.path().extension()`.
   pub fn extension(&self) -> Option<&OsStr> {
     self.path().extension()
   }
 
+  /// Returns the path's components, like [`RPathBuf::components`].
+  /// However, if the path is an absolute path, then the root `/` will
+  /// be stripped from the components.
   pub fn components_no_root(&self) -> Components<'_> {
     let mut comp = self.components();
     if self.path().has_root() {
@@ -65,12 +124,19 @@ impl RPathBuf {
     comp
   }
 
+  /// Return the path as a string.
+  ///
+  /// Forward slashes will always be used as the path delimiter, even
+  /// on Windows. This is consistent with Godot's behavior.
   pub fn path_to_string<P : AsRef<Path> + ?Sized>(path: &P) -> String {
     path.as_ref().to_string_lossy().replace("\\", "/")
   }
 
 }
 
+/// Displays the path as a string, using Godot's `user://` and
+/// `res://` syntax as appropriate. Absolute paths will be shown
+/// verbatim with no prefix.
 impl fmt::Display for RPathBuf {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     let path = RPathBuf::path_to_string(self.path());
@@ -80,10 +146,20 @@ impl fmt::Display for RPathBuf {
 
 impl PathSrc {
 
+  /// Returns whether a path with this source type should be a
+  /// relative path.
+  ///
+  /// All source types except [`PathSrc::Absolute`] should refer to
+  /// relative paths.
   pub fn should_be_relative_path(self) -> bool {
     self != PathSrc::Absolute
   }
 
+  /// Returns the Godot-style prefix (`user://` or `res://`) for the
+  /// path type.
+  ///
+  /// In the case of [`PathSrc::Absolute`], an empty string is
+  /// returned, as no prefix is necessary in this case.
   pub fn prefix(self) -> &'static str {
     match self {
       PathSrc::User => "user://",
@@ -94,6 +170,9 @@ impl PathSrc {
 
 }
 
+/// Converts a Godot-style import string (potentially beginning with
+/// `res://` or `user://`) into the appropriate type of [`RPathBuf`]
+/// object.
 impl TryFrom<String> for RPathBuf {
   type Error = TryFromRPathBufError;
 

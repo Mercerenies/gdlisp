@@ -18,6 +18,8 @@ use std::fs;
 use std::mem::ManuallyDrop;
 
 // TODO Make port number configurable
+
+/// The TCP port used for communicating with the macro server.
 pub const PORT_NUMBER: u16 = 61992;
 
 pub struct MacroServer {

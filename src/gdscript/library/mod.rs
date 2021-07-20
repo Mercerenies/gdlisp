@@ -95,6 +95,7 @@ pub fn construct_cell(expr: Expr) -> Expr {
   Expr::Call(Some(Box::new(cell_class())), String::from("new"), vec!(expr))
 }
 
+/// An appropriate [`ProjectConfig`] for the `GDLisp.gd` source file.
 pub fn gdlisp_project_config() -> ProjectConfig {
   ProjectConfig {
     root_directory: PathBuf::from("."),
@@ -141,6 +142,14 @@ fn load_stdlib_file(pipeline: &mut Pipeline) -> &TranslationUnit {
 /// This function does *not* bind built-in macros.
 /// [`bind_builtin_macros`] is a separate function provided for that
 /// behavior.
+///
+/// If `minimalist` is true, then the GDLisp standard library will not
+/// be bound. Note that this does *not* make `bind_builtins` a no-op;
+/// GDScript global names like top-level classes (`Reference`, `Node`,
+/// etc.) will be bound regardless of `minimalist`, but the GDLisp
+/// standard library will not be loaded. `minimalist` should generally
+/// be false and is intended as a means of compiling the standard
+/// library itself.
 pub fn bind_builtins(table: &mut SymbolTable, minimalist: bool) {
   let unit =
     if minimalist {
@@ -181,6 +190,9 @@ fn bind_builtins_unchecked(table: &mut SymbolTable, unit: Option<&TranslationUni
 
 /// Get a collection of all of the built-in names in GDLisp and
 /// GDScript, in no particular order.
+///
+/// `minimalist` is passed onto [`bind_builtins`] as-is and will be
+/// interpreted in the same way it is in that function.
 pub fn all_builtin_names(minimalist: bool) -> HashSet<Id> {
   // This is a *really* roundabout way of doing this, but whatever.
   // The canonical list is given in bind_builtins, so for the sake of
@@ -197,9 +209,15 @@ pub fn all_builtin_names(minimalist: bool) -> HashSet<Id> {
   names
 }
 
+// TODO Move this to MacroId as a special value.
 const RESERVED_MACRO_ID: u32 = 1;
 
 /// Bind all of the built-in GDLisp macros to the macro table given.
+///
+/// If the standard library has not been loaded, this function loads
+/// the standard library. As such, this function should not be called
+/// in the process of loading the standard library, as that will
+/// result in a double lock on the stdlib mutex.
 pub fn bind_builtin_macros(macros: &mut HashMap<String, MacroData>) {
 
   let unit = get_stdlib();
