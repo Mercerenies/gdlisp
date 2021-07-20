@@ -136,6 +136,15 @@ fn load_stdlib_file(pipeline: &mut Pipeline) -> &TranslationUnit {
   pipeline.load_file(&PathBuf::from("GDLisp.lisp")).expect("Error loading standard library")
 }
 
+/// Ensure that the standard library `GDLisp.lisp` has been compiled.
+/// If it has not, then this function compiles it. As with other
+/// `library` functions, this will panic in case of error. After this
+/// function returns, a file named `GDLisp.gd` will exist in the
+/// project directory.
+pub fn ensure_stdlib_loaded() {
+  let _ = get_stdlib();
+}
+
 /// Bind all GDLisp and GDScript built-in names to the given symbol
 /// table.
 ///
@@ -174,14 +183,21 @@ fn bind_builtins_unchecked(table: &mut SymbolTable, unit: Option<&TranslationUni
   // time we do bind user-defined macros to the symbol table.
 
   if let Some(unit) = unit {
-    for (name, value) in unit.table.vars() {
-      let mut value = value.clone();
-      value.name = value.name.into_imported(String::from("GDLisp"));
-      table.set_var(name.to_owned(), value);
-    }
-    for (name, call, magic) in unit.table.fns() {
-      let call = Compiler::translate_call(String::from("GDLisp"), call.clone());
-      table.set_fn(name.to_owned(), call, dyn_clone::clone_box(magic));
+    for id in &unit.exports {
+      match id.namespace {
+        Namespace::Value => {
+          let value = unit.table.get_var(&id.name).expect(&format!("Exported value name {} does not appear", id.name));
+          let mut value = value.to_owned();
+          value.name = value.name.into_imported(String::from("GDLisp"));
+          table.set_var(id.name.to_owned(), value);
+        }
+        Namespace::Function => {
+          let (call, magic) = unit.table.get_fn(&id.name).expect(&format!("Exported function name {} does not appear", id.name));
+          let call = Compiler::translate_call(String::from("GDLisp"), call.clone());
+          let magic = dyn_clone::clone_box(magic);
+          table.set_fn(id.name.to_owned(), call, magic);
+        }
+      }
     }
   }
 

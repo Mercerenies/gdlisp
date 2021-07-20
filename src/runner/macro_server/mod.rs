@@ -5,6 +5,7 @@ pub mod lazy;
 pub mod named_file_server;
 
 use super::run_project_process;
+use crate::gdscript::library;
 
 use command::ServerCommand;
 use response::ServerResponse;
@@ -30,6 +31,7 @@ pub struct MacroServer {
 impl MacroServer {
 
   pub fn new() -> io::Result<MacroServer> {
+    library::ensure_stdlib_loaded();
     fs::copy(PathBuf::from("GDLisp.gd"), PathBuf::from("MacroServer/GDLisp.gd"))?;
     let (tcp_listener, port) = MacroServer::try_to_bind_port(PORT_NUMBER, u16::MAX)?;
     let env = vec!(("GDLISP_PORT_NUMBER", port.to_string()));
