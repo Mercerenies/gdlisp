@@ -822,6 +822,12 @@
 (defn cdr (a)
   a:cdr)
 
+(defn set-car (b a)
+  (set a:car b))
+
+(defn set-cdr (b a)
+  (set a:cdr b))
+
 (defn intern (a)
   (Symbol:new a))
 
