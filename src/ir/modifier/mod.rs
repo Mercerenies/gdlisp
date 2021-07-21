@@ -8,6 +8,7 @@ pub mod enums;
 pub mod visibility;
 pub mod magic;
 pub mod file;
+pub mod declare;
 
 use crate::sxp::ast::AST;
 

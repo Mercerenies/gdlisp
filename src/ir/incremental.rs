@@ -326,11 +326,8 @@ impl IncCompiler {
             if vec.len() < 3 {
               return Err(PError::from(Error::InvalidDecl(decl.clone())));
             }
-            match vec[1] {
+            let (mut declare, body) = match vec[1] {
               AST::Symbol(value) if value == "value" || value == "superglobal" => {
-                if vec.len() > 3 {
-                  return Err(PError::from(Error::InvalidDecl(decl.clone())));
-                }
                 let name = match vec[2] {
                   AST::Symbol(s) => s.to_owned(),
                   _ => return Err(PError::from(Error::InvalidDecl(decl.clone()))),
@@ -341,17 +338,14 @@ impl IncCompiler {
                   } else {
                     decl::DeclareType::Value
                   };
-                let declare = decl::DeclareDecl {
+                let decl = decl::DeclareDecl {
                   visibility: Visibility::DECLARE,
                   declare_type,
                   name
                 };
-                Ok(Decl::DeclareDecl(declare))
+                (decl, &vec[3..])
               }
               AST::Symbol(function) if function == "function" || function == "superfunction" => {
-                if vec.len() != 4 {
-                  return Err(PError::from(Error::InvalidDecl(decl.clone())));
-                }
                 let name = match vec[2] {
                   AST::Symbol(s) => s.to_owned(),
                   _ => return Err(PError::from(Error::InvalidDecl(decl.clone()))),
@@ -364,17 +358,25 @@ impl IncCompiler {
                   } else {
                     decl::DeclareType::Function(args)
                   };
-                let declare = decl::DeclareDecl {
+                let decl = decl::DeclareDecl {
                   visibility: Visibility::DECLARE,
                   declare_type,
                   name
                 };
-                Ok(Decl::DeclareDecl(declare))
+                (decl, &vec[4..])
               }
               _ => {
-                Err(PError::from(Error::InvalidDecl(decl.clone())))
+                return Err(PError::from(Error::InvalidDecl(decl.clone())))
               }
+            };
+            let (mods, body) = modifier::declare::parser().parse(&body)?;
+            if !body.is_empty() {
+              return Err(PError::from(Error::InvalidDecl(decl.clone())));
             }
+            for m in mods {
+              m.apply(&mut declare);
+            }
+            Ok(Decl::DeclareDecl(declare))
           }
           _ => {
             Err(PError::from(Error::UnknownDecl(decl.clone())))
