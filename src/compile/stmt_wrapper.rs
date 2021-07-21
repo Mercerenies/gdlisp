@@ -25,14 +25,14 @@ pub trait StmtWrapper {
   // the wrapper is vacuous and the expression is stateless, this
   // method does nothing.
   fn wrap_to_builder(&self, builder: &mut StmtBuilder, expr: StExpr) {
-    let StExpr(expr, side_effects) = expr;
+    let StExpr { expr, side_effects } = expr;
     if side_effects.modifies_state() || !self.is_vacuous() {
       builder.append(self.wrap_expr(expr));
     }
   }
 
   fn wrap_to_stmts(&self, expr: StExpr) -> Vec<Stmt> {
-    let StExpr(expr, side_effects) = expr;
+    let StExpr { expr, side_effects } = expr;
     if side_effects.modifies_state() || !self.is_vacuous() {
       vec!(self.wrap_expr(expr))
     } else {

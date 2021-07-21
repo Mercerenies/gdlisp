@@ -100,7 +100,7 @@ pub enum Assoc { Left, Right }
 // Vec<StExpr>. The latter gives more information than we usually
 // need. So this helper just strips off the excess.
 fn strip_st(x: Vec<StExpr>) -> Vec<Expr> {
-  x.into_iter().map(|x| x.0).collect()
+  x.into_iter().map(|x| x.expr).collect()
 }
 
 // This function is useful independent of the CallMagic interface (for
@@ -196,8 +196,8 @@ impl CallMagic for CompileToTransCmp {
         Ok(Expr::from(true))
       }
       2 => {
-        let a = args.remove(0).0;
-        let b = args.remove(0).0;
+        let a = args.remove(0).expr;
+        let b = args.remove(0).expr;
         Ok(Expr::Binary(Box::new(a), self.bin, Box::new(b)))
       }
       _ => {
@@ -208,8 +208,8 @@ impl CallMagic for CompileToTransCmp {
         // fine, since we're doing it twice in a row, and nothing
         // happens in between.
         let args = args.into_iter().map(|x| {
-          let StExpr(expr, stateful) = x;
-          if stateful.modifies_state() {
+          let StExpr { expr, side_effects } = x;
+          if side_effects.modifies_state() {
             let var_name = compiler.declare_var(builder, "_cmp", Some(expr));
             Expr::Var(var_name)
           } else {
@@ -340,7 +340,7 @@ impl CallMagic for NEqOperation {
         Ok(Expr::from(true))
       }
       2 => {
-        Ok(Expr::Binary(Box::new(args[0].0.clone()), op::BinaryOp::NE, Box::new(args[1].0.clone())))
+        Ok(Expr::Binary(Box::new(args[0].expr.clone()), op::BinaryOp::NE, Box::new(args[1].expr.clone())))
       }
       _ => {
         self.fallback.compile(call, compiler, builder, table, args)

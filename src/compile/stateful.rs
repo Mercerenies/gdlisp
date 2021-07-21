@@ -6,9 +6,11 @@ use crate::gdscript::expr::Expr;
 use crate::gdscript::library;
 use crate::ir::locals::AccessType;
 
-// TODO Let's be real. StExpr needs to have named fields. Too much .0 and .1 going around.
 #[derive(Debug, Clone)]
-pub struct StExpr(pub Expr, pub SideEffects); // An expression and a declaration of whether or not it's stateful.
+pub struct StExpr {
+  pub expr: Expr,
+  pub side_effects: SideEffects
+}
 
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone, Copy)]
 pub enum SideEffects { None, ReadsState, ModifiesState }

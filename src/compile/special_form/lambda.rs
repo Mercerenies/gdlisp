@@ -466,7 +466,7 @@ pub fn compile_lambda_stmt<'a>(compiler: &mut Compiler<'a>,
   builder.add_helper(Decl::ClassDecl(class));
   let constructor_args = gd_src_closure_vars.into_iter().map(Expr::Var).collect();
   let expr = Expr::Call(Some(Box::new(Expr::Var(class_name))), String::from("new"), constructor_args);
-  Ok(StExpr(expr, SideEffects::None))
+  Ok(StExpr { expr, side_effects: SideEffects::None })
 }
 
 pub fn compile_function_ref<'a>(compiler: &mut Compiler<'a>,
@@ -476,7 +476,7 @@ pub fn compile_function_ref<'a>(compiler: &mut Compiler<'a>,
                                 func: FnCall)
                                 -> Result<StExpr, Error> {
   if let FnScope::Local(name) = func.scope {
-    Ok(StExpr(Expr::Var(name), SideEffects::None))
+    Ok(StExpr { expr: Expr::Var(name), side_effects: SideEffects::None })
   } else {
     let specs = func.specs;
     let arg_count = func.specs.runtime_arity();
@@ -501,7 +501,7 @@ pub fn compile_function_ref<'a>(compiler: &mut Compiler<'a>,
     let class_name = class.name.clone();
     builder.add_helper(Decl::ClassDecl(class));
     let expr = Expr::Call(Some(Box::new(Expr::Var(class_name))), String::from("new"), closure_var_ctor_args);
-    Ok(StExpr(expr, SideEffects::None))
+    Ok(StExpr { expr, side_effects: SideEffects::None })
   }
 }
 

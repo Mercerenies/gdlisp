@@ -60,7 +60,7 @@ fn compile_flet_call<'a>(compiler: &mut Compiler<'a>,
     })
   } else {
     // Have to make a full closure object.
-    let StExpr(stmt, _) = lambda::compile_lambda_stmt(compiler, pipeline, builder, table, &args, body)?;
+    let stmt = lambda::compile_lambda_stmt(compiler, pipeline, builder, table, &args, body)?.expr;
     let local_name = compiler.declare_var(builder, "_flet", Some(stmt));
     let specs = FnSpecs::from(args);
     Ok(FnCall {

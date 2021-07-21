@@ -36,9 +36,10 @@ pub fn compile_cond_stmt<'a>(compiler: &mut Compiler<'a>,
       None => {
         let mut outer_builder = StmtBuilder::new();
         let mut inner_builder = StmtBuilder::new();
-        let cond = compiler.compile_expr(pipeline, &mut outer_builder, table, cond, NeedsResult::Yes)?.0;
+        let cond = compiler.compile_expr(pipeline, &mut outer_builder, table, cond, NeedsResult::Yes)?.expr;
         let var_name = compiler.declare_var(&mut outer_builder, "_cond", Some(cond));
-        destination.wrap_to_builder(&mut inner_builder, StExpr(Expr::Var(var_name.clone()), SideEffects::None));
+        let var_expr = StExpr { expr: Expr::Var(var_name.clone()), side_effects: SideEffects::None };
+        destination.wrap_to_builder(&mut inner_builder, var_expr);
         let if_branch = inner_builder.build_into(builder);
         outer_builder.append(stmt::if_else(Expr::Var(var_name), if_branch, acc));
         Ok(outer_builder.build_into(builder))
@@ -46,7 +47,7 @@ pub fn compile_cond_stmt<'a>(compiler: &mut Compiler<'a>,
       Some(body) => {
         let mut outer_builder = StmtBuilder::new();
         let mut inner_builder = StmtBuilder::new();
-        let cond = compiler.compile_expr(pipeline, &mut outer_builder, table, cond, NeedsResult::Yes)?.0;
+        let cond = compiler.compile_expr(pipeline, &mut outer_builder, table, cond, NeedsResult::Yes)?.expr;
         compiler.compile_stmt(pipeline, &mut inner_builder, table, destination.as_ref(), body)?;
         let if_branch = inner_builder.build_into(builder);
         outer_builder.append(stmt::if_else(cond, if_branch, acc));
@@ -55,7 +56,7 @@ pub fn compile_cond_stmt<'a>(compiler: &mut Compiler<'a>,
     }
   })?;
   builder.append_all(&mut body.into_iter());
-  Ok(StExpr(result, SideEffects::None))
+  Ok(StExpr { expr: result, side_effects: SideEffects::None })
 }
 
 pub fn compile_while_stmt<'a>(compiler: &mut Compiler<'a>,
@@ -75,7 +76,7 @@ pub fn compile_while_stmt<'a>(compiler: &mut Compiler<'a>,
   // statements.
   let mut cond_builder = StmtBuilder::new();
   let mut body_builder = StmtBuilder::new();
-  let mut cond_expr = compiler.compile_expr(pipeline, &mut cond_builder, table, cond, NeedsResult::Yes)?.0;
+  let mut cond_expr = compiler.compile_expr(pipeline, &mut cond_builder, table, cond, NeedsResult::Yes)?.expr;
   let cond_body = cond_builder.build_into(builder);
   if !cond_body.is_empty() {
     // Compound while form
@@ -100,7 +101,7 @@ pub fn compile_for_stmt<'a>(compiler: &mut Compiler<'a>,
                             _needs_result: NeedsResult)
                             -> Result<StExpr, Error> {
   let closure_vars = body.get_locals();
-  let citer = compiler.compile_expr(pipeline, builder, table, iter, NeedsResult::Yes)?.0;
+  let citer = compiler.compile_expr(pipeline, builder, table, iter, NeedsResult::Yes)?.expr;
   let var_name = compiler.name_generator().generate_with(&names::lisp_to_gd(name));
   let mut inner_builder = StmtBuilder::new();
   let local_var = LocalVar::local(var_name.to_owned(), closure_vars.get(&name));

@@ -110,19 +110,21 @@ impl<'a> Compiler<'a> {
     match expr {
       IRExpr::LocalVar(s) => {
         table.get_var(s).ok_or_else(|| Error::NoSuchVar(s.clone())).map(|var| {
-          StExpr(var.expr(), SideEffects::from(var.access_type))
+          StExpr { expr: var.expr(), side_effects: SideEffects::from(var.access_type) }
         })
       }
       IRExpr::Literal(lit) => {
         match lit {
           IRLiteral::Nil => Ok(Compiler::nil_expr()),
-          IRLiteral::Int(n) => Ok(StExpr(Expr::from(*n), SideEffects::None)),
-          IRLiteral::Float(f) => Ok(StExpr(Expr::from(*f), SideEffects::None)),
-          IRLiteral::Bool(b) => Ok(StExpr(Expr::from(*b), SideEffects::None)),
-          IRLiteral::String(s) => Ok(StExpr(Expr::from(s.to_owned()), SideEffects::None)),
+          IRLiteral::Int(n) => Ok(StExpr { expr: Expr::from(*n), side_effects: SideEffects::None }),
+          IRLiteral::Float(f) => Ok(StExpr { expr: Expr::from(*f), side_effects: SideEffects::None }),
+          IRLiteral::Bool(b) => Ok(StExpr { expr: Expr::from(*b), side_effects: SideEffects::None }),
+          IRLiteral::String(s) => Ok(StExpr { expr: Expr::from(s.to_owned()), side_effects: SideEffects::None }),
           IRLiteral::Symbol(s) =>
-            Ok(StExpr(Expr::Call(Some(Box::new(library::gdlisp_root())), String::from("intern"), vec!(s.reify())),
-                      SideEffects::None)),
+            Ok(StExpr {
+              expr: Expr::Call(Some(Box::new(library::gdlisp_root())), String::from("intern"), vec!(s.reify())),
+              side_effects: SideEffects::None,
+            }),
         }
       }
       IRExpr::Progn(body) => {
@@ -152,14 +154,17 @@ impl<'a> Compiler<'a> {
         let args = args.iter()
                        .map(|x| self.compile_expr(pipeline, builder, table, x, NeedsResult::Yes))
                        .collect::<Result<Vec<_>, _>>()?;
-        Ok(StExpr(fcall.into_expr_with_magic(&*call_magic, self, builder, table, args)?, SideEffects::ModifiesState))
+        Ok(StExpr {
+          expr: fcall.into_expr_with_magic(&*call_magic, self, builder, table, args)?,
+          side_effects: SideEffects::ModifiesState
+        })
       }
       IRExpr::Let(clauses, body) => {
         let closure_vars = body.get_locals();
         let var_names = clauses.iter().map::<Result<(String, String), Error>, _>(|clause| {
           let (ast_name, expr) = clause;
           let ast_name = ast_name.to_owned();
-          let result_value = self.compile_expr(pipeline, builder, table, &expr, NeedsResult::Yes)?.0;
+          let result_value = self.compile_expr(pipeline, builder, table, &expr, NeedsResult::Yes)?.expr;
           let result_value =
             if closure_vars.get(&ast_name).requires_cell() {
               library::construct_cell(result_value)
@@ -196,22 +201,22 @@ impl<'a> Compiler<'a> {
           return Err(Error::CannotAssignTo(var.name.to_gd()));
         }
         self.compile_stmt(pipeline, builder, table, &stmt_wrapper::AssignToExpr(var.expr()), expr)?;
-        Ok(StExpr(var.expr(), SideEffects::from(var.access_type)))
+        Ok(StExpr { expr: var.expr(), side_effects: SideEffects::from(var.access_type) })
       }
       IRExpr::Assign(AssignTarget::InstanceField(lhs, name), expr) => {
         // TODO Weirdness with setget makes this stateful flag not
         // always right? I mean, foo:bar can have side effects if bar
         // is protected by a setget.
-        let StExpr(mut lhs, stateful) = self.compile_expr(pipeline, builder, table, lhs, NeedsResult::Yes)?;
+        let StExpr { expr: mut lhs, side_effects } = self.compile_expr(pipeline, builder, table, lhs, NeedsResult::Yes)?;
         // Assign to a temp if it's stateful
-        if needs_result == NeedsResult::Yes && stateful.modifies_state() {
+        if needs_result == NeedsResult::Yes && side_effects.modifies_state() {
           let var = self.declare_var(builder, "_assign", Some(lhs));
           lhs = Expr::Var(var);
         }
         let lhs = Expr::Attribute(Box::new(lhs), names::lisp_to_gd(name));
         self.compile_stmt(pipeline, builder, table, &stmt_wrapper::AssignToExpr(lhs.clone()), expr)?;
         if needs_result == NeedsResult::Yes {
-          Ok(StExpr(lhs, SideEffects::None))
+          Ok(StExpr { expr: lhs, side_effects: SideEffects::None })
         } else {
           Ok(Compiler::nil_expr())
         }
@@ -219,28 +224,28 @@ impl<'a> Compiler<'a> {
       IRExpr::Array(vec) => {
         let mut side_effects = SideEffects::None;
         let vec = vec.iter().map(|expr| {
-          let StExpr(cexpr, state) = self.compile_expr(pipeline, builder, table, expr, NeedsResult::Yes)?;
+          let StExpr { expr: cexpr, side_effects: state } = self.compile_expr(pipeline, builder, table, expr, NeedsResult::Yes)?;
           side_effects = max(side_effects, state);
           Ok(cexpr)
         }).collect::<Result<Vec<_>, Error>>()?;
-        Ok(StExpr(Expr::ArrayLit(vec), side_effects))
+        Ok(StExpr { expr: Expr::ArrayLit(vec), side_effects })
       }
       IRExpr::Dictionary(vec) => {
         let mut side_effects = SideEffects::None;
         let vec = vec.iter().map(|(k, v)| {
 
-          let StExpr(kexpr, kstate) = self.compile_expr(pipeline, builder, table, k, NeedsResult::Yes)?;
+          let StExpr { expr: kexpr, side_effects: kstate } = self.compile_expr(pipeline, builder, table, k, NeedsResult::Yes)?;
           side_effects = max(side_effects, kstate);
 
-          let StExpr(vexpr, vstate) = self.compile_expr(pipeline, builder, table, v, NeedsResult::Yes)?;
+          let StExpr { expr: vexpr, side_effects: vstate } = self.compile_expr(pipeline, builder, table, v, NeedsResult::Yes)?;
           side_effects = max(side_effects, vstate);
 
           Ok((kexpr, vexpr))
         }).collect::<Result<Vec<_>, Error>>()?;
-        Ok(StExpr(Expr::DictionaryLit(vec), side_effects))
+        Ok(StExpr { expr: Expr::DictionaryLit(vec), side_effects })
       }
       IRExpr::Quote(ast) => {
-        Ok(StExpr(ast.reify(), SideEffects::None))
+        Ok(StExpr { expr: ast.reify(), side_effects: SideEffects::None })
       }
       IRExpr::FieldAccess(lhs, sym) => {
 
@@ -256,9 +261,9 @@ impl<'a> Compiler<'a> {
           }
         }
 
-        let StExpr(lhs, state) = self.compile_expr(pipeline, builder, table, lhs, NeedsResult::Yes)?;
+        let StExpr { expr: lhs, side_effects: state } = self.compile_expr(pipeline, builder, table, lhs, NeedsResult::Yes)?;
         let side_effects = max(SideEffects::ReadsState, state);
-        Ok(StExpr(Expr::Attribute(Box::new(lhs), names::lisp_to_gd(sym)), side_effects))
+        Ok(StExpr { expr: Expr::Attribute(Box::new(lhs), names::lisp_to_gd(sym)), side_effects })
 
       }
       IRExpr::MethodCall(lhs, sym, args) => {
@@ -266,22 +271,25 @@ impl<'a> Compiler<'a> {
         // calling a method, we assume all arguments are required, we
         // perform no optimization, we do not check arity, and we
         // simply blindly forward the call on the GDScript side.
-        let StExpr(lhs, _) = self.compile_expr(pipeline, builder, table, lhs, NeedsResult::Yes)?;
+        let lhs = self.compile_expr(pipeline, builder, table, lhs, NeedsResult::Yes)?.expr;
         let args = args.iter()
-          .map(|arg| self.compile_expr(pipeline, builder, table, arg, NeedsResult::Yes).map(|x| x.0))
+          .map(|arg| self.compile_expr(pipeline, builder, table, arg, NeedsResult::Yes).map(|x| x.expr))
           .collect::<Result<Vec<_>, _>>()?;
-        Ok(StExpr(Expr::Call(Some(Box::new(lhs)), names::lisp_to_gd(sym), args), SideEffects::ModifiesState))
+        Ok(StExpr {
+          expr: Expr::Call(Some(Box::new(lhs)), names::lisp_to_gd(sym), args),
+          side_effects: SideEffects::ModifiesState
+        })
       }
       IRExpr::LambdaClass(cls) => {
         lambda_class::compile_lambda_class(self, pipeline, builder, table, cls)
       }
       IRExpr::Yield(arg) => {
         match arg {
-          None => Ok(StExpr(Expr::yield_expr(None), SideEffects::ModifiesState)),
+          None => Ok(StExpr { expr: Expr::yield_expr(None), side_effects: SideEffects::ModifiesState }),
           Some((x, y)) => {
-            let StExpr(x, _) = self.compile_expr(pipeline, builder, table, x, NeedsResult::Yes)?;
-            let StExpr(y, _) = self.compile_expr(pipeline, builder, table, y, NeedsResult::Yes)?;
-            Ok(StExpr(Expr::yield_expr(Some((x, y))), SideEffects::ModifiesState))
+            let x = self.compile_expr(pipeline, builder, table, x, NeedsResult::Yes)?.expr;
+            let y = self.compile_expr(pipeline, builder, table, y, NeedsResult::Yes)?.expr;
+            Ok(StExpr { expr: Expr::yield_expr(Some((x, y))), side_effects: SideEffects::ModifiesState })
           }
         }
       }
@@ -313,7 +321,7 @@ impl<'a> Compiler<'a> {
                              needs_result: NeedsResult)
                              -> Result<Expr, Error> {
     let mut tmp_builder = StmtBuilder::new();
-    let value = self.compile_expr(pipeline, &mut tmp_builder, table, expr, needs_result)?.0;
+    let value = self.compile_expr(pipeline, &mut tmp_builder, table, expr, needs_result)?.expr;
     let (stmts, decls) = tmp_builder.build();
     if stmts.is_empty() && decls.is_empty() {
       Ok(value)
@@ -323,7 +331,7 @@ impl<'a> Compiler<'a> {
   }
 
   pub fn nil_expr() -> StExpr {
-    StExpr(library::nil(), SideEffects::None)
+    StExpr { expr: library::nil(), side_effects: SideEffects::None }
   }
 
   pub fn name_generator(&mut self) -> &mut FreshNameGenerator<'a> {
@@ -337,7 +345,7 @@ impl<'a> Compiler<'a> {
   pub fn declare_var(&mut self, builder: &mut StmtBuilder, prefix: &str, value: Option<Expr>)
                      -> String {
     let var_name = self.gen.generate_with(prefix);
-    let value = value.unwrap_or(Compiler::nil_expr().0);
+    let value = value.unwrap_or(Compiler::nil_expr().expr);
     builder.append(Stmt::VarDecl(var_name.clone(), value));
     var_name
   }
@@ -921,10 +929,10 @@ mod tests {
   #[test]
   fn compile_nil() {
     let result1 = compile_stmt(&AST::Nil).unwrap();
-    assert_eq!(result1, (vec!(Stmt::ReturnStmt(Compiler::nil_expr().0)), vec!()));
+    assert_eq!(result1, (vec!(Stmt::ReturnStmt(Compiler::nil_expr().expr)), vec!()));
 
     let result2 = compile_stmt(&AST::list(vec!(AST::Symbol(String::from("progn"))))).unwrap();
-    assert_eq!(result2, (vec!(Stmt::ReturnStmt(Compiler::nil_expr().0)), vec!()));
+    assert_eq!(result2, (vec!(Stmt::ReturnStmt(Compiler::nil_expr().expr)), vec!()));
   }
 
 }
