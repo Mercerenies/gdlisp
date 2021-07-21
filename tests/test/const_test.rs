@@ -52,3 +52,10 @@ pub fn builtin_const_test() {
                      KeyMask:CTRL Joy:BUTTON-13 Joy:R3 Joy:ANALOG-R2
                      MIDIMessage:NOTE_ON PI SPKEY])"#);
 }
+
+#[test]
+#[ignore]
+#[should_panic]
+pub fn private_builtin_const_test() {
+  parse_and_run(r#"(TYPE_ARRAY)"#);
+}

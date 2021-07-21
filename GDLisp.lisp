@@ -68,7 +68,7 @@
      (elt json "reserved")
      (elt json "index"))))
 
-(sys/declare superglobal GDLisp) ; This file :)
+(sys/declare superglobal GDLisp public) ; This file :)
 
 ;;; GLOBAL ENUMS ;;;
 
@@ -1091,23 +1091,23 @@
 
 ;; GDScript built-ins that we use unmodified
 
-(sys/declare superfunction str (a))
-(sys/declare superfunction int (a))
-(sys/declare superfunction bool (a))
-(sys/declare superfunction randomize ())
-(sys/declare superfunction randi ()) ; TODO Should we wrap this and other random functions and make a nice interface to them?
-(sys/declare superfunction randf ())
-(sys/declare superfunction rand-range (a b))
-(sys/declare superfunction clamp (a b c))
-(sys/declare superfunction abs (a))
-(sys/declare superfunction len (a)) ; TODO Eventually, we'll want this to be a multimethod which works on lists as well as arrays. (And possibly elt as well?)
-(sys/declare superfunction get-global-mouse-position ()) ; TODO Definitely want to wrap this (and all of the mouse functions) in a nice namespace or module or something
-(sys/declare superfunction push-error (a))
-(sys/declare superfunction push-warning (a))
-(sys/declare superfunction typeof (a))
+(sys/declare superfunction str (a) public)
+(sys/declare superfunction int (a) public)
+(sys/declare superfunction bool (a) public)
+(sys/declare superfunction randomize () public)
+(sys/declare superfunction randi () public) ; TODO Should we wrap this and other random functions and make a nice interface to them?
+(sys/declare superfunction randf () public)
+(sys/declare superfunction rand-range (a b) public)
+(sys/declare superfunction clamp (a b c) public)
+(sys/declare superfunction abs (a) public)
+(sys/declare superfunction len (a) public) ; TODO Eventually, we'll want this to be a multimethod which works on lists as well as arrays. (And possibly elt as well?)
+(sys/declare superfunction get-global-mouse-position () public) ; TODO Definitely want to wrap this (and all of the mouse functions) in a nice namespace or module or something
+(sys/declare superfunction push-error (a) public)
+(sys/declare superfunction push-warning (a) public)
+(sys/declare superfunction typeof (a) public)
 
-(sys/declare superglobal PI)
-(sys/declare superglobal SPKEY)
+(sys/declare superglobal PI public)
+(sys/declare superglobal SPKEY public)
 
 ;; TYPE_* Constants
 
@@ -1167,7 +1167,7 @@
 (defconst PoolVector3Array TYPE_VECTOR3_ARRAY)
 (sys/declare superglobal TYPE_COLOR_ARRAY)
 (defconst PoolColorArray TYPE_COLOR_ARRAY)
-(sys/declare superglobal TYPE_MAX) ; (Note: We actually do want to expose this TYPE_* constant)
+(sys/declare superglobal TYPE_MAX public) ; (Note: We actually do want to expose this TYPE_* constant)
 
 ;; BUILT-IN MACROS
 
