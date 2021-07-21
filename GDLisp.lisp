@@ -1111,8 +1111,6 @@
 
 ;; TYPE_* Constants
 
-;; TODO Remove these rename stubs somehow (I don't want the original names in-scope)
-
 (sys/declare superglobal TYPE_NIL)
 (defconst Null TYPE_NIL)
 (sys/declare superglobal TYPE_BOOL)
