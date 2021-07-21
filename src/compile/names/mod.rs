@@ -1,4 +1,6 @@
 
+//! Helpers for managing GDLisp and GDScript names.
+
 use phf::{phf_map};
 
 pub mod fresh;
@@ -24,10 +26,74 @@ const KNOWN_GDSCRIPT_KEYWORDS: &[&str] = &[
   "Color", "NodePath", "RID", "Object",
 ];
 
+/// Whether `ch` is a valid GDScript identifier character.
+///
+/// Valid GDScript identifier characters are: uppercase and lowercase
+/// ASCII letters, the digits 0-9, and underscore. Equivalently, this
+/// function returns true if the character satisfies the regex
+/// `[A-Za-z0-9_]`.
 pub fn is_valid_gd_char(ch: char) -> bool {
   ch.is_digit(36) || ch == '_'
 }
 
+/// Converts `name` to a GDScript-friendly name.
+///
+/// First, if `name` is a known GDScript keyword (such as `if` or
+/// `preload`), then an underscore is prefixed and the name is
+/// returned. No further modifications are necessary.
+///
+/// Second, if the name begins with a digit, then an underscore is
+/// prefixed before continuing to the next steps.
+///
+/// Finally, for every character which is *not* a valid GDScript
+/// character (under [`is_valid_gd_char`]), a transformation takes
+/// place to translate that character. The following transformations
+/// are tried, in order.
+///
+/// 1. The sequence `->` is replaced by `_to_`.
+///
+/// 2. A question mark `?` at the end of an identifier is replaced by
+/// `is_` at the beginning.
+///
+/// 3. `-`, `<`, `>`, and `=` are converted to, respectively, `_`,
+/// `_LT_`, `_GT_`, `_EQ_`.
+///
+/// 4. All other characters are converted to `_uXXXX` where `XXXX` is
+/// the hex value (minimum four digits) of the Unicode code point for
+/// the character. If the character lies outside the basic
+/// multilingual plane, then all digits will be printed.
+///
+/// # Examples
+///
+/// ```
+/// # use gdlisp::compile::names::lisp_to_gd;
+/// // No escaping necessary
+/// assert_eq!(lisp_to_gd("foobar"), "foobar");
+/// assert_eq!(lisp_to_gd("_private0"), "_private0");
+/// assert_eq!(lisp_to_gd("xposition3"), "xposition3");
+/// assert_eq!(lisp_to_gd("a0_0_EEe"), "a0_0_EEe");
+///
+/// // Leading digit must be escaped
+/// assert_eq!(lisp_to_gd("3e"), "_3e");
+/// assert_eq!(lisp_to_gd("2_"), "_2_");
+///
+/// // Special transformation rules
+/// assert_eq!(lisp_to_gd("foo->bar"), "foo_to_bar");
+/// assert_eq!(lisp_to_gd("failure?"), "is_failure");
+///
+/// // Known character translations
+/// assert_eq!(lisp_to_gd("my-identifier"), "my_identifier");
+/// assert_eq!(lisp_to_gd("<=>"), "_LT__EQ__GT_");
+///
+/// // General codepoints
+/// assert_eq!(lisp_to_gd("w~~w"), "w_u007E_u007Ew");
+/// assert_eq!(lisp_to_gd("α"), "_u03B1");
+/// assert_eq!(lisp_to_gd("😃"), "_u1F603");
+///
+/// // Known GDScript keywords
+/// assert_eq!(lisp_to_gd("preload"), "_preload");
+/// assert_eq!(lisp_to_gd("assert"), "_assert");
+/// ```
 pub fn lisp_to_gd(name: &str) -> String {
   // Escape known GDScript keywords
   if KNOWN_GDSCRIPT_KEYWORDS.iter().any(|kw| *kw == name) {
@@ -74,23 +140,9 @@ mod tests {
   use super::*;
 
   #[test]
-  fn noop_escapes() {
-    assert_eq!(lisp_to_gd("foobar"), "foobar");
-    assert_eq!(lisp_to_gd("_private0"), "_private0");
-    assert_eq!(lisp_to_gd("xposition3"), "xposition3");
-    assert_eq!(lisp_to_gd("a0_0_EEe"), "a0_0_EEe");
-  }
-
-  #[test]
-  fn leading_digit() {
-    assert_eq!(lisp_to_gd("3e"), "_3e");
-    assert_eq!(lisp_to_gd("2_"), "_2_");
-  }
-
-  #[test]
   fn special_cases() {
-    assert_eq!(lisp_to_gd("foo->bar"), "foo_to_bar");
-    assert_eq!(lisp_to_gd("failure?"), "is_failure");
+    assert_eq!(lisp_to_gd("bar->baz"), "bar_to_baz");
+    assert_eq!(lisp_to_gd("success?"), "is_success");
     assert_eq!(lisp_to_gd("->->?"), "is__to__to_");
   }
 
@@ -98,13 +150,7 @@ mod tests {
   fn translations() {
     assert_eq!(lisp_to_gd("foo-bar"), "foo_bar");
     assert_eq!(lisp_to_gd("foo-bar_baz"), "foo_bar_baz");
-    assert_eq!(lisp_to_gd("<=>"), "_LT__EQ__GT_");
-  }
-
-  #[test]
-  fn general_codepoints() {
-    assert_eq!(lisp_to_gd("w~~w"), "w_u007E_u007Ew");
-    assert_eq!(lisp_to_gd("α"), "_u03B1");
+    assert_eq!(lisp_to_gd(">>="), "_GT__GT__EQ_");
   }
 
   #[test]
