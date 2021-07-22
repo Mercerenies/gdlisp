@@ -20,8 +20,23 @@ use std::path::Path;
 use std::io;
 use std::convert::TryFrom;
 
-/// A `NamedFileServer` maintains a [`LazyServer`], as well as an
-/// index of the macros which have been uploaded to the server.
+/// A `NamedFileServer` maintains a [`LazyServer`], as well as a
+/// registry of the macros which have been uploaded to the server.
+///
+/// Macros are normally uploaded to the file server via
+/// [`stand_up_macro`](NamedFileServer::stand_up_macro), which also
+/// adds the macro to the server's registry for later access.
+/// Alternatively, files which do *not* contain macros can be uploaded
+/// with [`stand_up_file`](NamedFileServer::stand_up_file). The latter
+/// method loads a file onto the macro server without adding it to the
+/// registry. Hence, the file is available for other macros to use,
+/// provided they know its name, but it is unavailable for direct
+/// calling, since it is not a macro. Finally,
+/// [`add_reserved_macro`](NamedFileServer::add_reserved_macro) is
+/// used to add data to the registry without standing up any files.
+/// This is used to add standard library macros (which are side-loaded
+/// using another mechanism before `NamedFileServer` is even
+/// constructed) to the registry.
 ///
 /// Macros are indexed by [`MacroID`], a wrapper struct around `u32`.
 pub struct NamedFileServer {
@@ -53,6 +68,9 @@ fn response_to_string(response: response::ServerResponse) -> io::Result<String> 
 #[allow(clippy::new_without_default)]
 impl NamedFileServer {
 
+  /// Constructs a new `NamedFileServer`. The server does not
+  /// initially spawn off a Godot process and will only do so once
+  /// required to (similar to [`LazyServer`]).
   pub fn new() -> NamedFileServer {
     NamedFileServer {
       server: LazyServer::new(),
@@ -62,6 +80,20 @@ impl NamedFileServer {
     }
   }
 
+  /// Adds a reserved standard library macro to this file server's
+  /// known macros list.
+  ///
+  /// A reserved macro is a special kind of macro that does not have
+  /// its own file. Instead, a reserved macro is a macro that is
+  /// side-loaded onto the macro server via some other means (usually,
+  /// by being present in the standard library file `GDLisp.lisp`,
+  /// which gets preloaded into the macro server at process start
+  /// time). This function does *not* instruct the Godot process to
+  /// load any new files or to do anything at all. Instead, this
+  /// function simply makes the `NamedFileServer` struct aware that
+  /// there is a macro with the given name and argument list in the
+  /// standard library file. It is the caller's responsibility to
+  /// ensure that the information is actually correct.
   pub fn add_reserved_macro(&mut self, name: String, parms: ArgList) -> MacroID {
     let id = self.next_reserved_id;
     self.next_reserved_id = self.next_reserved_id.next();
@@ -81,11 +113,33 @@ impl NamedFileServer {
     result.parse().map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e))
   }
 
+  /// Stand up a file on the `NamedFileServer`.
+  ///
+  /// This should be used instead of
+  /// [`stand_up_macro`](NamedFileServer::stand_up_macro) in cases
+  /// where the resulting file will never be called directly.
+  /// Specifically, this should be used to supply the macro server
+  /// with resources that are not directly macros but which may be
+  /// needed indirectly by other macros in the future. The file will
+  /// simply be loaded into the server using [`ServerCommand::Load`]
+  /// blindly, and it is the caller's responsibility to keep track of
+  /// the filename and provide some way to access the loaded file.
   pub fn stand_up_file(&mut self, file: NamedTempFile) -> io::Result<()> {
     self.load_file_on_server(file.path())?;
     Ok(())
   }
 
+  /// Stand up a file as a macro file on the `NamedFileServer`.
+  ///
+  /// This is the more powerful form of `stand_up_file`. In addition
+  /// to physically loading the file via [`ServerCommand::Load`], this
+  /// method also stores the macro, with the given name and argument
+  /// list, in the `NamedFileServer`'s macro registry, which can later
+  /// be accessed via
+  /// [`run_server_file`](NamedFileServer::run_server_file).
+  ///
+  /// This method returns a [`MacroID`] which can be used later to
+  /// call the macro.
   pub fn stand_up_macro(&mut self, name: String, parms: ArgList, file: NamedTempFile) -> io::Result<MacroID> {
     let idx = self.load_file_on_server(file.path())?;
     let gdname = names::lisp_to_gd(&name);
@@ -100,6 +154,20 @@ impl NamedFileServer {
     self.macro_files.get(&id).map(|x| &x.0)
   }
 
+  /// Run a macro with the given arguments. `id` should be a
+  /// [`MacroID`] returned from a prior call to
+  /// [`stand_up_macro`](NamedFileServer::stand_up_macro) or similar,
+  /// and `args` should be a list of Godot expressions to provide as
+  /// the arguments. In case of Godot errors, including but not
+  /// limited to parsing errors, IO communication errors, or semantic
+  /// errors in macro evaluation, an `Err` value is returned.
+  ///
+  /// # Panics
+  ///
+  /// This method will panic if given an invalid `id` value. The `id`
+  /// must be the macro ID from a prior invocation of `stand_up_macro`
+  /// or [`add_reserved_macro`](NamedFileServer::add_reserved_macro)
+  /// on the same `NamedFileServer` instance.
   pub fn run_server_file(&mut self, id: MacroID, args: Vec<GDExpr>)
                          -> Result<AST, PError> {
     let call = self.get_file(id).expect("Invalid MacroID in run_server_file");
@@ -132,6 +200,8 @@ impl NamedFileServer {
     Ok(parsed)
   }
 
+  /// Issues a command to the server setting its global name generator
+  /// to `gen`.
   pub fn set_global_name_generator<'a>(&mut self, gen: &FreshNameGenerator<'a>) -> io::Result<()> {
     let server = self.server.get_mut()?;
     let json = gen.to_json();
@@ -142,6 +212,8 @@ impl NamedFileServer {
     Ok(())
   }
 
+  /// Issues a command to the server setting the global name generator
+  /// to a newly-constructed name generator.
   pub fn reset_global_name_generator(&mut self) -> io::Result<()> {
     let server = self.server.get_mut()?;
     let exec_str = String::from(r#"GDLisp.global_name_generator = GDLisp.FreshNameGenerator.new([], "")"#);
