@@ -38,7 +38,7 @@ pub struct NamedFileServer {
 pub struct MacroID(pub u32);
 
 #[derive(Clone, Debug)]
-pub struct MacroCall {
+struct MacroCall {
   index: u32, // Index in the lookup table on the GDScript side
   original_name: String, // Probably not needed, but we have it so we may as well keep track of it.
   name: String,
