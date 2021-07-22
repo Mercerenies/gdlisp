@@ -14,7 +14,6 @@ use crate::ir;
 use crate::ir::import::ImportDecl;
 use crate::ir::decl::TopLevel;
 use crate::ir::identifier::Id;
-use crate::ir::arglist::ArgList;
 
 use tempfile::{NamedTempFile, Builder};
 
@@ -26,7 +25,6 @@ type IRSymbolTable = super::symbol_table::SymbolTable;
 #[derive(Clone, Debug)]
 pub struct MacroData {
   pub id: MacroID,
-  pub args: ArgList,
   pub imported: bool,
 }
 

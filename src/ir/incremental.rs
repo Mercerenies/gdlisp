@@ -20,11 +20,9 @@ use crate::sxp::ast::AST;
 use crate::sxp::reify::Reify;
 use crate::compile::error::Error;
 use crate::compile::resource_type::ResourceType;
-use crate::compile::names;
 use crate::compile::names::fresh::FreshNameGenerator;
 use crate::gdscript::library;
 use crate::gdscript::decl::Static;
-use crate::runner::macro_server::named_file_server::{NamedFileServer, MacroCall};
 use crate::pipeline::error::{Error as PError};
 use crate::pipeline::Pipeline;
 use crate::pipeline::translation_unit::TranslationUnit;
@@ -62,7 +60,7 @@ impl IncCompiler {
   fn resolve_macro_call(&mut self, pipeline: &mut Pipeline, head: &str, tail: &[&AST])
                         -> Result<AST, PError> {
     match self.macros.get(head) {
-      Some(MacroData { id, args: parms, .. }) => {
+      Some(MacroData { id, .. }) => {
         // If we're in a minimalist file, then macro expansion is automatically an error
         if self.minimalist {
           return Err(PError::from(Error::MacroInMinimalistError(head.to_owned())));
@@ -72,15 +70,8 @@ impl IncCompiler {
         let server = pipeline.get_server_mut();
         server.set_global_name_generator(&self.names)?;
 
-        let ast = if id.is_reserved() {
-          // Reserved for built-in macros; runs in Godot
-          let gd_name = names::lisp_to_gd(head);
-          server.run_builtin_macro(&gd_name, parms.clone(), args)
-        } else {
-          // User-defined macro; runs in Godot
-          let call = self.get_macro_file(server, &head).expect("Could not find macro file").clone();
-          server.run_server_file(&call, args)
-        };
+        let ast = server.run_server_file(*id, args);
+
         server.reset_global_name_generator()?;
 
         ast
@@ -89,10 +80,6 @@ impl IncCompiler {
         Err(PError::from(Error::NoSuchFn(head.to_owned())))
       }
     }
-  }
-
-  fn get_macro_file<'a, 'b, 'c>(&'a self, server: &'b NamedFileServer, head: &'c str) -> Option<&'b MacroCall> {
-    self.macros.get(head).map(|x| x.id).and_then(|id| server.get_file(id))
   }
 
   fn try_resolve_macro_call(&mut self, pipeline: &mut Pipeline, ast: &AST) -> Result<Option<AST>, PError> {
@@ -613,7 +600,7 @@ impl IncCompiler {
       m.apply(&mut self);
     }
 
-    self.bind_builtin_macros(); // No-op if minimalist is true.
+    self.bind_builtin_macros(pipeline); // No-op if minimalist is true.
 
     // Compile
     let mut main: Vec<Expr> = Vec::new();
@@ -656,7 +643,7 @@ impl IncCompiler {
     let names = deps.try_into_knowns().map_err(Error::from)?;
     let tmpfile = macros::create_macro_file(pipeline, self.imports.clone(), &self.symbols, names, self.minimalist)?;
     let m_id = pipeline.get_server_mut().stand_up_macro(name.to_owned(), decl.args.clone(), tmpfile)?;
-    self.macros.insert(name.to_owned(), MacroData { id: m_id, args: decl.args, imported: false });
+    self.macros.insert(name.to_owned(), MacroData { id: m_id, imported: false });
 
     Ok(())
   }
@@ -678,9 +665,9 @@ impl IncCompiler {
     self.macros.remove(name);
   }
 
-  pub fn bind_builtin_macros(&mut self) {
+  pub fn bind_builtin_macros(&mut self, pipeline: &mut Pipeline) {
     if !self.minimalist {
-      library::bind_builtin_macros(&mut self.macros);
+      library::bind_builtin_macros(&mut self.macros, pipeline);
     }
   }
 

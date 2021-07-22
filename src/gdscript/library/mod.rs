@@ -13,12 +13,12 @@ pub mod magic;
 
 use super::expr::Expr;
 use crate::compile::Compiler;
+use crate::compile::names;
 use crate::compile::symbol_table::SymbolTable;
 use crate::compile::symbol_table::local_var::LocalVar;
 use crate::ir::arglist::ArgList;
 use crate::ir::identifier::{Id, Namespace};
 use crate::ir::macros::MacroData;
-use crate::runner::macro_server::named_file_server::MacroID;
 use crate::pipeline::Pipeline;
 use crate::pipeline::translation_unit::TranslationUnit;
 use crate::pipeline::config::ProjectConfig;
@@ -225,23 +225,21 @@ pub fn all_builtin_names(minimalist: bool) -> HashSet<Id> {
   names
 }
 
-// TODO Move this to MacroId as a special value.
-const RESERVED_MACRO_ID: u32 = 1;
-
 /// Bind all of the built-in GDLisp macros to the macro table given.
 ///
 /// If the standard library has not been loaded, this function loads
 /// the standard library. As such, this function should not be called
 /// in the process of loading the standard library, as that will
 /// result in a double lock on the stdlib mutex.
-pub fn bind_builtin_macros(macros: &mut HashMap<String, MacroData>) {
+pub fn bind_builtin_macros(macros: &mut HashMap<String, MacroData>,
+                           pipeline: &mut Pipeline) {
 
   let unit = get_stdlib();
   for (name, func, _magic) in unit.table.fns() {
     if func.is_macro {
+      let id = pipeline.get_server_mut().add_reserved_macro(names::lisp_to_gd(name), ArgList::from_specs(func.specs));
       let data = MacroData {
-        id: MacroID(RESERVED_MACRO_ID),
-        args: ArgList::from_specs(func.specs),
+        id,
         imported: true,
       };
       macros.insert(name.to_owned(), data);

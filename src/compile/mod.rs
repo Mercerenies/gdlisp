@@ -844,7 +844,7 @@ mod tests {
     let mut builder = StmtBuilder::new();
     let expr = {
       let mut icompiler = IncCompiler::new(ast.all_symbols());
-      icompiler.bind_builtin_macros();
+      icompiler.bind_builtin_macros(&mut pipeline);
       icompiler.compile_expr(&mut pipeline, ast)
     }?;
     let () = compiler.compile_stmt(&mut pipeline, &mut builder, &mut table, &mut stmt_wrapper::Return, &expr)?;

@@ -56,14 +56,14 @@ mod tests {
   fn compile_expr(pipeline: &mut Pipeline, expr: &AST)
                   -> Result<Expr, PError> {
     let mut compiler = incremental::IncCompiler::new(expr.all_symbols());
-    compiler.bind_builtin_macros();
+    compiler.bind_builtin_macros(pipeline);
     compiler.compile_expr(pipeline, expr)
   }
 
   fn compile_decl(pipeline: &mut Pipeline, decl: &AST)
                   -> Result<Decl, PError> {
     let mut compiler = incremental::IncCompiler::new(decl.all_symbols());
-    compiler.bind_builtin_macros();
+    compiler.bind_builtin_macros(pipeline);
     compiler.compile_decl(pipeline, decl)
   }
 

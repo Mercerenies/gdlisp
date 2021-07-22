@@ -200,7 +200,7 @@ pub fn parse_compile_and_output_h(input: &str) -> (String, String) {
   let mut builder = StmtBuilder::new();
   let value = {
     let mut icompiler = IncCompiler::new(value.all_symbols());
-    icompiler.bind_builtin_macros();
+    icompiler.bind_builtin_macros(&mut pipeline);
     icompiler.compile_expr(&mut pipeline, &value)
   }.unwrap();
   let () = compiler.compile_stmt(&mut pipeline, &mut builder, &mut table, &mut stmt_wrapper::Return, &value).unwrap();

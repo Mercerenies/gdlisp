@@ -26,8 +26,9 @@ use std::convert::TryFrom;
 /// Macros are indexed by [`MacroID`], a wrapper struct around `u32`.
 pub struct NamedFileServer {
   server: LazyServer,
-  macro_files: HashMap<MacroID, (MacroCall, NamedTempFile)>,
+  macro_files: HashMap<MacroID, (MacroCall, Option<NamedTempFile>)>,
   next_id: MacroID,
+  next_reserved_id: MacroID,
 }
 
 /// A simple wrapper struct around a `u32` which is used as the key
@@ -57,7 +58,20 @@ impl NamedFileServer {
       server: LazyServer::new(),
       macro_files: HashMap::new(),
       next_id: MacroID::smallest_unreserved(),
+      next_reserved_id: MacroID::smallest_stdlib(),
     }
+  }
+
+  pub fn add_reserved_macro(&mut self, name: String, parms: ArgList) -> MacroID {
+    let id = self.next_reserved_id;
+    self.next_reserved_id = self.next_reserved_id.next();
+    self.macro_files.insert(id, (MacroCall {
+      index: 0, // TODO This is weird
+      original_name: name.clone(),
+      name,
+      parms,
+    }, None));
+    id
   }
 
   fn load_file_on_server(&mut self, path: &Path) -> io::Result<u32> {
@@ -78,40 +92,31 @@ impl NamedFileServer {
     let call = MacroCall { index: idx, original_name: name, name: gdname, parms };
     let id = self.next_id;
     self.next_id = self.next_id.next();
-    self.macro_files.insert(id, (call, file));
+    self.macro_files.insert(id, (call, Some(file)));
     Ok(id)
   }
 
-  pub fn get_file(&self, id: MacroID) -> Option<&MacroCall> {
+  fn get_file(&self, id: MacroID) -> Option<&MacroCall> {
     self.macro_files.get(&id).map(|x| &x.0)
   }
 
-  pub fn run_server_file(&mut self, call: &MacroCall, args: Vec<GDExpr>)
+  pub fn run_server_file(&mut self, id: MacroID, args: Vec<GDExpr>)
                          -> Result<AST, PError> {
+    let call = self.get_file(id).expect("Invalid MacroID in run_server_file");
     let specs = FnSpecs::from(call.parms.clone());
     let call_object =
-      GDExpr::Subscript(
-        Box::new(GDExpr::Attribute(Box::new(GDExpr::var("MAIN")), String::from("loaded_files"))),
-        Box::new(GDExpr::from(call.index as i32)),
-      );
+      if id.is_reserved() {
+        library::gdlisp_root()
+      } else {
+        GDExpr::Subscript(
+          Box::new(GDExpr::Attribute(Box::new(GDExpr::var("MAIN")), String::from("loaded_files"))),
+          Box::new(GDExpr::from(call.index as i32)),
+        )
+      };
     let call = FnCall {
       scope: FnScope::Global,
       object: FnName::MacroCall(Box::new(call_object)),
       function: call.name.to_owned(),
-      specs: specs,
-      is_macro: true,
-    };
-    self.do_macro_call(call, args)
-  }
-
-  pub fn run_builtin_macro(&mut self, macro_name: &str, parms: ArgList, args: Vec<GDExpr>)
-                           -> Result<AST, PError> {
-    let specs = FnSpecs::from(parms);
-    let call_object = library::gdlisp_root();
-    let call = FnCall {
-      scope: FnScope::Global,
-      object: FnName::MacroCall(Box::new(call_object)),
-      function: macro_name.to_owned(),
       specs: specs,
       is_macro: true,
     };
@@ -149,7 +154,18 @@ impl NamedFileServer {
 
 impl MacroID {
 
+  // Current partitioning scheme:
+  //
+  // 0-63: Unused (future use)
+  // 64-511: Built-in (stdlib) macros
+  // 512-1023: Unused (future use)
+  // 1024-max: User-defined macros
+
   pub const RESERVED: u32 = 1024;
+
+  pub fn smallest_stdlib() -> MacroID {
+    MacroID(64)
+  }
 
   pub fn smallest_unreserved() -> MacroID {
     MacroID(MacroID::RESERVED)
