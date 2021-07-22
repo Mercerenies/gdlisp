@@ -1,4 +1,11 @@
 
+//! Mechanisms for running Godot code in child processes.
+//!
+//! The functions defined in this module are general-purpose functions
+//! for running arbitrary Godot code in child processes. The submodule
+//! [`macro_server`] provides the more specific use-case of starting
+//! up a Godot process as a server and communicating with it via TCP.
+
 pub mod named_file;
 pub mod into_gd_file;
 pub mod macro_server;
@@ -15,6 +22,14 @@ use std::path::Path;
 use std::io::{self, Write};
 use std::ffi::OsStr;
 
+/// Runs a Godot process, with `path` as a script file. The script
+/// file should inherit from `SceneTree` or `MainLoop`. This function
+/// will wait until the child terminates before returning.
+///
+/// Anything printed to stderr will be passed through to the parent
+/// stderr, and stdout will be collected into a `String` and then
+/// returned. Anything in stdout which is not valid UTF-8 will be
+/// replaced with `U+FFFD`.
 pub fn run_with_file<P : AsRef<Path>>(path: P) -> io::Result<String> {
   let out =
     Command::new("godot")
@@ -29,6 +44,15 @@ pub fn run_with_file<P : AsRef<Path>>(path: P) -> io::Result<String> {
   Ok(text.into())
 }
 
+/// Runs a Godot process, with `path` as a project path.
+///
+/// `path` should be the path to a directory which contains a
+/// `project.godot` file (note that `path` should point to the
+/// directory, *not* the `project.godot` file itself). `env` shall be
+/// an iterator of environment variables to be set locally for the
+/// child process. This function returns as soon as the child process
+/// spawns. stdout will be suppressed, and stderr will be inherited by
+/// the parent process. The [`Child`] instance is returned.
 pub fn run_project_process<P, I, K, V>(path: P, env: I) -> io::Result<Child>
 where P : AsRef<Path>,
       I : Iterator<Item=(K, V)>,
@@ -44,6 +68,17 @@ where P : AsRef<Path>,
     .spawn()
 }
 
+/// Runs a Godot process, with `path` as a project path.
+///
+/// `path` should be the path to a directory which contains a
+/// `project.godot` file (note that `path` should point to the
+/// directory, *not* the `project.godot` file itself). This function
+/// will wait until the child terminates before returning.
+///
+/// Anything printed to stderr will be passed through to the parent
+/// stderr, and stdout will be collected into a `String` and then
+/// returned. Anything in stdout which is not valid UTF-8 will be
+/// replaced with `U+FFFD`.
 pub fn run_project<P : AsRef<Path>>(path: P) -> io::Result<String> {
   let out =
     Command::new("godot")
@@ -73,6 +108,10 @@ fn make_tmp_file_in<P : AsRef<Path>>(dir: P) -> io::Result<NamedTempFile> {
     .tempfile_in(dir)
 }
 
+/// Given an [`IntoGDFile`] such as
+/// [`TopLevelClass`](crate::gdscript::decl::TopLevelClass), this
+/// function constructs a temporary file, dumps the contents of `data`
+/// to that file, and then runs it with [`run_with_file`].
 pub fn run_with_temporary<T>(data: &T) -> io::Result<String>
 where T : IntoGDFile + ?Sized {
   let mut tmp = make_tmp_file()?;
@@ -81,6 +120,11 @@ where T : IntoGDFile + ?Sized {
   run_with_file(tmp.path())
 }
 
+/// Given an [`IntoGDFile`] such as
+/// [`TopLevelClass`](crate::gdscript::decl::TopLevelClass), this
+/// function constructs a temporary file in the directory `dir`, dumps
+/// the contents of `data` to that file, and then runs it with
+/// [`run_with_file`].
 pub fn run_with_temporary_in<T, P>(data: &T, dir: P) -> io::Result<String>
 where T : IntoGDFile + ?Sized,
       P : AsRef<Path> {

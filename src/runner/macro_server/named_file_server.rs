@@ -1,4 +1,12 @@
 
+//! A server which manages macro resolution and can run Godot code.
+//!
+//! A [`NamedFileServer`] is a more powerful form of
+//! [`MacroServer`](super::MacroServer). Whereas the latter manages
+//! the primitive operations of sending commands to and from a Godot
+//! process, a `NamedFileServer` manages the higher-level operations
+//! of declaring and calling macros.
+
 use crate::sxp::ast::AST;
 use crate::runner::macro_server::lazy::LazyServer;
 use crate::compile::names;
@@ -41,7 +49,7 @@ use std::convert::TryFrom;
 /// Macros are indexed by [`MacroID`], a wrapper struct around `u32`.
 pub struct NamedFileServer {
   server: LazyServer,
-  macro_files: HashMap<MacroID, (MacroCall, Option<NamedTempFile>)>,
+  macro_files: HashMap<MacroID, (MacroCall, Option<NamedTempFile>)>, // TODO Make MacroCall contain the temp file
   next_id: MacroID,
   next_reserved_id: MacroID,
 }

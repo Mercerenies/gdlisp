@@ -1,4 +1,19 @@
 
+//! Functionality for constructing and interacting with a Godot server
+//! process.
+//!
+//! This module provides [`MacroServer`], for spawning Godot server
+//! processes. A `MacroServer` can be sent [`ServerCommand`] commands
+//! and will receive responses in the form of [`ServerResponse`].
+//!
+//! In addition to the primitive interface, this module also provides
+//! submodules for richer server interaction. [`lazy`] provides a
+//! means of lazily constructing a macro server, delaying construction
+//! of the child process until absolutely necessary.
+//! [`named_file_server`] provides a high-level API for providing
+//! macros and other resources to a server and for calling macros on a
+//! server.
+
 pub mod command;
 pub mod response;
 pub mod lazy;
@@ -23,6 +38,10 @@ use std::mem::ManuallyDrop;
 /// The TCP port used for communicating with the macro server.
 pub const PORT_NUMBER: u16 = 61992;
 
+/// A `MacroServer` instance manages a child Godot process and a TCP
+/// connection to that process. Using this instance, callers can send
+/// commands and receive responses via
+/// [`issue_command`](MacroServer::issue_command).
 pub struct MacroServer {
   tcp_server: TcpStream,
   godot_server: Child,
@@ -30,6 +49,10 @@ pub struct MacroServer {
 
 impl MacroServer {
 
+  /// Construct a new `MacroServer`. This function immediately spawns
+  /// a child process. For a lazily-constructed server that only
+  /// spawns once necessary, consider using [`lazy::LazyServer`]
+  /// instead.
   pub fn new() -> io::Result<MacroServer> {
     library::ensure_stdlib_loaded();
     fs::copy(PathBuf::from("GDLisp.gd"), PathBuf::from("MacroServer/GDLisp.gd"))?;
@@ -79,6 +102,9 @@ impl MacroServer {
     String::from_utf8(buf).map_err(|_| io::Error::new(io::ErrorKind::InvalidData, "Error in UTF8 conversion"))
   }
 
+  /// Issues the given command to the macro server, waits on a
+  /// response, and returns a [`ServerResponse`] indicating success or
+  /// failure.
   pub fn issue_command(&mut self, command: &ServerCommand) -> io::Result<ServerResponse> {
     let json = command.to_json();
     self.send_string(&json.to_string())?;
@@ -95,6 +121,10 @@ impl MacroServer {
     self.godot_server.wait()
   }
 
+  /// Shuts down the server process. This is equivalent to simply
+  /// dropping `self` except that this method allows the caller to
+  /// handle any error conditions that arise from shutting down the
+  /// server.
   pub fn shutdown(self) -> io::Result<ExitStatus> {
     let mut server = ManuallyDrop::new(self);
     server._shutdown()
@@ -102,6 +132,8 @@ impl MacroServer {
 
 }
 
+/// Dropping a `MacroServer` kills the child process, suppressing any
+/// errors that result from doing so.
 impl Drop for MacroServer {
 
   fn drop(&mut self) {

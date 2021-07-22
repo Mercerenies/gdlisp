@@ -6,6 +6,12 @@
 //! sent to the macro server. Commands are eventually encoded as JSON
 //! and passed onto the server. Eventually, the server will receive a
 //! [`ServerResponse`](super::response::ServerResponse) back as reply.
+//!
+//! Note that, while it is *highly* unlikely that this will ever come
+//! into play, the total length of a command, including the JSON
+//! formatting and command name, cannot exceed 2^32 characters. Thus,
+//! any string arguments to `ServerCommand` should not approach that
+//! length.
 
 use json::JsonValue;
 
