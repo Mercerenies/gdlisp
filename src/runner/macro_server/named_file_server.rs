@@ -91,15 +91,9 @@ impl NamedFileServer {
       specs: specs,
       is_macro: true,
     };
-    let server = self.server.get_mut()?;
-    let eval_str = compile_default_call(call, args)?.to_gd();
-    let result = response_to_string(server.issue_command(&ServerCommand::Eval(eval_str))?)?;
-    let parser = parser::ASTParser::new();
-    let parsed = parser.parse(&result)?;
-    Ok(parsed)
+    self.do_macro_call(call, args)
   }
 
-  // TODO Unify this with run_server_file.
   pub fn run_builtin_macro(&mut self, macro_name: &str, parms: ArgList, args: Vec<GDExpr>)
                            -> Result<AST, PError> {
     let specs = FnSpecs::from(parms);
@@ -111,6 +105,10 @@ impl NamedFileServer {
       specs: specs,
       is_macro: true,
     };
+    self.do_macro_call(call, args)
+  }
+
+  fn do_macro_call(&mut self, call: FnCall, args: Vec<GDExpr>) -> Result<AST, PError> {
     let server = self.server.get_mut()?;
     let eval_str = compile_default_call(call, args)?.to_gd();
     let result = response_to_string(server.issue_command(&ServerCommand::Eval(eval_str))?)?;
