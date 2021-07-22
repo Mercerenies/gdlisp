@@ -85,6 +85,15 @@ pub fn read_to_end(input: &mut impl Read) -> io::Result<String> {
   String::from_utf8(vec).map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e))
 }
 
+/// Convert the `Option` to a `Vec`, returning a vector of length
+/// either zero or one.
+pub fn option_to_vec<T>(value: Option<T>) -> Vec<T> {
+  match value {
+    None => vec!(),
+    Some(x) => vec!(x),
+  }
+}
+
 #[cfg(test)]
 mod tests {
   use super::*;
