@@ -20,21 +20,27 @@ use std::path::Path;
 use std::io;
 use std::convert::TryFrom;
 
+/// A `NamedFileServer` maintains a [`LazyServer`], as well as an
+/// index of the macros which have been uploaded to the server.
+///
+/// Macros are indexed by [`MacroID`], a wrapper struct around `u32`.
 pub struct NamedFileServer {
   server: LazyServer,
   macro_files: HashMap<MacroID, (MacroCall, NamedTempFile)>,
   next_id: MacroID,
 }
 
+/// A simple wrapper struct around a `u32` which is used as the key
+/// type in [`NamedFileServer`].
 #[derive(Copy, Clone, Debug, Eq, PartialEq, Hash, Default)]
 #[repr(transparent)]
 pub struct MacroID(pub u32);
 
 #[derive(Clone, Debug)]
 pub struct MacroCall {
-  pub index: u32, // Index in the lookup table on the GDScript side
-  pub original_name: String, // Probably not needed, but we have it so we may as well keep track of it.
-  pub name: String,
+  index: u32, // Index in the lookup table on the GDScript side
+  original_name: String, // Probably not needed, but we have it so we may as well keep track of it.
+  name: String,
 }
 
 // TODO Make this return GDError like it probably should.
@@ -61,8 +67,6 @@ impl NamedFileServer {
   }
 
   pub fn stand_up_file(&mut self, name: String, file: NamedTempFile) -> io::Result<MacroID> {
-    //let mut buf = String::new();
-    //std::io::stdin().read_line(&mut buf).expect("Failed");
     let idx = self.load_file_on_server(file.path())?;
     let gdname = names::lisp_to_gd(&name);
     let call = MacroCall { index: idx, original_name: name, name: gdname };
