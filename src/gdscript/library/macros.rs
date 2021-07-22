@@ -7,7 +7,6 @@
 //! is bootstrapped from `GDLisp.lisp` now and does not reference this
 //! module. `library::macros` exists for historical reasons only.
 
-use crate::runner::macro_server::named_file_server::MacroID;
 use crate::sxp::ast::AST;
 use crate::sxp::dotted::DottedExpr;
 use crate::compile::error::Error;
@@ -38,8 +37,8 @@ pub struct MacroState<'a, 'b> {
 pub type BuiltInMacro = fn(MacroState<'_, '_>, &[&AST]) -> Result<AST, Error>;
 
 /// Get the macro with the given ID.
-pub fn get_builtin_macro(id: MacroID) -> Option<BuiltInMacro> {
-  match id.0 {
+pub fn get_builtin_macro(id: u32) -> Option<BuiltInMacro> {
+  match id {
     0 => {
       Some(and_function)
     }

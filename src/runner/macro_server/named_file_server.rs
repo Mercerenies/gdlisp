@@ -46,11 +46,11 @@ pub struct NamedFileServer {
   next_reserved_id: MacroID,
 }
 
-/// A simple wrapper struct around a `u32` which is used as the key
-/// type in [`NamedFileServer`].
+/// A simple identifier type which is used as the key type in
+/// [`NamedFileServer`].
 #[derive(Copy, Clone, Debug, Eq, PartialEq, Hash, Default)]
 #[repr(transparent)]
-pub struct MacroID(pub u32);
+pub struct MacroID(u32);
 
 #[derive(Clone, Debug)]
 struct MacroCall {
@@ -233,21 +233,21 @@ impl MacroID {
   // 512-1023: Unused (future use)
   // 1024-max: User-defined macros
 
-  pub const RESERVED: u32 = 1024;
+  const RESERVED: u32 = 1024;
 
-  pub fn smallest_stdlib() -> MacroID {
+  fn smallest_stdlib() -> MacroID {
     MacroID(64)
   }
 
-  pub fn smallest_unreserved() -> MacroID {
+  fn smallest_unreserved() -> MacroID {
     MacroID(MacroID::RESERVED)
   }
 
-  pub fn is_reserved(self) -> bool {
+  fn is_reserved(self) -> bool {
     self.0 < MacroID::RESERVED
   }
 
-  pub fn next(self) -> MacroID {
+  fn next(self) -> MacroID {
     MacroID(self.0 + 1)
   }
 
