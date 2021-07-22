@@ -79,7 +79,7 @@ impl IncCompiler {
         } else {
           // User-defined macro; runs in Godot
           let call = self.get_macro_file(server, &head).expect("Could not find macro file").clone();
-          server.run_server_file(&call, parms.clone(), args)
+          server.run_server_file(&call, args)
         };
         server.reset_global_name_generator()?;
 
@@ -655,7 +655,7 @@ impl IncCompiler {
     // all referenced functions are already defined.
     let names = deps.try_into_knowns().map_err(Error::from)?;
     let tmpfile = macros::create_macro_file(pipeline, self.imports.clone(), &self.symbols, names, self.minimalist)?;
-    let m_id = pipeline.get_server_mut().stand_up_file(name.to_owned(), tmpfile)?;
+    let m_id = pipeline.get_server_mut().stand_up_macro(name.to_owned(), decl.args.clone(), tmpfile)?;
     self.macros.insert(name.to_owned(), MacroData { id: m_id, args: decl.args, imported: false });
 
     Ok(())

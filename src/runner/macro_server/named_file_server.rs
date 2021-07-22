@@ -41,6 +41,7 @@ pub struct MacroCall {
   index: u32, // Index in the lookup table on the GDScript side
   original_name: String, // Probably not needed, but we have it so we may as well keep track of it.
   name: String,
+  parms: ArgList,
 }
 
 // TODO Make this return GDError like it probably should.
@@ -66,10 +67,15 @@ impl NamedFileServer {
     result.parse().map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e))
   }
 
-  pub fn stand_up_file(&mut self, name: String, file: NamedTempFile) -> io::Result<MacroID> {
+  pub fn stand_up_file(&mut self, file: NamedTempFile) -> io::Result<()> {
+    self.load_file_on_server(file.path())?;
+    Ok(())
+  }
+
+  pub fn stand_up_macro(&mut self, name: String, parms: ArgList, file: NamedTempFile) -> io::Result<MacroID> {
     let idx = self.load_file_on_server(file.path())?;
     let gdname = names::lisp_to_gd(&name);
-    let call = MacroCall { index: idx, original_name: name, name: gdname };
+    let call = MacroCall { index: idx, original_name: name, name: gdname, parms };
     let id = self.next_id;
     self.next_id = self.next_id.next();
     self.macro_files.insert(id, (call, file));
@@ -80,9 +86,9 @@ impl NamedFileServer {
     self.macro_files.get(&id).map(|x| &x.0)
   }
 
-  pub fn run_server_file(&mut self, call: &MacroCall, parms: ArgList, args: Vec<GDExpr>)
+  pub fn run_server_file(&mut self, call: &MacroCall, args: Vec<GDExpr>)
                          -> Result<AST, PError> {
-    let specs = FnSpecs::from(parms);
+    let specs = FnSpecs::from(call.parms.clone());
     let call_object =
       GDExpr::Subscript(
         Box::new(GDExpr::Attribute(Box::new(GDExpr::var("MAIN")), String::from("loaded_files"))),

@@ -132,7 +132,7 @@ impl Pipeline {
     if !unit.ir.minimalist_flag {
       write!(tmpfile, "{}", tmpresult.to_gd())?;
       tmpfile.flush()?;
-      self.server.stand_up_file(String::from("(standalone file)"), tmpfile)?;
+      self.server.stand_up_file(tmpfile)?;
     }
 
     mem::swap(&mut old_file_path, &mut self.current_file_path);
