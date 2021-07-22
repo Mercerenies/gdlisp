@@ -46,9 +46,8 @@ pub trait StmtWrapper {
   /// that result, then we effectively have no need to ever evaluate
   /// the expression in the first place.
   fn wrap_to_builder(&self, builder: &mut StmtBuilder, expr: StExpr) {
-    let StExpr { expr, side_effects } = expr;
-    if side_effects.modifies_state() || !self.is_vacuous() {
-      builder.append(self.wrap_expr(expr));
+    if let Some(stmt) = self.wrap_to_stmt(expr) {
+      builder.append(stmt);
     }
   }
 
@@ -57,12 +56,12 @@ pub trait StmtWrapper {
   /// is vacuous and the expression is stateless, then the vector will
   /// be empty. Otherwise, a single statement will be produced via
   /// [`StmtWrapper::wrap_expr`].
-  fn wrap_to_stmts(&self, expr: StExpr) -> Vec<Stmt> {
+  fn wrap_to_stmt(&self, expr: StExpr) -> Option<Stmt> {
     let StExpr { expr, side_effects } = expr;
     if side_effects.modifies_state() || !self.is_vacuous() {
-      vec!(self.wrap_expr(expr))
+      Some(self.wrap_expr(expr))
     } else {
-      vec!()
+      None
     }
   }
 

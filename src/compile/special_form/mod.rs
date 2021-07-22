@@ -17,6 +17,7 @@ use crate::gdscript::expr::Expr;
 use crate::gdscript::literal::Literal;
 use crate::gdscript::op;
 use crate::pipeline::Pipeline;
+use crate::util;
 
 type IRExpr = ir::expr::Expr;
 
@@ -28,7 +29,7 @@ pub fn compile_cond_stmt<'a>(compiler: &mut Compiler<'a>,
                              needs_result: NeedsResult)
                              -> Result<StExpr, Error> {
   let (destination, result) = needs_result.into_destination(compiler, builder, "_cond");
-  let init: Vec<Stmt> = destination.wrap_to_stmts(Compiler::nil_expr());
+  let init: Vec<Stmt> = util::option_to_vec(destination.wrap_to_stmt(Compiler::nil_expr()));
   let body = clauses.iter().rev().fold(Ok(init), |acc: Result<_, Error>, curr| {
     let acc = acc?;
     let (cond, body) = curr;
