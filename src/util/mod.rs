@@ -2,6 +2,7 @@
 //! Various utility functions that don't have a better home.
 
 pub mod debug_wrapper;
+pub mod lattice;
 
 use std::collections::HashMap;
 use std::hash::Hash;

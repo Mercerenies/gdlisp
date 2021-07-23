@@ -24,12 +24,12 @@
 ///     None
 /// ```
 ///
-/// This lattice is realized by the [`AccessType::min`] and
-/// [`AccessType::max`] functions.
+/// This lattice is realized by the [`AccessType::meet`] and
+/// [`AccessType::join`] functions.
 ///
 /// The logic for the lattice is as follows. If a variable is accessed
 /// in two ways, `a` and `b` (both `AccessType` values), then we need
-/// at least `AccessType::max(a, b)` control over the variable to be
+/// at least `AccessType::join(a, b)` control over the variable to be
 /// able to implement both accesses correctly. For most access types,
 /// this is straightforward: if a variable is read (`Read`) and
 /// written to (`RW`) but never in a closure, then we need `RW`. If a
@@ -138,7 +138,7 @@ impl AccessType {
 
   /// The least-upper-bound of `a` and `b`, under the lattice
   /// described in [`AccessType`].
-  pub fn max(a: AccessType, b: AccessType) -> AccessType {
+  pub fn join(a: AccessType, b: AccessType) -> AccessType {
     if a == AccessType::None {
       return b;
     }
@@ -159,7 +159,7 @@ impl AccessType {
 
   /// The greatest-lower-bound of `a` and `b`, under the lattice
   /// described in [`AccessType`].
-  pub fn min(a: AccessType, b: AccessType) -> AccessType {
+  pub fn meet(a: AccessType, b: AccessType) -> AccessType {
     if a == AccessType::ClosedRW {
       return b;
     }
