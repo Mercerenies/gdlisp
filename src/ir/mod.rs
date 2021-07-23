@@ -25,6 +25,7 @@ pub mod export;
 pub mod identifier;
 pub mod modifier;
 pub mod access_type;
+pub mod closure_names;
 
 use decl::Decl;
 use crate::sxp::ast::AST;
