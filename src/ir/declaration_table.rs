@@ -83,6 +83,11 @@ impl DeclarationTable {
     filtered.into()
   }
 
+  /// Iterates over the elements of `self` in order.
+  pub fn iter(&self) -> impl Iterator<Item=&Decl> {
+    self.in_order.iter()
+  }
+
 }
 
 impl From<DeclarationTable> for Vec<Decl> {
