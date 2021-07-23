@@ -154,7 +154,7 @@ fn generate_lambda_class<'a, 'b>(compiler: &mut Compiler<'a>,
 }
 
 pub fn purge_globals(vars: &mut Locals, table: &SymbolTable) {
-  vars.filter(|var, _| {
+  vars.retain(|var, _| {
     table.get_var(var).map_or(true, |v| v.scope != VarScope::GlobalVar)
   });
 }
