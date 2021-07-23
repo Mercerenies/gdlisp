@@ -2,6 +2,8 @@
 //! Defines the [`AccessType`] enum, for describing methods of
 //! accessing a local variable.
 
+use crate::util::lattice::Lattice;
+
 /// `AccessType` describes the different ways we can access a variable.
 ///
 /// Note that, generally speaking, an `AccessType` should be regarded
@@ -11,8 +13,7 @@
 /// the variable is never accessed in the scope we're worried about.
 ///
 /// These possibilities do *not* form a total ordering, but they do
-/// form a [lattice](https://en.wikipedia.org/wiki/Lattice_(order)) as
-/// follows.
+/// form a [lattice](crate::util::lattice::Lattice) as follows.
 ///
 /// ```text
 ///   ClosedRW
@@ -136,41 +137,45 @@ impl AccessType {
     *self == AccessType::ClosedRW || *self == AccessType::RW
   }
 
+}
+
+impl Lattice for AccessType {
+
   /// The least-upper-bound of `a` and `b`, under the lattice
   /// described in [`AccessType`].
-  pub fn join(a: AccessType, b: AccessType) -> AccessType {
-    if a == AccessType::None {
+  fn join(self, b: AccessType) -> AccessType {
+    if self == AccessType::None {
       return b;
     }
     if b == AccessType::None {
-      return a;
+      return self;
     }
-    if a == AccessType::Read {
+    if self == AccessType::Read {
       return b;
     }
     if b == AccessType::Read {
-      return a;
+      return self;
     }
-    if a == b {
-      return a;
+    if self == b {
+      return self;
     }
     AccessType::ClosedRW
   }
 
   /// The greatest-lower-bound of `a` and `b`, under the lattice
   /// described in [`AccessType`].
-  pub fn meet(a: AccessType, b: AccessType) -> AccessType {
-    if a == AccessType::ClosedRW {
+  fn meet(self, b: AccessType) -> AccessType {
+    if self == AccessType::ClosedRW {
       return b;
     }
     if b == AccessType::ClosedRW {
-      return a;
+      return self;
     }
-    if a == b {
-      return a;
+    if self == b {
+      return self;
     }
-    if a == AccessType::None {
-      return a;
+    if self == AccessType::None {
+      return self;
     }
     if b == AccessType::None {
       return b;

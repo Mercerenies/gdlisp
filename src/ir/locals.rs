@@ -8,7 +8,7 @@
 //! [`super::functions`].
 
 use crate::util;
-
+use crate::util::lattice::Lattice;
 use super::access_type::AccessType;
 
 use std::collections::HashMap;
@@ -41,7 +41,8 @@ impl Locals {
   /// Marks the given variable as accessed in the given way. If the
   /// variable was not known to `self` before, it is added to the
   /// table. If the variable was known, then the previous access type
-  /// and `access_type` are joined (via [`AccessType::join`]) to
+  /// and `access_type` are joined (via
+  /// [`AccessType::join`](Lattice::join) to
   /// produce the new access type for the variable.
   pub fn visited(&mut self, name: &str, access_type: AccessType) {
     self.0.insert(name.to_owned(), AccessType::join(self.get(name), access_type));
@@ -74,7 +75,8 @@ impl Locals {
 
   /// Adds all of the variables from `b` into `self`. Any variables
   /// which did not exist in `self` are added, and those which did
-  /// have the two access types joined via [`AccessType::join`].
+  /// have the two access types joined via
+  /// [`AccessType::join`](Lattice::join).
   pub fn merge_with(&mut self, b: Locals) {
     util::merge_hashmap_inplace(&mut self.0, b.0, AccessType::join);
   }
