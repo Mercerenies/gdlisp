@@ -1,12 +1,20 @@
 
+//! A [`DeclarationTable`] is a sequence of declarations which can be
+//! efficiently indexed by [`Id`].
+
 use super::Decl;
 use super::identifier::{Id, IdLike};
 
 use std::collections::HashMap;
 
 /// A `DeclarationTable` stores [`Decl`] declarations, indexed by
-/// their names. A `DeclarationTable` can also be used to retrieve the
-/// original declarations, in insertion order, via [`Into::into`].
+/// their names. A `DeclarationTable` should be thought of as a
+/// `Vec<Decl>`, but with efficient access indexed by the
+/// [identifier](Id) of a declaration. There are `From` and `Into`
+/// instances converting from and to `Vec<Decl>`.
+///
+/// Note that, for indexing purposes, the identifier of a `Decl` is
+/// given by [`Decl::to_id`].
 #[derive(Clone, Debug, Default)]
 pub struct DeclarationTable {
   values: HashMap<Id, usize>,
@@ -15,14 +23,20 @@ pub struct DeclarationTable {
 
 impl DeclarationTable {
 
+  /// Constructs a new, empty `DeclarationTable`.
   pub fn new() -> DeclarationTable {
     DeclarationTable::default()
   }
 
+  /// Gets the declaration with the given identifier.
   pub fn get<'a>(&self, id: &(dyn IdLike + 'a)) -> Option<&Decl> {
     self.values.get(id).map(|idx| &self.in_order[*idx])
   }
 
+  /// Adds a [`Decl`] to the `DeclarationTable`, to be indexed via its
+  /// [`Decl::to_id`] value. If a declaration with that ID is already
+  /// present in this table, then that declaration is replaced with
+  /// `value`. Otherwise, `value` is added at the end of the table.
   #[allow(clippy::map_entry)] // Using the Entry API would require that value be cloned.
   pub fn add(&mut self, value: Decl) {
     let id = value.to_id();
@@ -36,6 +50,8 @@ impl DeclarationTable {
     }
   }
 
+  /// Removes the declaration with identifier `id` from the table and
+  /// returns it. Returns `None` if no matching declaration exists.
   pub fn del<'a>(&mut self, id: &(dyn IdLike + 'a)) -> Option<Decl> {
     if let Some(idx) = self.values.remove(id) {
       let decl = self.in_order.remove(idx);
@@ -52,10 +68,15 @@ impl DeclarationTable {
     }
   }
 
+  /// Checks whether a declaration with the given identifier exists in
+  /// the table. Equivalent to `self.get(id).is_some()`.
   pub fn has<'a>(&self, id: &(dyn IdLike + 'a)) -> bool {
     self.get(id).is_some()
   }
 
+  /// Filters the `DeclarationTable` by the predicate `condition`,
+  /// returning a new table where only the entries which returned true
+  /// under the predicate are kept.
   pub fn filter(&self, condition: impl FnMut(&Decl) -> bool) -> DeclarationTable {
     let vec = Vec::from(self.clone());
     let filtered = vec.into_iter().filter(condition).collect::<Vec<_>>();
