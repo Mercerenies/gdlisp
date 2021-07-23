@@ -579,7 +579,7 @@ impl IncCompiler {
         Err(e) => return Err(e),
         Ok(d) => {
           let name = d.name().to_owned();
-          self.table.set(d.clone());
+          self.table.add(d.clone());
           if let Decl::MacroDecl(mdecl) = d {
             self.bind_macro(pipeline, &name, mdecl)?;
           }
@@ -614,7 +614,7 @@ impl IncCompiler {
       args: ArgList::empty(),
       body: Expr::Progn(main),
     });
-    self.table.set(main_decl);
+    self.table.add(main_decl);
 
     Ok(self.into())
   }

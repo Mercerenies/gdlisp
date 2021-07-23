@@ -409,12 +409,12 @@ where E : From<Error>,
         let table = icompiler.declaration_table();
         table.get(&*Id::build(Namespace::Function, &name)).cloned()
       };
-      icompiler.declaration_table().set(Decl::MacroDecl(m.clone()));
+      icompiler.declaration_table().add(Decl::MacroDecl(m.clone()));
       icompiler.bind_macro(pipeline, &name, m)?;
       let result = macrolet_bind_locals(icompiler, pipeline, macros, func);
       if let Some(old_symbol_value) = old_symbol_value {
         let table = icompiler.declaration_table();
-        table.set(old_symbol_value);
+        table.add(old_symbol_value);
       } else {
         let table = icompiler.declaration_table();
         table.del(&*Id::build(Namespace::Function, &name));
@@ -446,7 +446,7 @@ where E : From<Error>,
           let result = macrolet_unbind_macros(icompiler, pipeline, macros, func);
           if let Some(old_symbol_value) = old_symbol_value {
             let table = icompiler.declaration_table();
-            table.set(old_symbol_value);
+            table.add(old_symbol_value);
           } else {
             let table = icompiler.declaration_table();
             table.del(&*Id::build(Namespace::Function, &name));

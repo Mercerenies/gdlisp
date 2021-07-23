@@ -24,7 +24,7 @@ impl DeclarationTable {
   }
 
   #[allow(clippy::map_entry)] // Using the Entry API would require that value be cloned.
-  pub fn set(&mut self, value: Decl) {
+  pub fn add(&mut self, value: Decl) {
     let id = value.to_id();
     let new_idx = self.in_order.len();
     if self.values.contains_key(&id) {
@@ -77,7 +77,7 @@ impl From<Vec<Decl>> for DeclarationTable {
   fn from(decls: Vec<Decl>) -> DeclarationTable {
     let mut table = DeclarationTable::new();
     for decl in decls {
-      table.set(decl);
+      table.add(decl);
     }
     table
   }
