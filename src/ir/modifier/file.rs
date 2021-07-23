@@ -1,4 +1,6 @@
 
+//! Modifiers that have to do with an entire GDLisp file.
+
 use crate::sxp::ast::AST;
 use crate::sxp::dotted::DottedExpr;
 use crate::ir::incremental::IncCompiler;
@@ -6,18 +8,25 @@ use super::{ParseRule, ParseError};
 
 use std::convert::TryInto;
 
-// Modifiers that have to do with an entire GDLisp file.
-
+/// Modifier type for file-local modifiers.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum FileMod {
+  /// This modifier (`(sys/nostdlib)`) should be applied to the
+  /// standard library file to initiate the bootstrapping process. It
+  /// instructs the compiler to run a minimal compilation, which skips
+  /// over the usual steps of binding the standard library and also
+  /// disables macro resolution.
   NoStdLib,
 }
 
+/// Custom parse rule which only successfully parses the literal value
+/// `(sys/nostdlib)` successfully.
 #[derive(Clone, Debug)]
 pub struct NoStdLibParser;
 
 impl FileMod {
 
+  /// Apply `self` to the `IncCompiler` supplied.
   pub fn apply(&self, icompiler: &mut IncCompiler) {
     match self {
       FileMod::NoStdLib => {
@@ -54,6 +63,7 @@ fn file_error(ast: &AST) -> ParseError {
   ParseError::Expecting(String::from("(file-level declaration)"), ast.clone())
 }
 
+/// Parse rule for modifiers to an entire file.
 pub fn parser() -> impl ParseRule<Modifier=FileMod> {
   NoStdLibParser.unique().map(|_| FileMod::NoStdLib)
 }

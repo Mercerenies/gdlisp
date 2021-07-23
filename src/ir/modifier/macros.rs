@@ -1,15 +1,19 @@
 
+//! Parse rule for modifiers which apply to macros.
+
 use crate::ir::decl::MacroDecl;
 use crate::ir::export::Visibility;
 use super::ParseRule;
 use super::visibility;
 
+/// Modifier for [`MacroDecl`].
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum MacroMod {
   Visibility(Visibility),
 }
 
 impl MacroMod {
+  /// Apply the modifier.
   pub fn apply(&self, decl: &mut MacroDecl) {
     match self {
       MacroMod::Visibility(vis) => {
@@ -19,6 +23,7 @@ impl MacroMod {
   }
 }
 
+/// Parse rule for macro modifiers.
 pub fn parser() -> impl ParseRule<Modifier=MacroMod> {
   visibility::parser().map(MacroMod::Visibility)
 }

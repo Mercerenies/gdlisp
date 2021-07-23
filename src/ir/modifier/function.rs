@@ -1,17 +1,27 @@
 
+//! Modifiers which apply to function declarations.
+//!
+//! This modifier type applies to standalone functions. For the
+//! modifier type which applies to instance methods, see
+//! [`super::instance_method`].
+
 use crate::ir::decl::FnDecl;
 use crate::ir::export::Visibility;
 use super::{ParseRule, Several};
 use super::visibility;
 use super::magic;
 
+/// Modifier type which applies to [`FnDecl`].
 #[derive(Clone)]
 pub enum FnMod {
+  /// Visibility modifier, as per [`super::visibility`].
   Visibility(Visibility),
+  /// A magic declaration, as per [`super::magic`].
   Magic(String),
 }
 
 impl FnMod {
+  /// Apply the modifier.
   pub fn apply(&self, decl: &mut FnDecl) {
     match self {
       FnMod::Visibility(vis) => {
@@ -24,6 +34,7 @@ impl FnMod {
   }
 }
 
+/// A parse rule for function modifiers.
 pub fn parser() -> impl ParseRule<Modifier=FnMod> {
   Several::new(vec!(
     Box::new(visibility::parser().map(FnMod::Visibility)),

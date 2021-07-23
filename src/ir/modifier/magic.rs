@@ -1,5 +1,10 @@
 
-// Parser for call magic declarations (used primary in FnMod).
+//! Parser for call magic declarations.
+//!
+//! [Call magic](crate::compile::symbol_table::call_magic) can be used
+//! to force a sort of inlining on standard library calls. This
+//! modifier is responsible for parsing declarations that a function
+//! would like to exhibit call magic behavior.
 
 use crate::sxp::ast::AST;
 use crate::sxp::dotted::DottedExpr;
@@ -7,6 +12,9 @@ use super::{ParseRule, ParseError};
 
 use std::convert::TryInto;
 
+/// Parse rule for call magic. A `MagicParser` parses expressions of
+/// the form `(sys/call-magic name)` where `name` is an arbitrary
+/// symbol. On a successful parse, `name` is returned.
 #[derive(Clone, Debug)]
 pub struct MagicParser;
 
@@ -38,6 +46,7 @@ fn magic_error(ast: &AST) -> ParseError {
   ParseError::Expecting(String::from("(magic declaration)"), ast.clone())
 }
 
+/// Parser for call magic.
 pub fn parser() -> impl ParseRule<Modifier=String> {
   MagicParser
 }
