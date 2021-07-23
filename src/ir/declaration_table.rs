@@ -4,6 +4,9 @@ use super::identifier::{Id, IdLike};
 
 use std::collections::HashMap;
 
+/// A `DeclarationTable` stores [`Decl`] declarations, indexed by
+/// their names. A `DeclarationTable` can also be used to retrieve the
+/// original declarations, in insertion order, via [`Into::into`].
 #[derive(Clone, Debug, Default)]
 pub struct DeclarationTable {
   values: HashMap<Id, usize>,
@@ -21,7 +24,8 @@ impl DeclarationTable {
   }
 
   #[allow(clippy::map_entry)] // Using the Entry API would require that value be cloned.
-  pub fn set(&mut self, id: Id, value: Decl) {
+  pub fn set(&mut self, value: Decl) {
+    let id = value.to_id();
     let new_idx = self.in_order.len();
     if self.values.contains_key(&id) {
       let idx = *self.values.get(&id).unwrap();
@@ -73,7 +77,7 @@ impl From<Vec<Decl>> for DeclarationTable {
   fn from(decls: Vec<Decl>) -> DeclarationTable {
     let mut table = DeclarationTable::new();
     for decl in decls {
-      table.set(decl.to_id(), decl);
+      table.set(decl);
     }
     table
   }
