@@ -5,15 +5,15 @@ use super::identifier::{Id, IdLike};
 use std::collections::HashMap;
 
 #[derive(Clone, Debug, Default)]
-pub struct SymbolTable {
+pub struct DeclarationTable {
   values: HashMap<Id, usize>,
   in_order: Vec<Decl>,
 }
 
-impl SymbolTable {
+impl DeclarationTable {
 
-  pub fn new() -> SymbolTable {
-    SymbolTable::default()
+  pub fn new() -> DeclarationTable {
+    DeclarationTable::default()
   }
 
   pub fn get<'a>(&self, id: &(dyn IdLike + 'a)) -> Option<&Decl> {
@@ -52,7 +52,7 @@ impl SymbolTable {
     self.get(id).is_some()
   }
 
-  pub fn filter(&self, condition: impl FnMut(&Decl) -> bool) -> SymbolTable {
+  pub fn filter(&self, condition: impl FnMut(&Decl) -> bool) -> DeclarationTable {
     let vec = Vec::from(self.clone());
     let filtered = vec.into_iter().filter(condition).collect::<Vec<_>>();
     filtered.into()
@@ -60,18 +60,18 @@ impl SymbolTable {
 
 }
 
-impl From<SymbolTable> for Vec<Decl> {
+impl From<DeclarationTable> for Vec<Decl> {
 
-  fn from(table: SymbolTable) -> Vec<Decl> {
+  fn from(table: DeclarationTable) -> Vec<Decl> {
     table.in_order
   }
 
 }
 
-impl From<Vec<Decl>> for SymbolTable {
+impl From<Vec<Decl>> for DeclarationTable {
 
-  fn from(decls: Vec<Decl>) -> SymbolTable {
-    let mut table = SymbolTable::new();
+  fn from(decls: Vec<Decl>) -> DeclarationTable {
+    let mut table = DeclarationTable::new();
     for decl in decls {
       table.set(decl.to_id(), decl);
     }

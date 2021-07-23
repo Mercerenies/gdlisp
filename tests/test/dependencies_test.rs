@@ -2,7 +2,7 @@
 use super::common::dummy_pipeline;
 
 use gdlisp::ir;
-use gdlisp::ir::symbol_table::SymbolTable;
+use gdlisp::ir::declaration_table::DeclarationTable;
 use gdlisp::ir::depends::Dependencies;
 use gdlisp::ir::identifier::{IdLike, Id, Namespace};
 use gdlisp::parser;
@@ -13,7 +13,7 @@ fn dependencies_of<'a>(input: &str, target_name: &(dyn IdLike + 'a)) -> Dependen
   let parser = parser::ASTParser::new();
   let ast = parser.parse(input).unwrap();
   let (toplevel, _macros) = ir::compile_toplevel(&mut dummy_pipeline(), &ast).unwrap();
-  let table = SymbolTable::from(toplevel.decls); // TODO Deal with imports here?
+  let table = DeclarationTable::from(toplevel.decls); // TODO Deal with imports here?
   Dependencies::identify(&table, &HashSet::new(), target_name)
 }
 

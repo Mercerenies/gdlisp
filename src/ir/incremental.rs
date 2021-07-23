@@ -1,7 +1,7 @@
 
 // Incremental compilation (supplies backbone for macro resolution)
 
-use super::symbol_table::SymbolTable;
+use super::declaration_table::DeclarationTable;
 use super::MAIN_BODY_NAME;
 use super::call_name::CallName;
 use super::arglist::{ArgList, SimpleArgList};
@@ -37,7 +37,7 @@ use std::collections::{HashMap, HashSet};
 
 pub struct IncCompiler {
   names: FreshNameGenerator<'static>,
-  symbols: SymbolTable,
+  table: DeclarationTable,
   macros: HashMap<String, MacroData>,
   imports: Vec<ImportDecl>,
   minimalist: bool, // A minimalist compiler doesn't use stdlib and doesn't do macro expansion
@@ -50,7 +50,7 @@ impl IncCompiler {
     let names = FreshNameGenerator::new(names).to_owned_names();
     IncCompiler {
       names: names,
-      symbols: SymbolTable::new(),
+      table: DeclarationTable::new(),
       macros: HashMap::new(),
       imports: vec!(),
       minimalist: false,
@@ -579,7 +579,7 @@ impl IncCompiler {
         Err(e) => return Err(e),
         Ok(d) => {
           let name = d.name().to_owned();
-          self.symbols.set(d.to_id(), d.clone());
+          self.table.set(d.to_id(), d.clone());
           if let Decl::MacroDecl(mdecl) = d {
             self.bind_macro(pipeline, &name, mdecl)?;
           }
@@ -614,7 +614,7 @@ impl IncCompiler {
       args: ArgList::empty(),
       body: Expr::Progn(main),
     });
-    self.symbols.set(Id::new(Namespace::Function, MAIN_BODY_NAME.to_owned()), main_decl);
+    self.table.set(Id::new(Namespace::Function, MAIN_BODY_NAME.to_owned()), main_decl);
 
     Ok(self.into())
   }
@@ -635,13 +635,13 @@ impl IncCompiler {
 
     // Now we need to find the dependencies and spawn up the
     // server for the macro itself.
-    let mut deps = Dependencies::identify(&self.symbols, &imported_names, &*Id::build(Namespace::Function, name));
+    let mut deps = Dependencies::identify(&self.table, &imported_names, &*Id::build(Namespace::Function, name));
     deps.purge_unknowns(library::all_builtin_names(self.minimalist).iter().map(|x| x as &dyn IdLike));
 
     // Aside from built-in functions, it must be the case that
     // all referenced functions are already defined.
     let names = deps.try_into_knowns().map_err(Error::from)?;
-    let tmpfile = macros::create_macro_file(pipeline, self.imports.clone(), &self.symbols, names, self.minimalist)?;
+    let tmpfile = macros::create_macro_file(pipeline, self.imports.clone(), &self.table, names, self.minimalist)?;
     let m_id = pipeline.get_server_mut().stand_up_macro(name.to_owned(), decl.args.clone(), tmpfile)?;
     self.macros.insert(name.to_owned(), MacroData { id: m_id, imported: false });
 
@@ -671,8 +671,8 @@ impl IncCompiler {
     }
   }
 
-  pub fn symbol_table(&mut self) -> &mut SymbolTable {
-    &mut self.symbols
+  pub fn declaration_table(&mut self) -> &mut DeclarationTable {
+    &mut self.table
   }
 
   pub fn mark_as_minimalist(&mut self) {
@@ -686,7 +686,7 @@ impl From<IncCompiler> for (decl::TopLevel, HashMap<String, MacroData>) {
   fn from(compiler: IncCompiler) -> (decl::TopLevel, HashMap<String, MacroData>) {
     let toplevel = decl::TopLevel {
       imports: compiler.imports,
-      decls: compiler.symbols.into(),
+      decls: compiler.table.into(),
       minimalist_flag: compiler.minimalist,
     };
     let macros: HashMap<_, _> = compiler.macros.into_iter().filter(|(_, x)| !x.imported).collect();

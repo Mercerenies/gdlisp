@@ -406,17 +406,17 @@ where E : From<Error>,
     Some(m) => icompiler.locally_save_macro(&m.name.to_string(), |icompiler| {
       let name = m.name.to_string();
       let old_symbol_value = {
-        let table = icompiler.symbol_table();
+        let table = icompiler.declaration_table();
         table.get(&*Id::build(Namespace::Function, &name)).cloned()
       };
-      icompiler.symbol_table().set(Id::new(Namespace::Function, name.to_string()), Decl::MacroDecl(m.clone()));
+      icompiler.declaration_table().set(Id::new(Namespace::Function, name.to_string()), Decl::MacroDecl(m.clone()));
       icompiler.bind_macro(pipeline, &name, m)?;
       let result = macrolet_bind_locals(icompiler, pipeline, macros, func);
       if let Some(old_symbol_value) = old_symbol_value {
-        let table = icompiler.symbol_table();
+        let table = icompiler.declaration_table();
         table.set(Id::new(Namespace::Function, name.to_string()), old_symbol_value);
       } else {
-        let table = icompiler.symbol_table();
+        let table = icompiler.declaration_table();
         table.del(&*Id::build(Namespace::Function, &name));
       }
       icompiler.unbind_macro(&name);
@@ -439,16 +439,16 @@ where E : From<Error>,
       if icompiler.has_macro(name) {
         icompiler.locally_save_macro(name, |icompiler| {
           let old_symbol_value = {
-            let table = icompiler.symbol_table();
+            let table = icompiler.declaration_table();
             table.get(&*Id::build(Namespace::Function, &name)).cloned()
           };
           icompiler.unbind_macro(name);
           let result = macrolet_unbind_macros(icompiler, pipeline, macros, func);
           if let Some(old_symbol_value) = old_symbol_value {
-            let table = icompiler.symbol_table();
+            let table = icompiler.declaration_table();
             table.set(Id::new(Namespace::Function, name.to_string()), old_symbol_value);
           } else {
-            let table = icompiler.symbol_table();
+            let table = icompiler.declaration_table();
             table.del(&*Id::build(Namespace::Function, &name));
           }
           result

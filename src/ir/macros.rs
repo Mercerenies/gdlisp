@@ -14,13 +14,12 @@ use crate::ir;
 use crate::ir::import::ImportDecl;
 use crate::ir::decl::TopLevel;
 use crate::ir::identifier::Id;
+use crate::ir::declaration_table::DeclarationTable;
 
 use tempfile::{NamedTempFile, Builder};
 
 use std::io::{self, Write};
 use std::collections::HashSet;
-
-type IRSymbolTable = super::symbol_table::SymbolTable;
 
 #[derive(Clone, Debug)]
 pub struct MacroData {
@@ -46,7 +45,7 @@ impl MacroData {
 
 }
 
-pub fn create_macro_file(pipeline: &mut Pipeline, imports: Vec<ImportDecl>, src_table: &IRSymbolTable, names: HashSet<Id>, minimalist: bool) -> Result<NamedTempFile, PError> {
+pub fn create_macro_file(pipeline: &mut Pipeline, imports: Vec<ImportDecl>, src_table: &DeclarationTable, names: HashSet<Id>, minimalist: bool) -> Result<NamedTempFile, PError> {
   let mut table = SymbolTable::new();
   library::bind_builtins(&mut table, minimalist);
 

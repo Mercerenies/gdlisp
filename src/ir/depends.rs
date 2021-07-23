@@ -1,5 +1,5 @@
 
-use super::symbol_table::SymbolTable;
+use super::declaration_table::DeclarationTable;
 use super::identifier::{IdLike, Id, Namespace};
 use crate::compile::error::Error;
 
@@ -19,7 +19,7 @@ pub enum DependencyError {
 
 impl Dependencies {
 
-  pub fn identify<'a>(table: &SymbolTable, known_imports: &HashSet<Id>, id: &(dyn IdLike + 'a))
+  pub fn identify<'a>(table: &DeclarationTable, known_imports: &HashSet<Id>, id: &(dyn IdLike + 'a))
                       -> Dependencies {
     let mut visited = HashSet::new();
     let mut imports = HashSet::new();
