@@ -4,8 +4,9 @@
 
 /// A [lattice](https://en.wikipedia.org/wiki/Lattice_(order)) is a
 /// collection of values together with a join and meet operation.
-/// These operations should satisfy the following rules, often called
-/// the *absorption laws*.
+/// These operations should be associative and commutative, and they
+/// should satisfy the following rules, often called the *absorption
+/// laws*.
 ///
 /// ```text
 /// a.join(a.meet(b)) == a
@@ -29,4 +30,13 @@ pub trait Lattice {
   /// values.
   fn meet(self, other: Self) -> Self;
 
+}
+
+impl Lattice for () {
+  fn join(self, _other: ()) -> () {
+    ()
+  }
+  fn meet(self, _other: ()) -> () {
+    ()
+  }
 }
