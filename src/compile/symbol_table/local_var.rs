@@ -1,5 +1,5 @@
 
-use crate::ir::locals::AccessType;
+use crate::ir::access_type::AccessType;
 use crate::gdscript::expr::Expr;
 use crate::gdscript::decl;
 use crate::gdscript::literal::Literal;

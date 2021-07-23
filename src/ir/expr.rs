@@ -2,8 +2,8 @@
 use super::literal;
 use super::decl;
 use super::arglist::ArgList;
-//use crate::gdscript::op::{self, UnaryOp, BinaryOp, OperatorHasInfo};
-use super::locals::{Locals, AccessType};
+use super::locals::Locals;
+use super::access_type::AccessType;
 use super::functions::Functions;
 use super::identifier::{Namespace, Id};
 use crate::sxp::ast::AST;
