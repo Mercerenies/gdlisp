@@ -7,7 +7,6 @@
 // NOTE: IR still exclusively uses the GDLisp names. Generating
 // GDScript names is the responsibility of the next compilation step.
 
-pub mod functions;
 pub mod expr;
 pub mod decl;
 pub mod arglist;

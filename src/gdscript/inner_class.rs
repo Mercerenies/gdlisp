@@ -23,6 +23,7 @@ use crate::compile::symbol_table::function_call::FnName;
 use crate::compile::preload_resolver::PreloadResolver;
 use crate::ir;
 use crate::ir::identifier::{Id, Namespace};
+use crate::util::lattice::Lattice;
 
 /// By convention, this name is used as the basis for outer class
 /// reference names. Note that this name should not be used *directly*
@@ -111,7 +112,7 @@ impl NeedsOuterClassRef for ir::expr::LambdaClass {
   }
 }
 
-impl NeedsOuterClassRef for ir::functions::Functions {
+impl<T : Lattice> NeedsOuterClassRef for ir::closure_names::ClosureNames<T> {
   fn needs_outer_class_ref(&self, table: &SymbolTable) -> bool {
     let deps = self.names().map(|x| Id::new(Namespace::Function, x.to_owned()));
     check_dependencies_for_outer_class_ref(deps, table)

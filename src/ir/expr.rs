@@ -4,7 +4,6 @@ use super::decl;
 use super::arglist::ArgList;
 use super::closure_names::ClosureNames;
 use super::access_type::AccessType;
-use super::functions::Functions;
 use super::identifier::{Namespace, Id};
 use crate::sxp::ast::AST;
 
@@ -59,6 +58,16 @@ pub struct LambdaClass {
 /// [`AccessType`] the variables need.
 pub type Locals = ClosureNames<AccessType>;
 
+/// A collection of functions, either local or global.
+///
+/// Unlike [`Locals`](super::locals::Locals), `Functions` does not
+/// need to keep track of access types, since it is impossible to
+/// reassign a function in the function namespace after its been
+/// declared. It's possible to shadow functions with local ones, but
+/// this doesn't mutate the existing one and a closure around the
+/// existing function will still reflect the old value of the name.
+pub type Functions = ClosureNames<()>;
+
 impl Expr {
 
   pub fn while_stmt(cond: Expr, body: Expr) -> Expr {
@@ -104,7 +113,7 @@ impl Expr {
         acc_vars.merge_with(local_vars);
       }
       Expr::Call(name, args) => {
-        acc_fns.visited(name);
+        acc_fns.visit(name.to_owned(), ());
         for expr in args {
           expr.walk_locals(acc_vars, acc_fns);
         }
@@ -136,7 +145,7 @@ impl Expr {
         body.walk_locals(acc_vars, &mut local_scope);
         for func in local_scope.names() {
           if !fns.contains(func) {
-            acc_fns.visited(func);
+            acc_fns.visit(func.to_owned(), ());
           }
         }
       }
@@ -158,7 +167,7 @@ impl Expr {
         body.walk_locals(acc_vars, &mut local_scope);
         for func in local_scope.names() {
           if !fns.contains(func) {
-            acc_fns.visited(func);
+            acc_fns.visit(func.to_owned(), ());
           }
         }
       }
@@ -187,7 +196,7 @@ impl Expr {
       }
       Expr::FuncRef(target) => {
         match target {
-          FuncRefTarget::SimpleName(name) => acc_fns.visited(name),
+          FuncRefTarget::SimpleName(name) => acc_fns.visit(name.to_owned(), ()),
         }
       }
       Expr::Array(vec) => {

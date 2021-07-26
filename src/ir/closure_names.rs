@@ -10,7 +10,7 @@
 use crate::util;
 use crate::util::lattice::Lattice;
 
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 /// A collection of names and usage information. The usage information
 /// shall be an instance of [`Lattice`]. The `Lattice` instance is
@@ -35,6 +35,12 @@ impl<T : Lattice> ClosureNames<T> {
   /// if the name is unknown to `self`.
   pub fn get(&self, name: &str) -> Option<&T> {
     self.0.get(name)
+  }
+
+  /// Whether or not the `ClosureNames` contains the given name.
+  /// Equivalent to `self.get(name).is_some()`.
+  pub fn contains(&self, name: &str) -> bool {
+    self.get(name).is_some()
   }
 
   /// Marks the given name as being used in the given way. If the name
@@ -93,6 +99,15 @@ impl<T : Lattice> ClosureNames<T> {
   /// usage information.
   pub fn iter_mut(&mut self) -> impl Iterator<Item=(&str, &mut T)> {
     self.0.iter_mut().map(|(x, y)| (&x[..], y))
+  }
+
+}
+
+impl ClosureNames<()> {
+
+  /// Constructs a `ClosureNames<()>` from a hashset of names.
+  pub fn from_hashset(set: HashSet<String>) -> Self {
+    ClosureNames::from_hashmap(set.into_iter().map(|x| (x, ())).collect())
   }
 
 }

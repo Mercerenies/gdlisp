@@ -1,7 +1,6 @@
 
 use crate::ir;
-use crate::ir::expr::Locals;
-use crate::ir::functions::Functions;
+use crate::ir::expr::{Locals, Functions};
 use crate::ir::access_type::AccessType;
 use crate::ir::arglist::VarArg;
 use crate::compile::{Compiler, StExpr};
