@@ -60,12 +60,12 @@ pub type Locals = ClosureNames<AccessType>;
 
 /// A collection of functions, either local or global.
 ///
-/// Unlike [`Locals`](super::locals::Locals), `Functions` does not
-/// need to keep track of access types, since it is impossible to
-/// reassign a function in the function namespace after its been
-/// declared. It's possible to shadow functions with local ones, but
-/// this doesn't mutate the existing one and a closure around the
-/// existing function will still reflect the old value of the name.
+/// Unlike [`Locals`], `Functions` does not need to keep track of
+/// access types, since it is impossible to reassign a function in the
+/// function namespace after its been declared. It's possible to
+/// shadow functions with local ones, but this doesn't mutate the
+/// existing one and a closure around the existing function will still
+/// reflect the old value of the name.
 pub type Functions = ClosureNames<()>;
 
 impl Expr {

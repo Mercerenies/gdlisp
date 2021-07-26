@@ -5,7 +5,7 @@
 //! collection of names and some reference to how they're used. If a
 //! name is "used" multiple times (i.e. [`ClosureNames::visit`] is
 //! called multiple times with the same name), then the usage
-//! references will be combined via [`Lattice::max`].
+//! references will be combined via [`Lattice::join`].
 
 use crate::util;
 use crate::util::lattice::Lattice;
