@@ -84,6 +84,17 @@ impl<T : Lattice> ClosureNames<T> {
     self.0.retain(|x, y| f(x, y))
   }
 
+  /// Iterates over the entries in the table.
+  pub fn iter(&self) -> impl Iterator<Item=(&str, &T)> {
+    self.0.iter().map(|(x, y)| (&x[..], y))
+  }
+
+  /// Iterates over the entries in the table, allowing mutation on the
+  /// usage information.
+  pub fn iter_mut(&mut self) -> impl Iterator<Item=(&str, &mut T)> {
+    self.0.iter_mut().map(|(x, y)| (&x[..], y))
+  }
+
 }
 
 impl<T : Lattice> Default for ClosureNames<T> {
