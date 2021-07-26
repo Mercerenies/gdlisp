@@ -1,10 +1,9 @@
 
 use super::arglist::{ArgList, SimpleArgList};
-use super::expr::{self, Expr};
+use super::expr::{self, Expr, Locals};
 use super::literal::Literal;
 use super::import::ImportDecl;
 use super::identifier::{Namespace, Id, IdLike};
-use super::locals::Locals;
 use super::functions::Functions;
 use super::export::Visibility;
 use crate::gdscript::decl::Static;

@@ -2,7 +2,7 @@
 use super::literal;
 use super::decl;
 use super::arglist::ArgList;
-use super::locals::Locals;
+use super::closure_names::ClosureNames;
 use super::access_type::AccessType;
 use super::functions::Functions;
 use super::identifier::{Namespace, Id};
@@ -54,6 +54,10 @@ pub struct LambdaClass {
   pub constructor: decl::ConstructorDecl,
   pub decls: Vec<decl::ClassInnerDecl>,
 }
+
+/// A collection of local variables, as well as the broadest
+/// [`AccessType`] the variables need.
+pub type Locals = ClosureNames<AccessType>;
 
 impl Expr {
 
