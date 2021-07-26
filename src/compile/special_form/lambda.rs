@@ -252,7 +252,8 @@ pub fn compile_labels_scc<'a>(compiler: &mut Compiler<'a>,
     let mut lambda_builder = StmtBuilder::new();
     let (arglist, gd_args) = args.clone().into_gd_arglist(&mut compiler.name_generator());
     for (arg, gd_arg) in &gd_args {
-      lambda_table.set_var(arg.to_owned(), LocalVar::local(gd_arg.to_owned(), all_vars.get(&arg)));
+      let access_type = *all_vars.get(&arg).unwrap_or(&AccessType::None);
+      lambda_table.set_var(arg.to_owned(), LocalVar::local(gd_arg.to_owned(), access_type));
       wrap_in_cell_if_needed(arg, gd_arg, &all_vars, &mut lambda_builder);
     }
     compiler.compile_stmt(pipeline, &mut lambda_builder, &mut lambda_table, &stmt_wrapper::Return, body)?;
@@ -326,6 +327,7 @@ pub fn locally_bind_vars<'a, 'b, I, U>(compiler: &mut Compiler<'b>,
                                        -> Result<(), Error>
 where I : Iterator<Item=&'a U>,
       U : Borrow<str>,
+      U : ?Sized,
       U : 'a {
   for var in closure_vars {
     // Ensure the variable actually exists
@@ -354,6 +356,7 @@ pub fn locally_bind_fns<'a, 'b, I, U, L>(compiler: &mut Compiler<'b>,
                                          -> Result<(), Error>
 where I : Iterator<Item=&'a U>,
       U : Borrow<str>,
+      U : ?Sized,
       U : 'a,
       L : CanLoad {
   for func in closure_fns {
@@ -383,7 +386,7 @@ pub fn closure_fn_to_gd_var(call: &FnCall) -> Option<String> {
 }
 
 fn wrap_in_cell_if_needed(name: &str, gd_name: &str, all_vars: &Locals, lambda_builder: &mut StmtBuilder) {
-  if all_vars.get(name).requires_cell() {
+  if all_vars.get(name).unwrap_or(&AccessType::None).requires_cell() {
     lambda_builder.append(Stmt::Assign(Box::new(Expr::var(gd_name)),
                                        op::AssignOp::Eq,
                                        Box::new(library::construct_cell(Expr::var(gd_name)))));
@@ -408,7 +411,8 @@ pub fn compile_lambda_stmt<'a>(compiler: &mut Compiler<'a>,
 
   let mut lambda_table = SymbolTable::new();
   for arg in &gd_args {
-    lambda_table.set_var(arg.0.to_owned(), LocalVar::local(arg.1.to_owned(), all_vars.get(&arg.0)));
+    let access_type = *all_vars.get(&arg.0).unwrap_or(&AccessType::None);
+    lambda_table.set_var(arg.0.to_owned(), LocalVar::local(arg.1.to_owned(), access_type));
   }
 
   let mut outer_ref_name = String::new();

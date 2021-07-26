@@ -34,6 +34,7 @@ use crate::ir;
 use crate::ir::expr::{FuncRefTarget, AssignTarget};
 use crate::ir::import::{ImportName, ImportDecl, ImportDetails};
 use crate::ir::identifier::Namespace;
+use crate::ir::access_type::AccessType;
 use crate::runner::path::RPathBuf;
 use crate::pipeline::error::{Error as PError};
 use crate::pipeline::Pipeline;
@@ -166,7 +167,7 @@ impl<'a> Compiler<'a> {
           let ast_name = ast_name.to_owned();
           let result_value = self.compile_expr(pipeline, builder, table, &expr, NeedsResult::Yes)?.expr;
           let result_value =
-            if closure_vars.get(&ast_name).requires_cell() {
+            if closure_vars.get(&ast_name).unwrap_or(&AccessType::None).requires_cell() {
               library::construct_cell(result_value)
             } else {
               result_value
@@ -174,7 +175,7 @@ impl<'a> Compiler<'a> {
           let gd_name = self.declare_var(builder, &names::lisp_to_gd(&ast_name), Some(result_value));
           Ok((ast_name, gd_name))
         }).collect::<Result<Vec<_>, _>>()?;
-        table.with_local_vars(&mut var_names.into_iter().map(|x| (x.0.clone(), LocalVar::local(x.1, closure_vars.get(&x.0)))), |table| {
+        table.with_local_vars(&mut var_names.into_iter().map(|x| (x.0.clone(), LocalVar::local(x.1, *closure_vars.get(&x.0).unwrap_or(&AccessType::None)))), |table| {
           self.compile_expr(pipeline, builder, table, body, needs_result)
         })
       }
@@ -437,14 +438,14 @@ impl<'a> Compiler<'a> {
     let (arglist, gd_args) = args.into_gd_arglist(&mut self.gen);
     let mut stmt_builder = StmtBuilder::new();
     for arg in &gd_args {
-      if local_vars.get(&arg.0).requires_cell() {
+      if local_vars.get(&arg.0).unwrap_or(&AccessType::None).requires_cell() {
         // Special behavior to wrap the argument in a cell.
         stmt_builder.append(Stmt::Assign(Box::new(Expr::var(&arg.1)),
                                          op::AssignOp::Eq,
                                          Box::new(library::construct_cell(Expr::var(&arg.1)))));
       }
     }
-    table.with_local_vars(&mut gd_args.into_iter().map(|x| (x.0.to_owned(), LocalVar::local(x.1, local_vars.get(&x.0)))), |table| {
+    table.with_local_vars(&mut gd_args.into_iter().map(|x| (x.0.to_owned(), LocalVar::local(x.1, *local_vars.get(&x.0).unwrap_or(&AccessType::None)))), |table| {
       self.compile_stmt(pipeline, &mut stmt_builder, table, result_destination, body)
     })?;
     Ok(decl::FnDecl {

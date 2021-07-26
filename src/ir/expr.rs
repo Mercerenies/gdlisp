@@ -68,7 +68,7 @@ impl Expr {
   fn walk_locals(&self, acc_vars: &mut Locals, acc_fns: &mut Functions) {
     match self {
       Expr::LocalVar(s) => {
-        acc_vars.visited(s, AccessType::Read);
+        acc_vars.visit(s.to_owned(), AccessType::Read);
       }
       Expr::Literal(_) => {}
 //      Expr::Subscript(a, b) => {
@@ -115,7 +115,9 @@ impl Expr {
         body.walk_locals(&mut local_scope, acc_fns);
         for var in local_scope.names() {
           if !vars.contains(var) {
-            acc_vars.visited(var, local_scope.get(var));
+            if let Some(access_type) = local_scope.get(var) {
+              acc_vars.visit(var.to_owned(), *access_type);
+            }
           }
         }
       }
@@ -162,14 +164,16 @@ impl Expr {
         body.walk_locals(&mut local_scope, acc_fns);
         for var in local_scope.names() {
           if !vars.contains(var) {
-            acc_vars.visited(var, local_scope.get(var).closed());
+            if let Some(access_type) = local_scope.get(var) {
+              acc_vars.visit(var.to_owned(), access_type.closed());
+            }
           }
         }
       }
       Expr::Assign(target, expr) => {
         match target {
           AssignTarget::Variable(s) => {
-            acc_vars.visited(s, AccessType::RW);
+            acc_vars.visit(s.to_owned(), AccessType::RW);
           }
           AssignTarget::InstanceField(lhs, _) => {
             lhs.walk_locals(acc_vars, acc_fns);
@@ -208,13 +212,21 @@ impl Expr {
         for arg in args {
           arg.walk_locals(acc_vars, acc_fns);
         }
-        acc_vars.visited(extends, AccessType::ClosedRead);
-        let (con_vars, con_fns) = constructor.get_names();
-        acc_vars.merge_with(con_vars.closed());
+        acc_vars.visit(extends.to_owned(), AccessType::ClosedRead);
+
+        let (mut con_vars, con_fns) = constructor.get_names();
+        for (_, access_type) in con_vars.iter_mut() {
+          *access_type = access_type.closed();
+        }
+        acc_vars.merge_with(con_vars);
         acc_fns.merge_with(con_fns);
+
         for decl in decls {
-          let (decl_vars, decl_fns) = decl.get_names();
-          acc_vars.merge_with(decl_vars.closed());
+          let (mut decl_vars, decl_fns) = decl.get_names();
+          for (_, access_type) in decl_vars.iter_mut() {
+            *access_type = access_type.closed();
+          }
+          acc_vars.merge_with(decl_vars);
           acc_fns.merge_with(decl_fns);
         }
       }

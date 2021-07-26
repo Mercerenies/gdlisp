@@ -4,6 +4,7 @@ pub mod flet;
 pub mod lambda_class;
 
 use crate::ir;
+use crate::ir::access_type::AccessType;
 use crate::compile::{Compiler, StExpr, NeedsResult};
 use crate::compile::body::builder::StmtBuilder;
 use crate::compile::symbol_table::{SymbolTable, HasSymbolTable};
@@ -105,7 +106,7 @@ pub fn compile_for_stmt<'a>(compiler: &mut Compiler<'a>,
   let citer = compiler.compile_expr(pipeline, builder, table, iter, NeedsResult::Yes)?.expr;
   let var_name = compiler.name_generator().generate_with(&names::lisp_to_gd(name));
   let mut inner_builder = StmtBuilder::new();
-  let local_var = LocalVar::local(var_name.to_owned(), closure_vars.get(&name));
+  let local_var = LocalVar::local(var_name.to_owned(), *closure_vars.get(&name).unwrap_or(&AccessType::None));
   table.with_local_var(name.to_owned(), local_var, |table| {
     compiler.compile_stmt(pipeline, &mut inner_builder, table, &stmt_wrapper::Vacuous, body)
   })?;
