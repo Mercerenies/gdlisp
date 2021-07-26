@@ -642,7 +642,7 @@ impl IncCompiler {
     // all referenced functions are already defined.
     let names = deps.try_into_knowns().map_err(Error::from)?;
     let tmpfile = macros::create_macro_file(pipeline, self.imports.clone(), &self.table, names, self.minimalist)?;
-    let m_id = pipeline.get_server_mut().stand_up_macro(name.to_owned(), decl.args.clone(), tmpfile)?;
+    let m_id = pipeline.get_server_mut().stand_up_macro(name.to_owned(), decl.args, tmpfile)?;
     self.macros.insert(name.to_owned(), MacroData { id: m_id, imported: false });
 
     Ok(())

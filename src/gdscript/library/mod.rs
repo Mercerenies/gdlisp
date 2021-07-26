@@ -186,13 +186,13 @@ fn bind_builtins_unchecked(table: &mut SymbolTable, unit: Option<&TranslationUni
     for id in &unit.exports {
       match id.namespace {
         Namespace::Value => {
-          let value = unit.table.get_var(&id.name).expect(&format!("Exported value name {} does not appear", id.name));
+          let value = unit.table.get_var(&id.name).unwrap_or_else(|| panic!("Exported value name {} does not appear", id.name));
           let mut value = value.to_owned();
           value.name = value.name.into_imported(String::from("GDLisp"));
           table.set_var(id.name.to_owned(), value);
         }
         Namespace::Function => {
-          let (call, magic) = unit.table.get_fn(&id.name).expect(&format!("Exported function name {} does not appear", id.name));
+          let (call, magic) = unit.table.get_fn(&id.name).unwrap_or_else(|| panic!("Exported function name {} does not appear", id.name));
           let call = Compiler::translate_call(String::from("GDLisp"), call.clone());
           let magic = dyn_clone::clone_box(magic);
           table.set_fn(id.name.to_owned(), call, magic);

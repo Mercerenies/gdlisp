@@ -32,6 +32,7 @@ pub trait Lattice {
 
 }
 
+#[allow(clippy::unused_unit)]
 impl Lattice for () {
   fn join(self, _other: ()) -> () {
     ()
