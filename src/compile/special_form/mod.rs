@@ -115,3 +115,16 @@ pub fn compile_for_stmt<'a>(compiler: &mut Compiler<'a>,
   builder.append(Stmt::ForLoop(stmt::ForLoop { iter_var: var_name, collection: citer, body: body }));
   Ok(Compiler::nil_expr())
 }
+
+/// A [`Stmt`] which assigns the value of the local variable
+/// `local_var` to the variable `inst_var` on the Godot `self` object.
+pub fn assign_to_compiler(inst_var: String, local_var: String) -> Stmt {
+  assign_expr_to_compiler(inst_var, Expr::Var(local_var))
+}
+
+/// A [`Stmt`] which assigns `expr` to the variable `inst_var` on the
+/// Godot `self` object.
+pub fn assign_expr_to_compiler(inst_var: String, expr: Expr) -> Stmt {
+  let self_target = Expr::self_var().attribute(inst_var);
+  Stmt::simple_assign(self_target, expr)
+}

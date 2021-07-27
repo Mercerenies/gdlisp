@@ -10,15 +10,6 @@ use crate::gdscript::arglist::ArgList;
 
 use std::convert::TryInto;
 
-pub fn assign_to_compiler(inst_var: String, local_var: String) -> Stmt {
-  assign_expr_to_compiler(inst_var, Expr::Var(local_var))
-}
-
-pub fn assign_expr_to_compiler(inst_var: String, expr: Expr) -> Stmt {
-  let self_target = Expr::self_var().attribute(inst_var);
-  Stmt::simple_assign(self_target, expr)
-}
-
 pub fn generate_lambda_vararg(specs: FnSpecs) -> decl::FnDecl {
   let mut stmts = Vec::new();
 
@@ -106,7 +97,7 @@ pub fn generate_lambda_class<'a, 'b>(class_name: String,
   let funcv = generate_lambda_vararg(specs);
   let mut constructor_body = Vec::new();
   for name in closed_vars.iter() {
-    constructor_body.push(assign_to_compiler(name.to_string(), name.to_string()));
+    constructor_body.push(super::assign_to_compiler(name.to_string(), name.to_string()));
   }
   let r: i32  = specs.required.try_into().unwrap();
   let o: i32  = specs.optional.try_into().unwrap();
@@ -115,9 +106,9 @@ pub fn generate_lambda_class<'a, 'b>(class_name: String,
     Some(VarArg::RestArg) => 1,
     Some(VarArg::ArrArg) => 2,
   };
-  constructor_body.push(assign_expr_to_compiler(String::from("__gdlisp_required"), Expr::from(r)));
-  constructor_body.push(assign_expr_to_compiler(String::from("__gdlisp_optional"), Expr::from(o)));
-  constructor_body.push(assign_expr_to_compiler(String::from("__gdlisp_rest"), Expr::from(x)));
+  constructor_body.push(super::assign_expr_to_compiler(String::from("__gdlisp_required"), Expr::from(r)));
+  constructor_body.push(super::assign_expr_to_compiler(String::from("__gdlisp_optional"), Expr::from(o)));
+  constructor_body.push(super::assign_expr_to_compiler(String::from("__gdlisp_rest"), Expr::from(x)));
   let constructor =
     decl::FnDecl {
       name: String::from(library::CONSTRUCTOR_NAME),

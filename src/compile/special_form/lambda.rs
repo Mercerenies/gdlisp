@@ -21,13 +21,23 @@ use crate::gdscript::library;
 use crate::gdscript::inner_class::{self, NeedsOuterClassRef};
 use crate::pipeline::Pipeline;
 use crate::pipeline::can_load::CanLoad;
-use super::lambda_vararg::{generate_lambda_class, assign_to_compiler};
+use super::lambda_vararg::generate_lambda_class;
 
 use std::borrow::Borrow;
 
 type IRExpr = ir::expr::Expr;
 type IRArgList = ir::arglist::ArgList;
 
+/// Removes all of the variables from `vars` whose scope (according to
+/// the corresponding entry in `table`) is [`VarScope::GlobalVar`].
+///
+/// Lambdas are lifted to the file-level scope. A variable with scope
+/// `VarScope::GlobalVar` is defined either at the file-level scope or
+/// as a superglobal. In either case, the lambda will still have a
+/// reference to the variable without any help, so we don't need to
+/// close around those variables. This function removes from `vars`
+/// the variables which it is unnecessary to explicitly create
+/// closures around.
 pub fn purge_globals(vars: &mut Locals, table: &SymbolTable) {
   vars.retain(|var, _| {
     table.get_var(var).map_or(true, |v| v.scope != VarScope::GlobalVar)
@@ -151,7 +161,7 @@ pub fn compile_labels_scc<'a>(compiler: &mut Compiler<'a>,
 
   let mut constructor_body = Vec::new();
   for var in &gd_closure_vars {
-    constructor_body.push(assign_to_compiler(var.to_string(), var.to_string()));
+    constructor_body.push(super::assign_to_compiler(var.to_string(), var.to_string()));
   }
   let constructor = decl::FnDecl {
     name: String::from(library::CONSTRUCTOR_NAME),

@@ -12,7 +12,6 @@ use crate::gdscript::decl::{self, Decl};
 use crate::gdscript::inner_class::{self, NeedsOuterClassRef};
 use crate::pipeline::Pipeline;
 use super::lambda;
-use super::lambda_vararg;
 
 use std::convert::TryFrom;
 
@@ -97,7 +96,7 @@ pub fn compile_lambda_class<'a>(compiler: &mut Compiler<'a>,
   constructor.args.args = gd_closure_vars.to_vec();
   constructor.args.args.extend(original_args);
   for name in gd_closure_vars.iter().rev() {
-    constructor.body.insert(0, lambda_vararg::assign_to_compiler(name.to_string(), name.to_string()));
+    constructor.body.insert(0, super::assign_to_compiler(name.to_string(), name.to_string()));
   }
   let mut class_body = vec!();
   class_body.push(Decl::FnDecl(decl::Static::NonStatic, constructor));
