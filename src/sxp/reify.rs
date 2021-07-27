@@ -45,7 +45,7 @@ impl Reify for AST {
   fn reify(&self) -> Expr {
     match self {
       AST::Nil => {
-        library::nil()
+        Expr::null()
       }
       AST::Cons(a, b) => {
         Expr::Call(Some(Box::new(library::gdlisp_root())), String::from("cons"), vec!(a.reify(), b.reify()))

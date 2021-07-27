@@ -48,25 +48,6 @@ pub fn on_gdlisp_root(name: String) -> Expr {
   Expr::Attribute(Box::new(gdlisp_root()), name)
 }
 
-// fn toplevel_enum(name: &str, values: &[&str]) -> LocalVar {
-//   let hint = ValueHint::enumeration(values.iter().copied());
-//   let mut var = LocalVar::file_constant(name.to_owned()).with_hint(hint);
-//   var.name = var.name.into_imported(GDLISP_NAME.to_owned());
-//   var
-// }
-
-// fn gdlisp_function(name: &str, specs: FnSpecs) -> FnCall {
-//   let mut func = FnCall::file_constant(specs, FnScope::Global, String::from(name));
-//   func.object = func.object.into_imported(GDLISP_NAME.to_owned());
-//   func
-// }
-
-/// The GDScript `null` value.
-#[deprecated(note="Use `Expr::null` instead")]
-pub fn nil() -> Expr {
-  Expr::null()
-}
-
 /// An expression representing the GDLisp `Cons` class.
 pub fn cons_class() -> Expr {
   on_gdlisp_root(String::from("Cons"))
@@ -85,7 +66,7 @@ pub fn cell_class() -> Expr {
 /// Given a vector of expressions `vec`, produce an expression which
 /// produces a GDLisp list containing those expressions in order.
 pub fn construct_list(vec: Vec<Expr>) -> Expr {
-  vec.into_iter().rev().fold(nil(), |rest, first| {
+  vec.into_iter().rev().fold(Expr::null(), |rest, first| {
     Expr::Call(Some(Box::new(cons_class())), String::from("new"), vec!(first, rest))
   })
 }

@@ -332,7 +332,7 @@ impl<'a> Compiler<'a> {
   }
 
   pub fn nil_expr() -> StExpr {
-    StExpr { expr: library::nil(), side_effects: SideEffects::None }
+    StExpr { expr: Expr::null(), side_effects: SideEffects::None }
   }
 
   pub fn name_generator(&mut self) -> &mut FreshNameGenerator<'a> {

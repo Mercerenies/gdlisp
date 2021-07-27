@@ -5,7 +5,6 @@ use super::Compiler;
 use super::stmt_wrapper::{self, StmtWrapper};
 use super::body::builder::StmtBuilder;
 use crate::gdscript::expr::Expr;
-use crate::gdscript::library;
 use crate::ir::access_type::AccessType;
 
 /// An `StExpr` is an expression coupled with a declaration of that
@@ -123,7 +122,7 @@ impl NeedsResult {
       (destination, Expr::Var(var_name))
     } else {
       let destination = Box::new(stmt_wrapper::Vacuous) as Box<dyn StmtWrapper>;
-      (destination, library::nil())
+      (destination, Expr::null())
     }
   }
 

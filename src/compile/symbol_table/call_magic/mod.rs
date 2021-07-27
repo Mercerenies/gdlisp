@@ -224,7 +224,7 @@ pub fn compile_default_call(call: FnCall, mut args: Vec<Expr>) -> Result<Expr, E
   };
   // Extend with nil
   while args.len() < (specs.required + specs.optional) as usize {
-    args.push(library::nil());
+    args.push(Expr::null());
   }
   match specs.rest {
     None => {
