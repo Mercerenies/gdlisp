@@ -65,6 +65,11 @@ impl Expr {
     Expr::Literal(Literal::Null)
   }
 
+  /// The expression referring to the special "self" variable.
+  pub fn self_var() -> Expr {
+    Expr::Var(String::from("self"))
+  }
+
   /// A literal string.
   pub fn str_lit(a: &str) -> Expr {
     Expr::from(a.to_owned())
@@ -74,6 +79,28 @@ impl Expr {
   /// into the resulting value.
   pub fn var(a: &str) -> Expr {
     Expr::Var(a.to_owned())
+  }
+
+  /// An [`Expr::Attribute`] on `self`, referencing the name given by
+  /// `attr`.
+  pub fn attribute(self, attr: impl Into<String>) -> Expr {
+    Expr::Attribute(Box::new(self), attr.into())
+  }
+
+  /// Binary operator application.
+  pub fn binary(self, op: BinaryOp, rhs: Expr) -> Expr {
+    Expr::Binary(Box::new(self), op, Box::new(rhs))
+  }
+
+  /// A function call expression.
+  pub fn call(lhs: Option<Expr>, name: &str, args: Vec<Expr>) -> Expr {
+    Expr::Call(lhs.map(Box::new), name.to_owned(), args)
+  }
+
+  /// A function call expression, with no receiver object. Equivalent
+  /// to `Expr::call(None, name, args)`.
+  pub fn simple_call(name: &str, args: Vec<Expr>) -> Expr {
+    Expr::call(None, name, args)
   }
 
   /// A GDScript `yield` call.

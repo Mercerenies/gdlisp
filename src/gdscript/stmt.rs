@@ -109,6 +109,11 @@ pub fn if_branches(cases: Vec<(Expr, Vec<Stmt>)>, default: Vec<Stmt>) -> Vec<Stm
 
 impl Stmt {
 
+  /// Simple assignment to a given target.
+  pub fn simple_assign(lhs: Expr, rhs: Expr) -> Stmt {
+    Stmt::Assign(Box::new(lhs), AssignOp::Eq, Box::new(rhs))
+  }
+
   /// Write the statement, as GDScript code, to the [`fmt::Write`]
   /// instance `w`.
   ///

@@ -2,6 +2,7 @@
 pub mod lambda;
 pub mod flet;
 pub mod lambda_class;
+pub mod lambda_vararg;
 
 use crate::ir;
 use crate::ir::access_type::AccessType;

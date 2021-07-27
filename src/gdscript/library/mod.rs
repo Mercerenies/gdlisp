@@ -62,6 +62,7 @@ pub fn on_gdlisp_root(name: String) -> Expr {
 // }
 
 /// The GDScript `null` value.
+#[deprecated(note="Use `Expr::null` instead")]
 pub fn nil() -> Expr {
   Expr::null()
 }
