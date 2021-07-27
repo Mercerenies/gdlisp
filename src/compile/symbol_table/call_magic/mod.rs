@@ -1,24 +1,27 @@
 
-// Function calls, by default, compile to function calls in GDScript,
-// naturally. However, there are many situations where the function on
-// the GDScript side is simply a trivial wrapper around some operation
-// that should be inlined. This is such a trivial inline step that's
-// so ubiquitously useful that we do it here as a rule. If a built-in
-// function is called directly (i.e. not through a funcref) then it
-// can trigger a special CallMagic which effectively inlines it.
-
-// For a good example, look at the + GDLisp function. In general, it
-// compiles to GDLisp.plus, which iterates over its arguments, adds
-// them, and returns the result. But, of course, (+ a b) shouldn't
-// require a for loop, so any time we call + with an arity known at
-// compile time (i.e. without invoking funcrefs or anything like
-// that), we can compile directly to the + operator in GDScript, which
-// is much more efficient.
-
-// Note that this is *not* general-purpose inlining, which I'll
-// implement later as a general pass over the IR. This is for the very
-// specific case of certain GDScript functions written in GDLisp.gd
-// which I know how to inline effectively by hand.
+//! Function call magic, for deterministic inlining behavior.
+//!
+//! Function calls, by default, compile to function calls in GDScript,
+//! naturally. However, there are many situations where the function
+//! on the GDScript side is simply a trivial wrapper around some
+//! operation that should be inlined. This is such a trivial inline
+//! step that's so ubiquitously useful that we do it here as a rule.
+//! If a built-in function is called directly (i.e. not through a
+//! funcref) then it can trigger a special [`CallMagic`] which
+//! effectively inlines it.
+//!
+//! For a good example, look at the `+` GDLisp function. In general,
+//! it compiles to `GDLisp.plus`, which iterates over its arguments,
+//! adds them, and returns the result. But, of course, `(+ a b)`
+//! shouldn't require a for loop, so any time we call `+` with an
+//! arity known at compile time (i.e. without invoking funcrefs or the
+//! like), we can compile directly to the `+` operator in GDScript,
+//! which is much more efficient.
+//!
+//! Note that this is *not* general-purpose inlining, which will be
+//! implemented later as a general pass over the IR. This is for the
+//! very specific case of certain GDScript functions written in
+//! `GDLisp.lisp` which I know how to inline effectively by hand.
 
 pub mod table;
 
@@ -39,7 +42,28 @@ use crate::util;
 use super::function_call::FnCall;
 use super::SymbolTable;
 
+/// An implementor of `CallMagic` can meaningfully compile a given
+/// function call expression `call` into some GDScript [`Expr`].
+///
+/// Note that, although we talk about call magic applying to certain
+/// designated builtin calls, strictly speaking every function call
+/// written in GDLisp invokes call magic. This trait is *always* used
+/// to compile function calls. In most cases, for user-defined
+/// functions or for builtins without special behavior, the
+/// [`DefaultCall`] singleton is used, which performs the basic
+/// function call compilation routine via [`compile_default_call`].
+///
+/// Note that all `CallMagic` is required to implement [`DynClone`].
+/// This is a technical detail to allow [`dyn_clone`] to work its
+/// magic. Pragmatically, this means that any `CallMagic` implementor
+/// should implement [`Clone`], which then automatically covers
+/// `DynClone` via a blanket implementation.
 pub trait CallMagic : DynClone {
+  /// Given a [`FnCall`] instance `call` and argument list `args`,
+  /// compile the call into a GDScript [`Expr`]. `compiler` provides a
+  /// fresh name generator and compilation state, `builder` provides
+  /// the enclosing block body as a [`StmtBuilder`], and `table`
+  /// provides the enclosing scope information.
   fn compile<'a>(&self,
                  call: FnCall,
                  compiler: &mut Compiler<'a>,
@@ -50,34 +74,86 @@ pub trait CallMagic : DynClone {
 
 dyn_clone::clone_trait_object!(CallMagic);
 
+/// A default [`CallMagic`] for any functions without special
+/// behavior. The `CallMagic` implementation for `DefaultCall` simply
+/// delegates to [`compile_default_call`].
 #[derive(Clone)]
 pub struct DefaultCall;
+
+/// [Call magic](CallMagic) for the `-` builtin.
 #[derive(Clone)]
 pub struct MinusOperation;
+
+/// [Call magic](CallMagic) for the (fractional) division operator.
 #[derive(Clone)]
 pub struct DivOperation;
+
+/// [Call magic](CallMagic) for the integer division operator.
 #[derive(Clone)]
 pub struct IntDivOperation;
+
+/// [Call magic](CallMagic) for the mathematical modulo operator.
 #[derive(Clone)]
 pub struct ModOperation;
+
+/// [`CallMagic`] for the inequality `/=` operator. `NEqOperation`
+/// only provides special behavior if two or fewer arguments are
+/// given. If more than two arguments are given, `NEqOperation` will
+/// fall back to `fallback`.
 #[derive(Clone)]
 pub struct NEqOperation { pub fallback: Box<dyn CallMagic> }
+
+/// The [call magic](CallMagic) for the Boolean negation operation.
 #[derive(Clone)]
 pub struct BooleanNotOperation;
+
+/// [`CallMagic`] for the builtin `list` function. This call magic
+/// compiles calls to literal `cons` cell constructors.
 #[derive(Clone)]
 pub struct ListOperation;
+
+/// [`CallMagic`] for the builtin `vector` function, which compiles
+/// `vector` calls to literal `Vector2` or `Vector3` constructions in
+/// GDScript.
 #[derive(Clone)]
 pub struct VectorOperation;
+
+/// [`CallMagic`] for array subscript (via `elt`). This magic compiles
+/// directly to the `foo[bar]` subscript notation in GDScript.
 #[derive(Clone)]
 pub struct ArraySubscript;
+
+/// [`CallMagic`] for array subscript assignment (via `set-elt`). This
+/// magic compiles directly to the `foo[bar] = baz` subscript notation
+/// in GDScript.
 #[derive(Clone)]
 pub struct ArraySubscriptAssign;
+
+/// [Call magic] for the `member?` builtin function. This magic
+/// compiles to the GDScript `in` operator.
 #[derive(Clone)]
 pub struct ElementOf;
+
+/// [Call magic] for instance type checks in Godot.
+///
+/// Note that the GDLisp built-in `instance?` does *not* compile to
+/// this magic, as that function is overloaded internally to work on
+/// primitive type constants as well as actual instances. This magic
+/// is used on the internal system function `sys/instance-direct?`.
 #[derive(Clone)]
 pub struct InstanceOf;
 
-// Covers addition and multiplication, for instance
+/// `CompileToBinOp` is a [`CallMagic`] which compiles function calls
+/// to sequences of binary operator application.
+///
+/// If no arguments are provided, then this magic compiles to `zero`
+/// unconditionally. If one argument is provided, it is passed through
+/// untouched. If two or more arguments are provided, they are
+/// combined using `bin` in order, with associativity given by
+/// `assoc`.
+///
+/// This call magic is used to implement the GDLisp builtins `+` and
+/// `*`.
 #[derive(Clone)]
 pub struct CompileToBinOp {
   pub zero: Expr,
@@ -85,16 +161,38 @@ pub struct CompileToBinOp {
   pub assoc: Assoc,
 }
 
-// Covers most comparison operators like = and < (excludes /=, as that
-// operator's behavior is different in complex ways not captured by
-// this CallMagic)
+/// `CompileToTransCmp` is a [`CallMagic`] which compiles function
+/// calls to transitive sequences of binary comparison applications.
+///
+/// Conceptually, `CompileToTransCmp` can be thought of as translating
+/// a call like `(< a b c d)` into `a < b and b < c and c < d`.
+/// However, the translation is more subtle than that, as any of the
+/// names which are evaluated twice (i.e. all except the first and
+/// last) have to be checked for side effects. If the arguments might
+/// exhibit side effects, then they will need to be assigned to local
+/// variables to avoid evaluating the calls twice in the expression.
+///
+/// If zero arguments are provided, then an error is returned. If one
+/// argument is provided, the result is vacuously true, as there are
+/// no comparisons to be performed.
+///
+/// This call magic is used for most builtin comparison operators,
+/// such as `=` and `<`. It is notably *not* used for `/=`, which is
+/// handled by [`NEqOperation`] due to its unique (non-transitive)
+/// behavior.
 #[derive(Clone)]
 pub struct CompileToTransCmp {
   pub bin: op::BinaryOp,
 }
 
+/// Associativity of an operator.
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd)]
-pub enum Assoc { Left, Right }
+pub enum Assoc {
+  /// A left associative operator, as `(a + b) + c`.
+  Left,
+  /// A right associative operator, as `a + (b + c)`.
+  Right,
+}
 
 // For most of these (but *not* all of them), we need Vec<Expr>, not
 // Vec<StExpr>. The latter gives more information than we usually
@@ -103,11 +201,13 @@ fn strip_st(x: Vec<StExpr>) -> Vec<Expr> {
   x.into_iter().map(|x| x.expr).collect()
 }
 
-// This function is useful independent of the CallMagic interface (for
-// instance, in the incremental compiler when calling macros), and
-// DefaultCall::compile doesn't actually use all of the arguments
-// supplied in the CallMagic contract, so this is the DefaultCall case
-// of CallMagic, refined down only to the arguments it actually uses.
+/// The "default" mechanism for compiling a function call, in the
+/// absence of any nontrivial magic. This function compiles `call` and
+/// its arguments `args` into a standard GDScript function call,
+/// taking into consideration any optional-argument or rest-argument
+/// padding which needs to be done to make the call correct on the
+/// GDScript call. This is called by [`DefaultCall::compile`] to
+/// perform its work.
 pub fn compile_default_call(call: FnCall, mut args: Vec<Expr>) -> Result<Expr, Error> {
   let FnCall { scope: _, object, function, specs, is_macro: _ } = call;
   // First, check arity

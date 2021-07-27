@@ -1,4 +1,13 @@
 
+//! Symbol tables store names and keep track of what variable or
+//! function they reference.
+//!
+//! See the [`SymbolTable`] structure for more. For anything in the
+//! variable namespace, we use [`local_var::LocalVar`] to keep track
+//! of the value. For anything in the function namespace, we use
+//! [`function_call::FnCall`] to keep track of its value, and we use
+//! [`call_magic::CallMagic`] for special call semantics on functions.
+
 pub mod function_call;
 pub mod call_magic;
 pub mod local_var;
@@ -11,6 +20,11 @@ use crate::util::debug_wrapper::DebugWrapper;
 use std::collections::HashMap;
 use std::borrow::Borrow;
 
+/// GDLisp has two separate namespaces when it comes to name
+/// resolution: the variable namespace and the function namespace.
+/// Types, such as classes and primitive types, fall into the variable
+/// namespace. `SymbolTable` encompasses a table of names available in
+/// the current scope, in either namespace.
 #[derive(Clone, Debug, Default)]
 pub struct SymbolTable {
   locals: HashMap<String, LocalVar>,
@@ -18,28 +32,39 @@ pub struct SymbolTable {
   functions: HashMap<String, (FnCall, DebugWrapper<Box<dyn CallMagic + 'static>>)>,
 }
 
-// When we move into a class scope, we need to keep two symbol tables:
-// one for use in static contexts and one for use in instance
-// (non-static) contexts. This struct encapsulates that concept.
+/// When we move into a class scope, we need to keep two symbol
+/// tables: one for use in static contexts and one for use in instance
+/// (non-static) contexts. This struct encapsulates that concept.
 pub struct ClassTablePair<'a, 'b> {
+  /// The table for use in static context.
   pub static_table: &'a mut SymbolTable,
+  /// The table for use in instance (non-static) context.
   pub instance_table: &'b mut SymbolTable,
 }
 
 impl SymbolTable {
 
+  /// A new, empty symbol table. Equivalent to
+  /// `SymbolTable::default()`.
   pub fn new() -> SymbolTable {
     SymbolTable::default()
   }
 
+  /// Gets the variable with the given GDLisp name, or `None` if no such
+  /// variable exists in the table.
   pub fn get_var(&self, name: &str) -> Option<&LocalVar> {
     self.locals.get(name)
   }
 
+  /// Gets the variable with the given local GDScript name. Variables
+  /// are indexed by both names, so this access is as efficient as
+  /// [`SymbolTable::get_var`].
   pub fn get_var_by_gd_name(&self, gd_name: &str) -> Option<&LocalVar> {
     self.reverse_locals.get(gd_name).and_then(|name| self.locals.get(name))
   }
 
+  /// Sets the variable with the given GDLisp name, returning the old
+  /// value if one existed.
   pub fn set_var(&mut self, name: String, value: LocalVar) -> Option<LocalVar> {
     if let Some(gd_name) = value.simple_name() {
       self.reverse_locals.insert(gd_name.to_owned(), name.clone());
@@ -47,6 +72,8 @@ impl SymbolTable {
     self.locals.insert(name, value)
   }
 
+  /// Removes the variable with the given GDLisp name. If no such
+  /// variable exists, then nothing is changed.
   pub fn del_var(&mut self, name: &str) {
     let value = self.locals.remove(name);
     if let Some(value) = value {
@@ -56,36 +83,51 @@ impl SymbolTable {
     }
   }
 
+  /// Gets the function call and call magic associated with the given
+  /// GDLisp function name.
   pub fn get_fn(&self, name: &str) -> Option<(&FnCall, &(dyn CallMagic + 'static))> {
     self.functions.get(name).map(|(call, magic)| {
       (call, &*magic.0)
     })
   }
 
+  /// Sets the function call and call magic associated with the given
+  /// function name.
   pub fn set_fn(&mut self, name: String, value: FnCall, magic: Box<dyn CallMagic + 'static>) {
     self.functions.insert(name, (value, DebugWrapper(magic)));
   }
 
+  /// Deletes any function call info and call magic associated with
+  /// the given function name.
   pub fn del_fn(&mut self, name: &str) {
     self.functions.remove(name);
   }
 
+  /// An iterator over the variable namespace of this table.
   pub fn vars(&self) -> impl Iterator<Item=(&str, &LocalVar)> {
     return self.locals.iter().map(|x| (x.0.borrow(), x.1));
   }
 
+  /// An iterator over the function namespace of this table.
   pub fn fns(&self) -> impl Iterator<Item=(&str, &FnCall, &(dyn CallMagic + 'static))> {
     self.functions.iter().map(|(name, value)| {
       (name.borrow(), &value.0, &*value.1.0)
     })
   }
 
+  /// An iterator over the function namespace of this table, providing
+  /// mutable access to the function call information and the call
+  /// magic.
   pub fn fns_mut(&mut self) -> impl Iterator<Item=(&str, &mut FnCall, &mut (dyn CallMagic + 'static))> {
     self.functions.iter_mut().map(|(name, value)| {
       (name.borrow(), &mut value.0, &mut *value.1.0)
     })
   }
 
+  /// Iterates over both namespaces of `other` and sets the variable
+  /// and function names in `self` to the values from `other`. If
+  /// values already existed in `self` for some name, then they are
+  /// overwritten.
   pub fn assign_from(&mut self, other: &SymbolTable) {
     for (name, value) in other.vars() {
       self.set_var(name.to_owned(), value.to_owned());
@@ -97,15 +139,26 @@ impl SymbolTable {
 
 }
 
-// So this probably doesn't need to be a trait anymore. It could
-// almost be merged into SymbolTable. It was necessary back when the
-// compiler directly stored a SymbolTable, which we don't do anymore.
+/// Trait for objects which have a symbol table. Currently, there is
+/// only one implementor of this trait: [`SymbolTable`] itself. This
+/// is largely a holdover from an older version of the codebase, when
+/// [`Compiler`](super::Compiler) directly stored a `SymbolTable` and
+/// needed mutable access to it. Nowadays, it makes more sense to
+/// simply access the table directly. This trait may get removed at
+/// some point in the future and its methods merged into `impl
+/// SymbolTable` directly.
 pub trait HasSymbolTable {
 
+  /// Borrows the symbol table from `self`.
   fn get_symbol_table(&self) -> &SymbolTable;
 
+  /// Borrows the symbol table mutably from `self`.
   fn get_symbol_table_mut(&mut self) -> &mut SymbolTable;
 
+  /// Binds the local variable, calls `block` with `self` as argument,
+  /// then binds the variable back to its previous value. This is the
+  /// correct semantic behavior for introducing a local variable into
+  /// some inner scope in GDScript.
   fn with_local_var<B, F>(&mut self,
                           name: String,
                           value: LocalVar,
@@ -121,6 +174,9 @@ pub trait HasSymbolTable {
     result
   }
 
+  /// Recursive convenience helper for calling
+  /// [`HasSymbolTable::with_local_var`] on several variable names in
+  /// sequence.
   fn with_local_vars<B>(&mut self,
                         vars: &mut dyn Iterator<Item=(String, LocalVar)>,
                         block: impl FnOnce(&mut Self) -> B) -> B {
@@ -133,6 +189,10 @@ pub trait HasSymbolTable {
     }
   }
 
+  /// Binds the local function, calls `block` with `self` as argument,
+  /// then binds the function back to its previous value. This is the
+  /// correct semantic behavior for introducing a local function into
+  /// some inner scope in GDScript.
   fn with_local_fn<B>(&mut self,
                       name: String,
                       value: FnCall,
@@ -148,6 +208,9 @@ pub trait HasSymbolTable {
     result
   }
 
+  /// Recursive convenience helper for calling
+  /// [`HasSymbolTable::with_local_fn`] on several function names in
+  /// sequence.
   fn with_local_fns<B>(&mut self,
                        vars: &mut dyn Iterator<Item=(String, FnCall)>,
                        block: impl FnOnce(&mut Self) -> B) -> B {
@@ -185,6 +248,8 @@ impl ValueHintsTable for SymbolTable {
 
 impl<'a> ClassTablePair<'a, 'a> {
 
+  /// Returns either `self.static_table` or `self.instance_table`,
+  /// depending on the type of scope we're in.
   pub fn into_table(self, is_static: bool) -> &'a mut SymbolTable {
     if is_static {
       self.static_table
