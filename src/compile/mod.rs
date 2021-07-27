@@ -62,6 +62,8 @@ pub struct Compiler<'a> {
 
 impl<'a> Compiler<'a> {
 
+  /// Constructs a new compiler associated with the given name
+  /// generator and preload resolver.
   pub fn new(gen: FreshNameGenerator<'a>, resolver: Box<dyn PreloadResolver>) -> Compiler<'a> {
     let magic_table = library::magic::standard_magic_table();
     Compiler { gen, resolver, magic_table }

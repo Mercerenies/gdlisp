@@ -104,7 +104,7 @@ impl NeedsResult {
   /// name.
   ///
   /// If `self` is `No`, then this function returns a vacuous
-  /// `StmtWrapper` and [`library::nil`] as the expression.
+  /// `StmtWrapper` and [`Expr::null()`] as the expression.
   ///
   /// In general, the returned `StmtWrapper` should be supplied with
   /// the Godot expression which is, semantically, the result of the
