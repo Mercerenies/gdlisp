@@ -1,33 +1,67 @@
 
+//! This module defines the [`Id`] type, for namespaced identifiers.
+
 use std::borrow::{Borrow, ToOwned};
 use std::hash::{Hash, Hasher};
 
+/// An identifier consists of a namespace and a name. Two identifiers
+/// which happen to share a name but are in different namespaces are
+/// considered unrelated and distinct names.
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct Id {
+  /// The identifier namespace.
   pub namespace: Namespace,
+  /// The identifier name.
   pub name: String,
 }
 
+/// There are two namespaces in GDLisp: the value namespace and the
+/// function namespace.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum Namespace {
-  Value, Function,
+  /// The value namespace consists of variables (local and global),
+  /// class declarations, enums, and constants.
+  Value,
+  /// The function namespace consists of functions (local and global)
+  /// and macros.
+  Function,
 }
 
 // This trait is a specialized version of KeyPair from this
 // StackOverflow answer. We specialize it to work on &str.
 //
 // https://stackoverflow.com/a/45795699/2288659
+
+/// [`Id`] is frequently used as the key type in some kind of
+/// associative data structure. `Id`, however, requires ownership of
+/// its string value, which is not always ideal for simple lookups.
+///
+/// Similar to how `String` keys in a hashmap can be queried with a
+/// `&str`, this trait allows `Id` keys in a hashmap or similar
+/// structure to be queried by any `IdLike` implementor, most namely a
+/// tuple `(Namespace, &str)`. Any type which has a [`Namespace`] and
+/// a `&str` name can implement this trait. The trait object type `dyn
+/// IdLike` implements the necessary [`Borrow`] and [`ToOwned`] traits
+/// to be used to reference `Id` keys in a hashmap.
 pub trait IdLike {
+  /// Gets the namespace for `self`. [`Namespace`] is a [`Copy`] type,
+  /// so we return by value here, since returning a `&Namespace` is
+  /// pointless and verbose.
   fn namespace(&self) -> Namespace;
+  /// Gets the name for `self`, by reference.
   fn name(&self) -> &str;
 }
 
 impl Id {
 
+  /// A new `Id` value with the given name and namespace.
   pub fn new(namespace: Namespace, name: String) -> Self {
     Id { namespace, name }
   }
 
+  /// A new [`IdLike`] value with the given name and namespace. This
+  /// function does not take ownership of `name`, nor does it clone
+  /// it.
   pub fn build<'a>(namespace: Namespace, name: &'a str) -> Box<dyn IdLike + 'a> {
     Box::new((namespace, name))
   }

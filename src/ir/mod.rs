@@ -33,6 +33,8 @@ use crate::ir::macros::MacroData;
 
 use std::collections::HashMap;
 
+/// The name of a module's "run" function. A static top-level function
+/// with this name should appear in every GDLisp module.
 pub const MAIN_BODY_NAME: &str = "run";
 
 pub fn compile_toplevel(pipeline: &mut Pipeline, body: &AST)
