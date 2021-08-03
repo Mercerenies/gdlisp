@@ -24,7 +24,7 @@ pub struct SimpleArgList {
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum VarArg { RestArg, ArrArg }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Eq, PartialEq)]
 pub enum ArgListParseError {
   InvalidArgument(AST),
   UnknownDirective(String),

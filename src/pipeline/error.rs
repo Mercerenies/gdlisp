@@ -26,6 +26,29 @@ impl fmt::Display for Error {
   }
 }
 
+fn _impl_partial_eq_warning(err: Error) {
+  // If this function produces exhaustive match warnings, then
+  // PartialEq is missing a case.
+  match err {
+    Error::ParseError(_) => (),
+    Error::IOError(_) => (),
+    Error::GDError(_) => (),
+  }
+}
+
+impl PartialEq<Error> for Error {
+  fn eq(&self, other: &Error) -> bool {
+    match (self, other) {
+      (Error::ParseError(a), Error::ParseError(b)) => a == b,
+      (Error::IOError(_), Error::IOError(_)) => true, // Best we can do
+      (Error::GDError(a), Error::GDError(b)) => a == b,
+      (_, _) => false,
+    }
+  }
+}
+
+impl Eq for Error {}
+
 impl<L : fmt::Display, T : fmt::Display, E : fmt::Display> From<ParseError<L, T, E>> for Error {
   fn from(e: ParseError<L, T, E>) -> Error {
     Error::ParseError(e.to_string())

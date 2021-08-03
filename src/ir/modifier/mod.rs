@@ -71,7 +71,7 @@ pub struct Unique<R> {
 /// options. However, if a fatal error occurs at any point during
 /// parsing, it is assumed to be critical and immediately fails the
 /// entire parse, regardless of alternatives.
-#[derive(Debug)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ParseError {
   /// A `UniquenessError` occurs when a parser wrapped in [`Unique`]
   /// triggers successfully twice in the same parse. This error is

@@ -49,7 +49,7 @@ pub struct ImportName<NS> {
   pub out_name: String,
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq)]
 pub enum ImportDeclParseError {
   NoFilename,
   BadFilename(AST),

@@ -25,7 +25,7 @@ use std::fmt;
 /// errors, for which LALRPOP provides its own error types. See
 /// [`crate::pipeline::error`] for an error type which includes this
 /// one and is more general.
-#[derive(Debug)]
+#[derive(PartialEq, Eq, Debug)]
 pub enum Error {
   DottedListError,
   ArgListParseError(ArgListParseError),
