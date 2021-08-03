@@ -405,12 +405,12 @@ where E : From<Error>,
                                       // compile without it.
     Some(m) => icompiler.locally_save_macro(&m.name.to_string(), |icompiler| {
       let name = m.name.to_string();
+      icompiler.bind_macro(pipeline, m.to_owned(), true)?;
       let old_symbol_value = {
         let table = icompiler.declaration_table();
         table.get(&*Id::build(Namespace::Function, &name)).cloned()
       };
       icompiler.declaration_table().add(Decl::MacroDecl(m.clone()));
-      icompiler.bind_macro(pipeline, m, true)?;
       let result = macrolet_bind_locals(icompiler, pipeline, macros, func);
       if let Some(old_symbol_value) = old_symbol_value {
         let table = icompiler.declaration_table();

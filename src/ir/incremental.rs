@@ -644,7 +644,6 @@ impl IncCompiler {
     decl.name = tmp_name.to_owned();
     let table = if generate_name {
       let mut table = self.table.clone();
-      table.del(&*Id::build(Namespace::Function, &orig_name));
       table.add(Decl::MacroDecl(decl.to_owned()));
       Cow::Owned(table)
     } else {

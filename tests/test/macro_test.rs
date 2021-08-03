@@ -104,13 +104,25 @@ static func run():
 
 #[test]
 #[ignore]
-pub fn macrolet_global_function_shadowing_test() {
+pub fn macrolet_global_function_shadowing_test_1() {
   let result = parse_compile_decl("((defn foo () 100) [(foo) (macrolet ((foo () 99)) (foo)) (foo)])");
   assert_eq!(result, r#"extends Reference
 static func foo():
     return 100
 static func run():
     return [foo(), 99, foo()]
+"#);
+}
+
+#[test]
+#[ignore]
+pub fn macrolet_global_function_shadowing_test_2() {
+  let result = parse_compile_decl("((defn foo () 100) [(foo) (macrolet ((foo () (foo))) (foo)) (foo)])");
+  assert_eq!(result, r#"extends Reference
+static func foo():
+    return 100
+static func run():
+    return [foo(), 100, foo()]
 "#);
 }
 
@@ -294,4 +306,25 @@ pub fn simple_minimalist_test() {
 static func run():
     return null
 "#);
+}
+
+#[test]
+#[ignore]
+#[should_panic]
+pub fn recursive_macro_test() {
+  parse_compile_decl("((defmacro foo () (foo)))");
+}
+
+#[test]
+#[ignore]
+#[should_panic]
+pub fn recursive_macrolet_test() {
+  parse_compile_decl("((macrolet ((foo () (foo))) ()))");
+}
+
+#[test]
+#[ignore]
+#[should_panic]
+pub fn bad_order_macro_test() {
+  parse_compile_decl("((defn bar () (foo)) (defmacro foo () 1))");
 }
