@@ -23,6 +23,7 @@ use gdlisp::ir::incremental::IncCompiler;
 use gdlisp::gdscript::library;
 use gdlisp::gdscript::decl;
 use gdlisp::pipeline::Pipeline;
+use gdlisp::pipeline::error::{Error as PError};
 use gdlisp::pipeline::config::ProjectConfig;
 
 use tempfile::{Builder, TempDir};
@@ -135,12 +136,9 @@ GDLisp="*res://GDLisp.gd"
 
 }
 
-// TODO As in compiler_test.rs, it would be ideal if this would return
-// some type of unified error (parse, compile, and IO can all err
-// here) rather than panic.
-pub fn parse_and_run(input: &str) -> String {
+pub fn parse_and_run_err(input: &str) -> Result<String, PError> {
   let parser = parser::ASTParser::new();
-  let value = parser.parse(input).unwrap();
+  let value = parser.parse(input)?;
   let used_names = value.all_symbols();
   let mut compiler = Compiler::new(FreshNameGenerator::new(used_names), Box::new(DefaultPreloadResolver));
   let mut table = SymbolTable::new();
@@ -149,21 +147,25 @@ pub fn parse_and_run(input: &str) -> String {
 
   let mut pipeline = dummy_pipeline();
 
-  let (decls, _macros) = ir::compile_toplevel(&mut pipeline, &value).unwrap();
+  let (decls, _macros) = ir::compile_toplevel(&mut pipeline, &value)?;
   let mut builder = CodeBuilder::new(decl::ClassExtends::named(String::from("Reference")));
-  compiler.compile_toplevel(&mut pipeline, &mut builder, &mut table, &decls).unwrap();
+  compiler.compile_toplevel(&mut pipeline, &mut builder, &mut table, &decls)?;
 
-  let mut temp_dir = Builder::new().prefix("__gdlisp_test").rand_bytes(5).tempdir().unwrap();
+  let mut temp_dir = Builder::new().prefix("__gdlisp_test").rand_bytes(5).tempdir()?;
   let code_output = builder.build();
   // println!("{}", code_output.to_gd());
-  dump_files(&mut temp_dir, &code_output).unwrap();
-  let result = runner::run_project(temp_dir).unwrap();
+  dump_files(&mut temp_dir, &code_output)?;
+  let result = runner::run_project(temp_dir)?;
 
   match result.find(BEGIN_GDLISP_TESTS) {
-    None => result,
-    Some(idx) => result[idx + BEGIN_GDLISP_TESTS.bytes().count()..].to_owned(),
+    None => Ok(result),
+    Some(idx) => Ok(result[idx + BEGIN_GDLISP_TESTS.bytes().count()..].to_owned()),
   }
 
+}
+
+pub fn parse_and_run(input: &str) -> String {
+  parse_and_run_err(input).unwrap()
 }
 
 fn bind_helper_symbols_comp(table: &mut SymbolTable) {
@@ -178,17 +180,13 @@ fn bind_helper_symbols_comp(table: &mut SymbolTable) {
   table.set_var(String::from("glob"), LocalVar::file_constant(String::from("glob")));
 }
 
-// TODO Currently, this panics if it fails. This is okay-ish, since
-// it's only being used for tests. But once we unify all of our errors
-// (so we can represent parse errors and compile errors with one
-// common type), we should return a Result<...> here.
-pub fn parse_compile_and_output(input: &str) -> String {
-  parse_compile_and_output_h(input).0
+pub fn parse_compile_and_output_err(input: &str) -> Result<String, PError> {
+  parse_compile_and_output_err_h(input).map(|x| x.0)
 }
 
-pub fn parse_compile_and_output_h(input: &str) -> (String, String) {
+pub fn parse_compile_and_output_err_h(input: &str) -> Result<(String, String), PError> {
   let parser = parser::ASTParser::new();
-  let value = parser.parse(input).unwrap();
+  let value = parser.parse(input)?;
   let used_names = value.all_symbols();
   let mut compiler = Compiler::new(FreshNameGenerator::new(used_names), Box::new(DefaultPreloadResolver));
   let mut table = SymbolTable::new();
@@ -202,19 +200,25 @@ pub fn parse_compile_and_output_h(input: &str) -> (String, String) {
     let mut icompiler = IncCompiler::new(value.all_symbols());
     icompiler.bind_builtin_macros(&mut pipeline);
     icompiler.compile_expr(&mut pipeline, &value)
-  }.unwrap();
-  let () = compiler.compile_stmt(&mut pipeline, &mut builder, &mut table, &mut stmt_wrapper::Return, &value).unwrap();
+  }?;
+  let () = compiler.compile_stmt(&mut pipeline, &mut builder, &mut table, &mut stmt_wrapper::Return, &value)?;
   let (stmts, helpers) = builder.build();
   let a = stmts.into_iter().map(|stmt| stmt.to_gd(0)).collect::<String>();
   let b = helpers.into_iter().map(|decl| decl.to_gd(0)).collect::<String>();
-  (a, b)
+  Ok((a, b))
 }
 
+pub fn parse_compile_and_output(input: &str) -> String {
+  parse_compile_and_output_err(input).unwrap()
+}
 
-// TODO Make this return a Result<...> as well.
-pub fn parse_compile_decl(input: &str) -> String {
+pub fn parse_compile_and_output_h(input: &str) -> (String, String) {
+  parse_compile_and_output_err_h(input).unwrap()
+}
+
+pub fn parse_compile_decl_err(input: &str) -> Result<String, PError> {
   let parser = parser::ASTParser::new();
-  let value = parser.parse(input).unwrap();
+  let value = parser.parse(input)?;
   let used_names = value.all_symbols();
   let mut compiler = Compiler::new(FreshNameGenerator::new(used_names), Box::new(DefaultPreloadResolver));
   let mut table = SymbolTable::new();
@@ -223,10 +227,14 @@ pub fn parse_compile_decl(input: &str) -> String {
   let mut pipeline = dummy_pipeline();
 
   let mut builder = CodeBuilder::new(decl::ClassExtends::named("Reference".to_owned()));
-  let (decls, _macros) = ir::compile_toplevel(&mut pipeline, &value).unwrap();
-  compiler.compile_toplevel(&mut pipeline, &mut builder, &mut table, &decls).unwrap();
+  let (decls, _macros) = ir::compile_toplevel(&mut pipeline, &value)?;
+  compiler.compile_toplevel(&mut pipeline, &mut builder, &mut table, &decls)?;
   let class = builder.build();
 
-  class.to_gd()
+  Ok(class.to_gd())
 
+}
+
+pub fn parse_compile_decl(input: &str) -> String {
+  parse_compile_decl_err(input).unwrap()
 }
