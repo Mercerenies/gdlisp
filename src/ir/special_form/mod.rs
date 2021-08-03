@@ -410,7 +410,7 @@ where E : From<Error>,
         table.get(&*Id::build(Namespace::Function, &name)).cloned()
       };
       icompiler.declaration_table().add(Decl::MacroDecl(m.clone()));
-      icompiler.bind_macro(pipeline, &name, m)?;
+      icompiler.bind_macro(pipeline, m)?;
       let result = macrolet_bind_locals(icompiler, pipeline, macros, func);
       if let Some(old_symbol_value) = old_symbol_value {
         let table = icompiler.declaration_table();

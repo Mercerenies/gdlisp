@@ -578,10 +578,9 @@ impl IncCompiler {
         Err(PError::GDError(Error::UnknownDecl(_))) | Err(PError::GDError(Error::DottedListError)) => main.push(self.compile_expr(pipeline, curr)?),
         Err(e) => return Err(e),
         Ok(d) => {
-          let name = d.name().to_owned();
           self.table.add(d.clone());
           if let Decl::MacroDecl(mdecl) = d {
-            self.bind_macro(pipeline, &name, mdecl)?;
+            self.bind_macro(pipeline, mdecl)?;
           }
         }
       };
@@ -619,7 +618,8 @@ impl IncCompiler {
     Ok(self.into())
   }
 
-  pub fn bind_macro(&mut self, pipeline: &mut Pipeline, name: &str, decl: decl::MacroDecl) -> Result<(), PError> {
+  pub fn bind_macro(&mut self, pipeline: &mut Pipeline, decl: decl::MacroDecl) -> Result<(), PError> {
+    let name = &decl.name;
 
     // bind_macro is a no-op in a minimalist compile
     if self.minimalist {
