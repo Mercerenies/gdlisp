@@ -28,7 +28,7 @@ use crate::pipeline::Pipeline;
 use crate::pipeline::translation_unit::TranslationUnit;
 
 use std::convert::{TryFrom, TryInto};
-use std::borrow::Borrow;
+use std::borrow::{Cow, Borrow};
 use std::collections::{HashMap, HashSet};
 
 // TODO If a macro (from GDLisp) needs to use a GDScript resource,
@@ -580,7 +580,7 @@ impl IncCompiler {
         Ok(d) => {
           self.table.add(d.clone());
           if let Decl::MacroDecl(mdecl) = d {
-            self.bind_macro(pipeline, mdecl)?;
+            self.bind_macro(pipeline, mdecl, false)?;
           }
         }
       };
@@ -618,8 +618,14 @@ impl IncCompiler {
     Ok(self.into())
   }
 
-  pub fn bind_macro(&mut self, pipeline: &mut Pipeline, decl: decl::MacroDecl) -> Result<(), PError> {
-    let name = &decl.name;
+  pub fn bind_macro(&mut self, pipeline: &mut Pipeline, mut decl: decl::MacroDecl, generate_name: bool) -> Result<(), PError> {
+    let orig_name = decl.name.to_owned();
+
+    let tmp_name = if generate_name {
+      self.names.generate_with("_macro")
+    } else {
+      orig_name.to_owned()
+    };
 
     // bind_macro is a no-op in a minimalist compile
     if self.minimalist {
@@ -633,17 +639,29 @@ impl IncCompiler {
     let imported_names: HashSet<_> =
       translation_names.into_iter().flatten().map(ImportName::into_imported_id).collect();
 
+    // If we're generating a name, then we need to modify the symbol
+    // table to reflect that name.
+    decl.name = tmp_name.to_owned();
+    let table = if generate_name {
+      let mut table = self.table.clone();
+      table.del(&*Id::build(Namespace::Function, &orig_name));
+      table.add(Decl::MacroDecl(decl.to_owned()));
+      Cow::Owned(table)
+    } else {
+      Cow::Borrowed(&self.table)
+    };
+
     // Now we need to find the dependencies and spawn up the
     // server for the macro itself.
-    let mut deps = Dependencies::identify(&self.table, &imported_names, &*Id::build(Namespace::Function, name));
+    let mut deps = Dependencies::identify(table.borrow(), &imported_names, &*Id::build(Namespace::Function, &tmp_name));
     deps.purge_unknowns(library::all_builtin_names(self.minimalist).iter().map(|x| x as &dyn IdLike));
 
     // Aside from built-in functions, it must be the case that
     // all referenced functions are already defined.
     let names = deps.try_into_knowns().map_err(Error::from)?;
-    let tmpfile = macros::create_macro_file(pipeline, self.imports.clone(), &self.table, names, self.minimalist)?;
-    let m_id = pipeline.get_server_mut().stand_up_macro(name.to_owned(), decl.args, tmpfile)?;
-    self.macros.insert(name.to_owned(), MacroData { id: m_id, imported: false });
+    let tmpfile = macros::create_macro_file(pipeline, self.imports.clone(), table.borrow(), names, self.minimalist)?;
+    let m_id = pipeline.get_server_mut().stand_up_macro(tmp_name.to_owned(), decl.args, tmpfile)?;
+    self.macros.insert(orig_name, MacroData { id: m_id, imported: false });
 
     Ok(())
   }
