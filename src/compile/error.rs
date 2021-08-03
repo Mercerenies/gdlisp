@@ -56,6 +56,7 @@ pub enum Error {
   StaticMethodOnLambdaClass(String),
   ModifierParseError(ModifierParseError),
   MacroInMinimalistError(String),
+  MacroBeforeDefinitionError(String),
 }
 
 const INTERNAL_ERROR_NOTE: &str = "Note: Unless you're doing something really strange, you should probably report this as a compiler bug";
@@ -149,6 +150,9 @@ impl fmt::Display for Error {
       }
       Error::MacroInMinimalistError(m) => {
         write!(f, "Attempt to expand macro {} in minimalist file ({})", m, INTERNAL_ERROR_NOTE)
+      }
+      Error::MacroBeforeDefinitionError(m) => {
+        write!(f, "Attempt to use macro {} before definition was available", m)
       }
     }
   }

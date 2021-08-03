@@ -150,7 +150,7 @@ impl<'a> Compiler<'a> {
         };
         // Macro calls should not occur at this stage in compilation.
         if fcall.is_macro {
-          panic!("Macro call failed to resolve in IR; reached compile stage (this is a bug in the GDLisp compiler)");
+          return Err(Error::MacroBeforeDefinitionError(f.clone()));
         }
         // Call magic is used to implement some commonly used wrappers
         // for simple GDScript operations.
