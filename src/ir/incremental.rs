@@ -679,6 +679,10 @@ impl IncCompiler {
     self.minimalist = true;
   }
 
+  pub fn name_generator(&mut self) -> &mut FreshNameGenerator<'static> {
+    &mut self.names
+  }
+
 }
 
 impl From<IncCompiler> for (decl::TopLevel, HashMap<String, MacroData>) {
