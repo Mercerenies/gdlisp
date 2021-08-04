@@ -3,6 +3,7 @@ use crate::compile::error::{Error as GDError};
 use crate::sxp::dotted::TryFromDottedExprError;
 use crate::ir::arglist::ArgListParseError;
 use crate::ir::modifier::{ParseError as ModifierParseError};
+use crate::pipeline::source::SourcePos;
 
 use lalrpop_util::ParseError;
 
@@ -15,7 +16,7 @@ use std::fmt;
 
 #[derive(Debug)]
 pub enum Error {
-  ParseError(ParseError<usize, String, String>),
+  ParseError(ParseError<SourcePos, String, String>),
   IOError(io::Error),
   GDError(GDError),
 }
@@ -53,9 +54,10 @@ impl PartialEq<Error> for Error {
 
 impl Eq for Error {}
 
-impl<T : fmt::Display, E : fmt::Display> From<ParseError<usize, T, E>> for Error {
-  fn from(e: ParseError<usize, T, E>) -> Error {
-    Error::ParseError(e.map_token(|x| x.to_string()).map_error(|x| x.to_string()))
+impl<L, T : fmt::Display, E : fmt::Display> From<ParseError<L, T, E>> for Error
+where SourcePos : From<L> {
+  fn from(e: ParseError<L, T, E>) -> Error {
+    Error::ParseError(e.map_location(SourcePos::from).map_token(|x| x.to_string()).map_error(|x| x.to_string()))
   }
 }
 
