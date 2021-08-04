@@ -9,17 +9,24 @@ use super::common::import::MockFileLoader;
 use super::common::dummy_config;
 
 use gdlisp::pipeline::Pipeline;
+use gdlisp::pipeline::error::{Error as PError};
+use gdlisp::compile::error::{Error as GDError};
 
 fn setup_simple_file_loader(loader: &mut MockFileLoader) {
   loader.add_file("example.lisp", "(defn one () 1) (defn two () 2)");
 }
 
 fn load_and_output_simple_file(input: &str) -> String {
+  load_and_output_simple_file_err(input).unwrap()
+}
+
+fn load_and_output_simple_file_err(input: &str) -> Result<String, PError> {
   let mut loader = MockFileLoader::new();
   setup_simple_file_loader(&mut loader);
   loader.add_file("main.lisp", input);
   let mut pipeline = Pipeline::with_resolver(dummy_config(), Box::new(loader));
-  pipeline.load_file("main.lisp").unwrap().gdscript.to_gd()
+  let result = pipeline.load_file("main.lisp")?.gdscript.to_gd();
+  Ok(result)
 }
 
 #[test]
@@ -67,12 +74,14 @@ static func run():
 
 #[test]
 #[ignore]
-#[should_panic]
 fn restricted_import_test_failed() {
-  load_and_output_simple_file(r#"
-    (use "res://example.lisp" (one))
-    (two)
-  "#);
+  assert_eq!(
+    load_and_output_simple_file_err(r#"
+      (use "res://example.lisp" (one))
+      (two)
+    "#),
+    Err(PError::from(GDError::NoSuchFn(String::from("two")))),
+  );
 }
 
 #[test]
@@ -90,12 +99,14 @@ static func run():
 
 #[test]
 #[ignore]
-#[should_panic]
 fn restricted_import_alias_test_failed() {
-  load_and_output_simple_file(r#"
-    (use "res://example.lisp" ((one as my-one)))
-    (one)
-  "#);
+  assert_eq!(
+    load_and_output_simple_file_err(r#"
+      (use "res://example.lisp" ((one as my-one)))
+      (one)
+    "#),
+    Err(PError::from(GDError::NoSuchFn(String::from("one")))),
+  );
 }
 
 #[test]
@@ -115,11 +126,13 @@ static func run():
 
 #[test]
 #[ignore]
-#[should_panic]
 fn nonexistent_import_test() {
-  load_and_output_simple_file(r#"
-    (use "res://example.lisp" (nonexistent-function-name))
-  "#);
+  assert_eq!(
+    load_and_output_simple_file_err(r#"
+      (use "res://example.lisp" (nonexistent-function-name))
+    "#),
+    Err(PError::from(GDError::NoSuchFn(String::from("nonexistent-function-name")))),
+  );
 }
 
 #[test]
@@ -249,24 +262,28 @@ static func run():
 
 #[test]
 #[ignore]
-#[should_panic]
 fn import_declare_test_failed_1() {
   let mut loader = MockFileLoader::new();
   loader.add_file("a.lisp", "(sys/declare value a)");
   loader.add_file("main.lisp", r#"(use "res://a.lisp" open) a"#);
   let mut pipeline = Pipeline::with_resolver(dummy_config(), Box::new(loader));
-  pipeline.load_file("main.lisp").unwrap();
+  assert_eq!(
+    pipeline.load_file("main.lisp").map(|_| ()),
+    Err(PError::from(GDError::NoSuchVar(String::from("a")))),
+  );
 }
 
 #[test]
 #[ignore]
-#[should_panic]
 fn import_declare_test_failed_2() {
   let mut loader = MockFileLoader::new();
   loader.add_file("a.lisp", "(sys/declare value a)");
   loader.add_file("main.lisp", r#"(use "res://a.lisp" (a))"#);
   let mut pipeline = Pipeline::with_resolver(dummy_config(), Box::new(loader));
-  pipeline.load_file("main.lisp").unwrap();
+  assert_eq!(
+    pipeline.load_file("main.lisp").map(|_| ()),
+    Err(PError::from(GDError::NoSuchFn(String::from("a")))),
+  );
 }
 
 #[test]
@@ -316,24 +333,28 @@ static func run():
 
 #[test]
 #[ignore]
-#[should_panic]
 fn private_fn_import_test_3() {
   let mut loader = MockFileLoader::new();
   loader.add_file("a.lisp", "(defn foo () private 1)");
   loader.add_file("main.lisp", r#"(use "res://a.lisp" open) (foo)"#);
   let mut pipeline = Pipeline::with_resolver(dummy_config(), Box::new(loader));
-  pipeline.load_file("main.lisp").unwrap();
+  assert_eq!(
+    pipeline.load_file("main.lisp").map(|_| ()),
+    Err(PError::from(GDError::NoSuchFn(String::from("foo")))),
+  );
 }
 
 #[test]
 #[ignore]
-#[should_panic]
 fn private_fn_import_test_4() {
   let mut loader = MockFileLoader::new();
   loader.add_file("a.lisp", "(defn foo () private 1)");
   loader.add_file("main.lisp", r#"(use "res://a.lisp" (foo))"#);
   let mut pipeline = Pipeline::with_resolver(dummy_config(), Box::new(loader));
-  pipeline.load_file("main.lisp").unwrap();
+  assert_eq!(
+    pipeline.load_file("main.lisp").map(|_| ()),
+    Err(PError::from(GDError::NoSuchFn(String::from("foo")))),
+  );
 }
 
 #[test]
@@ -353,13 +374,15 @@ static func run():
 
 #[test]
 #[ignore]
-#[should_panic]
 fn private_macro_import_test() {
   let mut loader = MockFileLoader::new();
   loader.add_file("a.lisp", "(defmacro foo () private 1)");
   loader.add_file("main.lisp", r#"(use "res://a.lisp" (foo))"#);
   let mut pipeline = Pipeline::with_resolver(dummy_config(), Box::new(loader));
-  pipeline.load_file("main.lisp").unwrap();
+  assert_eq!(
+    pipeline.load_file("main.lisp").map(|_| ()),
+    Err(PError::from(GDError::NoSuchFn(String::from("foo")))),
+  );
 }
 
 #[test]
@@ -379,13 +402,15 @@ static func run():
 
 #[test]
 #[ignore]
-#[should_panic]
 fn private_const_import_test() {
   let mut loader = MockFileLoader::new();
   loader.add_file("a.lisp", "(defconst foo 1 private)");
   loader.add_file("main.lisp", r#"(use "res://a.lisp" (foo))"#);
   let mut pipeline = Pipeline::with_resolver(dummy_config(), Box::new(loader));
-  pipeline.load_file("main.lisp").unwrap();
+  assert_eq!(
+    pipeline.load_file("main.lisp").map(|_| ()),
+    Err(PError::from(GDError::NoSuchFn(String::from("foo")))),
+  );
 }
 
 #[test]
@@ -405,13 +430,15 @@ static func run():
 
 #[test]
 #[ignore]
-#[should_panic]
 fn private_enum_import_test() {
   let mut loader = MockFileLoader::new();
   loader.add_file("a.lisp", "(defenum foo private A B)");
   loader.add_file("main.lisp", r#"(use "res://a.lisp" (foo))"#);
   let mut pipeline = Pipeline::with_resolver(dummy_config(), Box::new(loader));
-  pipeline.load_file("main.lisp").unwrap();
+  assert_eq!(
+    pipeline.load_file("main.lisp").map(|_| ()),
+    Err(PError::from(GDError::NoSuchFn(String::from("foo")))),
+  );
 }
 
 #[test]
@@ -446,22 +473,26 @@ static func run():
 
 #[test]
 #[ignore]
-#[should_panic]
 fn private_class_import_test_1() {
   let mut loader = MockFileLoader::new();
   loader.add_file("a.lisp", "(defclass foo (Node) private (defvar example 1))");
   loader.add_file("main.lisp", r#"(use "res://a.lisp" (foo))"#);
   let mut pipeline = Pipeline::with_resolver(dummy_config(), Box::new(loader));
-  pipeline.load_file("main.lisp").unwrap();
+  assert_eq!(
+    pipeline.load_file("main.lisp").map(|_| ()),
+    Err(PError::from(GDError::NoSuchFn(String::from("foo")))),
+  );
 }
 
 #[test]
 #[ignore]
-#[should_panic]
 fn private_class_import_test_2() {
   let mut loader = MockFileLoader::new();
   loader.add_file("a.lisp", "(defclass foo (Node) main private (defvar example 1))");
   loader.add_file("main.lisp", r#"(use "res://a.lisp" (foo))"#);
   let mut pipeline = Pipeline::with_resolver(dummy_config(), Box::new(loader));
-  pipeline.load_file("main.lisp").unwrap();
+  assert_eq!(
+    pipeline.load_file("main.lisp").map(|_| ()),
+    Err(PError::from(GDError::NoSuchFn(String::from("foo")))),
+  );
 }
