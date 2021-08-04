@@ -9,9 +9,13 @@ use lalrpop_util::ParseError;
 use std::io;
 use std::fmt;
 
+// TODO Rename this to PError and compile::Error to GDError
+// canonically so that we don't have two types with canonical name
+// "Error".
+
 #[derive(Debug)]
 pub enum Error {
-  ParseError(String), // TODO Properly use the lalrpop_util::ParseError type here
+  ParseError(ParseError<usize, String, String>),
   IOError(io::Error),
   GDError(GDError),
 }
@@ -49,9 +53,9 @@ impl PartialEq<Error> for Error {
 
 impl Eq for Error {}
 
-impl<L : fmt::Display, T : fmt::Display, E : fmt::Display> From<ParseError<L, T, E>> for Error {
-  fn from(e: ParseError<L, T, E>) -> Error {
-    Error::ParseError(e.to_string())
+impl<T : fmt::Display, E : fmt::Display> From<ParseError<usize, T, E>> for Error {
+  fn from(e: ParseError<usize, T, E>) -> Error {
+    Error::ParseError(e.map_token(|x| x.to_string()).map_error(|x| x.to_string()))
   }
 }
 
