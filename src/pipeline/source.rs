@@ -7,14 +7,15 @@
 
 use std::fmt;
 
-/// A `SourceOffset` is really just a [`usize`] representing a byte
-/// offset into the original file.
+/// A `SourceOffset` is really just a [`usize`] representing a
+/// 0-indexed byte offset into the original file.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 #[repr(transparent)]
 pub struct SourceOffset(pub usize);
 
 /// A `SourcePos` indicates a line and column number in a file, where
-/// all offsets are indicated in *characters*.
+/// all offsets are indicated in *characters*. Source position lines
+/// and columns are always 1-indexed.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub struct SourcePos {
   pub line: usize,
@@ -43,6 +44,41 @@ pub fn find_newlines(source: &str) -> Vec<SourceOffset> {
   }
 
   result
+}
+
+impl SourcePos {
+
+  /// Constructs a SourcePos representing the given line and column
+  /// number.
+  pub fn new(line: usize, column: usize) -> SourcePos {
+    SourcePos { line, column }
+  }
+
+  pub fn from_offset(offset: SourceOffset, source: &str) -> SourcePos {
+    let lines = {
+      let mut lines = find_newlines(source);
+      lines.push(SourceOffset(usize::MAX)); // Implicitly assume there's a final newline at the end of time.
+      lines
+    };
+
+    let mut line_number = 1;
+    let mut column_number = 1;
+
+    for (idx, ch) in source.char_indices() {
+      if idx >= offset.0 {
+        break
+      }
+      if lines[line_number - 1].0 <= idx {
+        line_number += 1;
+        column_number = 1;
+      } else if ch != '\n' { // Windows compatibility (don't advance on CRLF)
+        column_number += 1;
+      }
+    }
+
+    SourcePos::new(line_number, column_number)
+  }
+
 }
 
 impl From<usize> for SourceOffset {
@@ -86,6 +122,35 @@ mod tests {
 
     let s8 = "abcdef\n\nghi\r\n\r\njkl";
     assert_eq!(find_newlines(s8), vec!(SourceOffset(6), SourceOffset(7), SourceOffset(11), SourceOffset(13)));
+  }
+
+  #[test]
+  fn test_offset() {
+
+    assert_eq!(SourcePos::from_offset(SourceOffset(0), "abc"), SourcePos::new(1, 1));
+    assert_eq!(SourcePos::from_offset(SourceOffset(1), "abc"), SourcePos::new(1, 2));
+    assert_eq!(SourcePos::from_offset(SourceOffset(2), "abc"), SourcePos::new(1, 3));
+    assert_eq!(SourcePos::from_offset(SourceOffset(3), "abc"), SourcePos::new(1, 4));
+
+    assert_eq!(SourcePos::from_offset(SourceOffset(0), "abc\ndef"), SourcePos::new(1, 1));
+    assert_eq!(SourcePos::from_offset(SourceOffset(1), "abc\ndef"), SourcePos::new(1, 2));
+    assert_eq!(SourcePos::from_offset(SourceOffset(2), "abc\ndef"), SourcePos::new(1, 3));
+    assert_eq!(SourcePos::from_offset(SourceOffset(3), "abc\ndef"), SourcePos::new(1, 4));
+    assert_eq!(SourcePos::from_offset(SourceOffset(4), "abc\ndef"), SourcePos::new(2, 1));
+    assert_eq!(SourcePos::from_offset(SourceOffset(5), "abc\ndef"), SourcePos::new(2, 2));
+    assert_eq!(SourcePos::from_offset(SourceOffset(6), "abc\ndef"), SourcePos::new(2, 3));
+    assert_eq!(SourcePos::from_offset(SourceOffset(7), "abc\ndef"), SourcePos::new(2, 4));
+
+    assert_eq!(SourcePos::from_offset(SourceOffset(0), "abc\r\ndef"), SourcePos::new(1, 1));
+    assert_eq!(SourcePos::from_offset(SourceOffset(1), "abc\r\ndef"), SourcePos::new(1, 2));
+    assert_eq!(SourcePos::from_offset(SourceOffset(2), "abc\r\ndef"), SourcePos::new(1, 3));
+    assert_eq!(SourcePos::from_offset(SourceOffset(3), "abc\r\ndef"), SourcePos::new(1, 4));
+    assert_eq!(SourcePos::from_offset(SourceOffset(4), "abc\r\ndef"), SourcePos::new(2, 1));
+    assert_eq!(SourcePos::from_offset(SourceOffset(5), "abc\r\ndef"), SourcePos::new(2, 1));
+    assert_eq!(SourcePos::from_offset(SourceOffset(6), "abc\r\ndef"), SourcePos::new(2, 2));
+    assert_eq!(SourcePos::from_offset(SourceOffset(7), "abc\r\ndef"), SourcePos::new(2, 3));
+    assert_eq!(SourcePos::from_offset(SourceOffset(8), "abc\r\ndef"), SourcePos::new(2, 4));
+
   }
 
 }
