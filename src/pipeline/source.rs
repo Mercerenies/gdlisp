@@ -15,7 +15,7 @@ pub struct SourceOffset(pub usize);
 
 impl From<usize> for SourceOffset {
   fn from(x: usize) -> SourceOffset {
-    SourcePos(x)
+    SourceOffset(x)
   }
 }
 
