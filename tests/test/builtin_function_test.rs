@@ -1,5 +1,8 @@
 
-use super::common::{parse_compile_and_output, parse_compile_decl, parse_and_run};
+use gdlisp::compile::error::{Error as GDError};
+use gdlisp::pipeline::error::{Error as PError};
+
+use super::common::*;
 
 #[test]
 #[ignore]
@@ -490,9 +493,11 @@ pub fn known_gdscript_classes_test_2() {
 }
 
 #[test]
-#[should_panic]
 pub fn unknown_gdscript_classes_test() {
-  parse_compile_and_output("(progn NotARealClass Node2D GDScript Object)");
+  assert_eq!(
+    parse_compile_and_output_err("(progn NotARealClass Node2D GDScript Object)"),
+    Err(PError::from(GDError::NoSuchVar(String::from("NotARealClass")))),
+  );
 }
 
 #[test]
@@ -658,9 +663,11 @@ static func run():
 }
 
 #[test]
-#[should_panic]
 pub fn custom_call_magic_test_failed() {
-  parse_compile_decl("((defn foo (x y) (sys/call-magic THIS-MAGIC-DOES-NOT-EXIST) 9))");
+  assert_eq!(
+    parse_compile_decl_err("((defn foo (x y) (sys/call-magic THIS-MAGIC-DOES-NOT-EXIST) 9))"),
+    Err(PError::from(GDError::NoSuchMagic(String::from("THIS-MAGIC-DOES-NOT-EXIST")))),
+  );
 }
 
 // TODO Test gensym at runtime once we can pretty-print symbols

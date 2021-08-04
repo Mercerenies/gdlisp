@@ -1,7 +1,11 @@
 
 extern crate gdlisp;
 
-use super::common::parse_compile_decl;
+use gdlisp::ir::modifier::{ParseError as ModifierParseError};
+use gdlisp::compile::error::{Error as GDError};
+use gdlisp::pipeline::error::{Error as PError};
+
+use super::common::{parse_compile_decl, parse_compile_decl_err};
 
 #[test]
 pub fn empty_file_test() {
@@ -77,9 +81,11 @@ static func run():
 }
 
 #[test]
-#[should_panic]
 pub fn nonexistent_function_test() {
-  parse_compile_decl("((defn foo () (bar)))");
+  assert_eq!(
+    parse_compile_decl_err("((defn foo () (bar)))"),
+    Err(PError::from(GDError::NoSuchFn(String::from("bar")))),
+  );
 }
 
 #[test]
@@ -120,9 +126,11 @@ static func run():
 }
 
 #[test]
-#[should_panic]
 pub fn declare_value_non_const_test() {
-  parse_compile_decl("((sys/declare value x) (defconst y x))");
+  assert_eq!(
+    parse_compile_decl_err("((sys/declare value x) (defconst y x))"),
+    Err(PError::from(GDError::NotConstantEnough(String::from("y")))),
+  );
 }
 
 #[test]
@@ -152,7 +160,9 @@ static func run():
 }
 
 #[test]
-#[should_panic]
 pub fn nonsense_modifier_function_test() {
-  parse_compile_decl(r#"((defn foo () public private 1))"#);
+  assert_eq!(
+    parse_compile_decl_err(r#"((defn foo () public private 1))"#),
+    Err(PError::from(GDError::ModifierParseError(ModifierParseError::UniquenessError(String::from("visibility"))))),
+  );
 }

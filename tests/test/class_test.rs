@@ -1,7 +1,12 @@
 
 extern crate gdlisp;
 
-use super::common::{parse_compile_decl, parse_and_run};
+use gdlisp::ir::modifier::{ParseError as ModifierParseError};
+use gdlisp::compile::error::{Error as GDError};
+use gdlisp::pipeline::error::{Error as PError};
+use gdlisp::parser;
+
+use super::common::*;
 
 #[test]
 pub fn empty_class_test() {
@@ -102,37 +107,47 @@ static func run():
 }
 
 #[test]
-#[should_panic]
 pub fn bad_member_var_class_test_1() {
-  parse_compile_decl("((defclass ClassName (Node) (defvar x (if 1 2 3)) (defn _init (x) (set self:x x)) (defn get-x () self:x)))");
+  assert_eq!(
+    parse_compile_decl_err("((defclass ClassName (Node) (defvar x (if 1 2 3)) (defn _init (x) (set self:x x)) (defn get-x () self:x)))"),
+    Err(PError::from(GDError::NotConstantEnough(String::from("x")))),
+  );
 }
 
 #[test]
-#[should_panic]
 pub fn bad_member_var_class_test_2() {
   // Can't have export on inner class
-  parse_compile_decl("((defclass ClassName (Node) (defvar x (export int)) (defn _init (x) (set self:x x)) (defn get-x () self:x)))");
+  assert_eq!(
+    parse_compile_decl_err("((defclass ClassName (Node) (defvar x (export int)) (defn _init (x) (set self:x x)) (defn get-x () self:x)))"),
+    Err(PError::from(GDError::ExportOnInnerClassVar(String::from("x")))),
+  );
 }
 
 #[test]
-#[should_panic]
 pub fn bad_self_static_ref_class_test() {
   // Can't reference self from static context
-  parse_compile_decl("((defclass ClassName (Node) (defn get-self () static self)))");
+  assert_eq!(
+    parse_compile_decl_err("((defclass ClassName (Node) (defn get-self () static self)))"),
+    Err(PError::from(GDError::NoSuchVar(String::from("self")))),
+  );
 }
 
 #[test]
-#[should_panic]
 pub fn bad_member_const_class_test() {
   // Consts must be initialized
-  parse_compile_decl("((defclass ClassName (Node) (defconst x)))");
+  assert_eq!(
+    parse_compile_decl_err("((defclass ClassName (Node) (defconst x)))"),
+    Err(PError::from(GDError::InvalidDecl(parser::ASTParser::new().parse("(defconst x)").unwrap()))),
+  );
 }
 
 #[test]
-#[should_panic]
 pub fn bad_static_constructor_class_test() {
   // Constructors cannot be static
-  parse_compile_decl("((defclass ClassName (Node) (defn _init () statc)))");
+  assert_eq!(
+    parse_compile_decl_err("((defclass ClassName (Node) (defn _init () static)))"),
+    Err(PError::from(GDError::StaticConstructor)),
+  );
 }
 
 #[test]
@@ -590,25 +605,33 @@ static func run():
 }
 
 #[test]
-#[should_panic]
 pub fn nonsense_modifier_class_test_1() {
-  parse_compile_decl(r#"((defclass Foo (Node) main main))"#);
+  assert_eq!(
+    parse_compile_decl_err(r#"((defclass Foo (Node) main main))"#),
+    Err(PError::from(GDError::ModifierParseError(ModifierParseError::UniquenessError(String::from("main"))))),
+  );
 }
 
 #[test]
-#[should_panic]
 pub fn nonsense_modifier_class_test_2() {
-  parse_compile_decl(r#"((defclass Foo (Node) public public))"#);
+  assert_eq!(
+    parse_compile_decl_err(r#"((defclass Foo (Node) public public))"#),
+    Err(PError::from(GDError::ModifierParseError(ModifierParseError::UniquenessError(String::from("visibility"))))),
+  );
 }
 
 #[test]
-#[should_panic]
 pub fn nonsense_modifier_class_test_3() {
-  parse_compile_decl(r#"((defclass Foo (Node) public private))"#);
+  assert_eq!(
+    parse_compile_decl_err(r#"((defclass Foo (Node) public private))"#),
+    Err(PError::from(GDError::ModifierParseError(ModifierParseError::UniquenessError(String::from("visibility"))))),
+  );
 }
 
 #[test]
-#[should_panic]
 pub fn nonsense_modifier_class_test_4() {
-  parse_compile_decl(r#"((defclass Foo (Node) public (defn example () static static)))"#);
+  assert_eq!(
+    parse_compile_decl_err(r#"((defclass Foo (Node) public (defn example () static static)))"#),
+    Err(PError::from(GDError::ModifierParseError(ModifierParseError::UniquenessError(String::from("static"))))),
+  );
 }

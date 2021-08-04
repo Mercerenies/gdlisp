@@ -1,7 +1,11 @@
 
 extern crate gdlisp;
 
-use super::common::{parse_compile_decl, parse_and_run, parse_compile_and_output};
+use gdlisp::ir::modifier::{ParseError as ModifierParseError};
+use gdlisp::compile::error::{Error as GDError};
+use gdlisp::pipeline::error::{Error as PError};
+
+use super::common::*;
 
 #[test]
 #[ignore]
@@ -40,10 +44,12 @@ pub fn macro_from_macro_test() {
 }
 
 #[test]
-#[should_panic]
 #[ignore]
 pub fn bad_args_macro_test() {
-  parse_compile_decl("((defmacro foo (x) (+ x 1)) (defmacro bar (x) (cons 'foo (cons x ()))) (bar))");
+  assert_eq!(
+    parse_compile_decl_err("((defmacro foo (x) (+ x 1)) (defmacro bar (x) (cons 'foo (cons x ()))) (bar))"),
+    Err(PError::from(GDError::TooFewArgs(String::from("bar"), 0))),
+  );
 }
 
 #[test]
@@ -142,9 +148,20 @@ static func run():
 
 #[test]
 #[ignore]
-#[should_panic]
-pub fn closure_macrolet_test() {
-  parse_compile_and_output("(let ((a 1)) (macrolet ((foo () a)) (foo)))");
+pub fn closure_macrolet_test_1() {
+  assert_eq!(
+    parse_compile_and_output_err("(let ((a 1)) (macrolet ((foo () a)) (foo)))"),
+    Err(PError::from(GDError::NoSuchVar(String::from("a")))),
+  );
+}
+
+#[test]
+#[ignore]
+pub fn closure_macrolet_test_2() {
+  assert_eq!(
+    parse_compile_and_output_err("(flet ((f () 1)) (macrolet ((foo () (f))) (foo)))"),
+    Err(PError::from(GDError::NoSuchFn(String::from("f")))),
+  );
 }
 
 #[test]
@@ -288,16 +305,21 @@ static func run():
 
 #[test]
 #[ignore]
-#[should_panic]
 pub fn nonsense_modifier_macro_test() {
-  parse_compile_decl(r#"((defmacro foo () public private 1))"#);
+  assert_eq!(
+    parse_compile_decl_err(r#"((defmacro foo () public private 1))"#),
+    Err(PError::from(GDError::ModifierParseError(ModifierParseError::UniquenessError(String::from("visibility"))))),
+  );
 }
 
 #[test]
 #[ignore]
-#[should_panic]
 pub fn macro_in_minimalist_test() {
-  parse_compile_decl("((sys/nostdlib) (defmacro foo () 10) (foo))");
+  // TODO Why isn't this MacroInMinimalistError
+  assert_eq!(
+    parse_compile_decl_err("((sys/nostdlib) (defmacro foo () 10) (foo))"),
+    Err(PError::from(GDError::MacroBeforeDefinitionError(String::from("foo")))),
+  );
 }
 
 #[test]
@@ -310,21 +332,27 @@ static func run():
 
 #[test]
 #[ignore]
-#[should_panic]
 pub fn recursive_macro_test() {
-  parse_compile_decl("((defmacro foo () (foo)))");
+  assert_eq!(
+    parse_compile_decl_err("((defmacro foo () (foo)))"),
+    Err(PError::from(GDError::MacroBeforeDefinitionError(String::from("foo")))),
+  );
 }
 
 #[test]
 #[ignore]
-#[should_panic]
 pub fn recursive_macrolet_test() {
-  parse_compile_decl("((macrolet ((foo () (foo))) ()))");
+  assert_eq!(
+    parse_compile_decl_err("((macrolet ((foo () (foo))) ()))"),
+    Err(PError::from(GDError::NoSuchFn(String::from("foo")))),
+  );
 }
 
 #[test]
 #[ignore]
-#[should_panic]
 pub fn bad_order_macro_test() {
-  parse_compile_decl("((defn bar () (foo)) (defmacro foo () 1))");
+  assert_eq!(
+    parse_compile_decl_err("((defn bar () (foo)) (defmacro foo () 1))"),
+    Err(PError::from(GDError::MacroBeforeDefinitionError(String::from("foo")))),
+  );
 }

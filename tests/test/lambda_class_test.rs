@@ -1,5 +1,8 @@
 
-use super::common::{parse_compile_and_output, parse_compile_and_output_h, parse_compile_decl, parse_and_run};
+use gdlisp::compile::error::{Error as GDError};
+use gdlisp::pipeline::error::{Error as PError};
+
+use super::common::*;
 
 #[test]
 pub fn basic_lambda_class_test() {
@@ -128,10 +131,11 @@ pub fn constructor_uses_outer_ref_lambda_class_test_run() {
 }
 
 #[test]
-#[should_panic]
 pub fn bad_static_in_lambda_class_test() {
-  // Can't define static methods in lambda classes
-  parse_compile_and_output("(new (Node) (defn example () static 1))");
+  assert_eq!(
+    parse_compile_and_output_err("(new (Node) (defn example () static 1))"),
+    Err(PError::from(GDError::StaticMethodOnLambdaClass(String::from("example")))),
+  );
 }
 
 #[test]

@@ -1,5 +1,8 @@
 
-use super::common::{parse_compile_decl, parse_and_run};
+use gdlisp::compile::error::{Error as GDError};
+use gdlisp::pipeline::error::{Error as PError};
+
+use super::common::*;
 
 #[test]
 pub fn const_test() {
@@ -8,27 +11,35 @@ pub fn const_test() {
 }
 
 #[test]
-#[should_panic]
 pub fn const_test_nonconst() {
-  parse_compile_decl("((defconst B (list->array 1)))");
+  assert_eq!(
+    parse_compile_decl_err("((defconst B (list->array 1)))"),
+    Err(PError::from(GDError::NotConstantEnough(String::from("B")))),
+  );
 }
 
 #[test]
-#[should_panic]
 pub fn const_test_nonconst_in_class() {
-  parse_compile_decl("((defclass Foo (Reference) (defconst B (list->array 1))))");
+  assert_eq!(
+    parse_compile_decl_err("((defclass Foo (Reference) (defconst B (list->array 1))))"),
+    Err(PError::from(GDError::NotConstantEnough(String::from("B")))),
+  );
 }
 
 #[test]
-#[should_panic]
 pub fn const_test_nonconst_in_enum() {
-  parse_compile_decl("((defenum Foo (A (list->array 1))))");
+  assert_eq!(
+    parse_compile_decl_err("((defenum Foo (A (list->array 1))))"),
+    Err(PError::from(GDError::NotConstantEnough(String::from("A")))),
+  );
 }
 
 #[test]
-#[should_panic]
 pub fn const_test_nonconst_in_member_var() {
-  parse_compile_decl("((defclass Foo (Reference) (defvar b (list->array 1))))");
+  assert_eq!(
+    parse_compile_decl_err("((defclass Foo (Reference) (defvar b (list->array 1))))"),
+    Err(PError::from(GDError::NotConstantEnough(String::from("b")))),
+  );
 }
 
 #[test]
@@ -55,7 +66,9 @@ pub fn builtin_const_test() {
 
 #[test]
 #[ignore]
-#[should_panic]
 pub fn private_builtin_const_test() {
-  parse_and_run(r#"(TYPE_ARRAY)"#);
+  assert_eq!(
+    parse_and_run_err(r#"(TYPE_ARRAY)"#),
+    Err(PError::from(GDError::NoSuchVar(String::from("TYPE_ARRAY")))),
+  );
 }

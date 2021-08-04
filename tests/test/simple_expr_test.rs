@@ -1,5 +1,8 @@
 
-use super::common::{parse_compile_and_output, parse_compile_decl, parse_and_run};
+use gdlisp::compile::error::{Error as GDError};
+use gdlisp::pipeline::error::{Error as PError};
+
+use super::common::*;
 
 #[test]
 pub fn expr_tests() {
@@ -17,9 +20,11 @@ pub fn progn_tests() {
 }
 
 #[test]
-#[should_panic]
 pub fn nonexistent_assignment_test() {
-  parse_compile_and_output("(set nonexistent-var 0)");
+  assert_eq!(
+    parse_compile_and_output_err("(set nonexistent-var 0)"),
+    Err(PError::from(GDError::NoSuchVar(String::from("nonexistent-var")))),
+  );
 }
 
 #[test]
@@ -75,15 +80,19 @@ pub fn slot_assign_test_2() {
 }
 
 #[test]
-#[should_panic]
 pub fn assign_to_self_test() {
-  parse_compile_decl("((defclass Foo (Node) (defn _init () (set self 1))))");
+  assert_eq!(
+    parse_compile_decl_err("((defclass Foo (Node) (defn _init () (set self 1))))"),
+    Err(PError::from(GDError::CannotAssignTo(String::from("self")))),
+  );
 }
 
 #[test]
-#[should_panic]
 pub fn assign_to_const_test() {
-  parse_compile_decl("((defconst CONSTANT 1) (set CONSTANT 2))");
+  assert_eq!(
+    parse_compile_decl_err("((defconst CONSTANT 1) (set CONSTANT 2))"),
+    Err(PError::from(GDError::CannotAssignTo(String::from("CONSTANT")))),
+  );
 }
 
 #[test]

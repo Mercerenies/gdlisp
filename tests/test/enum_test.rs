@@ -1,7 +1,10 @@
 
 extern crate gdlisp;
 
-use super::common::{parse_compile_decl, parse_and_run};
+use gdlisp::compile::error::{Error as GDError};
+use gdlisp::pipeline::error::{Error as PError};
+
+use super::common::*;
 
 #[test]
 pub fn empty_enum_test() {
@@ -31,9 +34,11 @@ pub fn enum_runner_test() {
 }
 
 #[test]
-#[should_panic]
 pub fn invalid_enum_test() {
-  parse_compile_decl("((defenum MyEnum (A 1) (B 2) (C 3)) MyEnum:D)");
+  assert_eq!(
+    parse_compile_decl_err("((defenum MyEnum (A 1) (B 2) (C 3)) MyEnum:D)"),
+    Err(PError::from(GDError::NoSuchEnumValue(String::from("MyEnum"), String::from("D")))),
+  );
 }
 
 #[test]
