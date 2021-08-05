@@ -82,12 +82,12 @@ pub fn generate_lambda_vararg(specs: FnSpecs) -> decl::FnDecl {
   }
 }
 
-pub fn generate_lambda_class<'a, 'b>(class_name: String,
-                                     specs: FnSpecs,
-                                     args: ArgList,
-                                     closed_vars: &[String],
-                                     lambda_body: Vec<Stmt>)
-                                     -> decl::ClassDecl {
+pub fn generate_lambda_class(class_name: String,
+                             specs: FnSpecs,
+                             args: ArgList,
+                             closed_vars: &[String],
+                             lambda_body: Vec<Stmt>)
+                             -> decl::ClassDecl {
   let func_name = String::from("call_func");
   let func = decl::FnDecl {
     name: func_name,
