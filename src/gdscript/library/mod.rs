@@ -7,7 +7,6 @@
 //! simpler helper functions for commonly-used GDLisp builtins.
 
 pub mod classes;
-pub mod macros;
 pub mod keys;
 pub mod magic;
 
