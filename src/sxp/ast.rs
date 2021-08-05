@@ -43,6 +43,8 @@ pub enum ASTF {
   Symbol(String),
 }
 
+/// An `AST` is an [`ASTF`] together with information about the offset
+/// in the source code of the S-expression.
 #[derive(PartialEq, Eq, Hash, Clone, Debug)]
 pub struct AST {
   pub value: ASTF,
