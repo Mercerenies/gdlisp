@@ -3,7 +3,7 @@
 
 use crate::gdscript::expr::Expr;
 use crate::gdscript::library;
-use super::ast::AST;
+use super::ast::{AST, ASTF};
 
 use ordered_float::OrderedFloat;
 
@@ -43,32 +43,32 @@ impl Reify for String {
 impl Reify for AST {
 
   fn reify(&self) -> Expr {
-    match self {
-      AST::Nil => {
+    match &self.value {
+      ASTF::Nil => {
         Expr::null()
       }
-      AST::Cons(a, b) => {
+      ASTF::Cons(a, b) => {
         Expr::Call(Some(Box::new(library::gdlisp_root())), String::from("cons"), vec!(a.reify(), b.reify()))
       }
-      AST::Array(v) => {
+      ASTF::Array(v) => {
         Expr::ArrayLit(v.iter().map(Reify::reify).collect())
       }
-      AST::Dictionary(vec) => {
+      ASTF::Dictionary(vec) => {
         Expr::DictionaryLit(vec.iter().map(|(k, v)| (k.reify(), v.reify())).collect())
       }
-      AST::Int(n) => {
+      ASTF::Int(n) => {
         n.reify()
       }
-      AST::Bool(b) => {
+      ASTF::Bool(b) => {
         b.reify()
       }
-      AST::Float(f) => {
+      ASTF::Float(f) => {
         f.reify()
       }
-      AST::String(s) => {
+      ASTF::String(s) => {
         s.reify()
       }
-      AST::Symbol(s) => {
+      ASTF::Symbol(s) => {
         Expr::Call(Some(Box::new(library::gdlisp_root())), String::from("intern"), vec!(s.reify()))
       }
     }
@@ -79,15 +79,33 @@ impl Reify for AST {
 #[cfg(test)]
 mod tests {
   use super::*;
+  use crate::pipeline::source::SourceOffset;
+
+  fn int(n: i32) -> AST {
+    AST::new(ASTF::Int(n), SourceOffset::default())
+  }
+
+  fn nil() -> AST {
+    AST::nil(SourceOffset::default())
+  }
+
+  #[allow(dead_code)]
+  fn list(data: Vec<AST>) -> AST {
+    AST::dotted_list(data, nil())
+  }
+
+  fn cons(a: AST, b: AST) -> AST {
+    AST::new(ASTF::cons(a, b), SourceOffset::default())
+  }
 
   #[test]
   fn reify_test() {
-    assert_eq!(AST::Nil.reify().to_gd(), "null");
-    assert_eq!(AST::cons(AST::Int(1), AST::Int(2)).reify().to_gd(), "GDLisp.cons(1, 2)");
-    assert_eq!(AST::Array(vec!(AST::Int(1), AST::Nil)).reify().to_gd(), "[1, null]");
-    assert_eq!(AST::Bool(false).reify().to_gd(), "false");
-    assert_eq!(AST::Bool(true).reify().to_gd(), "true");
-    assert_eq!(AST::symbol("foo").reify().to_gd(), "GDLisp.intern(\"foo\")");
+    assert_eq!(nil().reify().to_gd(), "null");
+    assert_eq!(cons(int(1), int(2)).reify().to_gd(), "GDLisp.cons(1, 2)");
+    assert_eq!(AST::new(ASTF::Array(vec!(int(1), nil())), SourceOffset::default()).reify().to_gd(), "[1, null]");
+    assert_eq!(AST::new(ASTF::Bool(false), SourceOffset::default()).reify().to_gd(), "false");
+    assert_eq!(AST::new(ASTF::Bool(true), SourceOffset::default()).reify().to_gd(), "true");
+    assert_eq!(AST::symbol("foo", SourceOffset::default()).reify().to_gd(), "GDLisp.intern(\"foo\")");
   }
 
 }

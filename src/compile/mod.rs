@@ -816,15 +816,33 @@ impl<'a> Compiler<'a> {
 mod tests {
   use super::*;
   use crate::gdscript::decl::Decl;
-  use crate::sxp::ast::AST;
+  use crate::sxp::ast::{AST, ASTF};
   use crate::compile::symbol_table::function_call::{FnCall, FnScope, FnSpecs};
   use crate::pipeline::config::ProjectConfig;
   use crate::compile::preload_resolver::DefaultPreloadResolver;
   use crate::ir::incremental::IncCompiler;
+  use crate::pipeline::source::SourceOffset;
 
   use std::path::PathBuf;
 
   // TODO A lot more of this
+
+  fn int(n: i32) -> AST {
+    AST::new(ASTF::Int(n), SourceOffset::default())
+  }
+
+  fn nil() -> AST {
+    AST::nil(SourceOffset::default())
+  }
+
+  #[allow(dead_code)]
+  fn cons(a: AST, b: AST) -> AST {
+    AST::new(ASTF::cons(a, b), SourceOffset::default())
+  }
+
+  fn list(data: Vec<AST>) -> AST {
+    AST::dotted_list(data, nil())
+  }
 
   fn bind_helper_symbols(table: &mut SymbolTable) {
     // Binds a few helper names to the symbol table for the sake of
@@ -856,7 +874,7 @@ mod tests {
 
   #[test]
   fn compile_var() {
-    let ast = AST::Symbol(String::from("foobar"));
+    let ast = AST::symbol("foobar", SourceOffset::default());
     let expected = Stmt::ReturnStmt(Expr::Var(String::from("foobar")));
     let actual = compile_stmt(&ast).unwrap();
     assert_eq!(actual.0, vec!(expected));
@@ -865,7 +883,7 @@ mod tests {
 
   #[test]
   fn compile_call() {
-    let ast = AST::list(vec!(AST::Symbol(String::from("foo1")), AST::Int(10)));
+    let ast = list(vec!(AST::symbol("foo1", SourceOffset::default()), int(10)));
     let expected = Stmt::ReturnStmt(Expr::Call(None, String::from("foo1"), vec!(Expr::from(10))));
     let actual = compile_stmt(&ast).unwrap();
     assert_eq!(actual.0, vec!(expected));
@@ -874,7 +892,7 @@ mod tests {
 
   #[test]
   fn compile_int() {
-    let ast = AST::Int(99);
+    let ast = int(99);
     let expected = Stmt::ReturnStmt(Expr::from(99));
     let actual = compile_stmt(&ast).unwrap();
     assert_eq!(actual.0, vec!(expected));
@@ -883,7 +901,7 @@ mod tests {
 
   #[test]
   fn compile_bool_t() {
-    let ast = AST::Bool(true);
+    let ast = AST::new(ASTF::Bool(true), SourceOffset::default());
     let expected = Stmt::ReturnStmt(Expr::from(true));
     let actual = compile_stmt(&ast).unwrap();
     assert_eq!(actual.0, vec!(expected));
@@ -892,7 +910,7 @@ mod tests {
 
   #[test]
   fn compile_bool_f() {
-    let ast = AST::Bool(false);
+    let ast = AST::new(ASTF::Bool(false), SourceOffset::default());
     let expected = Stmt::ReturnStmt(Expr::from(false));
     let actual = compile_stmt(&ast).unwrap();
     assert_eq!(actual.0, vec!(expected));
@@ -901,7 +919,7 @@ mod tests {
 
   #[test]
   fn compile_string() {
-    let ast = AST::String(String::from("foobar"));
+    let ast = AST::string("foobar", SourceOffset::default());
     let expected = Stmt::ReturnStmt(Expr::from("foobar".to_owned()));
     let actual = compile_stmt(&ast).unwrap();
     assert_eq!(actual.0, vec!(expected));
@@ -910,7 +928,7 @@ mod tests {
 
   #[test]
   fn compile_progn_vacuous() {
-    let ast = AST::list(vec!(AST::Symbol(String::from("progn")), AST::Int(1), AST::Int(2)));
+    let ast = list(vec!(AST::symbol("progn", SourceOffset::default()), int(1), int(2)));
     let expected = vec!(Stmt::ReturnStmt(Expr::from(2)));
     let actual = compile_stmt(&ast).unwrap();
     assert_eq!(actual.0, expected);
@@ -919,9 +937,9 @@ mod tests {
 
   #[test]
   fn compile_progn_stateful() {
-    let ast = AST::list(vec!(AST::Symbol(String::from("progn")),
-                             AST::list(vec!(AST::Symbol(String::from("foo")))),
-                             AST::list(vec!(AST::Symbol(String::from("bar"))))));
+    let ast = list(vec!(AST::symbol("progn", SourceOffset::default()),
+                        list(vec!(AST::symbol("foo", SourceOffset::default()))),
+                        list(vec!(AST::symbol("bar", SourceOffset::default())))));
     let expected = vec!(Stmt::Expr(Expr::Call(None, String::from("foo"), vec!())),
                         Stmt::ReturnStmt(Expr::Call(None, String::from("bar"), vec!())));
     let actual = compile_stmt(&ast).unwrap();
@@ -931,10 +949,10 @@ mod tests {
 
   #[test]
   fn compile_nil() {
-    let result1 = compile_stmt(&AST::Nil).unwrap();
+    let result1 = compile_stmt(&nil()).unwrap();
     assert_eq!(result1, (vec!(Stmt::ReturnStmt(Compiler::nil_expr().expr)), vec!()));
 
-    let result2 = compile_stmt(&AST::list(vec!(AST::Symbol(String::from("progn"))))).unwrap();
+    let result2 = compile_stmt(&list(vec!(AST::symbol("progn", SourceOffset::default())))).unwrap();
     assert_eq!(result2, (vec!(Stmt::ReturnStmt(Compiler::nil_expr().expr)), vec!()));
   }
 

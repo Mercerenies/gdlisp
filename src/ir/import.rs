@@ -1,7 +1,8 @@
 
-use crate::sxp::ast::AST;
+use crate::sxp::ast::{AST, ASTF};
 use crate::sxp::dotted::DottedExpr;
 use crate::runner::path::{RPathBuf, PathSrc};
+use crate::pipeline::source::SourceOffset;
 use super::identifier::{Namespace, Id, IdLike};
 
 use std::convert::{TryInto, TryFrom};
@@ -134,11 +135,11 @@ impl ImportDecl {
     if tail.is_empty() {
       return Err(ImportDeclParseError::NoFilename);
     }
-    let filename = match tail[0] {
-      AST::String(s) => ImportDecl::parse_path_param(s).ok_or_else(|| {
+    let filename = match &tail[0].value {
+      ASTF::String(s) => ImportDecl::parse_path_param(&s).ok_or_else(|| {
         ImportDeclParseError::InvalidPath(s.clone())
       }),
-      x => Err(ImportDeclParseError::BadFilename(x.clone())),
+      _ => Err(ImportDeclParseError::BadFilename(tail[0].clone())),
     }?;
     match tail.len() {
       0 => { unreachable!() } // We checked tail.is_empty() already
@@ -147,36 +148,36 @@ impl ImportDecl {
         Ok(ImportDecl::named(filename, None))
       }
       2 => {
-        match tail[1] {
-          AST::Symbol(open) if open == "open" => {
+        match &tail[1].value {
+          ASTF::Symbol(open) if open == "open" => {
             // (5) Wildcard import
             Ok(ImportDecl::open(filename))
           }
-          AST::Nil | AST::Cons(_, _) => {
+          ASTF::Nil | ASTF::Cons(_, _) => {
             // (3) or (4) Explicit import (possibly aliased)
-            let imports: Vec<_> = DottedExpr::new(tail[1]).try_into().map_err(|_| invalid_ending_err(&tail[1..]))?;
+            let imports: Vec<_> = DottedExpr::new(tail[1]).try_into().map_err(|_| invalid_ending_err(&tail[1..], tail[1].pos))?;
             let imports = imports.into_iter()
               .map(|x| ImportName::<Option<Namespace>>::parse(x))
               .collect::<Result<Vec<_>, _>>()?;
             Ok(ImportDecl::restricted(filename, imports))
           }
           _ => {
-            Err(invalid_ending_err(&tail[1..]))
+            Err(invalid_ending_err(&tail[1..], tail[1].pos))
           }
         }
       }
       3 => {
         // (2) Qualified import (aliased)
-        if *tail[1] != AST::symbol("as") {
-          return Err(invalid_ending_err(&tail[1..]));
+        if tail[1].value != ASTF::symbol("as") {
+          return Err(invalid_ending_err(&tail[1..], tail[1].pos));
         }
-        match tail[2] {
-          AST::Symbol(s) => Ok(ImportDecl::named(filename, Some(s.clone()))),
-          _ => Err(invalid_ending_err(&tail[1..]))
+        match &tail[2].value {
+          ASTF::Symbol(s) => Ok(ImportDecl::named(filename, Some(s.clone()))),
+          _ => Err(invalid_ending_err(&tail[1..], tail[1].pos))
         }
       }
       _ => {
-        Err(invalid_ending_err(&tail[1..]))
+        Err(invalid_ending_err(&tail[1..], tail[1].pos))
       }
     }
   }
@@ -194,31 +195,32 @@ impl<NS> ImportName<NS> {
     ImportName { namespace, in_name, out_name }
   }
 
-  fn symbol_to_namespace(symbol: &str) -> Result<Namespace, ImportDeclParseError> {
+  fn symbol_to_namespace(symbol: &str, pos: SourceOffset) -> Result<Namespace, ImportDeclParseError> {
     match symbol {
       "value" => Ok(Namespace::Value),
       "function" => Ok(Namespace::Function),
-      _ => Err(ImportDeclParseError::MalformedFunctionImport(AST::Symbol(symbol.to_owned()))),
+      _ => Err(ImportDeclParseError::MalformedFunctionImport(AST::new(ASTF::Symbol(symbol.to_owned()), pos))),
     }
   }
 
   pub fn parse(clause: &AST) -> Result<ImportName<Option<Namespace>>, ImportDeclParseError> {
-    match clause {
-      AST::Symbol(s) => {
+    match &clause.value {
+      ASTF::Symbol(s) => {
         Ok(ImportName::simple(None, s.clone()))
       }
-      AST::Cons(_, _) => {
+      ASTF::Cons(_, _) => {
         let vec: Vec<_> = DottedExpr::new(clause).try_into().map_err(|_| ImportDeclParseError::MalformedFunctionImport(clause.clone()))?;
-        match vec.as_slice() {
-          [AST::Symbol(o), AST::Symbol(as_), AST::Symbol(i)] if as_ == "as" => {
+        let shape_vec: Vec<_> = vec.into_iter().map(|x| &x.value).collect();
+        match shape_vec.as_slice() {
+          [ASTF::Symbol(o), ASTF::Symbol(as_), ASTF::Symbol(i)] if as_ == "as" => {
             Ok(ImportName::new(None, i.clone(), o.clone()))
           }
-          [AST::Symbol(o), AST::Symbol(ns), AST::Symbol(as_), AST::Symbol(i)] if as_ == "as" => {
-            let ns = ImportName::<Option<Namespace>>::symbol_to_namespace(ns)?;
+          [ASTF::Symbol(o), ASTF::Symbol(ns), ASTF::Symbol(as_), ASTF::Symbol(i)] if as_ == "as" => {
+            let ns = ImportName::<Option<Namespace>>::symbol_to_namespace(ns, clause.pos)?;
             Ok(ImportName::new(Some(ns), i.clone(), o.clone()))
           }
-          [AST::Symbol(o), AST::Symbol(ns)] => {
-            let ns = ImportName::<Option<Namespace>>::symbol_to_namespace(ns)?;
+          [ASTF::Symbol(o), ASTF::Symbol(ns)] => {
+            let ns = ImportName::<Option<Namespace>>::symbol_to_namespace(ns, clause.pos)?;
             Ok(ImportName::new(Some(ns), o.clone(), o.clone()))
           }
           _ => {
@@ -274,9 +276,9 @@ impl ImportName<Namespace> {
 
 }
 
-fn invalid_ending_err(tail: &[&AST]) -> ImportDeclParseError {
+fn invalid_ending_err(tail: &[&AST], pos: SourceOffset) -> ImportDeclParseError {
   let ending: Vec<AST> = tail.iter().map(|x| (*x).clone()).collect();
-  ImportDeclParseError::InvalidEnding(AST::list(ending))
+  ImportDeclParseError::InvalidEnding(AST::dotted_list(ending, AST::new(ASTF::Nil, pos)))
 }
 
 impl fmt::Display for ImportDeclParseError {

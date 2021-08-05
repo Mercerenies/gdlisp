@@ -4,7 +4,6 @@ extern crate gdlisp;
 use gdlisp::ir::modifier::{ParseError as ModifierParseError};
 use gdlisp::compile::error::{Error as GDError};
 use gdlisp::pipeline::error::{Error as PError};
-use gdlisp::parser;
 
 use super::common::*;
 
@@ -135,9 +134,11 @@ pub fn bad_self_static_ref_class_test() {
 #[test]
 pub fn bad_member_const_class_test() {
   // Consts must be initialized
-  assert_eq!(
-    parse_compile_decl_err("((defclass ClassName (Node) (defconst x)))"),
-    Err(PError::from(GDError::InvalidDecl(parser::ASTParser::new().parse("(defconst x)").unwrap()))),
+  assert!(
+    matches!(
+      parse_compile_decl_err("((defclass ClassName (Node) (defconst x)))"),
+      Err(PError::GDError(GDError::InvalidDecl(_))),
+    )
   );
 }
 

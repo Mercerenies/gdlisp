@@ -1,5 +1,5 @@
 
-use crate::sxp::ast::AST;
+use crate::sxp::ast::{AST, ASTF};
 use crate::ir::incremental::IncCompiler;
 use crate::compile::error::{Error as GDError};
 use super::expr::Expr;
@@ -38,10 +38,10 @@ impl<'a> UnquotedValue<'a> {
 
 impl<'a> From<&'a AST> for UnquotedValue<'a> {
   fn from(arg: &'a AST) -> UnquotedValue<'a> {
-    if let AST::Cons(car, cdr) = arg {
-      if let AST::Symbol(name) = &**car {
-        if let AST::Cons(cadr, cddr) = &**cdr {
-          if **cddr == AST::Nil {
+    if let ASTF::Cons(car, cdr) = &arg.value {
+      if let ASTF::Symbol(name) = &car.value {
+        if let ASTF::Cons(cadr, cddr) = &cdr.value {
+          if cddr.value == ASTF::Nil {
             if name == "quasiquote" {
               return UnquotedValue::Quasiquote(&*cadr);
             } else if name == "unquote" {
@@ -113,26 +113,26 @@ fn quasiquote_spliced(icompiler: &mut IncCompiler,
       panic!("Internal error in quasiquote_spliced (impossible UnquotedValue::Quasiquote branch was reached)")
     }
     UnquotedValue::SimpleValue(arg) => {
-      let body = match arg {
-        AST::Nil => {
+      let body = match &arg.value {
+        ASTF::Nil => {
           Expr::Literal(Literal::Nil)
         }
-        AST::Int(n) => {
+        ASTF::Int(n) => {
           Expr::Literal(Literal::Int(*n))
         }
-        AST::Bool(b) => {
+        ASTF::Bool(b) => {
           Expr::Literal(Literal::Bool(*b))
         }
-        AST::Float(f) => {
+        ASTF::Float(f) => {
           Expr::Literal(Literal::Float(*f))
         }
-        AST::String(s) => {
+        ASTF::String(s) => {
           Expr::Literal(Literal::String(s.to_owned()))
         }
-        AST::Symbol(s) => {
+        ASTF::Symbol(s) => {
           Expr::Literal(Literal::Symbol(s.to_owned()))
         }
-        AST::Cons(car, cdr) => {
+        ASTF::Cons(car, cdr) => {
           let car = quasiquote_spliced(icompiler, pipeline, car, depth)?;
           let cdr = quasiquote_indexed(icompiler, pipeline, cdr, depth)?;
           match car {
@@ -145,7 +145,7 @@ fn quasiquote_spliced(icompiler: &mut IncCompiler,
             }
           }
         }
-        AST::Array(v) => {
+        ASTF::Array(v) => {
           let v1 = v.iter().map(|x| quasiquote_spliced(icompiler, pipeline, x, depth)).collect::<Result<Vec<_>, _>>()?;
 
           let mut acc: Vec<Expr> = vec!();
@@ -170,7 +170,7 @@ fn quasiquote_spliced(icompiler: &mut IncCompiler,
           }
           Expr::Call(String::from("+"), acc)
         }
-        AST::Dictionary(v) => {
+        ASTF::Dictionary(v) => {
           // TODO Does unquote-spliced make sense in this context?
           let v1 = v.iter().map(|(k, v)| Ok((quasiquote_indexed(icompiler, pipeline, k, depth)?, quasiquote_indexed(icompiler, pipeline, v, depth)?))).collect::<Result<Vec<_>, Error>>()?;
           Expr::Dictionary(v1)

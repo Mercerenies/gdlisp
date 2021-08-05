@@ -2,7 +2,7 @@
 use crate::gdscript::arglist::ArgList as GDArgList;
 use crate::compile::names::fresh::FreshNameGenerator;
 use crate::compile::symbol_table::function_call::FnSpecs;
-use crate::sxp::ast::AST;
+use crate::sxp::ast::{AST, ASTF};
 
 use std::convert::{TryFrom, TryInto};
 use std::borrow::Borrow;
@@ -109,7 +109,7 @@ impl ArgList {
     let mut opt = Vec::new();
     let mut rest = None;
     for arg in args {
-      if let AST::Symbol(arg) = arg {
+      if let ASTF::Symbol(arg) = &arg.value {
         if arg.starts_with('&') {
           match arg.borrow() {
             "&opt" => {
@@ -142,20 +142,20 @@ impl ArgList {
       }
       match state {
         ParseState::Required => {
-          match arg {
-            AST::Symbol(s) => req.push(s.to_owned()),
+          match &arg.value {
+            ASTF::Symbol(s) => req.push(s.to_owned()),
             _ => return Err(ArgListParseError::InvalidArgument(arg.clone())),
           }
         }
         ParseState::Optional => {
-          match arg {
-            AST::Symbol(s) => opt.push(s.to_owned()),
+          match &arg.value {
+            ASTF::Symbol(s) => opt.push(s.to_owned()),
             _ => return Err(ArgListParseError::InvalidArgument(arg.clone())),
           }
         }
         ParseState::Rest => {
-          match arg {
-            AST::Symbol(s) => {
+          match &arg.value {
+            ASTF::Symbol(s) => {
               rest = Some((s.to_owned(), VarArg::RestArg));
               state = ParseState::RestInvalid;
             },
@@ -163,8 +163,8 @@ impl ArgList {
           }
         }
         ParseState::Arr => {
-          match arg {
-            AST::Symbol(s) => {
+          match &arg.value {
+            ASTF::Symbol(s) => {
               rest = Some((s.to_owned(), VarArg::ArrArg));
               state = ParseState::RestInvalid;
             },

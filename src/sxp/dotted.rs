@@ -7,7 +7,7 @@
 //! [`DottedExpr::new`] takes an `AST` value and interprets it as a
 //! vector and a terminator.
 
-use super::ast::AST;
+use super::ast::{AST, ASTF};
 
 use std::convert::TryFrom;
 
@@ -30,10 +30,10 @@ pub struct DottedExpr<'a> {
 pub struct TryFromDottedExprError {}
 
 fn accumulate_ast<'a>(vec: &mut Vec<&'a AST>, ast: &'a AST) -> &'a AST {
-  match ast {
-    AST::Cons(car, cdr) => {
-      vec.push(car);
-      accumulate_ast(vec, cdr)
+  match &ast.value {
+    ASTF::Cons(car, cdr) => {
+      vec.push(&*car);
+      accumulate_ast(vec, &*cdr)
     }
     _ => ast
   }
@@ -63,7 +63,7 @@ impl<'a> DottedExpr<'a> {
 }
 
 /// A dotted list whose terminator is
-/// [`AST::Nil`](super::ast::AST::Nil) is called a proper list. It is
+/// [`ASTF::Nil`](super::ast::ASTF::Nil) is called a proper list. It is
 /// reasonable to interpret a proper list as a simple vector, since
 /// the nil terminator is merely a placeholder for the end of the
 /// list. [`TryFrom::<DottedExpr>::try_from`] performs this
@@ -73,7 +73,7 @@ impl<'a> TryFrom<DottedExpr<'a>> for Vec<&'a AST> {
   type Error = TryFromDottedExprError;
 
   fn try_from(expr: DottedExpr<'a>) -> Result<Vec<&'a AST>, TryFromDottedExprError> {
-    if *expr.terminal == AST::Nil {
+    if expr.terminal.value == ASTF::Nil {
       Ok(expr.elements)
     } else {
       Err(TryFromDottedExprError {})
@@ -85,10 +85,23 @@ impl<'a> TryFrom<DottedExpr<'a>> for Vec<&'a AST> {
 #[cfg(test)]
 mod tests {
   use super::*;
+  use crate::pipeline::source::SourceOffset;
+
+  fn int(n: i32) -> AST {
+    AST::new(ASTF::Int(n), SourceOffset::default())
+  }
+
+  fn nil() -> AST {
+    AST::nil(SourceOffset::default())
+  }
+
+  fn list(data: Vec<AST>) -> AST {
+    AST::dotted_list(data, nil())
+  }
 
   #[test]
   fn simple_dot() {
-    let ast = AST::Int(33);
+    let ast = int(33);
     let dot = DottedExpr::new(&ast);
 
     assert!(dot.elements.is_empty());
@@ -99,12 +112,12 @@ mod tests {
 
   #[test]
   fn proper_list() {
-    let vec = vec!(AST::Int(1), AST::Int(2), AST::Int(3));
-    let ast = AST::list(vec.clone());
+    let vec = vec!(int(1), int(2), int(3));
+    let ast = list(vec.clone());
     let dot = DottedExpr::new(&ast);
 
     assert_eq!(dot.elements, vec.iter().collect::<Vec<_>>());
-    assert_eq!(*dot.terminal, AST::Nil);
+    assert_eq!(*dot.terminal, nil());
 
     let vec1 = Vec::try_from(dot);
     assert_eq!(vec1, Ok(vec.iter().collect()));
@@ -113,8 +126,8 @@ mod tests {
 
   #[test]
   fn improper_list() {
-    let vec = vec!(AST::Int(1), AST::Int(2), AST::Int(3));
-    let end = AST::Int(4);
+    let vec = vec!(int(1), int(2), int(3));
+    let end = int(4);
     let ast = AST::dotted_list(vec.clone(), end.clone());
     let dot = DottedExpr::new(&ast);
 

@@ -1,8 +1,9 @@
 // -*- Rust -*-
 
 use std::str::FromStr;
-use crate::sxp::ast::AST;
+use crate::sxp::ast::{AST, ASTF};
 use crate::sxp::string;
+use crate::pipeline::source::SourceOffset;
 
 grammar;
 
@@ -32,16 +33,16 @@ match {
 
 pub AST: AST = {
   <ast: LiteralOrNestedAST> => ast,
-  "'" <body: AST> => AST::list(vec!(AST::Symbol(String::from("quote")), body)),
-  "#'" <body: AST> => AST::list(vec!(AST::Symbol(String::from("function")), body)),
-  "`" <body: AST> => AST::list(vec!(AST::Symbol(String::from("quasiquote")), body)),
-  "," <body: AST> => AST::list(vec!(AST::Symbol(String::from("unquote")), body)),
-  ",." <body: AST> => AST::list(vec!(AST::Symbol(String::from("unquote-spliced")), body)),
+  <pos:@L> "'" <body: AST> => AST::dotted_list(vec!(AST::new(ASTF::Symbol(String::from("quote")), SourceOffset(pos)), body), AST::new(ASTF::Nil, SourceOffset(pos))),
+  <pos:@L> "#'" <body: AST> => AST::dotted_list(vec!(AST::new(ASTF::Symbol(String::from("function")), SourceOffset(pos)), body), AST::new(ASTF::Nil, SourceOffset(pos))),
+  <pos:@L> "`" <body: AST> => AST::dotted_list(vec!(AST::new(ASTF::Symbol(String::from("quasiquote")), SourceOffset(pos)), body), AST::new(ASTF::Nil, SourceOffset(pos))),
+  <pos:@L> "," <body: AST> => AST::dotted_list(vec!(AST::new(ASTF::Symbol(String::from("unquote")), SourceOffset(pos)), body), AST::new(ASTF::Nil, SourceOffset(pos))),
+  <pos:@L> ",." <body: AST> => AST::dotted_list(vec!(AST::new(ASTF::Symbol(String::from("unquote-spliced")), SourceOffset(pos)), body), AST::new(ASTF::Nil, SourceOffset(pos))),
 }
 
 pub SomeAST: AST = {
-  <one: AST> => AST::cons(one, AST::Nil),
-  <first: AST> <rest: SomeAST> => AST::cons(first, rest),
+  <pos:@L> <one: AST> => AST::new(ASTF::cons(one, AST::new(ASTF::Nil, SourceOffset(pos))), SourceOffset(pos)),
+  <pos:@L> <first: AST> <rest: SomeAST> => AST::new(ASTF::cons(first, rest), SourceOffset(pos)),
 }
 
 // This is here to fix an ambiguity with the grammar. Specifically, I
@@ -52,27 +53,27 @@ pub SomeAST: AST = {
 // more nebulous, as there are use cases for either possible parse of
 // ,a:b, but I'm treating it the same as the other three for now.
 pub LiteralOrNestedAST: AST = {
-  "#t" => AST::Bool(true),
-  "#f" => AST::Bool(false),
-  <i: Int> => AST::Int(i),
-  <f: Float> => AST::Float(f.into()),
-  <s: String> => AST::String(s), // TODO Escaping
-  <s: Symbol> => AST::Symbol(s),
-  "(" ")" => AST::Nil,
-  "(" <car: AST> <cdr: Cdr> ")" => AST::Cons(Box::new(car), Box::new(cdr)),
-  "[" <contents: ArrayContents> "]" => AST::Array(contents),
-  "{" <contents: DictContents> "}" => AST::Dictionary(contents),
-  "V{" <x: AST> <y: AST> "}" => AST::list(vec!(AST::Symbol(String::from("vector")), x, y)),
-  "V{" <x: AST> <y: AST> <z: AST> "}" => AST::list(vec!(AST::Symbol(String::from("vector")), x, y, z)),
-  <body: LiteralOrNestedAST> ":" <name: Symbol> => AST::list(vec!(AST::Symbol(String::from("access-slot")), body, AST::Symbol(name))),
-  <body: LiteralOrNestedAST> ":" <path: NodePath> => AST::list(vec!(AST::list(vec!(AST::Symbol(String::from("access-slot")), body, AST::Symbol(String::from("get-node")))), AST::String(path))),
-  <path: NodePath> => AST::list(vec!(AST::list(vec!(AST::Symbol(String::from("access-slot")), AST::Symbol(String::from("self")), AST::Symbol(String::from("get-node")))), AST::String(path))),
+  <pos:@L> "#t" => AST::new(ASTF::Bool(true), SourceOffset(pos)),
+  <pos:@L> "#f" => AST::new(ASTF::Bool(false), SourceOffset(pos)),
+  <pos:@L> <i: Int> => AST::new(ASTF::Int(i), SourceOffset(pos)),
+  <pos:@L> <f: Float> => AST::new(ASTF::Float(f.into()), SourceOffset(pos)),
+  <pos:@L> <s: String> => AST::new(ASTF::String(s), SourceOffset(pos)), // TODO Escaping
+  <pos:@L> <s: Symbol> => AST::new(ASTF::Symbol(s), SourceOffset(pos)),
+  <pos:@L> "(" ")" => AST::new(ASTF::Nil, SourceOffset(pos)),
+  <pos:@L> "(" <car: AST> <cdr: Cdr> ")" => AST::new(ASTF::Cons(Box::new(car), Box::new(cdr)), SourceOffset(pos)),
+  <pos:@L> "[" <contents: ArrayContents> "]" => AST::new(ASTF::Array(contents), SourceOffset(pos)),
+  <pos:@L> "{" <contents: DictContents> "}" => AST::new(ASTF::Dictionary(contents), SourceOffset(pos)),
+  <pos:@L> "V{" <x: AST> <y: AST> "}" => AST::dotted_list(vec!(AST::symbol("vector", SourceOffset(pos)), x, y), AST::nil(SourceOffset(pos))),
+  <pos:@L> "V{" <x: AST> <y: AST> <z: AST> "}" => AST::dotted_list(vec!(AST::symbol("vector", SourceOffset(pos)), x, y, z), AST::nil(SourceOffset(pos))),
+  <pos:@L> <body: LiteralOrNestedAST> ":" <rpos:@L> <name: Symbol> => AST::dotted_list(vec!(AST::symbol("access-slot", SourceOffset(pos)), body, AST::new(ASTF::Symbol(name), SourceOffset(rpos))), AST::nil(SourceOffset(pos))),
+  <pos:@L> <body: LiteralOrNestedAST> ":" <rpos:@L> <path: NodePath> => AST::dotted_list(vec!(AST::dotted_list(vec!(AST::symbol("access-slot", SourceOffset(pos)), body, AST::symbol("get-node", SourceOffset(pos))), AST::nil(SourceOffset(pos))), AST::new(ASTF::String(path), SourceOffset(rpos))), AST::nil(SourceOffset(pos))),
+  <pos:@L> <path: NodePath> => AST::dotted_list(vec!(AST::dotted_list(vec!(AST::symbol("access-slot", SourceOffset(pos)), AST::symbol("self", SourceOffset(pos)), AST::symbol("get-node", SourceOffset(pos))), AST::nil(SourceOffset(pos))), AST::new(ASTF::String(path), SourceOffset(pos))), AST::nil(SourceOffset(pos))),
 }
 
 Cdr: AST = {
-  => AST::Nil,
+  <pos:@L> => AST::nil(SourceOffset(pos)),
   "." <cdr: AST> => cdr,
-  <cadr: AST> <cddr: Cdr> => AST::Cons(Box::new(cadr), Box::new(cddr)),
+  <pos:@L> <cadr: AST> <cddr: Cdr> => AST::new(ASTF::Cons(Box::new(cadr), Box::new(cddr)), SourceOffset(pos)),
 }
 
 ArrayContents: Vec<AST> = {

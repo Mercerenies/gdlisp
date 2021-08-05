@@ -16,13 +16,13 @@ pub mod magic;
 pub mod file;
 pub mod declare;
 
-use crate::sxp::ast::AST;
+use crate::sxp::ast::{AST, ASTF};
 
 use std::fmt;
 
 // TODO Can we use this for defvar export statements too?
 
-/// `Constant` is a [`ParseRule`] which looks for an [`AST::Symbol`]
+/// `Constant` is a [`ParseRule`] which looks for an [`ASTF::Symbol`]
 /// with a specific string value. If it finds it, it returns a preset
 /// value. The `M` type must implement [`Clone`] to be usable as a
 /// `ParseRule`.
@@ -188,7 +188,7 @@ impl<M> ParseRule for Constant<M> where M: Clone {
   type Modifier = M;
 
   fn parse_once(&mut self, ast: &AST) -> Result<M, ParseError> {
-    if let AST::Symbol(s) = ast {
+    if let ASTF::Symbol(s) = &ast.value {
       if *s == self.symbol_value {
         return Ok(self.result.clone());
       }

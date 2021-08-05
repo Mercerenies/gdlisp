@@ -52,8 +52,36 @@ mod tests {
   use crate::ir::export::Visibility;
   use crate::pipeline::Pipeline;
   use crate::pipeline::config::ProjectConfig;
+  use crate::pipeline::source::SourceOffset;
+  use crate::sxp::ast::ASTF;
 
   use std::path::PathBuf;
+
+  fn int(n: i32) -> AST {
+    AST::new(ASTF::Int(n), SourceOffset::default())
+  }
+
+  fn symbol(s: &str) -> AST {
+    AST::new(ASTF::symbol(s), SourceOffset::default())
+  }
+
+  #[allow(dead_code)]
+  fn string(s: &str) -> AST {
+    AST::new(ASTF::string(s), SourceOffset::default())
+  }
+
+  fn nil() -> AST {
+    AST::nil(SourceOffset::default())
+  }
+
+  #[allow(dead_code)]
+  fn cons(a: AST, b: AST) -> AST {
+    AST::new(ASTF::cons(a, b), SourceOffset::default())
+  }
+
+  fn list(data: Vec<AST>) -> AST {
+    AST::dotted_list(data, nil())
+  }
 
   fn compile_expr(pipeline: &mut Pipeline, expr: &AST)
                   -> Result<Expr, PError> {
@@ -81,7 +109,7 @@ mod tests {
 
   #[test]
   fn compile_call() {
-    let ast = AST::list(vec!(AST::Symbol(String::from("foobar")), AST::Int(10)));
+    let ast = list(vec!(symbol("foobar"), int(10)));
     let expected = Expr::Call(String::from("foobar"), vec!(Expr::Literal(Literal::Int(10))));
     let actual = do_compile_expr(&ast).unwrap();
     assert_eq!(actual, expected);
@@ -91,7 +119,7 @@ mod tests {
   // Test is still here because meh.
   #[test]
   fn compile_builtin() {
-    let ast = AST::list(vec!(AST::Symbol(String::from("cons")), AST::Int(10)));
+    let ast = list(vec!(symbol("cons"), int(10)));
     let expected = Expr::Call(String::from("cons"), vec!(Expr::Literal(Literal::Int(10))));
     let actual = do_compile_expr(&ast).unwrap();
     assert_eq!(actual, expected);
@@ -99,32 +127,32 @@ mod tests {
 
   #[test]
   fn compile_int() {
-    assert_eq!(do_compile_expr(&AST::Int(99)).unwrap(), Expr::Literal(Literal::Int(99)));
-    assert_eq!(do_compile_expr(&AST::Int(-10)).unwrap(), Expr::Literal(Literal::Int(-10)));
+    assert_eq!(do_compile_expr(&int(99)).unwrap(), Expr::Literal(Literal::Int(99)));
+    assert_eq!(do_compile_expr(&int(-10)).unwrap(), Expr::Literal(Literal::Int(-10)));
   }
 
   #[test]
   fn compile_nil() {
-    assert_eq!(do_compile_expr(&AST::Nil).unwrap(), Expr::Literal(Literal::Nil));
+    assert_eq!(do_compile_expr(&nil()).unwrap(), Expr::Literal(Literal::Nil));
   }
 
   #[test]
   fn compile_progn() {
-    assert_eq!(do_compile_expr(&AST::list(vec!(AST::Symbol(String::from("progn"))))).unwrap(),
+    assert_eq!(do_compile_expr(&list(vec!(symbol("progn")))).unwrap(),
                Expr::Progn(vec!()));
-    assert_eq!(do_compile_expr(&AST::list(vec!(AST::Symbol(String::from("progn")), AST::Int(1)))).unwrap(),
+    assert_eq!(do_compile_expr(&list(vec!(symbol("progn"), int(1)))).unwrap(),
                Expr::Progn(vec!(Expr::Literal(Literal::Int(1)))));
-    assert_eq!(do_compile_expr(&AST::list(vec!(AST::Symbol(String::from("progn")), AST::Int(1), AST::Int(2)))).unwrap(),
+    assert_eq!(do_compile_expr(&list(vec!(symbol("progn"), int(1), int(2)))).unwrap(),
                Expr::Progn(vec!(Expr::Literal(Literal::Int(1)), Expr::Literal(Literal::Int(2)))));
   }
 
   #[test]
   fn compile_defn() {
-    assert_eq!(do_compile_decl(&AST::list(vec!(AST::Symbol("defn".to_owned()),
-                                               AST::Symbol("foobar".to_owned()),
-                                               AST::list(vec!(AST::Symbol("a".to_owned()),
-                                                           AST::Symbol("b".to_owned()))),
-                                               AST::Int(20)))).unwrap(),
+    assert_eq!(do_compile_decl(&list(vec!(symbol("defn"),
+                                          symbol("foobar"),
+                                          list(vec!(symbol("a"),
+                                                    symbol("b"))),
+                                          int(20)))).unwrap(),
                Decl::FnDecl(decl::FnDecl {
                  visibility: Visibility::FUNCTION,
                  call_magic: None,
@@ -136,11 +164,11 @@ mod tests {
 
   #[test]
   fn compile_defmacro() {
-    assert_eq!(do_compile_decl(&AST::list(vec!(AST::Symbol("defmacro".to_owned()),
-                                               AST::Symbol("foobar".to_owned()),
-                                               AST::list(vec!(AST::Symbol("a".to_owned()),
-                                                              AST::Symbol("b".to_owned()))),
-                                               AST::Int(20)))).unwrap(),
+    assert_eq!(do_compile_decl(&list(vec!(symbol("defmacro"),
+                                          symbol("foobar"),
+                                          list(vec!(symbol("a"),
+                                                    symbol("b"))),
+                                          int(20)))).unwrap(),
                Decl::MacroDecl(decl::MacroDecl {
                  visibility: Visibility::MACRO,
                  name: "foobar".to_owned(),
@@ -151,9 +179,9 @@ mod tests {
 
   #[test]
   fn compile_set() {
-    assert_eq!(do_compile_expr(&AST::list(vec!(AST::Symbol(String::from("set")),
-                                               AST::Symbol(String::from("foobar")),
-                                               AST::Int(1)))).unwrap(),
+    assert_eq!(do_compile_expr(&list(vec!(symbol("set"),
+                                          symbol("foobar"),
+                                          int(1)))).unwrap(),
                Expr::Assign(AssignTarget::Variable(String::from("foobar")), Box::new(Expr::Literal(Literal::Int(1)))));
   }
 

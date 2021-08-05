@@ -9,14 +9,14 @@ use std::fmt;
 
 /// A `SourceOffset` is really just a [`usize`] representing a
 /// 0-indexed byte offset into the original file.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Default)]
 #[repr(transparent)]
 pub struct SourceOffset(pub usize);
 
 /// A `SourcePos` indicates a line and column number in a file, where
 /// all offsets are indicated in *characters*. Source position lines
 /// and columns are always 1-indexed.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct SourcePos {
   pub line: usize,
   pub column: usize,

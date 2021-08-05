@@ -16,7 +16,7 @@ use super::identifier::{Id, IdLike, Namespace};
 use super::modifier::{self, ParseRule};
 use super::export::Visibility;
 use crate::sxp::dotted::{DottedExpr, TryFromDottedExprError};
-use crate::sxp::ast::AST;
+use crate::sxp::ast::{AST, ASTF};
 use crate::sxp::reify::Reify;
 use crate::compile::error::Error;
 use crate::compile::resource_type::ResourceType;
@@ -104,8 +104,8 @@ impl IncCompiler {
       let lhs = self.compile_expr(pipeline, lhs)?;
       Ok(CallName::MethodName(Box::new(lhs), name.to_owned()))
     } else {
-      match ast {
-        AST::Symbol(s) => Ok(CallName::SimpleName(s.clone())),
+      match &ast.value {
+        ASTF::Symbol(s) => Ok(CallName::SimpleName(s.clone())),
         _ => Err(PError::from(Error::CannotCall(ast.clone()))),
       }
     }
@@ -125,8 +125,8 @@ impl IncCompiler {
   }
 
   pub fn compile_expr(&mut self, pipeline: &mut Pipeline, expr: &AST) -> Result<Expr, PError> {
-    match expr {
-      AST::Nil | AST::Cons(_, _) => {
+    match &expr.value {
+      ASTF::Nil | ASTF::Cons(_, _) => {
         let vec: Vec<&AST> = DottedExpr::new(expr).try_into()?;
         if vec.is_empty() {
           Ok(Expr::Literal(Literal::Nil))
@@ -144,27 +144,27 @@ impl IncCompiler {
           }
         }
       }
-      AST::Array(vec) => {
+      ASTF::Array(vec) => {
         let vec = vec.iter().map(|e| self.compile_expr(pipeline, e)).collect::<Result<Vec<_>, _>>()?;
         Ok(Expr::Array(vec))
       }
-      AST::Dictionary(vec) => {
+      ASTF::Dictionary(vec) => {
         let vec = vec.iter().map(|(k, v)| Ok((self.compile_expr(pipeline, k)?, self.compile_expr(pipeline, v)?))).collect::<Result<Vec<_>, PError>>()?;
         Ok(Expr::Dictionary(vec))
       }
-      AST::Int(n) => {
+      ASTF::Int(n) => {
         Ok(Expr::Literal(Literal::Int(*n)))
       }
-      AST::Bool(b) => {
+      ASTF::Bool(b) => {
         Ok(Expr::Literal(Literal::Bool(*b)))
       }
-      AST::Float(f) => {
+      ASTF::Float(f) => {
         Ok(Expr::Literal(Literal::Float(*f)))
       }
-      AST::String(s) => {
+      ASTF::String(s) => {
         Ok(Expr::Literal(Literal::String(s.to_owned())))
       }
-      AST::Symbol(s) => {
+      ASTF::Symbol(s) => {
         Ok(Expr::LocalVar(s.to_string()))
       }
     }
@@ -179,15 +179,15 @@ impl IncCompiler {
     if vec.is_empty() {
       return Err(PError::from(Error::UnknownDecl(decl.clone())));
     }
-    match vec[0] {
-      AST::Symbol(s) => {
+    match &vec[0].value {
+      ASTF::Symbol(s) => {
         match s.borrow() {
           "defn" => {
             if vec.len() < 3 {
               return Err(PError::from(Error::InvalidDecl(decl.clone())));
             }
-            let name = match vec[1] {
-              AST::Symbol(s) => s,
+            let name = match &vec[1].value {
+              ASTF::Symbol(s) => s,
               _ => return Err(PError::from(Error::InvalidDecl(decl.clone()))),
             };
             let args: Vec<_> = DottedExpr::new(vec[2]).try_into()?;
@@ -210,8 +210,8 @@ impl IncCompiler {
             if vec.len() < 3 {
               return Err(PError::from(Error::InvalidDecl(decl.clone())));
             }
-            let name = match vec[1] {
-              AST::Symbol(s) => s,
+            let name = match &vec[1].value {
+              ASTF::Symbol(s) => s,
               _ => return Err(PError::from(Error::InvalidDecl(decl.clone()))),
             };
             let args: Vec<_> = DottedExpr::new(vec[2]).try_into()?;
@@ -233,8 +233,8 @@ impl IncCompiler {
             if vec.len() < 3 {
               return Err(PError::from(Error::InvalidDecl(decl.clone())));
             }
-            let name = match vec[1] {
-              AST::Symbol(s) => s.to_owned(),
+            let name = match &vec[1].value {
+              ASTF::Symbol(s) => s.to_owned(),
               _ => return Err(PError::from(Error::InvalidDecl(decl.clone()))),
             };
             let value = self.compile_expr(pipeline, vec[2])?;
@@ -252,14 +252,14 @@ impl IncCompiler {
             if vec.len() < 3 {
               return Err(PError::from(Error::InvalidDecl(decl.clone())));
             }
-            let name = match vec[1] {
-              AST::Symbol(s) => s.to_owned(),
+            let name = match &vec[1].value {
+              ASTF::Symbol(s) => s.to_owned(),
               _ => return Err(PError::from(Error::InvalidDecl(decl.clone()))),
             };
-            let superclass = match vec[2] {
-              AST::Cons(car, cdr) =>
-                match (&**car, &**cdr) {
-                  (AST::Symbol(superclass_name), AST::Nil) => superclass_name.to_owned(),
+            let superclass = match &vec[2].value {
+              ASTF::Cons(car, cdr) =>
+                match (&car.value, &cdr.value) {
+                  (ASTF::Symbol(superclass_name), ASTF::Nil) => superclass_name.to_owned(),
                   _ => return Err(PError::from(Error::InvalidDecl(decl.clone()))),
                 },
               _ => return Err(PError::from(Error::InvalidDecl(decl.clone()))),
@@ -278,14 +278,14 @@ impl IncCompiler {
             if vec.len() < 2 {
               return Err(PError::from(Error::InvalidDecl(decl.clone())));
             }
-            let name = match vec[1] {
-              AST::Symbol(s) => s.to_owned(),
+            let name = match &vec[1].value {
+              ASTF::Symbol(s) => s.to_owned(),
               _ => return Err(PError::from(Error::InvalidDecl(decl.clone()))),
             };
             let (mods, body) = modifier::enums::parser().parse(&vec[2..])?;
             let clauses = body.iter().map(|clause| {
-              let clause = match clause {
-                AST::Symbol(_) => AST::list(vec!((*clause).clone())),
+              let clause = match &clause.value {
+                ASTF::Symbol(_) => AST::dotted_list(vec!((*clause).clone()), AST::new(ASTF::Nil, clause.pos)),
                 _ => (*clause).clone(),
               };
               let clause = Vec::try_from(DottedExpr::new(&clause))?;
@@ -294,8 +294,8 @@ impl IncCompiler {
                 [name, value] => (name, Some(value)),
                 _ => return Err(PError::from(Error::InvalidDecl(decl.clone()))),
               };
-              let name = match name {
-                AST::Symbol(s) => s.to_owned(),
+              let name = match &name.value {
+                ASTF::Symbol(s) => s.to_owned(),
                 _ => return Err(PError::from(Error::InvalidDecl(decl.clone()))),
               };
               let value = value.map(|v| self.compile_expr(pipeline, v)).transpose()?;
@@ -313,10 +313,10 @@ impl IncCompiler {
             if vec.len() < 3 {
               return Err(PError::from(Error::InvalidDecl(decl.clone())));
             }
-            let (mut declare, body) = match vec[1] {
-              AST::Symbol(value) if value == "value" || value == "superglobal" => {
-                let name = match vec[2] {
-                  AST::Symbol(s) => s.to_owned(),
+            let (mut declare, body) = match &vec[1].value {
+              ASTF::Symbol(value) if value == "value" || value == "superglobal" => {
+                let name = match &vec[2].value {
+                  ASTF::Symbol(s) => s.to_owned(),
                   _ => return Err(PError::from(Error::InvalidDecl(decl.clone()))),
                 };
                 let declare_type =
@@ -332,9 +332,9 @@ impl IncCompiler {
                 };
                 (decl, &vec[3..])
               }
-              AST::Symbol(function) if function == "function" || function == "superfunction" => {
-                let name = match vec[2] {
-                  AST::Symbol(s) => s.to_owned(),
+              ASTF::Symbol(function) if function == "function" || function == "superfunction" => {
+                let name = match &vec[2].value {
+                  ASTF::Symbol(s) => s.to_owned(),
                   _ => return Err(PError::from(Error::InvalidDecl(decl.clone()))),
                 };
                 let args: Vec<_> = DottedExpr::new(vec[3]).try_into()?;
@@ -396,7 +396,7 @@ impl IncCompiler {
     if vec.is_empty() {
       return Err(PError::from(Error::InvalidDecl(curr.clone())));
     }
-    if let AST::Symbol(s) = vec[0] {
+    if let ASTF::Symbol(s) = &vec[0].value {
       match s.as_str() {
         "progn" => {
           // Top-level magic progn
@@ -410,8 +410,8 @@ impl IncCompiler {
           if vec.len() != 3 {
             return Err(PError::from(Error::InvalidDecl(curr.clone())));
           }
-          let name = match vec[1] {
-            AST::Symbol(s) => s.to_owned(),
+          let name = match &vec[1].value {
+            ASTF::Symbol(s) => s.to_owned(),
             _ => return Err(PError::from(Error::InvalidDecl(curr.clone()))),
           };
           let value = self.compile_expr(pipeline, vec[2])?;
@@ -422,7 +422,7 @@ impl IncCompiler {
           if vec.len() < 2 || vec.len() > 4 {
             return Err(PError::from(Error::InvalidDecl(curr.clone())));
           }
-          if let AST::Symbol(vname) = vec[1] {
+          if let ASTF::Symbol(vname) = &vec[1].value {
             let name = vname.to_owned();
 
             // Parse value and export
@@ -431,7 +431,7 @@ impl IncCompiler {
             let mut idx = 2;
             // Value
             if let Some(v) = vec.get(idx) {
-              if !(matches!(v, AST::Cons(car, _) if **car == AST::Symbol(String::from("export")))) {
+              if !(matches!(&v.value, ASTF::Cons(car, _) if car.value == ASTF::Symbol(String::from("export")))) {
                 let e = self.compile_expr(pipeline, v)?;
                 value = Some(e);
                 idx += 1;
@@ -439,8 +439,8 @@ impl IncCompiler {
             };
             // Export
             if let Some(v) = vec.get(idx) {
-              if let DottedExpr { elements, terminal: AST::Nil } = DottedExpr::new(v) {
-                if elements.get(0) == Some(&&AST::Symbol(String::from("export"))) {
+              if let DottedExpr { elements, terminal: AST { value: ASTF::Nil, pos: _ } } = DottedExpr::new(v) {
+                if elements.get(0).map(|x| &x.value) == Some(&ASTF::Symbol(String::from("export"))) {
                   let args = elements[1..].iter().map(|x| self.compile_expr(pipeline, x)).collect::<Result<_, _>>()?;
                   export = Some(decl::Export { args });
                   idx += 1;
@@ -469,7 +469,7 @@ impl IncCompiler {
           if vec.len() < 3 {
             return Err(PError::from(Error::InvalidDecl(curr.clone())));
           }
-          if let AST::Symbol(fname) = vec[1] {
+          if let ASTF::Symbol(fname) = &vec[1].value {
             let args: Vec<_> = DottedExpr::new(vec[2]).try_into()?;
             let args = SimpleArgList::parse(args)?;
 
@@ -504,11 +504,11 @@ impl IncCompiler {
           if vec.len() < 2 || vec.len() > 3 {
             return Err(PError::from(Error::InvalidDecl(curr.clone())));
           }
-          let name = match vec[1] {
-            AST::Symbol(s) => s.to_owned(),
+          let name = match &vec[1].value {
+            ASTF::Symbol(s) => s.to_owned(),
             _ => return Err(PError::from(Error::InvalidDecl(curr.clone()))),
           };
-          let nil = AST::Nil;
+          let nil = AST::new(ASTF::Nil, vec[0].pos);
           let args = vec.get(2).map_or(&nil, |x| *x);
           let args: Vec<_> = DottedExpr::new(args).try_into()?;
           let args = SimpleArgList::parse(args)?;
@@ -526,7 +526,7 @@ impl IncCompiler {
 
   pub fn compile_import(&mut self, curr: &AST) -> Result<Option<ImportDecl>, Error> {
     if let Ok(vec) = Vec::try_from(DottedExpr::new(curr)) {
-      if !vec.is_empty() && *vec[0] == AST::symbol("use") {
+      if !vec.is_empty() && vec[0].value == ASTF::symbol("use") {
         return ImportDecl::parse(&vec[1..]).map_err(Error::from).map(Some);
       }
     }
@@ -554,7 +554,7 @@ impl IncCompiler {
     }
     // Check if we're looking at a top-level progn.
     if let Ok(vec) = Vec::try_from(DottedExpr::new(curr)) {
-      if !vec.is_empty() && matches!(vec[0], AST::Symbol(progn) if progn == "progn") {
+      if !vec.is_empty() && matches!(&vec[0].value, ASTF::Symbol(progn) if progn == "progn") {
         for inner in &vec[1..] {
           self.compile_decl_or_expr(pipeline, main, inner)?;
         }

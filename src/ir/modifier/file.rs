@@ -1,7 +1,7 @@
 
 //! Modifiers that have to do with an entire GDLisp file.
 
-use crate::sxp::ast::AST;
+use crate::sxp::ast::{AST, ASTF};
 use crate::sxp::dotted::DottedExpr;
 use crate::ir::incremental::IncCompiler;
 use super::{ParseRule, ParseError};
@@ -49,7 +49,7 @@ impl ParseRule for NoStdLibParser {
     if vec.len() != 1 {
       return Err(file_error(ast));
     }
-    if let AST::Symbol(sys_nostdlib) = vec[0] {
+    if let ASTF::Symbol(sys_nostdlib) = &vec[0].value {
       if sys_nostdlib == "sys/nostdlib" {
         return Ok(());
       }

@@ -3,7 +3,7 @@
 //! expression.
 
 use super::expr::Expr;
-use crate::sxp::ast::AST;
+use crate::sxp::ast::{AST, ASTF};
 use crate::sxp::dotted::DottedExpr;
 
 /// GDLisp is fairly conservative about what sort of [`AST`] values
@@ -12,7 +12,7 @@ use crate::sxp::dotted::DottedExpr;
 /// must have a car of one of the forms permitted by `CallName`.
 #[derive(Clone, Debug)]
 pub enum CallName {
-  /// A simple [`AST::Symbol`] name.
+  /// A simple [`ASTF::Symbol`] name.
   SimpleName(String),
   /// An `access-slot` qualified call.
   MethodName(Box<Expr>, String),
@@ -23,9 +23,9 @@ impl CallName {
   /// Attempts to resolve `ast` as an `access-slot` pair, with an
   /// `AST` left-hand side and a string method name.
   pub fn try_resolve_method_name(ast: &AST) -> Option<(&AST, &str)> {
-    if let DottedExpr { elements: vec, terminal: AST::Nil } = DottedExpr::new(ast) {
-      if vec.len() == 3 && *vec[0] == AST::symbol("access-slot") {
-        if let AST::Symbol(name) = vec[2] {
+    if let DottedExpr { elements: vec, terminal: AST { value: ASTF::Nil, pos: _ } } = DottedExpr::new(ast) {
+      if vec.len() == 3 && vec[0].value == ASTF::symbol("access-slot") {
+        if let ASTF::Symbol(name) = &vec[2].value {
           return Some((vec[1], name));
         }
       }
