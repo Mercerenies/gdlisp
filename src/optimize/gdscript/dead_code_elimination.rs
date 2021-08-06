@@ -1,5 +1,5 @@
 
-use crate::gdscript::stmt::Stmt;
+use crate::gdscript::stmt::{Stmt, StmtF};
 use crate::compile::error::Error;
 use super::StatementLevelPass;
 use super::noop;
@@ -18,7 +18,7 @@ impl StatementLevelPass for DeadCodeElimination {
     }
 
     // Check for empty else clause
-    if let Stmt::IfStmt(if_stmt) = &mut stmt {
+    if let StmtF::IfStmt(if_stmt) = &mut stmt.value {
       if let Some(else_clause) = &if_stmt.else_clause {
         if noop::is_code_seq_noop(&else_clause) {
           if_stmt.else_clause = None;
@@ -45,6 +45,10 @@ mod tests {
     Expr::new(expr, SourceOffset::default())
   }
 
+  fn s(stmt: StmtF) -> Stmt {
+    Stmt::new(stmt, SourceOffset::default())
+  }
+
   #[test]
   fn else_do_not_run_on_stmt() {
     /* (Change nothing)
@@ -53,7 +57,7 @@ mod tests {
      * else:
      *   return 2
      */
-    let stmt = stmt::if_else(e(ExprF::from(0)), vec!(Stmt::ReturnStmt(e(ExprF::from(1)))), vec!(Stmt::ReturnStmt(e(ExprF::from(2)))));
+    let stmt = stmt::if_else(e(ExprF::from(0)), vec!(s(StmtF::ReturnStmt(e(ExprF::from(1))))), vec!(s(StmtF::ReturnStmt(e(ExprF::from(2))))), SourceOffset::default());
     let decl = decl::FnDecl { name: String::from("example"), args: ArgList::empty(), body: vec!(stmt) };
     let mut transformed_decl = decl.clone();
     DeadCodeElimination.run_on_function(&mut transformed_decl).unwrap();
@@ -69,10 +73,10 @@ mod tests {
      *   pass
      */
 
-    let stmt0 = stmt::if_else(e(ExprF::from(0)), vec!(Stmt::ReturnStmt(e(ExprF::from(1)))), vec!(Stmt::PassStmt));
+    let stmt0 = stmt::if_else(e(ExprF::from(0)), vec!(s(StmtF::ReturnStmt(e(ExprF::from(1))))), vec!(s(StmtF::PassStmt)), SourceOffset::default());
     let decl0 = decl::FnDecl { name: String::from("example"), args: ArgList::empty(), body: vec!(stmt0) };
 
-    let stmt1 = stmt::if_then(e(ExprF::from(0)), vec!(Stmt::ReturnStmt(e(ExprF::from(1)))));
+    let stmt1 = stmt::if_then(e(ExprF::from(0)), vec!(s(StmtF::ReturnStmt(e(ExprF::from(1))))), SourceOffset::default());
     let decl1 = decl::FnDecl { name: String::from("example"), args: ArgList::empty(), body: vec!(stmt1) };
 
     let mut transformed_decl = decl0.clone();

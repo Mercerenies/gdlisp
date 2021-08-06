@@ -19,30 +19,32 @@ pub fn generate_lambda_vararg(specs: FnSpecs, pos: SourceOffset) -> decl::FnDecl
   let optional: Vec<_> = (0..specs.optional).map(|i| format!("optional_{}", i)).collect();
 
   for req in &required {
-    stmts.push(Stmt::VarDecl(req.to_owned(), Expr::null(pos)));
+    stmts.push(Stmt::var_decl(req.to_owned(), Expr::null(pos), pos));
     stmts.push(stmt::if_else(
       Expr::binary(Expr::var(args, pos), op::BinaryOp::Eq, Expr::null(pos), pos),
       vec!(
-        Stmt::Expr(Expr::simple_call("push_error", vec!(Expr::str_lit("Not enough arguments", pos)), pos))
+        Stmt::expr(Expr::simple_call("push_error", vec!(Expr::str_lit("Not enough arguments", pos)), pos))
       ),
       vec!(
-        Stmt::simple_assign(Expr::var(req, pos), Expr::var(args, pos).attribute("car", pos)),
-        Stmt::simple_assign(Expr::var(args, pos), Expr::var(args, pos).attribute("cdr", pos)),
+        Stmt::simple_assign(Expr::var(req, pos), Expr::var(args, pos).attribute("car", pos), pos),
+        Stmt::simple_assign(Expr::var(args, pos), Expr::var(args, pos).attribute("cdr", pos), pos),
       ),
+      pos,
     ));
   }
 
   for opt in &optional {
-    stmts.push(Stmt::VarDecl(opt.to_owned(), Expr::null(pos)));
+    stmts.push(Stmt::var_decl(opt.to_owned(), Expr::null(pos), pos));
     stmts.push(stmt::if_else(
       Expr::binary(Expr::var(args, pos), op::BinaryOp::Eq, Expr::null(pos), pos),
       vec!(
-        Stmt::simple_assign(Expr::var(opt, pos), Expr::null(pos)),
+        Stmt::simple_assign(Expr::var(opt, pos), Expr::null(pos), pos),
       ),
       vec!(
-        Stmt::simple_assign(Expr::var(opt, pos), Expr::var(args, pos).attribute("car", pos)),
-        Stmt::simple_assign(Expr::var(args, pos), Expr::var(args, pos).attribute("cdr", pos)),
+        Stmt::simple_assign(Expr::var(opt, pos), Expr::var(args, pos).attribute("car", pos), pos),
+        Stmt::simple_assign(Expr::var(args, pos), Expr::var(args, pos).attribute("cdr", pos), pos),
       ),
+      pos,
     ));
   }
 
@@ -54,23 +56,24 @@ pub fn generate_lambda_vararg(specs: FnSpecs, pos: SourceOffset) -> decl::FnDecl
   match specs.rest {
     Some(VarArg::RestArg) => {
       all_args.push(Expr::var(args, pos));
-      stmts.push(Stmt::ReturnStmt(Expr::simple_call("call_func", all_args, pos)));
+      stmts.push(Stmt::return_stmt(Expr::simple_call("call_func", all_args, pos), pos));
     }
     Some(VarArg::ArrArg) => {
       let array = Expr::call(Some(Expr::var("GDLisp", pos)), "list_to_array", vec!(Expr::var(args, pos)), pos);
       all_args.push(array);
-      stmts.push(Stmt::ReturnStmt(Expr::simple_call("call_func", all_args, pos)));
+      stmts.push(Stmt::return_stmt(Expr::simple_call("call_func", all_args, pos), pos));
     }
     None => {
       stmts.push(
         stmt::if_else(
           Expr::binary(Expr::var(args, pos), op::BinaryOp::Eq, Expr::null(pos), pos),
           vec!(
-            Stmt::ReturnStmt(Expr::simple_call("call_func", all_args, pos)),
+            Stmt::return_stmt(Expr::simple_call("call_func", all_args, pos), pos),
           ),
           vec!(
-            Stmt::Expr(Expr::simple_call("push_error", vec!(Expr::str_lit("Too many arguments", pos)), pos)),
+            Stmt::expr(Expr::simple_call("push_error", vec!(Expr::str_lit("Too many arguments", pos)), pos)),
           ),
+          pos,
         )
       );
     }

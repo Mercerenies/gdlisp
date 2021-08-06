@@ -22,10 +22,15 @@ mod tests {
   use super::*;
   use crate::gdscript::op;
   use crate::gdscript::expr::ExprF;
+  use crate::gdscript::stmt::StmtF;
   use crate::pipeline::source::SourceOffset;
 
   fn e(expr: ExprF) -> Expr {
     Expr::new(expr, SourceOffset::default())
+  }
+
+  fn s(stmt: StmtF) -> Stmt {
+    Stmt::new(stmt, SourceOffset::default())
   }
 
   #[test]
@@ -49,13 +54,13 @@ mod tests {
   #[test]
   fn stmt_noop() {
     // True
-    assert!(is_code_noop(&Stmt::Expr(e(ExprF::from(1)))));
-    assert!(is_code_noop(&Stmt::PassStmt));
+    assert!(is_code_noop(&Stmt::expr(e(ExprF::from(1)))));
+    assert!(is_code_noop(&s(StmtF::PassStmt)));
     // False
     let call = e(ExprF::Call(None, String::from("function_name"), vec!()));
-    assert!(!is_code_noop(&Stmt::Expr(call)));
-    assert!(!is_code_noop(&Stmt::BreakStmt));
-    assert!(!is_code_noop(&Stmt::ContinueStmt));
+    assert!(!is_code_noop(&Stmt::expr(call)));
+    assert!(!is_code_noop(&s(StmtF::BreakStmt)));
+    assert!(!is_code_noop(&s(StmtF::ContinueStmt)));
   }
 
 }

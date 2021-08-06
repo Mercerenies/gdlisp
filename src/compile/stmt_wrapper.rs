@@ -5,7 +5,7 @@
 //! This module defines the [`StmtWrapper`] trait, as well as several
 //! implementations of it by structs.
 
-use crate::gdscript::stmt::Stmt;
+use crate::gdscript::stmt::{Stmt, StmtF};
 use crate::gdscript::expr::{Expr, ExprF};
 use crate::gdscript::op;
 use crate::compile::body::builder::StmtBuilder;
@@ -84,14 +84,16 @@ pub struct AssignToExpr(pub Expr);
 
 impl StmtWrapper for Return {
   fn wrap_expr(&self, expr: Expr) -> Stmt {
-    Stmt::ReturnStmt(expr)
+    let pos = expr.pos;
+    Stmt::new(StmtF::ReturnStmt(expr), pos)
   }
 }
 
 impl StmtWrapper for Vacuous {
 
   fn wrap_expr(&self, expr: Expr) -> Stmt {
-    Stmt::Expr(expr)
+    let pos = expr.pos;
+    Stmt::new(StmtF::Expr(expr), pos)
   }
 
   fn is_vacuous(&self) -> bool {
@@ -108,8 +110,9 @@ pub fn assign_to_var(s: String, pos: SourceOffset) -> AssignToExpr {
 
 impl StmtWrapper for AssignToExpr {
   fn wrap_expr(&self, expr: Expr) -> Stmt {
+    let pos = expr.pos;
     let lhs = Box::new(self.0.clone());
     let rhs = Box::new(expr);
-    Stmt::Assign(lhs, op::AssignOp::Eq, rhs)
+    Stmt::new(StmtF::Assign(lhs, op::AssignOp::Eq, rhs), pos)
   }
 }

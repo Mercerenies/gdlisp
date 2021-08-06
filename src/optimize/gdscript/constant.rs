@@ -1,6 +1,6 @@
 
 use crate::gdscript::expr::{self, Expr, ExprF};
-use crate::gdscript::stmt::Stmt;
+use crate::gdscript::stmt::{Stmt, StmtF};
 use crate::gdscript::literal::Literal;
 
 // Attempt to determine whether a value is true or false by looking at
@@ -26,15 +26,15 @@ pub fn deduce_bool(expr: &Expr) -> Option<bool> {
 
 // TODO Is this just noop::is_code_noop?
 pub fn stmt_has_side_effects(stmt: &Stmt) -> bool {
-  match stmt {
-    Stmt::Expr(e) => {
+  match &stmt.value {
+    StmtF::Expr(e) => {
       expr_has_side_effects(e)
     }
-    Stmt::PassStmt => false,
-    Stmt::IfStmt(_) | Stmt::ForLoop(_) | Stmt::WhileLoop(_) |
-      Stmt::MatchStmt(_, _) => true, // TODO These
-    Stmt::BreakStmt | Stmt::ContinueStmt | Stmt::VarDecl(_, _) |
-      Stmt::ReturnStmt(_) | Stmt::Assign(_, _, _) => true,
+    StmtF::PassStmt => false,
+    StmtF::IfStmt(_) | StmtF::ForLoop(_) | StmtF::WhileLoop(_) |
+      StmtF::MatchStmt(_, _) => true, // TODO These
+    StmtF::BreakStmt | StmtF::ContinueStmt | StmtF::VarDecl(_, _) |
+      StmtF::ReturnStmt(_) | StmtF::Assign(_, _, _) => true,
   }
 }
 

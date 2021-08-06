@@ -567,7 +567,7 @@ impl CallMagic for ArraySubscriptAssign {
         let arr = args.pop().expect("Internal error in ArraySubscriptAssign");
         let x = args.pop().expect("Internal error in ArraySubscriptAssign");
         let assign_target = Expr::new(ExprF::Subscript(Box::new(arr), Box::new(n)), pos);
-        builder.append(Stmt::Assign(Box::new(assign_target.clone()), op::AssignOp::Eq, Box::new(x)));
+        builder.append(Stmt::simple_assign(assign_target.clone(), x, pos));
         Ok(assign_target)
       }
       _ => {

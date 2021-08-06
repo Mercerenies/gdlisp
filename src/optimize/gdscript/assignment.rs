@@ -1,6 +1,6 @@
 
 use crate::gdscript::op;
-use crate::gdscript::stmt::Stmt;
+use crate::gdscript::stmt::{Stmt, StmtF};
 use crate::gdscript::expr::{Expr, ExprF};
 
 #[derive(Clone, Debug)]
@@ -19,11 +19,11 @@ pub enum AssignType {
 impl<'a> AssignmentStmt<'a> {
 
   pub fn match_stmt(stmt: &'a Stmt) -> Option<AssignmentStmt<'a>> {
-    match stmt {
-      Stmt::VarDecl(var_name, expr) => {
+    match &stmt.value {
+      StmtF::VarDecl(var_name, expr) => {
         Some(AssignmentStmt { assign_type: AssignType::VarDecl, var_name, expr })
       }
-      Stmt::Assign(var_name, op, expr) => {
+      StmtF::Assign(var_name, op, expr) => {
         if let ExprF::Var(var_name) = &var_name.value {
           Some(AssignmentStmt { assign_type: AssignType::Assignment(*op), var_name, expr })
         } else {
@@ -55,9 +55,12 @@ impl<'a> From<AssignmentStmt<'a>> for Stmt {
     let AssignmentStmt { assign_type, var_name, expr } = stmt;
     let var_name = var_name.to_owned();
     let expr = expr.clone();
+    let pos = expr.pos;
     match assign_type {
-      AssignType::VarDecl => Stmt::VarDecl(var_name, expr),
-      AssignType::Assignment(op) => Stmt::Assign(Box::new(Expr::var(&var_name, expr.pos)), op, Box::new(expr)),
+      AssignType::VarDecl =>
+        Stmt::var_decl(var_name, expr, pos),
+      AssignType::Assignment(op) =>
+        Stmt::new(StmtF::Assign(Box::new(Expr::var(&var_name, expr.pos)), op, Box::new(expr)), pos),
     }
   }
 

@@ -14,7 +14,7 @@ use crate::compile::stmt_wrapper;
 use crate::compile::error::Error;
 use crate::compile::stateful::SideEffects;
 use crate::compile::names;
-use crate::gdscript::stmt::{self, Stmt};
+use crate::gdscript::stmt::{self, Stmt, StmtF};
 use crate::gdscript::expr::{Expr, ExprF};
 use crate::gdscript::literal::Literal;
 use crate::gdscript::op;
@@ -46,7 +46,7 @@ pub fn compile_cond_stmt<'a>(compiler: &mut Compiler<'a>,
         let var_expr = StExpr { expr: Expr::new(ExprF::Var(var_name.clone()), pos), side_effects: SideEffects::None };
         destination.wrap_to_builder(&mut inner_builder, var_expr);
         let if_branch = inner_builder.build_into(builder);
-        outer_builder.append(stmt::if_else(Expr::new(ExprF::Var(var_name), pos), if_branch, acc));
+        outer_builder.append(stmt::if_else(Expr::new(ExprF::Var(var_name), pos), if_branch, acc, pos));
         Ok(outer_builder.build_into(builder))
       }
       Some(body) => {
@@ -55,7 +55,7 @@ pub fn compile_cond_stmt<'a>(compiler: &mut Compiler<'a>,
         let cond = compiler.compile_expr(pipeline, &mut outer_builder, table, cond, NeedsResult::Yes)?.expr;
         compiler.compile_stmt(pipeline, &mut inner_builder, table, destination.as_ref(), body)?;
         let if_branch = inner_builder.build_into(builder);
-        outer_builder.append(stmt::if_else(cond, if_branch, acc));
+        outer_builder.append(stmt::if_else(cond, if_branch, acc, pos));
         Ok(outer_builder.build_into(builder))
       }
     }
@@ -83,17 +83,18 @@ pub fn compile_while_stmt<'a>(compiler: &mut Compiler<'a>,
   let mut cond_builder = StmtBuilder::new();
   let mut body_builder = StmtBuilder::new();
   let mut cond_expr = compiler.compile_expr(pipeline, &mut cond_builder, table, cond, NeedsResult::Yes)?.expr;
+  let cond_expr_pos = cond_expr.pos;
   let cond_body = cond_builder.build_into(builder);
   if !cond_body.is_empty() {
     // Compound while form
     body_builder.append_all(&mut cond_body.into_iter());
     let inner_cond_expr = Expr::new(ExprF::Unary(op::UnaryOp::Not, Box::new(cond_expr)), pos);
-    body_builder.append(stmt::if_then(inner_cond_expr, vec!(Stmt::BreakStmt)));
+    body_builder.append(stmt::if_then(inner_cond_expr, vec!(Stmt::new(StmtF::BreakStmt, cond_expr_pos)), cond_expr_pos));
     cond_expr = Expr::new(ExprF::Literal(Literal::Bool(true)), pos);
   }
   compiler.compile_stmt(pipeline, &mut body_builder, table, &stmt_wrapper::Vacuous, body)?;
   let body = body_builder.build_into(builder);
-  builder.append(Stmt::WhileLoop(stmt::WhileLoop { condition: cond_expr, body: body }));
+  builder.append(Stmt::new(StmtF::WhileLoop(stmt::WhileLoop { condition: cond_expr, body: body }), pos));
   Ok(Compiler::nil_expr(pos))
 }
 
@@ -116,7 +117,7 @@ pub fn compile_for_stmt<'a>(compiler: &mut Compiler<'a>,
     compiler.compile_stmt(pipeline, &mut inner_builder, table, &stmt_wrapper::Vacuous, body)
   })?;
   let body = inner_builder.build_into(builder);
-  builder.append(Stmt::ForLoop(stmt::ForLoop { iter_var: var_name, collection: citer, body: body }));
+  builder.append(Stmt::new(StmtF::ForLoop(stmt::ForLoop { iter_var: var_name, collection: citer, body: body }), pos));
   Ok(Compiler::nil_expr(pos))
 }
 
@@ -129,6 +130,7 @@ pub fn assign_to_compiler(inst_var: String, local_var: String, pos: SourceOffset
 /// A [`Stmt`] which assigns `expr` to the variable `inst_var` on the
 /// Godot `self` object.
 pub fn assign_expr_to_compiler(inst_var: String, expr: Expr) -> Stmt {
-  let self_target = Expr::self_var(expr.pos).attribute(inst_var, expr.pos);
-  Stmt::simple_assign(self_target, expr)
+  let pos = expr.pos;
+  let self_target = Expr::self_var(pos).attribute(inst_var, pos);
+  Stmt::simple_assign(self_target, expr, pos)
 }

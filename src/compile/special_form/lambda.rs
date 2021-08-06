@@ -12,10 +12,9 @@ use crate::compile::stmt_wrapper;
 use crate::compile::error::Error;
 use crate::compile::stateful::SideEffects;
 use crate::compile::names;
-use crate::gdscript::stmt::Stmt;
+use crate::gdscript::stmt::{Stmt, StmtF};
 use crate::gdscript::expr::{Expr, ExprF};
 use crate::gdscript::decl::{self, Decl};
-use crate::gdscript::op;
 use crate::gdscript::arglist::ArgList;
 use crate::gdscript::library;
 use crate::gdscript::inner_class::{self, NeedsOuterClassRef};
@@ -191,7 +190,7 @@ pub fn compile_labels_scc<'a>(compiler: &mut Compiler<'a>,
   builder.add_helper(Decl::ClassDecl(class));
   let constructor_args: Vec<_> = gd_src_closure_vars.into_iter().map(|x| Expr::new(ExprF::Var(x), pos)).collect();
   let expr = Expr::call(Some(Expr::new(ExprF::Var(class_name), pos)), "new", constructor_args, pos);
-  builder.append(Stmt::VarDecl(local_var_name, expr));
+  builder.append(Stmt::new(StmtF::VarDecl(local_var_name, expr), pos));
 
   Ok(bound_calls)
 }
@@ -263,9 +262,9 @@ pub fn closure_fn_to_gd_var(call: &FnCall) -> Option<String> {
 
 fn wrap_in_cell_if_needed(name: &str, gd_name: &str, all_vars: &Locals, lambda_builder: &mut StmtBuilder, pos: SourceOffset) {
   if all_vars.get(name).unwrap_or(&AccessType::None).requires_cell() {
-    lambda_builder.append(Stmt::Assign(Box::new(Expr::var(gd_name, pos)),
-                                       op::AssignOp::Eq,
-                                       Box::new(library::construct_cell(Expr::var(gd_name, pos)))));
+    lambda_builder.append(Stmt::simple_assign(Expr::var(gd_name, pos),
+                                              library::construct_cell(Expr::var(gd_name, pos)),
+                                              pos));
   }
 }
 
@@ -378,8 +377,11 @@ pub fn compile_function_ref<'a>(compiler: &mut Compiler<'a>,
     // TODO This into().map(Box::new) pattern needs to be written into FnName itself
     let object = if func.object == FnName::FileConstant { FnName::inner_static_load(compiler.preload_resolver(), pipeline) } else { func.object };
     let object: Option<Expr> = object.into_expr(pos);
-    let body = Stmt::ReturnStmt(
-      Expr::call(object, &func.function, arg_names.into_iter().map(|x| Expr::new(ExprF::Var(x), pos)).collect(), pos)
+    let body = Stmt::new(
+      StmtF::ReturnStmt(
+        Expr::call(object, &func.function, arg_names.into_iter().map(|x| Expr::new(ExprF::Var(x), pos)).collect(), pos)
+      ),
+      pos,
     );
 
     let class_name = compiler.name_generator().generate_with("_FunctionRefBlock");

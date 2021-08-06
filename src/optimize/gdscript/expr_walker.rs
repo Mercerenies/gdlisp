@@ -1,6 +1,6 @@
 
 use super::stmt_walker;
-use crate::gdscript::stmt::{self, Stmt};
+use crate::gdscript::stmt::{self, Stmt, StmtF};
 use crate::gdscript::expr::{self, Expr, ExprF};
 use crate::compile::error::Error;
 
@@ -70,50 +70,50 @@ fn walk_impl_expr<'a>(walker: &mut (impl FnMut(&Expr) -> Result<Expr, Error> + '
 
 fn walk_impl<'a>(walker: &mut (impl FnMut(&Expr) -> Result<Expr, Error> + 'a), stmt: &Stmt)
                  -> Result<Vec<Stmt>, Error> {
-  let new_stmt = match stmt {
-    Stmt::Expr(e) => {
-      Stmt::Expr(walk_impl_expr(walker, &e)?)
+  let new_stmt = match &stmt.value {
+    StmtF::Expr(e) => {
+      StmtF::Expr(walk_impl_expr(walker, &e)?)
     }
-    Stmt::IfStmt(stmt::IfStmt { if_clause, elif_clauses, else_clause }) => {
+    StmtF::IfStmt(stmt::IfStmt { if_clause, elif_clauses, else_clause }) => {
       let new_if_stmt = stmt::IfStmt {
         if_clause: (walk_impl_expr(walker, &if_clause.0)?, if_clause.1.clone()),
         elif_clauses: (elif_clauses.iter().map(|(e, s)| Ok((walk_impl_expr(walker, e)?, s.clone()))).collect::<Result<_, Error>>()?),
         else_clause: else_clause.clone(),
       };
-      Stmt::IfStmt(new_if_stmt)
+      StmtF::IfStmt(new_if_stmt)
     }
-    Stmt::ForLoop(stmt::ForLoop { iter_var, collection, body }) => {
+    StmtF::ForLoop(stmt::ForLoop { iter_var, collection, body }) => {
       let new_for_loop = stmt::ForLoop {
         iter_var: iter_var.clone(),
         collection: walk_impl_expr(walker, collection)?,
         body: body.clone(),
       };
-      Stmt::ForLoop(new_for_loop)
+      StmtF::ForLoop(new_for_loop)
     }
-    Stmt::WhileLoop(stmt::WhileLoop { condition, body }) => {
+    StmtF::WhileLoop(stmt::WhileLoop { condition, body }) => {
       let new_while_loop = stmt::WhileLoop {
         condition: walk_impl_expr(walker, condition)?,
         body: body.clone(),
       };
-      Stmt::WhileLoop(new_while_loop)
+      StmtF::WhileLoop(new_while_loop)
     }
-    Stmt::MatchStmt(expr, clauses) => {
-      Stmt::MatchStmt(walk_impl_expr(walker, expr)?, clauses.clone())
+    StmtF::MatchStmt(expr, clauses) => {
+      StmtF::MatchStmt(walk_impl_expr(walker, expr)?, clauses.clone())
     }
-    Stmt::VarDecl(name, expr) => {
-      Stmt::VarDecl(name.clone(), walk_impl_expr(walker, expr)?)
+    StmtF::VarDecl(name, expr) => {
+      StmtF::VarDecl(name.clone(), walk_impl_expr(walker, expr)?)
     }
-    Stmt::ReturnStmt(expr) => {
-      Stmt::ReturnStmt(walk_impl_expr(walker, expr)?)
+    StmtF::ReturnStmt(expr) => {
+      StmtF::ReturnStmt(walk_impl_expr(walker, expr)?)
     }
-    Stmt::Assign(lhs, op, rhs) => {
+    StmtF::Assign(lhs, op, rhs) => {
       let lhs = walk_impl_expr(walker, &*lhs)?;
       let rhs = walk_impl_expr(walker, &*rhs)?;
-      Stmt::Assign(Box::new(lhs), *op, Box::new(rhs))
+      StmtF::Assign(Box::new(lhs), *op, Box::new(rhs))
     }
-    Stmt::PassStmt | Stmt::BreakStmt | Stmt::ContinueStmt => {
-      stmt.clone()
+    StmtF::PassStmt | StmtF::BreakStmt | StmtF::ContinueStmt => {
+      stmt.value.clone()
     }
   };
-  Ok(vec!(new_stmt))
+  Ok(vec!(Stmt::new(new_stmt, stmt.pos)))
 }

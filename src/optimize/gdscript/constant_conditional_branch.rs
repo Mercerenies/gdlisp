@@ -1,13 +1,14 @@
 
-use crate::gdscript::stmt::{self, Stmt};
+use crate::gdscript::stmt::{self, Stmt, StmtF};
 use crate::compile::error::Error;
+use crate::pipeline::source::SourceOffset;
 use super::StatementLevelPass;
 use super::constant;
 
 pub struct ConstantConditionalBranch;
 
 // Eliminate the "if" part of the conditional
-fn kill_if_branch(if_stmt: &stmt::IfStmt) -> Vec<Stmt> {
+fn kill_if_branch(if_stmt: &stmt::IfStmt, pos: SourceOffset) -> Vec<Stmt> {
   if if_stmt.elif_clauses.is_empty() {
     // No elif, so the else clause becomes the whole conditional
     if_stmt.else_clause.clone().unwrap_or_default()
@@ -18,7 +19,7 @@ fn kill_if_branch(if_stmt: &stmt::IfStmt) -> Vec<Stmt> {
       elif_clauses: if_stmt.elif_clauses[1..].to_vec(),
       else_clause: if_stmt.else_clause.clone(),
     };
-    vec!(Stmt::IfStmt(new_if_stmt))
+    vec!(Stmt::new(StmtF::IfStmt(new_if_stmt), pos))
   }
 }
 
@@ -38,7 +39,7 @@ impl StatementLevelPass for ConstantConditionalBranch {
 
   fn run_on_stmt(&self, stmt: &Stmt) -> Result<Vec<Stmt>, Error> {
     // Check for obviously true or false cases
-    if let Stmt::IfStmt(if_stmt) = &stmt {
+    if let StmtF::IfStmt(if_stmt) = &stmt.value {
 
       // If branch
       if let Some(b) = constant::deduce_bool(&if_stmt.if_clause.0) {
@@ -47,7 +48,7 @@ impl StatementLevelPass for ConstantConditionalBranch {
           return self.run_on_stmt_acc(&if_stmt.if_clause.1);
         } else {
           // Definitely false case
-          let rest_of_stmt = kill_if_branch(&if_stmt);
+          let rest_of_stmt = kill_if_branch(&if_stmt, stmt.pos);
           return self.run_on_stmt_acc(&rest_of_stmt);
         }
       }
@@ -60,7 +61,7 @@ impl StatementLevelPass for ConstantConditionalBranch {
       if v != if_stmt.elif_clauses.clone() {
         let mut new_if_stmt = if_stmt.clone();
         new_if_stmt.elif_clauses = v;
-        return self.run_on_stmt(&Stmt::IfStmt(new_if_stmt));
+        return self.run_on_stmt(&Stmt::new(StmtF::IfStmt(new_if_stmt), stmt.pos));
       }
 
       // If any are definitely true, then they become the else branch
@@ -69,7 +70,7 @@ impl StatementLevelPass for ConstantConditionalBranch {
         let mut new_if_stmt = if_stmt.clone();
         new_if_stmt.elif_clauses = if_stmt.elif_clauses[0..match_index].to_vec();
         new_if_stmt.else_clause = Some(if_stmt.elif_clauses[match_index].1.clone());
-        return self.run_on_stmt(&Stmt::IfStmt(new_if_stmt));
+        return self.run_on_stmt(&Stmt::new(StmtF::IfStmt(new_if_stmt), stmt.pos));
       }
 
     }

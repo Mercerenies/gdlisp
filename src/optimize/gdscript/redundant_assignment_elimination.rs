@@ -91,10 +91,15 @@ mod tests {
   use super::*;
   use crate::gdscript::arglist::ArgList;
   use crate::gdscript::expr::ExprF;
+  use crate::gdscript::stmt::StmtF;
   use crate::pipeline::source::SourceOffset;
 
   fn e(expr: ExprF) -> Expr {
     Expr::new(expr, SourceOffset::default())
+  }
+
+  fn s(stmt: StmtF) -> Stmt {
+    Stmt::new(stmt, SourceOffset::default())
   }
 
   #[test]
@@ -106,9 +111,9 @@ mod tests {
      */
 
     let body0 = vec!(
-      Stmt::VarDecl(String::from("foo"), e(ExprF::from(1))),
-      Stmt::Assign(Box::new(Expr::var("foo", SourceOffset::default())), op::AssignOp::Eq, Box::new(e(ExprF::from(2)))),
-      Stmt::Assign(Box::new(Expr::var("foo", SourceOffset::default())), op::AssignOp::Eq, Box::new(e(ExprF::from(3)))),
+      s(StmtF::VarDecl(String::from("foo"), e(ExprF::from(1)))),
+      s(StmtF::Assign(Box::new(Expr::var("foo", SourceOffset::default())), op::AssignOp::Eq, Box::new(e(ExprF::from(2))))),
+      s(StmtF::Assign(Box::new(Expr::var("foo", SourceOffset::default())), op::AssignOp::Eq, Box::new(e(ExprF::from(3))))),
     );
     let mut func0 = decl::FnDecl {
       name: String::from("example"),
@@ -117,7 +122,7 @@ mod tests {
     };
 
     let body1 = vec!(
-      Stmt::VarDecl(String::from("foo"), e(ExprF::from(3))),
+      s(StmtF::VarDecl(String::from("foo"), e(ExprF::from(3)))),
     );
     let func1 = decl::FnDecl {
       name: String::from("example"),
@@ -139,10 +144,10 @@ mod tests {
      */
 
     let body0 = vec!(
-      Stmt::VarDecl(String::from("foo"), e(ExprF::from(1))),
-      Stmt::Expr(Expr::from_value("string", SourceOffset::default())),
-      Stmt::Expr(Expr::null(SourceOffset::default())),
-      Stmt::Assign(Box::new(Expr::var("foo", SourceOffset::default())), op::AssignOp::Eq, Box::new(e(ExprF::from(2)))),
+      s(StmtF::VarDecl(String::from("foo"), e(ExprF::from(1)))),
+      s(StmtF::Expr(Expr::from_value("string", SourceOffset::default()))),
+      s(StmtF::Expr(Expr::null(SourceOffset::default()))),
+      s(StmtF::Assign(Box::new(Expr::var("foo", SourceOffset::default())), op::AssignOp::Eq, Box::new(e(ExprF::from(2))))),
     );
     let mut func0 = decl::FnDecl {
       name: String::from("example"),
@@ -151,7 +156,7 @@ mod tests {
     };
 
     let body1 = vec!(
-      Stmt::VarDecl(String::from("foo"), e(ExprF::from(2))),
+      s(StmtF::VarDecl(String::from("foo"), e(ExprF::from(2)))),
     );
     let func1 = decl::FnDecl {
       name: String::from("example"),
@@ -171,8 +176,8 @@ mod tests {
      */
 
     let body0 = vec!(
-      Stmt::Assign(Box::new(Expr::var("foo", SourceOffset::default())), op::AssignOp::Eq, Box::new(e(ExprF::from(1)))),
-      Stmt::Assign(Box::new(Expr::var("foo", SourceOffset::default())), op::AssignOp::Eq, Box::new(e(ExprF::from(2)))),
+      s(StmtF::Assign(Box::new(Expr::var("foo", SourceOffset::default())), op::AssignOp::Eq, Box::new(e(ExprF::from(1))))),
+      s(StmtF::Assign(Box::new(Expr::var("foo", SourceOffset::default())), op::AssignOp::Eq, Box::new(e(ExprF::from(2))))),
     );
     let mut func0 = decl::FnDecl {
       name: String::from("example"),
@@ -181,7 +186,7 @@ mod tests {
     };
 
     let body1 = vec!(
-      Stmt::Assign(Box::new(Expr::var("foo", SourceOffset::default())), op::AssignOp::Eq, Box::new(e(ExprF::from(2)))),
+      s(StmtF::Assign(Box::new(Expr::var("foo", SourceOffset::default())), op::AssignOp::Eq, Box::new(e(ExprF::from(2))))),
     );
     let func1 = decl::FnDecl {
       name: String::from("example"),
@@ -201,8 +206,8 @@ mod tests {
      */
 
     let body0 = vec!(
-      Stmt::Assign(Box::new(Expr::var("foo", SourceOffset::default())), op::AssignOp::Add, Box::new(e(ExprF::from(1)))),
-      Stmt::Assign(Box::new(Expr::var("foo", SourceOffset::default())), op::AssignOp::Eq, Box::new(e(ExprF::from(2)))),
+      s(StmtF::Assign(Box::new(Expr::var("foo", SourceOffset::default())), op::AssignOp::Add, Box::new(e(ExprF::from(1))))),
+      s(StmtF::Assign(Box::new(Expr::var("foo", SourceOffset::default())), op::AssignOp::Eq, Box::new(e(ExprF::from(2))))),
     );
     let mut func0 = decl::FnDecl {
       name: String::from("example"),
@@ -211,7 +216,7 @@ mod tests {
     };
 
     let body1 = vec!(
-      Stmt::Assign(Box::new(Expr::var("foo", SourceOffset::default())), op::AssignOp::Eq, Box::new(Expr::from_value(2, SourceOffset::default()))),
+      s(StmtF::Assign(Box::new(Expr::var("foo", SourceOffset::default())), op::AssignOp::Eq, Box::new(Expr::from_value(2, SourceOffset::default())))),
     );
     let func1 = decl::FnDecl {
       name: String::from("example"),
@@ -232,9 +237,9 @@ mod tests {
      */
 
     let body0 = vec!(
-      Stmt::Assign(Box::new(Expr::var("foo", SourceOffset::default())), op::AssignOp::Eq, Box::new(e(ExprF::from(1)))),
-      Stmt::Expr(e(ExprF::Call(None, String::from("fn"), vec!()))),
-      Stmt::Assign(Box::new(Expr::var("foo", SourceOffset::default())), op::AssignOp::Eq, Box::new(e(ExprF::from(2)))),
+      s(StmtF::Assign(Box::new(Expr::var("foo", SourceOffset::default())), op::AssignOp::Eq, Box::new(e(ExprF::from(1))))),
+      s(StmtF::Expr(e(ExprF::Call(None, String::from("fn"), vec!())))),
+      s(StmtF::Assign(Box::new(Expr::var("foo", SourceOffset::default())), op::AssignOp::Eq, Box::new(e(ExprF::from(2))))),
     );
     let mut func0 = decl::FnDecl {
       name: String::from("example"),
@@ -255,8 +260,8 @@ mod tests {
      */
 
     let body0 = vec!(
-      Stmt::Assign(Box::new(Expr::var("foo", SourceOffset::default())), op::AssignOp::Eq, Box::new(e(ExprF::Call(None, String::from("fn"), vec!())))),
-      Stmt::Assign(Box::new(Expr::var("foo", SourceOffset::default())), op::AssignOp::Eq, Box::new(e(ExprF::from(2)))),
+      s(StmtF::Assign(Box::new(Expr::var("foo", SourceOffset::default())), op::AssignOp::Eq, Box::new(e(ExprF::Call(None, String::from("fn"), vec!()))))),
+      s(StmtF::Assign(Box::new(Expr::var("foo", SourceOffset::default())), op::AssignOp::Eq, Box::new(e(ExprF::from(2))))),
     );
     let mut func0 = decl::FnDecl {
       name: String::from("example"),
@@ -277,8 +282,8 @@ mod tests {
      */
 
     let body0 = vec!(
-      Stmt::Assign(Box::new(Expr::var("foo", SourceOffset::default())), op::AssignOp::Eq, Box::new(e(ExprF::from(1)))),
-      Stmt::Assign(Box::new(Expr::var("bar", SourceOffset::default())), op::AssignOp::Eq, Box::new(e(ExprF::from(2)))),
+      s(StmtF::Assign(Box::new(Expr::var("foo", SourceOffset::default())), op::AssignOp::Eq, Box::new(e(ExprF::from(1))))),
+      s(StmtF::Assign(Box::new(Expr::var("bar", SourceOffset::default())), op::AssignOp::Eq, Box::new(e(ExprF::from(2))))),
     );
     let mut func0 = decl::FnDecl {
       name: String::from("example"),
@@ -299,8 +304,8 @@ mod tests {
      */
 
     let body0 = vec!(
-      Stmt::Assign(Box::new(Expr::var("foo", SourceOffset::default())), op::AssignOp::Eq, Box::new(e(ExprF::from(1)))),
-      Stmt::Assign(Box::new(Expr::var("foo", SourceOffset::default())), op::AssignOp::Add, Box::new(e(ExprF::from(2)))),
+      s(StmtF::Assign(Box::new(Expr::var("foo", SourceOffset::default())), op::AssignOp::Eq, Box::new(e(ExprF::from(1))))),
+      s(StmtF::Assign(Box::new(Expr::var("foo", SourceOffset::default())), op::AssignOp::Add, Box::new(e(ExprF::from(2))))),
     );
     let mut func0 = decl::FnDecl {
       name: String::from("example"),

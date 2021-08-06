@@ -313,7 +313,7 @@ mod tests {
     let decl5 = Decl::FnDecl(Static::NonStatic, FnDecl {
       name: String::from("foobar"),
       args: ArgList::required(vec!(String::from("arg1"), String::from("arg2"))),
-      body: vec!(Stmt::Expr(e(ExprF::Var(String::from("function_body")))))
+      body: vec!(Stmt::expr(e(ExprF::Var(String::from("function_body")))))
     });
     assert_eq!(decl5.to_gd(0), "func foobar(arg1, arg2):\n    function_body\n");
 

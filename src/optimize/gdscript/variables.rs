@@ -2,7 +2,7 @@
 // Helper for getting information about variable usage in a block of code
 
 use crate::gdscript::expr::{Expr, ExprF};
-use crate::gdscript::stmt::Stmt;
+use crate::gdscript::stmt::{Stmt, StmtF};
 use super::stmt_walker;
 use super::expr_walker;
 
@@ -36,7 +36,7 @@ pub fn get_variable_info(stmts: &[Stmt]) -> HashMap<String, VarInfo> {
 
   // Read declarations
   stmt_walker::walk_stmts(stmts, stmt_walker::on_each_stmt(|stmt| {
-    if let Stmt::VarDecl(s, e) = stmt {
+    if let StmtF::VarDecl(s, e) = &stmt.value {
       map.insert(s.to_owned(), VarInfo::new(e.clone()));
     }
     Ok(vec!(stmt.clone())) // Pass through
@@ -44,7 +44,7 @@ pub fn get_variable_info(stmts: &[Stmt]) -> HashMap<String, VarInfo> {
 
   // Read modifications
   stmt_walker::walk_stmts(stmts, stmt_walker::on_each_stmt(|stmt| {
-    if let Stmt::Assign(s, _, _) = stmt {
+    if let StmtF::Assign(s, _, _) = &stmt.value {
       if let ExprF::Var(s) = &s.value {
         map.entry(s.to_owned()).and_modify(|v| v.write_count += 1);
       }

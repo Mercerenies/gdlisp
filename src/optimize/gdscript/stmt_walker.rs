@@ -1,5 +1,5 @@
 
-use crate::gdscript::stmt::{self, Stmt};
+use crate::gdscript::stmt::{self, Stmt, StmtF};
 use crate::compile::error::Error;
 
 pub struct StmtWalker<'a> {
@@ -23,36 +23,36 @@ impl<'a> StmtWalker<'a> {
   }
 
   pub fn walk_stmt(&mut self, stmt: &Stmt) -> Result<Vec<Stmt>, Error> {
-    let stmt = match stmt {
-      Stmt::Expr(_) | Stmt::PassStmt | Stmt::BreakStmt | Stmt::ContinueStmt
-        | Stmt::VarDecl(_, _) | Stmt::ReturnStmt(_) | Stmt::Assign(_, _, _) => stmt.clone(),
-      Stmt::IfStmt(stmt::IfStmt { if_clause, elif_clauses, else_clause }) => {
+    let new_stmt = match &stmt.value {
+      StmtF::Expr(_) | StmtF::PassStmt | StmtF::BreakStmt | StmtF::ContinueStmt
+        | StmtF::VarDecl(_, _) | StmtF::ReturnStmt(_) | StmtF::Assign(_, _, _) => stmt.value.clone(),
+      StmtF::IfStmt(stmt::IfStmt { if_clause, elif_clauses, else_clause }) => {
         let if_clause = (if_clause.0.clone(), self.walk_stmts(&if_clause.1)?);
         let elif_clauses = elif_clauses.iter().map(|(e, s)| self.walk_stmts(s).map(|s| (e.clone(), s))).collect::<Result<_, _>>()?;
         let else_clause = else_clause.as_ref().map(|s| self.walk_stmts(s)).transpose()?;
-        Stmt::IfStmt(stmt::IfStmt { if_clause, elif_clauses, else_clause })
+        StmtF::IfStmt(stmt::IfStmt { if_clause, elif_clauses, else_clause })
       }
-      Stmt::ForLoop(stmt::ForLoop { iter_var, collection, body }) => {
+      StmtF::ForLoop(stmt::ForLoop { iter_var, collection, body }) => {
         let body = self.walk_stmts(&body)?;
-        Stmt::ForLoop(stmt::ForLoop {
+        StmtF::ForLoop(stmt::ForLoop {
           iter_var: iter_var.clone(),
           collection: collection.clone(),
           body: body,
         })
       }
-      Stmt::WhileLoop(stmt::WhileLoop { condition, body }) => {
+      StmtF::WhileLoop(stmt::WhileLoop { condition, body }) => {
         let body = self.walk_stmts(&body)?;
-        Stmt::WhileLoop(stmt::WhileLoop {
+        StmtF::WhileLoop(stmt::WhileLoop {
           condition: condition.clone(),
           body: body,
         })
       }
-      Stmt::MatchStmt(expr, clauses) => {
+      StmtF::MatchStmt(expr, clauses) => {
         let clauses = clauses.iter().map(|(p, s)| self.walk_stmts(s).map(|s| (p.clone(), s))).collect::<Result<_, _>>()?;
-        Stmt::MatchStmt(expr.clone(), clauses)
+        StmtF::MatchStmt(expr.clone(), clauses)
       }
     };
-    Ok(vec!(stmt))
+    Ok(vec!(Stmt::new(new_stmt, stmt.pos)))
   }
 
 }

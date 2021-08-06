@@ -17,7 +17,7 @@ use constant::MaybeConstant;
 use crate::sxp::reify::Reify;
 use crate::gdscript::literal::Literal;
 use crate::gdscript::expr::{Expr, ExprF};
-use crate::gdscript::stmt::Stmt;
+use crate::gdscript::stmt::{Stmt, StmtF};
 use crate::gdscript::decl::{self, Decl, ClassExtends};
 use crate::gdscript::op;
 use crate::gdscript::library;
@@ -353,7 +353,7 @@ impl<'a> Compiler<'a> {
                      -> String {
     let var_name = self.gen.generate_with(prefix);
     let value = value.unwrap_or(Compiler::nil_expr(pos).expr);
-    builder.append(Stmt::VarDecl(var_name.clone(), value));
+    builder.append(Stmt::var_decl(var_name.clone(), value, pos));
     var_name
   }
 
@@ -446,9 +446,12 @@ impl<'a> Compiler<'a> {
     for arg in &gd_args {
       if local_vars.get(&arg.0).unwrap_or(&AccessType::None).requires_cell() {
         // Special behavior to wrap the argument in a cell.
-        stmt_builder.append(Stmt::Assign(Box::new(Expr::var(&arg.1, body.pos)),
-                                         op::AssignOp::Eq,
-                                         Box::new(library::construct_cell(Expr::var(&arg.1, body.pos)))));
+        stmt_builder.append(Stmt::new(
+          StmtF::Assign(Box::new(Expr::var(&arg.1, body.pos)),
+                        op::AssignOp::Eq,
+                        Box::new(library::construct_cell(Expr::var(&arg.1, body.pos)))),
+          body.pos,
+        ));
       }
     }
     table.with_local_vars(&mut gd_args.into_iter().map(|x| (x.0.to_owned(), LocalVar::local(x.1, *local_vars.get(&x.0).unwrap_or(&AccessType::None)))), |table| {
@@ -853,6 +856,10 @@ mod tests {
     Expr::new(expr, SourceOffset::default())
   }
 
+  fn s(stmt: StmtF) -> Stmt {
+    Stmt::new(stmt, SourceOffset::default())
+  }
+
   fn bind_helper_symbols(table: &mut SymbolTable) {
     // Binds a few helper names to the symbol table for the sake of
     // debugging.
@@ -884,7 +891,7 @@ mod tests {
   #[test]
   fn compile_var() {
     let ast = AST::symbol("foobar", SourceOffset::default());
-    let expected = Stmt::ReturnStmt(e(ExprF::Var(String::from("foobar"))));
+    let expected = s(StmtF::ReturnStmt(e(ExprF::Var(String::from("foobar")))));
     let actual = compile_stmt(&ast).unwrap();
     assert_eq!(actual.0, vec!(expected));
     assert_eq!(actual.1, vec!());
@@ -893,7 +900,7 @@ mod tests {
   #[test]
   fn compile_call() {
     let ast = list(vec!(AST::symbol("foo1", SourceOffset::default()), int(10)));
-    let expected = Stmt::ReturnStmt(e(ExprF::Call(None, String::from("foo1"), vec!(e(ExprF::from(10))))));
+    let expected = s(StmtF::ReturnStmt(e(ExprF::Call(None, String::from("foo1"), vec!(e(ExprF::from(10)))))));
     let actual = compile_stmt(&ast).unwrap();
     assert_eq!(actual.0, vec!(expected));
     assert_eq!(actual.1, vec!());
@@ -902,7 +909,7 @@ mod tests {
   #[test]
   fn compile_int() {
     let ast = int(99);
-    let expected = Stmt::ReturnStmt(e(ExprF::from(99)));
+    let expected = s(StmtF::ReturnStmt(e(ExprF::from(99))));
     let actual = compile_stmt(&ast).unwrap();
     assert_eq!(actual.0, vec!(expected));
     assert_eq!(actual.1, vec!());
@@ -911,7 +918,7 @@ mod tests {
   #[test]
   fn compile_bool_t() {
     let ast = AST::new(ASTF::Bool(true), SourceOffset::default());
-    let expected = Stmt::ReturnStmt(e(ExprF::from(true)));
+    let expected = s(StmtF::ReturnStmt(e(ExprF::from(true))));
     let actual = compile_stmt(&ast).unwrap();
     assert_eq!(actual.0, vec!(expected));
     assert_eq!(actual.1, vec!());
@@ -920,7 +927,7 @@ mod tests {
   #[test]
   fn compile_bool_f() {
     let ast = AST::new(ASTF::Bool(false), SourceOffset::default());
-    let expected = Stmt::ReturnStmt(e(ExprF::from(false)));
+    let expected = s(StmtF::ReturnStmt(e(ExprF::from(false))));
     let actual = compile_stmt(&ast).unwrap();
     assert_eq!(actual.0, vec!(expected));
     assert_eq!(actual.1, vec!());
@@ -929,7 +936,7 @@ mod tests {
   #[test]
   fn compile_string() {
     let ast = AST::string("foobar", SourceOffset::default());
-    let expected = Stmt::ReturnStmt(e(ExprF::from("foobar".to_owned())));
+    let expected = s(StmtF::ReturnStmt(e(ExprF::from("foobar".to_owned()))));
     let actual = compile_stmt(&ast).unwrap();
     assert_eq!(actual.0, vec!(expected));
     assert_eq!(actual.1, vec!());
@@ -938,7 +945,7 @@ mod tests {
   #[test]
   fn compile_progn_vacuous() {
     let ast = list(vec!(AST::symbol("progn", SourceOffset::default()), int(1), int(2)));
-    let expected = vec!(Stmt::ReturnStmt(e(ExprF::from(2))));
+    let expected = vec!(s(StmtF::ReturnStmt(e(ExprF::from(2)))));
     let actual = compile_stmt(&ast).unwrap();
     assert_eq!(actual.0, expected);
     assert_eq!(actual.1, vec!());
@@ -949,8 +956,8 @@ mod tests {
     let ast = list(vec!(AST::symbol("progn", SourceOffset::default()),
                         list(vec!(AST::symbol("foo", SourceOffset::default()))),
                         list(vec!(AST::symbol("bar", SourceOffset::default())))));
-    let expected = vec!(Stmt::Expr(e(ExprF::Call(None, String::from("foo"), vec!()))),
-                        Stmt::ReturnStmt(e(ExprF::Call(None, String::from("bar"), vec!()))));
+    let expected = vec!(s(StmtF::Expr(e(ExprF::Call(None, String::from("foo"), vec!())))),
+                        s(StmtF::ReturnStmt(e(ExprF::Call(None, String::from("bar"), vec!())))));
     let actual = compile_stmt(&ast).unwrap();
     assert_eq!(actual.0, expected);
     assert_eq!(actual.1, vec!());
@@ -959,10 +966,10 @@ mod tests {
   #[test]
   fn compile_nil() {
     let result1 = compile_stmt(&nil()).unwrap();
-    assert_eq!(result1, (vec!(Stmt::ReturnStmt(Compiler::nil_expr(SourceOffset::default()).expr)), vec!()));
+    assert_eq!(result1, (vec!(s(StmtF::ReturnStmt(Compiler::nil_expr(SourceOffset::default()).expr))), vec!()));
 
     let result2 = compile_stmt(&list(vec!(AST::symbol("progn", SourceOffset::default())))).unwrap();
-    assert_eq!(result2, (vec!(Stmt::ReturnStmt(Compiler::nil_expr(SourceOffset::default()).expr)), vec!()));
+    assert_eq!(result2, (vec!(s(StmtF::ReturnStmt(Compiler::nil_expr(SourceOffset::default()).expr))), vec!()));
   }
 
 }
