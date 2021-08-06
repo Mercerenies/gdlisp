@@ -34,6 +34,7 @@ use std::fmt;
 pub struct ImportDecl {
   pub filename: RPathBuf,
   pub details: ImportDetails,
+  pub pos: SourceOffset,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -84,25 +85,28 @@ impl ImportDecl {
     })
   }
 
-  pub fn named(filename: RPathBuf, name: Option<String>) -> ImportDecl {
+  pub fn named(filename: RPathBuf, name: Option<String>, pos: SourceOffset) -> ImportDecl {
     let name = name.unwrap_or_else(|| ImportDecl::default_import_name(&filename));
     ImportDecl {
       filename: filename,
       details: ImportDetails::Named(name),
+      pos,
     }
   }
 
-  pub fn restricted(filename: RPathBuf, imports: Vec<ImportName<Option<Namespace>>>) -> ImportDecl {
+  pub fn restricted(filename: RPathBuf, imports: Vec<ImportName<Option<Namespace>>>, pos: SourceOffset) -> ImportDecl {
     ImportDecl {
       filename: filename,
       details: ImportDetails::Restricted(imports),
+      pos,
     }
   }
 
-  pub fn open(filename: RPathBuf) -> ImportDecl {
+  pub fn open(filename: RPathBuf, pos: SourceOffset) -> ImportDecl {
     ImportDecl {
       filename: filename,
       details: ImportDetails::Open,
+      pos,
     }
   }
 
@@ -145,13 +149,13 @@ impl ImportDecl {
       0 => { unreachable!() } // We checked tail.is_empty() already
       1 => {
         // (1) Qualified import
-        Ok(ImportDecl::named(filename, None))
+        Ok(ImportDecl::named(filename, None, tail[0].pos))
       }
       2 => {
         match &tail[1].value {
           ASTF::Symbol(open) if open == "open" => {
             // (5) Wildcard import
-            Ok(ImportDecl::open(filename))
+            Ok(ImportDecl::open(filename, tail[0].pos))
           }
           ASTF::Nil | ASTF::Cons(_, _) => {
             // (3) or (4) Explicit import (possibly aliased)
@@ -159,7 +163,7 @@ impl ImportDecl {
             let imports = imports.into_iter()
               .map(|x| ImportName::<Option<Namespace>>::parse(x))
               .collect::<Result<Vec<_>, _>>()?;
-            Ok(ImportDecl::restricted(filename, imports))
+            Ok(ImportDecl::restricted(filename, imports, tail[0].pos))
           }
           _ => {
             Err(invalid_ending_err(&tail[1..], tail[1].pos))
@@ -172,7 +176,7 @@ impl ImportDecl {
           return Err(invalid_ending_err(&tail[1..], tail[1].pos));
         }
         match &tail[2].value {
-          ASTF::Symbol(s) => Ok(ImportDecl::named(filename, Some(s.clone()))),
+          ASTF::Symbol(s) => Ok(ImportDecl::named(filename, Some(s.clone()), tail[0].pos)),
           _ => Err(invalid_ending_err(&tail[1..], tail[1].pos))
         }
       }
@@ -336,6 +340,10 @@ mod tests {
     RPathBuf::try_from(String::from(input)).unwrap()
   }
 
+  fn so(x: usize) -> SourceOffset {
+    SourceOffset(x)
+  }
+
   #[test]
   fn default_import_name_test() {
     assert_eq!(ImportDecl::default_import_name(&str_to_rpathbuf("/a/b/c")), "a/b/c");
@@ -348,30 +356,34 @@ mod tests {
   #[test]
   fn test_parsing() {
     assert_eq!(parse_import(r#"("res://foo/bar")"#).unwrap(),
-               ImportDecl::named(str_to_rpathbuf("res://foo/bar"), None));
+               ImportDecl::named(str_to_rpathbuf("res://foo/bar"), None, so(1)));
     assert_eq!(parse_import(r#"("res://foo/bar")"#).unwrap(),
-               ImportDecl::named(str_to_rpathbuf("res://foo/bar"), Some(String::from("foo/bar"))));
+               ImportDecl::named(str_to_rpathbuf("res://foo/bar"), Some(String::from("foo/bar")), so(1)));
     assert_eq!(parse_import(r#"("res://foo/bar" as foo)"#).unwrap(),
-               ImportDecl::named(str_to_rpathbuf("res://foo/bar"), Some(String::from("foo"))));
+               ImportDecl::named(str_to_rpathbuf("res://foo/bar"), Some(String::from("foo")), so(1)));
     assert_eq!(parse_import(r#"("res://foo/bar" as foo.baz)"#).unwrap(),
-               ImportDecl::named(str_to_rpathbuf("res://foo/bar"), Some(String::from("foo.baz"))));
+               ImportDecl::named(str_to_rpathbuf("res://foo/bar"), Some(String::from("foo.baz")), so(1)));
     assert_eq!(parse_import(r#"("res://foo/bar" open)"#).unwrap(),
-               ImportDecl::open(str_to_rpathbuf("res://foo/bar")));
+               ImportDecl::open(str_to_rpathbuf("res://foo/bar"), so(1)));
     assert_eq!(parse_import(r#"("res://foo/bar" (a b))"#).unwrap(),
                ImportDecl::restricted(str_to_rpathbuf("res://foo/bar"),
                                       vec!(ImportName::simple(None, String::from("a")),
-                                           ImportName::simple(None, String::from("b")))));
+                                           ImportName::simple(None, String::from("b"))),
+                                      so(1)));
     assert_eq!(parse_import(r#"("res://foo/bar" ())"#).unwrap(),
                ImportDecl::restricted(str_to_rpathbuf("res://foo/bar"),
-                                      vec!()));
+                                      vec!(),
+                                      so(1)));
     assert_eq!(parse_import(r#"("res://foo/bar" ((a as a1) b))"#).unwrap(),
                ImportDecl::restricted(str_to_rpathbuf("res://foo/bar"),
                                       vec!(ImportName::new(None, String::from("a1"), String::from("a")),
-                                           ImportName::simple(None, String::from("b")))));
+                                           ImportName::simple(None, String::from("b"))),
+                                      so(1)));
     assert_eq!(parse_import(r#"("res://foo/bar" ((a function as a1) (b value)))"#).unwrap(),
                ImportDecl::restricted(str_to_rpathbuf("res://foo/bar"),
                                       vec!(ImportName::new(Some(Namespace::Function), String::from("a1"), String::from("a")),
-                                           ImportName::simple(Some(Namespace::Value), String::from("b")))));
+                                           ImportName::simple(Some(Namespace::Value), String::from("b"))),
+                                      so(1)));
   }
 
   #[test]
