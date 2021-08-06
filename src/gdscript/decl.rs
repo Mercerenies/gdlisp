@@ -10,6 +10,7 @@ use crate::gdscript::expr::Expr;
 use crate::gdscript::stmt::Stmt;
 use crate::gdscript::indent;
 use crate::gdscript::arglist::ArgList;
+use crate::pipeline::source::{SourceOffset, Sourced};
 
 use std::fmt::{self, Write};
 
@@ -17,13 +18,20 @@ use std::fmt::{self, Write};
 
 /// The type of GDScript declarations.
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub enum Decl {
+pub enum DeclF {
   VarDecl(Option<Export>, String, Option<Expr>),
   ConstDecl(String, Expr),
   ClassDecl(ClassDecl),
   FnDecl(Static, FnDecl),
   EnumDecl(EnumDecl),
   SignalDecl(String, ArgList),
+}
+
+/// GDScript declaration with its source offset. See [`Sourced`].
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Decl {
+  pub value: DeclF,
+  pub pos: SourceOffset,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -84,15 +92,23 @@ pub enum Static {
   NonStatic, IsStatic,
 }
 
-fn empty_class_body() -> Decl {
-  Decl::FnDecl(Static::NonStatic, FnDecl {
-    name: String::from("_init"),
-    args: ArgList::empty(),
-    body: vec!(),
-  })
+fn empty_class_body(pos: SourceOffset) -> Decl {
+  Decl::new(
+    DeclF::FnDecl(Static::NonStatic, FnDecl {
+      name: String::from("_init"),
+      args: ArgList::empty(),
+      body: vec!(),
+    }),
+    pos
+  )
 }
 
 impl Decl {
+
+  /// A new `Decl` with its source offset.
+  pub fn new(value: DeclF, pos: SourceOffset) -> Decl {
+    Decl { value, pos }
+  }
 
   /// Write the declaration, as GDScript code, to the [`fmt::Write`]
   /// instance `w`.
@@ -106,8 +122,8 @@ impl Decl {
   /// immediately after.
   pub fn write_gd<W : fmt::Write>(&self, w: &mut W, ind: u32) -> Result<(), fmt::Error> {
     indent(w, ind)?;
-    match self {
-      Decl::VarDecl(export, name, value) => {
+    match &self.value {
+      DeclF::VarDecl(export, name, value) => {
         if let Some(export) = export {
           if export.args.is_empty() {
             write!(w, "export ")?;
@@ -121,28 +137,28 @@ impl Decl {
           Some(value) => writeln!(w, " = {}", value.to_gd()),
         }
       }
-      Decl::ConstDecl(name, value) => {
+      DeclF::ConstDecl(name, value) => {
         writeln!(w, "const {} = {}", name, value.to_gd())
       }
-      Decl::ClassDecl(ClassDecl { name, extends, body }) => {
+      DeclF::ClassDecl(ClassDecl { name, extends, body }) => {
         writeln!(w, "class {} extends {}:", name, extends.to_gd())?;
-        Decl::write_gd_decls(body, &empty_class_body(), w, ind + 4)
+        Decl::write_gd_decls(body, &empty_class_body(self.pos), w, ind + 4)
       }
-      Decl::FnDecl(stat, FnDecl { name, args, body }) => {
+      DeclF::FnDecl(stat, FnDecl { name, args, body }) => {
         if *stat == Static::IsStatic {
           write!(w, "static ")?;
         }
         writeln!(w, "func {}({}):", name, args.to_gd())?;
         Stmt::write_gd_stmts(body, w, ind + 4)
       }
-      Decl::SignalDecl(name, args) => {
+      DeclF::SignalDecl(name, args) => {
         if args.is_empty() {
           writeln!(w, "signal {}", name)
         } else {
           writeln!(w, "signal {}({})", name, args.to_gd())
         }
       }
-      Decl::EnumDecl(EnumDecl { name, clauses }) => {
+      DeclF::EnumDecl(EnumDecl { name, clauses }) => {
         write!(w, "enum ")?;
         if let Some(name) = name {
           write!(w, "{} ", name)?;
@@ -194,6 +210,19 @@ impl Decl {
 
 }
 
+impl Sourced for Decl {
+  type Item = DeclF;
+
+  fn get_source(&self) -> SourceOffset {
+    self.pos
+  }
+
+  fn get_value(&self) -> &DeclF {
+    &self.value
+  }
+
+}
+
 impl ClassExtends {
 
   /// A simple unqualified name.
@@ -228,7 +257,7 @@ impl TopLevelClass {
       writeln!(string, "class_name {}", name).expect("Could not write to string in TopLevelClass::to_gd");
     }
     writeln!(string, "extends {}", self.extends.to_gd()).expect("Could not write to string in TopLevelClass::to_gd");
-    Decl::write_gd_decls(self.body.iter(), &empty_class_body(), &mut string, 0)
+    Decl::write_gd_decls(self.body.iter(), &empty_class_body(SourceOffset(0)), &mut string, 0)
       .expect("Could not write to string in TopLevelClass::to_gd");
     string
   }
@@ -251,12 +280,16 @@ mod tests {
     Expr::new(expr, SourceOffset::default())
   }
 
+  fn d(decl: DeclF) -> Decl {
+    Decl::new(decl, SourceOffset::default())
+  }
+
   #[test]
   fn var_and_const() {
     let expr = e(ExprF::from(10));
-    assert_eq!(Decl::VarDecl(None, String::from("foo"), None).to_gd(0), "var foo\n");
-    assert_eq!(Decl::VarDecl(None, String::from("foo"), Some(expr.clone())).to_gd(0), "var foo = 10\n");
-    assert_eq!(Decl::ConstDecl(String::from("FOO"), expr.clone()).to_gd(0), "const FOO = 10\n");
+    assert_eq!(d(DeclF::VarDecl(None, String::from("foo"), None)).to_gd(0), "var foo\n");
+    assert_eq!(d(DeclF::VarDecl(None, String::from("foo"), Some(expr.clone()))).to_gd(0), "var foo = 10\n");
+    assert_eq!(d(DeclF::ConstDecl(String::from("FOO"), expr.clone())).to_gd(0), "const FOO = 10\n");
   }
 
   #[test]
@@ -264,57 +297,57 @@ mod tests {
     let expr = e(ExprF::from(10));
 
     let export1 = Export { args: vec!(Expr::var("int", SourceOffset::default())) };
-    assert_eq!(Decl::VarDecl(Some(export1), String::from("foo"), None).to_gd(0), "export(int) var foo\n");
+    assert_eq!(d(DeclF::VarDecl(Some(export1), String::from("foo"), None)).to_gd(0), "export(int) var foo\n");
 
     let export2 = Export { args: vec!() };
-    assert_eq!(Decl::VarDecl(Some(export2), String::from("foo"), None).to_gd(0), "export var foo\n");
+    assert_eq!(d(DeclF::VarDecl(Some(export2), String::from("foo"), None)).to_gd(0), "export var foo\n");
 
     let export3 = Export { args: vec!(Expr::var("int", SourceOffset::default()), Expr::from_value(1, SourceOffset::default()), Expr::from_value(10, SourceOffset::default())) };
-    assert_eq!(Decl::VarDecl(Some(export3), String::from("foo"), Some(expr.clone())).to_gd(0), "export(int, 1, 10) var foo = 10\n");
+    assert_eq!(d(DeclF::VarDecl(Some(export3), String::from("foo"), Some(expr.clone()))).to_gd(0), "export(int, 1, 10) var foo = 10\n");
   }
 
   #[test]
   fn signal() {
-    assert_eq!(Decl::SignalDecl(String::from("signal_name"), ArgList::empty()).to_gd(0), "signal signal_name\n");
-    assert_eq!(Decl::SignalDecl(String::from("signal_name"), ArgList::required(vec!(String::from("a"), String::from("b")))).to_gd(0), "signal signal_name(a, b)\n");
+    assert_eq!(d(DeclF::SignalDecl(String::from("signal_name"), ArgList::empty())).to_gd(0), "signal signal_name\n");
+    assert_eq!(d(DeclF::SignalDecl(String::from("signal_name"), ArgList::required(vec!(String::from("a"), String::from("b"))))).to_gd(0), "signal signal_name(a, b)\n");
   }
 
   #[test]
   fn functions() {
 
-    let decl1 = Decl::FnDecl(Static::NonStatic, FnDecl {
+    let decl1 = d(DeclF::FnDecl(Static::NonStatic, FnDecl {
       name: String::from("foobar"),
       args: ArgList::required(vec!()),
       body: vec!()
-    });
+    }));
     assert_eq!(decl1.to_gd(0), "func foobar():\n    pass\n");
 
-    let decl2 = Decl::FnDecl(Static::IsStatic, FnDecl {
+    let decl2 = d(DeclF::FnDecl(Static::IsStatic, FnDecl {
       name: String::from("foobar"),
       args: ArgList::required(vec!()),
       body: vec!()
-    });
+    }));
     assert_eq!(decl2.to_gd(0), "static func foobar():\n    pass\n");
 
-    let decl3 = Decl::FnDecl(Static::NonStatic, FnDecl {
+    let decl3 = d(DeclF::FnDecl(Static::NonStatic, FnDecl {
       name: String::from("foobar"),
       args: ArgList::required(vec!(String::from("arg1"))),
       body: vec!()
-    });
+    }));
     assert_eq!(decl3.to_gd(0), "func foobar(arg1):\n    pass\n");
 
-    let decl4 = Decl::FnDecl(Static::NonStatic, FnDecl {
+    let decl4 = d(DeclF::FnDecl(Static::NonStatic, FnDecl {
       name: String::from("foobar"),
       args: ArgList::required(vec!(String::from("arg1"), String::from("arg2"))),
       body: vec!()
-    });
+    }));
     assert_eq!(decl4.to_gd(0), "func foobar(arg1, arg2):\n    pass\n");
 
-    let decl5 = Decl::FnDecl(Static::NonStatic, FnDecl {
+    let decl5 = d(DeclF::FnDecl(Static::NonStatic, FnDecl {
       name: String::from("foobar"),
       args: ArgList::required(vec!(String::from("arg1"), String::from("arg2"))),
       body: vec!(Stmt::expr(e(ExprF::Var(String::from("function_body")))))
-    });
+    }));
     assert_eq!(decl5.to_gd(0), "func foobar(arg1, arg2):\n    function_body\n");
 
   }
@@ -322,64 +355,64 @@ mod tests {
   #[test]
   fn classes() {
 
-    let sample_function = Decl::FnDecl(Static::NonStatic, FnDecl {
+    let sample_function = d(DeclF::FnDecl(Static::NonStatic, FnDecl {
       name: String::from("sample"),
       args: ArgList::required(vec!()),
       body: vec!()
-    });
+    }));
 
-    let decl1 = Decl::ClassDecl(ClassDecl {
+    let decl1 = d(DeclF::ClassDecl(ClassDecl {
       name: String::from("MyClass"),
       extends: ClassExtends::named(String::from("ParentClass")),
       body: vec!(),
-    });
+    }));
     assert_eq!(decl1.to_gd(0), "class MyClass extends ParentClass:\n    func _init():\n        pass\n");
 
-    let decl2 = Decl::ClassDecl(ClassDecl {
+    let decl2 = d(DeclF::ClassDecl(ClassDecl {
       name: String::from("MyClass"),
       extends: ClassExtends::named(String::from("ParentClass")),
       body: vec!(
-        Decl::VarDecl(None, String::from("variable"), None),
+        d(DeclF::VarDecl(None, String::from("variable"), None)),
       ),
-    });
+    }));
     assert_eq!(decl2.to_gd(0), "class MyClass extends ParentClass:\n    var variable\n");
 
-    let decl3 = Decl::ClassDecl(ClassDecl {
+    let decl3 = d(DeclF::ClassDecl(ClassDecl {
       name: String::from("MyClass"),
       extends: ClassExtends::named(String::from("ParentClass")),
       body: vec!(
-        Decl::VarDecl(None, String::from("variable"), None),
+        d(DeclF::VarDecl(None, String::from("variable"), None)),
         sample_function.clone(),
       ),
-    });
+    }));
     assert_eq!(decl3.to_gd(0), "class MyClass extends ParentClass:\n    var variable\n    func sample():\n        pass\n");
 
   }
 
   #[test]
   fn enums() {
-    let decl1 = Decl::EnumDecl(EnumDecl {
+    let decl1 = d(DeclF::EnumDecl(EnumDecl {
       name: None,
       clauses: vec!(),
-    });
+    }));
     assert_eq!(decl1.to_gd(0), "enum {\n}\n");
 
-    let decl2 = Decl::EnumDecl(EnumDecl {
+    let decl2 = d(DeclF::EnumDecl(EnumDecl {
       name: None,
       clauses: vec!((String::from("Value1"), None), (String::from("Value2"), None)),
-    });
+    }));
     assert_eq!(decl2.to_gd(0), "enum {\n    Value1,\n    Value2,\n}\n");
 
-    let decl3 = Decl::EnumDecl(EnumDecl {
+    let decl3 = d(DeclF::EnumDecl(EnumDecl {
       name: None,
       clauses: vec!((String::from("Value1"), Some(e(ExprF::from(99)))), (String::from("Value2"), None)),
-    });
+    }));
     assert_eq!(decl3.to_gd(0), "enum {\n    Value1 = 99,\n    Value2,\n}\n");
 
-    let decl4 = Decl::EnumDecl(EnumDecl {
+    let decl4 = d(DeclF::EnumDecl(EnumDecl {
       name: Some(String::from("EnumName")),
       clauses: vec!((String::from("Value1"), Some(e(ExprF::from(99)))), (String::from("Value2"), None)),
-    });
+    }));
     assert_eq!(decl4.to_gd(0), "enum EnumName {\n    Value1 = 99,\n    Value2,\n}\n");
   }
 

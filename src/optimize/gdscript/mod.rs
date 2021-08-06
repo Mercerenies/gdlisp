@@ -14,7 +14,7 @@ pub mod direct_var_substitute;
 pub mod dead_var_elimination;
 pub mod ternary_if_fold;
 
-use crate::gdscript::decl::{self, Decl};
+use crate::gdscript::decl::{self, Decl, DeclF};
 use crate::gdscript::expr::Expr;
 use crate::gdscript::stmt::Stmt;
 use crate::compile::error::Error;
@@ -43,17 +43,17 @@ pub trait FileOptimization {
 // TODO Note that expression-level optimizations won't run on
 // ConstDecl, VarDecl, or EnumDecl expressions right now.
 fn on_decl(opt: &impl FunctionOptimization, decl: &mut Decl) -> Result<(), Error> {
-  match decl {
-    Decl::FnDecl(_, fndecl) => {
+  match &mut decl.value {
+    DeclF::FnDecl(_, fndecl) => {
       opt.run_on_function(fndecl)
     }
-    Decl::ClassDecl(cdecl) => {
+    DeclF::ClassDecl(cdecl) => {
       for d in &mut cdecl.body {
         on_decl(opt, d)?;
       }
       Ok(())
     }
-    Decl::VarDecl(_, _, _) | Decl::ConstDecl(_, _) | Decl::SignalDecl(_, _) | Decl::EnumDecl(_) => {
+    DeclF::VarDecl(_, _, _) | DeclF::ConstDecl(_, _) | DeclF::SignalDecl(_, _) | DeclF::EnumDecl(_) => {
       Ok(())
     }
   }

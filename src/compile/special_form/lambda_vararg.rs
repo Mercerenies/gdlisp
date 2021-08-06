@@ -1,7 +1,7 @@
 
 use crate::ir::arglist::VarArg;
 use crate::compile::symbol_table::function_call::FnSpecs;
-use crate::gdscript::decl::{self, Decl};
+use crate::gdscript::decl::{self, Decl, DeclF};
 use crate::gdscript::expr::{Expr, ExprF};
 use crate::gdscript::stmt::{self, Stmt};
 use crate::gdscript::op;
@@ -122,12 +122,12 @@ pub fn generate_lambda_class(class_name: String,
     };
   let mut class_body = vec!();
   for var in closed_vars {
-    class_body.push(Decl::VarDecl(None, var.to_owned(), None));
+    class_body.push(Decl::new(DeclF::VarDecl(None, var.to_owned(), None), pos));
   }
   class_body.append(&mut vec!(
-    Decl::FnDecl(decl::Static::NonStatic, constructor),
-    Decl::FnDecl(decl::Static::NonStatic, func),
-    Decl::FnDecl(decl::Static::NonStatic, funcv),
+    Decl::new(DeclF::FnDecl(decl::Static::NonStatic, constructor), pos),
+    Decl::new(DeclF::FnDecl(decl::Static::NonStatic, func), pos),
+    Decl::new(DeclF::FnDecl(decl::Static::NonStatic, funcv), pos),
   ));
   decl::ClassDecl {
     name: class_name,
@@ -143,7 +143,7 @@ mod tests {
 
   fn compile_vararg(specs: FnSpecs) -> String {
     let result = generate_lambda_vararg(specs, SourceOffset::default());
-    Decl::FnDecl(decl::Static::NonStatic, result).to_gd(0)
+    Decl::new(DeclF::FnDecl(decl::Static::NonStatic, result), SourceOffset::default()).to_gd(0)
   }
 
   #[test]

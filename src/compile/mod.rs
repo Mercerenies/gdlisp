@@ -18,7 +18,7 @@ use crate::sxp::reify::Reify;
 use crate::gdscript::literal::Literal;
 use crate::gdscript::expr::{Expr, ExprF};
 use crate::gdscript::stmt::{Stmt, StmtF};
-use crate::gdscript::decl::{self, Decl, ClassExtends};
+use crate::gdscript::decl::{self, Decl, DeclF, ClassExtends};
 use crate::gdscript::op;
 use crate::gdscript::library;
 use crate::gdscript::arglist::ArgList;
@@ -367,7 +367,7 @@ impl<'a> Compiler<'a> {
       IRDeclF::FnDecl(ir::decl::FnDecl { visibility: _, call_magic: _, name, args, body }) => {
         let gd_name = names::lisp_to_gd(&name);
         let function = self.declare_function(pipeline, builder, table, gd_name, args.clone(), body, &stmt_wrapper::Return)?;
-        builder.add_decl(Decl::FnDecl(decl::Static::IsStatic, function));
+        builder.add_decl(Decl::new(DeclF::FnDecl(decl::Static::IsStatic, function), decl.pos));
         Ok(())
       }
       IRDeclF::MacroDecl(ir::decl::MacroDecl { visibility: _, name, args, body }) => {
@@ -376,14 +376,14 @@ impl<'a> Compiler<'a> {
         // and then purged during the IR phase.
         let gd_name = names::lisp_to_gd(&name);
         let function = self.declare_function(pipeline, builder, table, gd_name, args.clone(), body, &stmt_wrapper::Return)?;
-        builder.add_decl(Decl::FnDecl(decl::Static::IsStatic, function));
+        builder.add_decl(Decl::new(DeclF::FnDecl(decl::Static::IsStatic, function), decl.pos));
         Ok(())
       }
       IRDeclF::ConstDecl(ir::decl::ConstDecl { visibility: _, name, value }) => {
         let gd_name = names::lisp_to_gd(&name);
         let value = self.compile_simple_expr(pipeline, table, name, value, NeedsResult::Yes)?;
         value.validate_const_expr(&name, table)?;
-        builder.add_decl(Decl::ConstDecl(gd_name, value));
+        builder.add_decl(Decl::new(DeclF::ConstDecl(gd_name, value), decl.pos));
         Ok(())
       }
       IRDeclF::ClassDecl(ir::decl::ClassDecl { visibility: _, name, extends, main_class, constructor, decls }) => {
@@ -395,7 +395,7 @@ impl<'a> Compiler<'a> {
           self.flatten_class_into_main(builder, class);
           Ok(())
         } else {
-          builder.add_decl(Decl::ClassDecl(class));
+          builder.add_decl(Decl::new(DeclF::ClassDecl(class), decl.pos));
           Ok(())
         }
       }
@@ -409,7 +409,7 @@ impl<'a> Compiler<'a> {
           }
           Ok((gd_const_name, gd_const_value))
         }).collect::<Result<_, Error>>()?;
-        builder.add_decl(Decl::EnumDecl(decl::EnumDecl { name: Some(gd_name), clauses: gd_clauses }));
+        builder.add_decl(Decl::new(DeclF::EnumDecl(decl::EnumDecl { name: Some(gd_name), clauses: gd_clauses }), decl.pos));
         Ok(())
       }
       IRDeclF::DeclareDecl(_) => {
@@ -503,7 +503,7 @@ impl<'a> Compiler<'a> {
         }
       }
 
-      body.push(Decl::FnDecl(decl::Static::NonStatic, self.compile_constructor(pipeline, builder, instance_table, constructor)?));
+      body.push(Decl::new(DeclF::FnDecl(decl::Static::NonStatic, self.compile_constructor(pipeline, builder, instance_table, constructor)?), pos));
 
       for d in decls {
         let tables = ClassTablePair { instance_table, static_table: &mut static_table };
@@ -568,14 +568,14 @@ impl<'a> Compiler<'a> {
       ir::decl::ClassInnerDeclF::ClassSignalDecl(s) => {
         let name = names::lisp_to_gd(&s.name);
         let args = s.args.args.iter().map(|x| names::lisp_to_gd(&x)).collect();
-        Ok(Decl::SignalDecl(name, ArgList::required(args)))
+        Ok(Decl::new(DeclF::SignalDecl(name, ArgList::required(args)), decl.pos))
       }
       ir::decl::ClassInnerDeclF::ClassConstDecl(c) => {
         // TODO Merge this with IRDecl::ConstDecl above
         let gd_name = names::lisp_to_gd(&c.name);
         let value = self.compile_simple_expr(pipeline, table, &c.name, &c.value, NeedsResult::Yes)?;
         value.validate_const_expr(&c.name, table)?;
-        Ok(Decl::ConstDecl(gd_name, value))
+        Ok(Decl::new(DeclF::ConstDecl(gd_name, value), decl.pos))
       }
       ir::decl::ClassInnerDeclF::ClassVarDecl(v) => {
         let exports = v.export.as_ref().map(|export| {
@@ -588,7 +588,7 @@ impl<'a> Compiler<'a> {
           value.validate_const_expr(&v.name, table)?;
           Ok(value)
         }).transpose()?;
-        Ok(Decl::VarDecl(exports, name, value))
+        Ok(Decl::new(DeclF::VarDecl(exports, name, value), decl.pos))
       }
       ir::decl::ClassInnerDeclF::ClassFnDecl(f) => {
         let gd_name = names::lisp_to_gd(&f.name);
@@ -599,7 +599,7 @@ impl<'a> Compiler<'a> {
                                          IRArgList::from(f.args.clone()),
                                          &f.body,
                                          &stmt_wrapper::Return)?;
-        Ok(Decl::FnDecl(f.is_static, func))
+        Ok(Decl::new(DeclF::FnDecl(f.is_static, func), decl.pos))
       }
     }
   }
@@ -708,7 +708,10 @@ impl<'a> Compiler<'a> {
         path.path_mut().set_extension("gd");
       }
       let path = self.resolver.resolve_preload(&path).ok_or_else(|| Error::NoSuchFile(path.clone()))?;
-      Ok(Decl::ConstDecl(var, Expr::call(None, "preload", vec!(Expr::from_value(path, pos)), pos)))
+      Ok(Decl::new(
+        DeclF::ConstDecl(var, Expr::call(None, "preload", vec!(Expr::from_value(path, pos)), pos)),
+        pos,
+      ))
     } else {
       // We null out any resources we don't understand. This means
       // that GDScript source files (those NOT written in GDLisp) and
@@ -717,7 +720,10 @@ impl<'a> Compiler<'a> {
       // resolution. I do not verify that you follow this rule; you
       // are expected to be responsible with your macro resource
       // usage.
-      Ok(Decl::ConstDecl(var, Expr::new(ExprF::Literal(Literal::Null), pos)))
+      Ok(Decl::new(
+        DeclF::ConstDecl(var, Expr::new(ExprF::Literal(Literal::Null), pos)),
+        pos,
+      ))
     }
   }
 

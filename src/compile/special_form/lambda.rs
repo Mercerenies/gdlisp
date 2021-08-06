@@ -14,7 +14,7 @@ use crate::compile::stateful::SideEffects;
 use crate::compile::names;
 use crate::gdscript::stmt::{Stmt, StmtF};
 use crate::gdscript::expr::{Expr, ExprF};
-use crate::gdscript::decl::{self, Decl};
+use crate::gdscript::decl::{self, Decl, DeclF};
 use crate::gdscript::arglist::ArgList;
 use crate::gdscript::library;
 use crate::gdscript::inner_class::{self, NeedsOuterClassRef};
@@ -171,11 +171,11 @@ pub fn compile_labels_scc<'a>(compiler: &mut Compiler<'a>,
   };
   let mut class_body = vec!();
   for var in &gd_closure_vars {
-    class_body.push(Decl::VarDecl(None, var.clone(), None));
+    class_body.push(Decl::new(DeclF::VarDecl(None, var.clone(), None), pos));
   }
-  class_body.push(Decl::FnDecl(decl::Static::NonStatic, constructor));
+  class_body.push(Decl::new(DeclF::FnDecl(decl::Static::NonStatic, constructor), pos));
   for func in functions {
-    class_body.push(Decl::FnDecl(decl::Static::NonStatic, func));
+    class_body.push(Decl::new(DeclF::FnDecl(decl::Static::NonStatic, func), pos));
   }
   let mut class = decl::ClassDecl {
     name: class_name.clone(),
@@ -187,7 +187,7 @@ pub fn compile_labels_scc<'a>(compiler: &mut Compiler<'a>,
     inner_class::add_outer_class_ref_named(&mut class, compiler.preload_resolver(), pipeline, outer_ref_name, pos);
   }
 
-  builder.add_helper(Decl::ClassDecl(class));
+  builder.add_helper(Decl::new(DeclF::ClassDecl(class), pos));
   let constructor_args: Vec<_> = gd_src_closure_vars.into_iter().map(|x| Expr::new(ExprF::Var(x), pos)).collect();
   let expr = Expr::call(Some(Expr::new(ExprF::Var(class_name), pos)), "new", constructor_args, pos);
   builder.append(Stmt::new(StmtF::VarDecl(local_var_name, expr), pos));
@@ -345,7 +345,7 @@ pub fn compile_lambda_stmt<'a>(compiler: &mut Compiler<'a>,
     inner_class::add_outer_class_ref_named(&mut class, compiler.preload_resolver(), pipeline, outer_ref_name, pos);
   }
 
-  builder.add_helper(Decl::ClassDecl(class));
+  builder.add_helper(Decl::new(DeclF::ClassDecl(class), pos));
   let constructor_args = gd_src_closure_vars.into_iter().map(|x| Expr::new(ExprF::Var(x), pos)).collect();
   let expr = Expr::call(Some(Expr::new(ExprF::Var(class_name), pos)), "new", constructor_args, pos);
   Ok(StExpr { expr, side_effects: SideEffects::None })
@@ -386,7 +386,7 @@ pub fn compile_function_ref<'a>(compiler: &mut Compiler<'a>,
 
     let class_name = compiler.name_generator().generate_with("_FunctionRefBlock");
     let class = generate_lambda_class(class_name.clone(), specs, arglist, &closure_vars[..], vec!(body), pos);
-    builder.add_helper(Decl::ClassDecl(class));
+    builder.add_helper(Decl::new(DeclF::ClassDecl(class), pos));
     let expr = Expr::call(Some(Expr::new(ExprF::Var(class_name), pos)), "new", closure_var_ctor_args, pos);
     Ok(StExpr { expr, side_effects: SideEffects::None })
   }

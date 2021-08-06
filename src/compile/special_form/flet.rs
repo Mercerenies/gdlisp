@@ -8,7 +8,7 @@ use crate::compile::symbol_table::local_var::VarName;
 use crate::compile::error::Error;
 use crate::compile::stateful::{StExpr, NeedsResult};
 use crate::compile::stmt_wrapper;
-use crate::gdscript::decl::{self, Decl};
+use crate::gdscript::decl::{self, Decl, DeclF};
 use crate::graph::Graph;
 use crate::graph::top_sort::top_sort;
 use crate::graph::tarjan;
@@ -52,7 +52,7 @@ fn compile_flet_call<'a>(compiler: &mut Compiler<'a>,
     // free of closures, so we can compile to SemiGlobal.
     let gd_name = compiler.name_generator().generate_with("_flet");
     let func = compiler.declare_function(pipeline, builder, table, gd_name.clone(), args.clone(), body, &stmt_wrapper::Return)?;
-    builder.add_helper(Decl::FnDecl(decl::Static::IsStatic, func));
+    builder.add_helper(Decl::new(DeclF::FnDecl(decl::Static::IsStatic, func), pos));
     let specs = FnSpecs::from(args);
     Ok(FnCall {
       scope: FnScope::SemiGlobal,

@@ -8,7 +8,7 @@ use crate::compile::body::builder::StmtBuilder;
 use crate::compile::symbol_table::{SymbolTable, ClassTablePair};
 use crate::compile::symbol_table::local_var::{VarScope, LocalVar};
 use crate::gdscript::expr::{Expr, ExprF};
-use crate::gdscript::decl::{self, Decl};
+use crate::gdscript::decl::{self, Decl, DeclF};
 use crate::gdscript::inner_class::{self, NeedsOuterClassRef};
 use crate::pipeline::Pipeline;
 use crate::pipeline::source::SourceOffset;
@@ -101,9 +101,9 @@ pub fn compile_lambda_class<'a>(compiler: &mut Compiler<'a>,
     constructor.body.insert(0, super::assign_to_compiler(name.to_string(), name.to_string(), pos));
   }
   let mut class_body = vec!();
-  class_body.push(Decl::FnDecl(decl::Static::NonStatic, constructor));
+  class_body.push(Decl::new(DeclF::FnDecl(decl::Static::NonStatic, constructor), pos));
   for name in gd_closure_vars.iter() {
-    class_body.push(Decl::VarDecl(None, name.clone(), None));
+    class_body.push(Decl::new(DeclF::VarDecl(None, name.clone(), None), pos));
   }
   for d in &decls {
 
@@ -128,7 +128,7 @@ pub fn compile_lambda_class<'a>(compiler: &mut Compiler<'a>,
     inner_class::add_outer_class_ref_named(&mut class, compiler.preload_resolver(), pipeline, outer_ref_name, pos);
   }
 
-  builder.add_helper(Decl::ClassDecl(class));
+  builder.add_helper(Decl::new(DeclF::ClassDecl(class), pos));
 
   let constructor_args = constructor_args.iter().map(|expr| compiler.compile_expr(pipeline, builder, table, expr, NeedsResult::Yes).map(|x| x.expr)).collect::<Result<Vec<_>, _>>()?;
   let constructor_args: Vec<_> = gd_src_closure_vars.into_iter().map(|x| Expr::new(ExprF::Var(x), pos)).chain(constructor_args.into_iter()).collect();
