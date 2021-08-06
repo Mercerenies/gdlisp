@@ -1,6 +1,7 @@
 
-use gdlisp::compile::error::{Error as GDError};
+use gdlisp::compile::error::{Error as GDError, ErrorF as GDErrorF};
 use gdlisp::pipeline::error::{Error as PError};
+use gdlisp::pipeline::source::SourceOffset;
 
 use super::common::*;
 
@@ -134,7 +135,7 @@ pub fn constructor_uses_outer_ref_lambda_class_test_run() {
 pub fn bad_static_in_lambda_class_test() {
   assert_eq!(
     parse_compile_and_output_err("(new (Node) (defn example () static 1))"),
-    Err(PError::from(GDError::StaticMethodOnLambdaClass(String::from("example")))),
+    Err(PError::from(GDError::new(GDErrorF::StaticMethodOnLambdaClass(String::from("example")), SourceOffset(13)))),
   );
 }
 

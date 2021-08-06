@@ -10,14 +10,15 @@
 //! around GDScript limitations. But for now, we're being super
 //! strict.
 
-use super::error::Error;
+use super::error::{Error, ErrorF};
 use super::symbol_table::local_var::{ValueHint, ValueHintsTable};
 use crate::gdscript::expr::{Expr, ExprF};
 use crate::gdscript::op;
+use crate::pipeline::source::Sourced;
 
 /// Trait representing data which can be checked for a const-ness
 /// property.
-pub trait MaybeConstant {
+pub trait MaybeConstant: Sourced {
 
   /// Returns whether or not the expression is an allowable constant
   /// value. `table` should contain information which can provide
@@ -35,7 +36,7 @@ pub trait MaybeConstant {
     if self.is_allowable_const(table) {
       Ok(())
     } else {
-      Err(Error::NotConstantEnough(name.to_owned()))
+      Err(Error::new(ErrorF::NotConstantEnough(name.to_owned()), self.get_source()))
     }
   }
 

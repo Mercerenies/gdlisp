@@ -1,9 +1,10 @@
 
 extern crate gdlisp;
 
-use gdlisp::ir::modifier::{ParseError as ModifierParseError};
-use gdlisp::compile::error::{Error as GDError};
+use gdlisp::ir::modifier::{ParseError as ModifierParseError, ParseErrorF as ModifierParseErrorF};
+use gdlisp::compile::error::{Error as GDError, ErrorF as GDErrorF};
 use gdlisp::pipeline::error::{Error as PError};
+use gdlisp::pipeline::source::SourceOffset;
 
 use super::common::*;
 
@@ -107,9 +108,10 @@ static func run():
 
 #[test]
 pub fn bad_member_var_class_test_1() {
+  // TODO SourceOffset should be pointing to 38 here, but it points to 0 somehow.
   assert_eq!(
     parse_compile_decl_err("((defclass ClassName (Node) (defvar x (if 1 2 3)) (defn _init (x) (set self:x x)) (defn get-x () self:x)))"),
-    Err(PError::from(GDError::NotConstantEnough(String::from("x")))),
+    Err(PError::from(GDError::new(GDErrorF::NotConstantEnough(String::from("x")), SourceOffset(0)))),
   );
 }
 
@@ -118,7 +120,7 @@ pub fn bad_member_var_class_test_2() {
   // Can't have export on inner class
   assert_eq!(
     parse_compile_decl_err("((defclass ClassName (Node) (defvar x (export int)) (defn _init (x) (set self:x x)) (defn get-x () self:x)))"),
-    Err(PError::from(GDError::ExportOnInnerClassVar(String::from("x")))),
+    Err(PError::from(GDError::new(GDErrorF::ExportOnInnerClassVar(String::from("x")), SourceOffset(28)))),
   );
 }
 
@@ -127,18 +129,21 @@ pub fn bad_self_static_ref_class_test() {
   // Can't reference self from static context
   assert_eq!(
     parse_compile_decl_err("((defclass ClassName (Node) (defn get-self () static self)))"),
-    Err(PError::from(GDError::NoSuchVar(String::from("self")))),
+    Err(PError::from(GDError::new(GDErrorF::NoSuchVar(String::from("self")), SourceOffset(53)))),
   );
 }
 
 #[test]
 pub fn bad_member_const_class_test() {
   // Consts must be initialized
+  let result = parse_compile_decl_err("((defclass ClassName (Node) (defconst x)))");
   assert!(
     matches!(
-      parse_compile_decl_err("((defclass ClassName (Node) (defconst x)))"),
-      Err(PError::GDError(GDError::InvalidDecl(_))),
-    )
+      result,
+      Err(PError::GDError(GDError { value: GDErrorF::InvalidDecl(_), pos: SourceOffset(28) })),
+    ),
+    "{:?}",
+    result,
   );
 }
 
@@ -147,7 +152,7 @@ pub fn bad_static_constructor_class_test() {
   // Constructors cannot be static
   assert_eq!(
     parse_compile_decl_err("((defclass ClassName (Node) (defn _init () static)))"),
-    Err(PError::from(GDError::StaticConstructor)),
+    Err(PError::from(GDError::new(GDErrorF::StaticConstructor, SourceOffset(29)))),
   );
 }
 
@@ -609,7 +614,7 @@ static func run():
 pub fn nonsense_modifier_class_test_1() {
   assert_eq!(
     parse_compile_decl_err(r#"((defclass Foo (Node) main main))"#),
-    Err(PError::from(GDError::ModifierParseError(ModifierParseError::UniquenessError(String::from("main"))))),
+    Err(PError::from(ModifierParseError::new(ModifierParseErrorF::UniquenessError(String::from("main")), SourceOffset(27)))),
   );
 }
 
@@ -617,7 +622,7 @@ pub fn nonsense_modifier_class_test_1() {
 pub fn nonsense_modifier_class_test_2() {
   assert_eq!(
     parse_compile_decl_err(r#"((defclass Foo (Node) public public))"#),
-    Err(PError::from(GDError::ModifierParseError(ModifierParseError::UniquenessError(String::from("visibility"))))),
+    Err(PError::from(ModifierParseError::new(ModifierParseErrorF::UniquenessError(String::from("visibility")), SourceOffset(29)))),
   );
 }
 
@@ -625,7 +630,7 @@ pub fn nonsense_modifier_class_test_2() {
 pub fn nonsense_modifier_class_test_3() {
   assert_eq!(
     parse_compile_decl_err(r#"((defclass Foo (Node) public private))"#),
-    Err(PError::from(GDError::ModifierParseError(ModifierParseError::UniquenessError(String::from("visibility"))))),
+    Err(PError::from(ModifierParseError::new(ModifierParseErrorF::UniquenessError(String::from("visibility")), SourceOffset(29)))),
   );
 }
 
@@ -633,6 +638,6 @@ pub fn nonsense_modifier_class_test_3() {
 pub fn nonsense_modifier_class_test_4() {
   assert_eq!(
     parse_compile_decl_err(r#"((defclass Foo (Node) public (defn example () static static)))"#),
-    Err(PError::from(GDError::ModifierParseError(ModifierParseError::UniquenessError(String::from("static"))))),
+    Err(PError::from(ModifierParseError::new(ModifierParseErrorF::UniquenessError(String::from("static")), SourceOffset(53)))),
   );
 }

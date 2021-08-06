@@ -1,7 +1,7 @@
 
 use crate::sxp::ast::{AST, ASTF};
 use crate::ir::incremental::IncCompiler;
-use crate::compile::error::{Error as GDError};
+use crate::compile::error::{Error as GDError, ErrorF as GDErrorF};
 use super::expr::{Expr, ExprF};
 use super::literal::Literal;
 use crate::pipeline::error::Error;
@@ -25,7 +25,7 @@ impl QQSpliced {
   fn into_single(self, ast: &AST) -> Result<Expr, GDError> {
     match self {
       QQSpliced::Single(e) => Ok(e),
-      QQSpliced::Several(_) => Err(GDError::BadUnquoteSpliced(ast.clone())),
+      QQSpliced::Several(_) => Err(GDError::new(GDErrorF::BadUnquoteSpliced(ast.clone()), ast.pos)),
     }
   }
 }

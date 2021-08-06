@@ -8,7 +8,7 @@
 
 use crate::sxp::ast::{AST, ASTF};
 use crate::sxp::dotted::DottedExpr;
-use super::{ParseRule, ParseError};
+use super::{ParseRule, ParseError, ParseErrorF};
 
 use std::convert::TryInto;
 
@@ -43,7 +43,7 @@ impl ParseRule for MagicParser {
 }
 
 fn magic_error(ast: &AST) -> ParseError {
-  ParseError::Expecting(String::from("(magic declaration)"), ast.clone())
+  ParseError::new(ParseErrorF::Expecting(String::from("(magic declaration)"), ast.clone()), ast.pos)
 }
 
 /// Parser for call magic.

@@ -4,7 +4,7 @@
 use crate::sxp::ast::{AST, ASTF};
 use crate::sxp::dotted::DottedExpr;
 use crate::ir::incremental::IncCompiler;
-use super::{ParseRule, ParseError};
+use super::{ParseRule, ParseError, ParseErrorF};
 
 use std::convert::TryInto;
 
@@ -60,7 +60,7 @@ impl ParseRule for NoStdLibParser {
 }
 
 fn file_error(ast: &AST) -> ParseError {
-  ParseError::Expecting(String::from("(file-level declaration)"), ast.clone())
+  ParseError::new(ParseErrorF::Expecting(String::from("(file-level declaration)"), ast.clone()), ast.pos)
 }
 
 /// Parse rule for modifiers to an entire file.

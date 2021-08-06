@@ -1,6 +1,7 @@
 
-use gdlisp::compile::error::{Error as GDError};
+use gdlisp::compile::error::{Error as GDError, ErrorF as GDErrorF};
 use gdlisp::pipeline::error::{Error as PError};
+use gdlisp::pipeline::source::SourceOffset;
 
 use super::common::*;
 
@@ -14,7 +15,7 @@ pub fn const_test() {
 pub fn const_test_nonconst() {
   assert_eq!(
     parse_compile_decl_err("((defconst B (list->array 1)))"),
-    Err(PError::from(GDError::NotConstantEnough(String::from("B")))),
+    Err(PError::from(GDError::new(GDErrorF::NotConstantEnough(String::from("B")), SourceOffset(13)))),
   );
 }
 
@@ -22,7 +23,7 @@ pub fn const_test_nonconst() {
 pub fn const_test_nonconst_in_class() {
   assert_eq!(
     parse_compile_decl_err("((defclass Foo (Reference) (defconst B (list->array 1))))"),
-    Err(PError::from(GDError::NotConstantEnough(String::from("B")))),
+    Err(PError::from(GDError::new(GDErrorF::NotConstantEnough(String::from("B")), SourceOffset(39)))),
   );
 }
 
@@ -30,7 +31,7 @@ pub fn const_test_nonconst_in_class() {
 pub fn const_test_nonconst_in_enum() {
   assert_eq!(
     parse_compile_decl_err("((defenum Foo (A (list->array 1))))"),
-    Err(PError::from(GDError::NotConstantEnough(String::from("A")))),
+    Err(PError::from(GDError::new(GDErrorF::NotConstantEnough(String::from("A")), SourceOffset(17)))),
   );
 }
 
@@ -38,7 +39,7 @@ pub fn const_test_nonconst_in_enum() {
 pub fn const_test_nonconst_in_member_var() {
   assert_eq!(
     parse_compile_decl_err("((defclass Foo (Reference) (defvar b (list->array 1))))"),
-    Err(PError::from(GDError::NotConstantEnough(String::from("b")))),
+    Err(PError::from(GDError::new(GDErrorF::NotConstantEnough(String::from("b")), SourceOffset(37)))),
   );
 }
 
@@ -69,6 +70,6 @@ pub fn builtin_const_test() {
 pub fn private_builtin_const_test() {
   assert_eq!(
     parse_and_run_err(r#"(TYPE_ARRAY)"#),
-    Err(PError::from(GDError::NoSuchVar(String::from("TYPE_ARRAY")))),
+    Err(PError::from(GDError::new(GDErrorF::NoSuchVar(String::from("TYPE_ARRAY")), SourceOffset(1)))),
   );
 }

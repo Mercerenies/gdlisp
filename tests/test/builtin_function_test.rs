@@ -1,6 +1,7 @@
 
-use gdlisp::compile::error::{Error as GDError};
+use gdlisp::compile::error::{Error as GDError, ErrorF as GDErrorF};
 use gdlisp::pipeline::error::{Error as PError};
+use gdlisp::pipeline::source::SourceOffset;
 
 use super::common::*;
 
@@ -496,7 +497,7 @@ pub fn known_gdscript_classes_test_2() {
 pub fn unknown_gdscript_classes_test() {
   assert_eq!(
     parse_compile_and_output_err("(progn NotARealClass Node2D GDScript Object)"),
-    Err(PError::from(GDError::NoSuchVar(String::from("NotARealClass")))),
+    Err(PError::from(GDError::new(GDErrorF::NoSuchVar(String::from("NotARealClass")), SourceOffset(7)))),
   );
 }
 
@@ -666,7 +667,7 @@ static func run():
 pub fn custom_call_magic_test_failed() {
   assert_eq!(
     parse_compile_decl_err("((defn foo (x y) (sys/call-magic THIS-MAGIC-DOES-NOT-EXIST) 9))"),
-    Err(PError::from(GDError::NoSuchMagic(String::from("THIS-MAGIC-DOES-NOT-EXIST")))),
+    Err(PError::from(GDError::new(GDErrorF::NoSuchMagic(String::from("THIS-MAGIC-DOES-NOT-EXIST")), SourceOffset(2)))),
   );
 }
 

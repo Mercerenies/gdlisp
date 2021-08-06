@@ -1,9 +1,10 @@
 
 extern crate gdlisp;
 
-use gdlisp::ir::modifier::{ParseError as ModifierParseError};
-use gdlisp::compile::error::{Error as GDError};
+use gdlisp::ir::modifier::{ParseError as ModifierParseError, ParseErrorF as ModifierParseErrorF};
+use gdlisp::compile::error::{Error as GDError, ErrorF as GDErrorF};
 use gdlisp::pipeline::error::{Error as PError};
+use gdlisp::pipeline::source::SourceOffset;
 
 use super::common::*;
 
@@ -48,7 +49,7 @@ pub fn macro_from_macro_test() {
 pub fn bad_args_macro_test() {
   assert_eq!(
     parse_compile_decl_err("((defmacro foo (x) (+ x 1)) (defmacro bar (x) (cons 'foo (cons x ()))) (bar))"),
-    Err(PError::from(GDError::TooFewArgs(String::from("bar"), 0))),
+    Err(PError::from(GDError::new(GDErrorF::TooFewArgs(String::from("bar"), 0), SourceOffset(72)))),
   );
 }
 
@@ -151,7 +152,7 @@ static func run():
 pub fn closure_macrolet_test_1() {
   assert_eq!(
     parse_compile_and_output_err("(let ((a 1)) (macrolet ((foo () a)) (foo)))"),
-    Err(PError::from(GDError::NoSuchVar(String::from("a")))),
+    Err(PError::from(GDError::new(GDErrorF::NoSuchVar(String::from("a")), SourceOffset(32)))),
   );
 }
 
@@ -160,7 +161,7 @@ pub fn closure_macrolet_test_1() {
 pub fn closure_macrolet_test_2() {
   assert_eq!(
     parse_compile_and_output_err("(flet ((f () 1)) (macrolet ((foo () (f))) (foo)))"),
-    Err(PError::from(GDError::NoSuchFn(String::from("f")))),
+    Err(PError::from(GDError::new(GDErrorF::NoSuchFn(String::from("f")), SourceOffset(37)))),
   );
 }
 
@@ -308,7 +309,7 @@ static func run():
 pub fn nonsense_modifier_macro_test() {
   assert_eq!(
     parse_compile_decl_err(r#"((defmacro foo () public private 1))"#),
-    Err(PError::from(GDError::ModifierParseError(ModifierParseError::UniquenessError(String::from("visibility"))))),
+    Err(PError::from(ModifierParseError::new(ModifierParseErrorF::UniquenessError(String::from("visibility")), SourceOffset(25)))),
   );
 }
 
@@ -318,7 +319,7 @@ pub fn macro_in_minimalist_test() {
   // TODO Why isn't this MacroInMinimalistError
   assert_eq!(
     parse_compile_decl_err("((sys/nostdlib) (defmacro foo () 10) (foo))"),
-    Err(PError::from(GDError::MacroBeforeDefinitionError(String::from("foo")))),
+    Err(PError::from(GDError::new(GDErrorF::MacroBeforeDefinitionError(String::from("foo")), SourceOffset(17)))),
   );
 }
 
@@ -335,7 +336,7 @@ static func run():
 pub fn recursive_macro_test() {
   assert_eq!(
     parse_compile_decl_err("((defmacro foo () (foo)))"),
-    Err(PError::from(GDError::MacroBeforeDefinitionError(String::from("foo")))),
+    Err(PError::from(GDError::new(GDErrorF::MacroBeforeDefinitionError(String::from("foo")), SourceOffset(18)))),
   );
 }
 
@@ -344,7 +345,7 @@ pub fn recursive_macro_test() {
 pub fn recursive_macrolet_test() {
   assert_eq!(
     parse_compile_decl_err("((macrolet ((foo () (foo))) ()))"),
-    Err(PError::from(GDError::NoSuchFn(String::from("foo")))),
+    Err(PError::from(GDError::new(GDErrorF::NoSuchFn(String::from("foo")), SourceOffset(21)))),
   );
 }
 
@@ -353,6 +354,6 @@ pub fn recursive_macrolet_test() {
 pub fn bad_order_macro_test() {
   assert_eq!(
     parse_compile_decl_err("((defn bar () (foo)) (defmacro foo () 1))"),
-    Err(PError::from(GDError::MacroBeforeDefinitionError(String::from("foo")))),
+    Err(PError::from(GDError::new(GDErrorF::MacroBeforeDefinitionError(String::from("foo")), SourceOffset(15)))),
   );
 }

@@ -6,7 +6,7 @@
 
 use crate::ir::import::{ImportDecl, ImportDetails};
 use crate::pipeline::Pipeline;
-use super::error::Error;
+use super::error::{Error, ErrorF};
 
 use std::convert::AsRef;
 use std::path::Path;
@@ -91,7 +91,7 @@ impl ResourceType {
 
     let res_type = ResourceType::from_path(import.filename.path());
     if !res_type.is_import_allowed(import) {
-      return Err(Error::InvalidImportOnResource(import.filename.to_string()));
+      return Err(Error::new(ErrorF::InvalidImportOnResource(import.filename.to_string()), import.pos));
     }
 
     Ok(())

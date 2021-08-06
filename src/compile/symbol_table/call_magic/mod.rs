@@ -33,7 +33,7 @@ use crate::gdscript::op;
 use crate::gdscript::library;
 use crate::gdscript::expr_wrapper;
 use crate::compile::Compiler;
-use crate::compile::error::Error;
+use crate::compile::error::{Error, ErrorF};
 use crate::compile::body::builder::StmtBuilder;
 use crate::compile::stateful::StExpr;
 use crate::compile::stmt_wrapper::{self, StmtWrapper};
@@ -214,10 +214,10 @@ pub fn compile_default_call(call: FnCall, mut args: Vec<Expr>, pos: SourceOffset
   let FnCall { scope: _, object, function, specs, is_macro: _ } = call;
   // First, check arity
   if args.len() < specs.min_arity() as usize {
-    return Err(Error::TooFewArgs(function, args.len()));
+    return Err(Error::new(ErrorF::TooFewArgs(function, args.len()), pos));
   }
   if args.len() > specs.max_arity() as usize {
-    return Err(Error::TooManyArgs(function, args.len()));
+    return Err(Error::new(ErrorF::TooManyArgs(function, args.len()), pos));
   }
   let rest = if args.len() < (specs.required + specs.optional) as usize {
     vec!()
@@ -293,7 +293,7 @@ impl CallMagic for CompileToTransCmp {
                  pos: SourceOffset) -> Result<Expr, Error> {
     match args.len() {
       0 => {
-        Err(Error::TooFewArgs(call.function, args.len()))
+        Err(Error::new(ErrorF::TooFewArgs(call.function, args.len()), pos))
       }
       1 => {
         // Dump to the builder as a simple statement if it's stateful.
@@ -342,7 +342,7 @@ impl CallMagic for MinusOperation {
                  pos: SourceOffset) -> Result<Expr, Error> {
     let args = strip_st(args);
     match args.len() {
-      0 => Err(Error::TooFewArgs(call.function, args.len())),
+      0 => Err(Error::new(ErrorF::TooFewArgs(call.function, args.len()), pos)),
       1 => Ok(Expr::new(ExprF::Unary(op::UnaryOp::Negate, Box::new(args[0].clone())), pos)),
       _ => {
         Ok(
@@ -363,7 +363,7 @@ impl CallMagic for DivOperation {
                  pos: SourceOffset) -> Result<Expr, Error> {
     let mut args = strip_st(args);
     match args.len() {
-      0 => Err(Error::TooFewArgs(call.function, args.len())),
+      0 => Err(Error::new(ErrorF::TooFewArgs(call.function, args.len()), pos)),
       1 => Ok(Expr::new(ExprF::Binary(Box::new(Expr::from_value(1, pos)),
                                       op::BinaryOp::Div,
                                       Box::new(expr_wrapper::float(args[0].clone()))),
@@ -393,7 +393,7 @@ impl CallMagic for IntDivOperation {
                  pos: SourceOffset) -> Result<Expr, Error> {
     let mut args = strip_st(args);
     match args.len() {
-      0 => Err(Error::TooFewArgs(call.function, args.len())),
+      0 => Err(Error::new(ErrorF::TooFewArgs(call.function, args.len()), pos)),
       1 => Ok(Expr::new(ExprF::Binary(Box::new(Expr::from_value(1, pos)),
                                       op::BinaryOp::Div,
                                       Box::new(expr_wrapper::int(args[0].clone()))),
@@ -419,10 +419,10 @@ impl CallMagic for ModOperation {
                  pos: SourceOffset) -> Result<Expr, Error> {
     let mut args = strip_st(args);
     if args.len() < 2 {
-      return Err(Error::TooFewArgs(call.function, args.len()));
+      return Err(Error::new(ErrorF::TooFewArgs(call.function, args.len()), pos));
     }
     if args.len() > 2 {
-      return Err(Error::TooManyArgs(call.function, args.len()));
+      return Err(Error::new(ErrorF::TooManyArgs(call.function, args.len()), pos));
     }
     let y = args.pop().expect("Internal error in VectorOperation");
     let x = args.pop().expect("Internal error in VectorOperation");
@@ -444,7 +444,7 @@ impl CallMagic for NEqOperation {
     // anyway.
     match args.len() {
       0 => {
-        Err(Error::TooFewArgs(call.function, args.len()))
+        Err(Error::new(ErrorF::TooFewArgs(call.function, args.len()), pos))
       }
       1 => {
         // Dump to the builder as a simple statement if it's stateful.
@@ -471,11 +471,11 @@ impl CallMagic for BooleanNotOperation {
                  pos: SourceOffset) -> Result<Expr, Error> {
     let args = strip_st(args);
     match args.len() {
-      0 => Err(Error::TooFewArgs(call.function, args.len())),
+      0 => Err(Error::new(ErrorF::TooFewArgs(call.function, args.len()), pos)),
       1 => Ok(Expr::new(ExprF::Unary(op::UnaryOp::Not,
                                      Box::new(args[0].clone())),
                         pos)),
-      _ => Err(Error::TooManyArgs(call.function, args.len())),
+      _ => Err(Error::new(ErrorF::TooManyArgs(call.function, args.len()), pos)),
     }
   }
 }
@@ -504,7 +504,7 @@ impl CallMagic for VectorOperation {
     let mut args = strip_st(args);
     match args.len() {
       0 | 1 => {
-        Err(Error::TooFewArgs(call.function, args.len()))
+        Err(Error::new(ErrorF::TooFewArgs(call.function, args.len()), pos))
       }
       2 => {
         let y = args.pop().expect("Internal error in VectorOperation");
@@ -518,7 +518,7 @@ impl CallMagic for VectorOperation {
         Ok(Expr::call(None, "Vector3", vec!(x, y, z), pos))
       }
       _ => {
-        Err(Error::TooManyArgs(call.function, args.len()))
+        Err(Error::new(ErrorF::TooManyArgs(call.function, args.len()), pos))
       }
     }
   }
@@ -535,7 +535,7 @@ impl CallMagic for ArraySubscript {
     let mut args = strip_st(args);
     match args.len() {
       0 | 1 => {
-        Err(Error::TooFewArgs(call.function, args.len()))
+        Err(Error::new(ErrorF::TooFewArgs(call.function, args.len()), pos))
       }
       2 => {
         let n = args.pop().expect("Internal error in ArraySubscript");
@@ -543,7 +543,7 @@ impl CallMagic for ArraySubscript {
         Ok(Expr::new(ExprF::Subscript(Box::new(arr), Box::new(n)), pos))
       }
       _ => {
-        Err(Error::TooManyArgs(call.function, args.len()))
+        Err(Error::new(ErrorF::TooManyArgs(call.function, args.len()), pos))
       }
     }
   }
@@ -560,7 +560,7 @@ impl CallMagic for ArraySubscriptAssign {
     let mut args = strip_st(args);
     match args.len() {
       0 | 1 | 2 => {
-        Err(Error::TooFewArgs(call.function, args.len()))
+        Err(Error::new(ErrorF::TooFewArgs(call.function, args.len()), pos))
       }
       3 => {
         let n = args.pop().expect("Internal error in ArraySubscriptAssign");
@@ -571,7 +571,7 @@ impl CallMagic for ArraySubscriptAssign {
         Ok(assign_target)
       }
       _ => {
-        Err(Error::TooManyArgs(call.function, args.len()))
+        Err(Error::new(ErrorF::TooManyArgs(call.function, args.len()), pos))
       }
     }
   }
@@ -588,7 +588,7 @@ impl CallMagic for ElementOf {
     let mut args = strip_st(args);
     match args.len() {
       0 | 1 => {
-        Err(Error::TooFewArgs(call.function, args.len()))
+        Err(Error::new(ErrorF::TooFewArgs(call.function, args.len()), pos))
       }
       2 => {
         let arr = args.pop().expect("Internal error in ElementOf");
@@ -596,7 +596,7 @@ impl CallMagic for ElementOf {
         Ok(Expr::new(ExprF::Binary(Box::new(value), op::BinaryOp::In, Box::new(arr)), pos))
       }
       _ => {
-        Err(Error::TooManyArgs(call.function, args.len()))
+        Err(Error::new(ErrorF::TooManyArgs(call.function, args.len()), pos))
       }
     }
   }
@@ -613,7 +613,7 @@ impl CallMagic for InstanceOf {
     let mut args = strip_st(args);
     match args.len() {
       0 | 1 => {
-        Err(Error::TooFewArgs(call.function, args.len()))
+        Err(Error::new(ErrorF::TooFewArgs(call.function, args.len()), pos))
       }
       2 => {
         let type_ = args.pop().expect("Internal error in InstanceOf");
@@ -621,7 +621,7 @@ impl CallMagic for InstanceOf {
         Ok(Expr::new(ExprF::Binary(Box::new(value), op::BinaryOp::Is, Box::new(type_)), pos))
       }
       _ => {
-        Err(Error::TooManyArgs(call.function, args.len()))
+        Err(Error::new(ErrorF::TooManyArgs(call.function, args.len()), pos))
       }
     }
   }

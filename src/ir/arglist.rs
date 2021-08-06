@@ -3,6 +3,7 @@ use crate::gdscript::arglist::ArgList as GDArgList;
 use crate::compile::names::fresh::FreshNameGenerator;
 use crate::compile::symbol_table::function_call::FnSpecs;
 use crate::sxp::ast::{AST, ASTF};
+use crate::pipeline::source::{SourceOffset, Sourced};
 
 use std::convert::{TryFrom, TryInto};
 use std::borrow::Borrow;
@@ -25,11 +26,17 @@ pub struct SimpleArgList {
 pub enum VarArg { RestArg, ArrArg }
 
 #[derive(Debug, Clone, Eq, PartialEq)]
-pub enum ArgListParseError {
+pub enum ArgListParseErrorF {
   InvalidArgument(AST),
   UnknownDirective(String),
   DirectiveOutOfOrder(String),
   ModifiersNotAllowed,
+}
+
+#[derive(Debug, Clone, Eq, PartialEq)]
+pub struct ArgListParseError {
+  pub value: ArgListParseErrorF,
+  pub pos: SourceOffset,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -109,6 +116,7 @@ impl ArgList {
     let mut opt = Vec::new();
     let mut rest = None;
     for arg in args {
+      let pos = arg.pos;
       if let ASTF::Symbol(arg) = &arg.value {
         if arg.starts_with('&') {
           match arg.borrow() {
@@ -116,25 +124,25 @@ impl ArgList {
               if state < ParseState::Optional {
                 state = ParseState::Optional;
               } else {
-                return Err(ArgListParseError::DirectiveOutOfOrder(arg.to_owned()));
+                return Err(ArgListParseError::new(ArgListParseErrorF::DirectiveOutOfOrder(arg.to_owned()), pos));
               }
             }
             "&rest" => {
               if state < ParseState::Rest {
                 state = ParseState::Rest;
               } else {
-                return Err(ArgListParseError::DirectiveOutOfOrder(arg.to_owned()));
+                return Err(ArgListParseError::new(ArgListParseErrorF::DirectiveOutOfOrder(arg.to_owned()), pos));
               }
             }
             "&arr" => {
               if state < ParseState::Arr {
                 state = ParseState::Arr;
               } else {
-                return Err(ArgListParseError::DirectiveOutOfOrder(arg.to_owned()));
+                return Err(ArgListParseError::new(ArgListParseErrorF::DirectiveOutOfOrder(arg.to_owned()), pos));
               }
             }
             _ => {
-              return Err(ArgListParseError::UnknownDirective(arg.to_owned()));
+              return Err(ArgListParseError::new(ArgListParseErrorF::UnknownDirective(arg.to_owned()), pos));
             }
           }
           continue;
@@ -144,13 +152,13 @@ impl ArgList {
         ParseState::Required => {
           match &arg.value {
             ASTF::Symbol(s) => req.push(s.to_owned()),
-            _ => return Err(ArgListParseError::InvalidArgument(arg.clone())),
+            _ => return Err(ArgListParseError::new(ArgListParseErrorF::InvalidArgument(arg.clone()), pos)),
           }
         }
         ParseState::Optional => {
           match &arg.value {
             ASTF::Symbol(s) => opt.push(s.to_owned()),
-            _ => return Err(ArgListParseError::InvalidArgument(arg.clone())),
+            _ => return Err(ArgListParseError::new(ArgListParseErrorF::InvalidArgument(arg.clone()), pos)),
           }
         }
         ParseState::Rest => {
@@ -159,7 +167,7 @@ impl ArgList {
               rest = Some((s.to_owned(), VarArg::RestArg));
               state = ParseState::RestInvalid;
             },
-            _ => return Err(ArgListParseError::InvalidArgument(arg.clone())),
+            _ => return Err(ArgListParseError::new(ArgListParseErrorF::InvalidArgument(arg.clone()), pos)),
           }
         }
         ParseState::Arr => {
@@ -168,11 +176,11 @@ impl ArgList {
               rest = Some((s.to_owned(), VarArg::ArrArg));
               state = ParseState::RestInvalid;
             },
-            _ => return Err(ArgListParseError::InvalidArgument(arg.clone())),
+            _ => return Err(ArgListParseError::new(ArgListParseErrorF::InvalidArgument(arg.clone()), pos)),
           }
         }
         ParseState::RestInvalid => {
-          return Err(ArgListParseError::InvalidArgument(arg.clone()));
+          return Err(ArgListParseError::new(ArgListParseErrorF::InvalidArgument(arg.clone()), pos));
         }
       }
     }
@@ -224,11 +232,11 @@ impl SimpleArgList {
     self.args.iter().map(|x| x.borrow())
   }
 
-  pub fn parse<'a>(args: impl IntoIterator<Item = &'a AST>)
+  pub fn parse<'a>(args: impl IntoIterator<Item = &'a AST>, pos: SourceOffset)
                    -> Result<SimpleArgList, ArgListParseError> {
-    ArgList::parse(args).and_then(
-      SimpleArgList::try_from
-    )
+    ArgList::parse(args).and_then(|arglist| {
+      SimpleArgList::try_from(arglist).map_err(|err| ArgListParseError::new(err, pos))
+    })
   }
 
 }
@@ -254,35 +262,54 @@ impl From<SimpleArgList> for ArgList {
 }
 
 impl TryFrom<ArgList> for SimpleArgList {
-  type Error = ArgListParseError;
+  type Error = ArgListParseErrorF;
 
   fn try_from(arglist: ArgList) -> Result<Self, Self::Error> {
     if arglist.optional_args.is_empty() && arglist.rest_arg.is_none() {
       Ok(SimpleArgList { args: arglist.required_args })
     } else {
-      Err(ArgListParseError::ModifiersNotAllowed)
+      Err(ArgListParseErrorF::ModifiersNotAllowed)
     }
   }
 
 }
 
+impl ArgListParseError {
+  pub fn new(value: ArgListParseErrorF, pos: SourceOffset) -> ArgListParseError {
+    ArgListParseError { value, pos }
+  }
+}
+
 impl fmt::Display for ArgListParseError {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-    match self {
-      ArgListParseError::InvalidArgument(ast) => {
+    match &self.value {
+      ArgListParseErrorF::InvalidArgument(ast) => {
         write!(f, "Invalid arglist argument {}", ast)
       }
-      ArgListParseError::UnknownDirective(s) => {
+      ArgListParseErrorF::UnknownDirective(s) => {
         write!(f, "Unknown arglist directive {}", s)
       }
-      ArgListParseError::DirectiveOutOfOrder(s) => {
+      ArgListParseErrorF::DirectiveOutOfOrder(s) => {
         write!(f, "Arglist directive appeared out of order {}", s)
       }
-      ArgListParseError::ModifiersNotAllowed => {
+      ArgListParseErrorF::ModifiersNotAllowed => {
         write!(f, "Arglist modifiers not allowed in this context")
       }
     }
   }
+}
+
+impl Sourced for ArgListParseError {
+  type Item = ArgListParseErrorF;
+
+  fn get_source(&self) -> SourceOffset {
+    self.pos
+  }
+
+  fn get_value(&self) -> &ArgListParseErrorF {
+    &self.value
+  }
+
 }
 
 #[cfg(test)]

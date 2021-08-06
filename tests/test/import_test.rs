@@ -9,8 +9,9 @@ use super::common::import::MockFileLoader;
 use super::common::dummy_config;
 
 use gdlisp::pipeline::Pipeline;
+use gdlisp::compile::error::{Error as GDError, ErrorF as GDErrorF};
 use gdlisp::pipeline::error::{Error as PError};
-use gdlisp::compile::error::{Error as GDError};
+use gdlisp::pipeline::source::SourceOffset;
 
 fn setup_simple_file_loader(loader: &mut MockFileLoader) {
   loader.add_file("example.lisp", "(defn one () 1) (defn two () 2)");
@@ -80,7 +81,7 @@ fn restricted_import_test_failed() {
       (use "res://example.lisp" (one))
       (two)
     "#),
-    Err(PError::from(GDError::NoSuchFn(String::from("two")))),
+    Err(PError::from(GDError::new(GDErrorF::NoSuchFn(String::from("two")), SourceOffset(46)))),
   );
 }
 
@@ -105,7 +106,7 @@ fn restricted_import_alias_test_failed() {
       (use "res://example.lisp" ((one as my-one)))
       (one)
     "#),
-    Err(PError::from(GDError::NoSuchFn(String::from("one")))),
+    Err(PError::from(GDError::new(GDErrorF::NoSuchFn(String::from("one")), SourceOffset(58)))),
   );
 }
 
@@ -131,7 +132,7 @@ fn nonexistent_import_test() {
     load_and_output_simple_file_err(r#"
       (use "res://example.lisp" (nonexistent-function-name))
     "#),
-    Err(PError::from(GDError::NoSuchFn(String::from("nonexistent-function-name")))),
+    Err(PError::from(GDError::new(GDErrorF::NoSuchFn(String::from("nonexistent-function-name")), SourceOffset(33)))),
   );
 }
 
@@ -269,7 +270,7 @@ fn import_declare_test_failed_1() {
   let mut pipeline = Pipeline::with_resolver(dummy_config(), Box::new(loader));
   assert_eq!(
     pipeline.load_file("main.lisp").map(|_| ()),
-    Err(PError::from(GDError::NoSuchVar(String::from("a")))),
+    Err(PError::from(GDError::new(GDErrorF::NoSuchVar(String::from("a")), SourceOffset(26)))),
   );
 }
 
@@ -282,7 +283,7 @@ fn import_declare_test_failed_2() {
   let mut pipeline = Pipeline::with_resolver(dummy_config(), Box::new(loader));
   assert_eq!(
     pipeline.load_file("main.lisp").map(|_| ()),
-    Err(PError::from(GDError::NoSuchFn(String::from("a")))),
+    Err(PError::from(GDError::new(GDErrorF::NoSuchFn(String::from("a")), SourceOffset(21)))),
   );
 }
 
@@ -340,7 +341,7 @@ fn private_fn_import_test_3() {
   let mut pipeline = Pipeline::with_resolver(dummy_config(), Box::new(loader));
   assert_eq!(
     pipeline.load_file("main.lisp").map(|_| ()),
-    Err(PError::from(GDError::NoSuchFn(String::from("foo")))),
+    Err(PError::from(GDError::new(GDErrorF::NoSuchFn(String::from("foo")), SourceOffset(27)))),
   );
 }
 
@@ -353,7 +354,7 @@ fn private_fn_import_test_4() {
   let mut pipeline = Pipeline::with_resolver(dummy_config(), Box::new(loader));
   assert_eq!(
     pipeline.load_file("main.lisp").map(|_| ()),
-    Err(PError::from(GDError::NoSuchFn(String::from("foo")))),
+    Err(PError::from(GDError::new(GDErrorF::NoSuchFn(String::from("foo")), SourceOffset(21)))),
   );
 }
 
@@ -381,7 +382,7 @@ fn private_macro_import_test() {
   let mut pipeline = Pipeline::with_resolver(dummy_config(), Box::new(loader));
   assert_eq!(
     pipeline.load_file("main.lisp").map(|_| ()),
-    Err(PError::from(GDError::NoSuchFn(String::from("foo")))),
+    Err(PError::from(GDError::new(GDErrorF::NoSuchFn(String::from("foo")), SourceOffset(21)))),
   );
 }
 
@@ -409,7 +410,7 @@ fn private_const_import_test() {
   let mut pipeline = Pipeline::with_resolver(dummy_config(), Box::new(loader));
   assert_eq!(
     pipeline.load_file("main.lisp").map(|_| ()),
-    Err(PError::from(GDError::NoSuchFn(String::from("foo")))),
+    Err(PError::from(GDError::new(GDErrorF::NoSuchFn(String::from("foo")), SourceOffset(21)))),
   );
 }
 
@@ -437,7 +438,7 @@ fn private_enum_import_test() {
   let mut pipeline = Pipeline::with_resolver(dummy_config(), Box::new(loader));
   assert_eq!(
     pipeline.load_file("main.lisp").map(|_| ()),
-    Err(PError::from(GDError::NoSuchFn(String::from("foo")))),
+    Err(PError::from(GDError::new(GDErrorF::NoSuchFn(String::from("foo")), SourceOffset(21)))),
   );
 }
 
@@ -480,7 +481,7 @@ fn private_class_import_test_1() {
   let mut pipeline = Pipeline::with_resolver(dummy_config(), Box::new(loader));
   assert_eq!(
     pipeline.load_file("main.lisp").map(|_| ()),
-    Err(PError::from(GDError::NoSuchFn(String::from("foo")))),
+    Err(PError::from(GDError::new(GDErrorF::NoSuchFn(String::from("foo")), SourceOffset(21)))),
   );
 }
 
@@ -493,6 +494,6 @@ fn private_class_import_test_2() {
   let mut pipeline = Pipeline::with_resolver(dummy_config(), Box::new(loader));
   assert_eq!(
     pipeline.load_file("main.lisp").map(|_| ()),
-    Err(PError::from(GDError::NoSuchFn(String::from("foo")))),
+    Err(PError::from(GDError::new(GDErrorF::NoSuchFn(String::from("foo")), SourceOffset(21)))),
   );
 }

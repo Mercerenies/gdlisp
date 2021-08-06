@@ -1,6 +1,7 @@
 
-use gdlisp::compile::error::{Error as GDError};
+use gdlisp::compile::error::{Error as GDError, ErrorF as GDErrorF};
 use gdlisp::pipeline::error::{Error as PError};
+use gdlisp::pipeline::source::SourceOffset;
 
 use super::common::*;
 
@@ -21,9 +22,10 @@ pub fn progn_tests() {
 
 #[test]
 pub fn nonexistent_assignment_test() {
+  // TODO SourceOffset here points to 0 but should probably point to nonexistent-var (5)
   assert_eq!(
     parse_compile_and_output_err("(set nonexistent-var 0)"),
-    Err(PError::from(GDError::NoSuchVar(String::from("nonexistent-var")))),
+    Err(PError::from(GDError::new(GDErrorF::NoSuchVar(String::from("nonexistent-var")), SourceOffset(21)))),
   );
 }
 
@@ -83,7 +85,7 @@ pub fn slot_assign_test_2() {
 pub fn assign_to_self_test() {
   assert_eq!(
     parse_compile_decl_err("((defclass Foo (Node) (defn _init () (set self 1))))"),
-    Err(PError::from(GDError::CannotAssignTo(String::from("self")))),
+    Err(PError::from(GDError::new(GDErrorF::CannotAssignTo(String::from("self")), SourceOffset(47)))),
   );
 }
 
@@ -91,7 +93,7 @@ pub fn assign_to_self_test() {
 pub fn assign_to_const_test() {
   assert_eq!(
     parse_compile_decl_err("((defconst CONSTANT 1) (set CONSTANT 2))"),
-    Err(PError::from(GDError::CannotAssignTo(String::from("CONSTANT")))),
+    Err(PError::from(GDError::new(GDErrorF::CannotAssignTo(String::from("CONSTANT")), SourceOffset(37)))),
   );
 }
 

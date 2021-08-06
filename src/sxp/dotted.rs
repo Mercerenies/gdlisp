@@ -8,6 +8,7 @@
 //! vector and a terminator.
 
 use super::ast::{AST, ASTF};
+use crate::pipeline::source::SourceOffset;
 
 use std::convert::TryFrom;
 
@@ -27,7 +28,9 @@ pub struct DottedExpr<'a> {
 
 /// The type of errors produced by [`TryFrom::<DottedExpr>::try_from`].
 #[derive(Clone, Copy, Eq, PartialEq, Debug)]
-pub struct TryFromDottedExprError {}
+pub struct TryFromDottedExprError {
+  pub pos: SourceOffset,
+}
 
 fn accumulate_ast<'a>(vec: &mut Vec<&'a AST>, ast: &'a AST) -> &'a AST {
   match &ast.value {
@@ -76,7 +79,7 @@ impl<'a> TryFrom<DottedExpr<'a>> for Vec<&'a AST> {
     if expr.terminal.value == ASTF::Nil {
       Ok(expr.elements)
     } else {
-      Err(TryFromDottedExprError {})
+      Err(TryFromDottedExprError { pos: expr.terminal.pos })
     }
   }
 

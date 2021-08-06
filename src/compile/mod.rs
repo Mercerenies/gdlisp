@@ -23,7 +23,7 @@ use crate::gdscript::op;
 use crate::gdscript::library;
 use crate::gdscript::arglist::ArgList;
 use crate::gdscript::inner_class::{self, NeedsOuterClassRef};
-use error::Error;
+use error::{Error, ErrorF};
 use stmt_wrapper::StmtWrapper;
 use symbol_table::{HasSymbolTable, SymbolTable, ClassTablePair};
 use symbol_table::local_var::{LocalVar, ValueHint};
@@ -116,7 +116,7 @@ impl<'a> Compiler<'a> {
     // into many helper functions, probably over multiple files.
     match &expr.value {
       IRExprF::LocalVar(s) => {
-        table.get_var(s).ok_or_else(|| Error::NoSuchVar(s.clone())).map(|var| {
+        table.get_var(s).ok_or_else(|| Error::new(ErrorF::NoSuchVar(s.clone()), expr.pos)).map(|var| {
           StExpr { expr: var.expr(expr.pos), side_effects: SideEffects::from(var.access_type) }
         })
       }
@@ -149,12 +149,12 @@ impl<'a> Compiler<'a> {
       }
       IRExprF::Call(f, args) => {
         let (fcall, call_magic) = match table.get_fn(f) {
-          None => return Err(Error::NoSuchFn(f.clone())),
+          None => return Err(Error::new(ErrorF::NoSuchFn(f.clone()), expr.pos)),
           Some((p, m)) => (p.clone(), dyn_clone::clone_box(m))
         };
         // Macro calls should not occur at this stage in compilation.
         if fcall.is_macro {
-          return Err(Error::MacroBeforeDefinitionError(f.clone()));
+          return Err(Error::new(ErrorF::MacroBeforeDefinitionError(f.clone()), expr.pos));
         }
         // Call magic is used to implement some commonly used wrappers
         // for simple GDScript operations.
@@ -197,15 +197,15 @@ impl<'a> Compiler<'a> {
       IRExprF::FuncRef(name) => {
         match name {
           FuncRefTarget::SimpleName(name) => {
-            let func = table.get_fn(name).ok_or_else(|| Error::NoSuchFn(name.clone()))?.0.clone();
+            let func = table.get_fn(name).ok_or_else(|| Error::new(ErrorF::NoSuchFn(name.clone()), expr.pos))?.0.clone();
             lambda::compile_function_ref(self, pipeline, builder, table, func, expr.pos)
           }
         }
       }
       IRExprF::Assign(AssignTarget::Variable(name), expr) => {
-        let var = table.get_var(name).ok_or_else(|| Error::NoSuchVar(name.clone()))?.to_owned();
+        let var = table.get_var(name).ok_or_else(|| Error::new(ErrorF::NoSuchVar(name.clone()), expr.pos))?.to_owned();
         if !var.assignable {
-          return Err(Error::CannotAssignTo(var.name.to_gd(expr.pos)));
+          return Err(Error::new(ErrorF::CannotAssignTo(var.name.to_gd(expr.pos)), expr.pos));
         }
         self.compile_stmt(pipeline, builder, table, &stmt_wrapper::AssignToExpr(var.expr(expr.pos)), expr)?;
         Ok(StExpr { expr: var.expr(expr.pos), side_effects: SideEffects::from(var.access_type) })
@@ -262,7 +262,7 @@ impl<'a> Compiler<'a> {
             if let Some(ValueHint::Enum(vs)) = value_hint {
               // It's an enum and we know its values; validate
               if !vs.contains(&names::lisp_to_gd(sym)) {
-                return Err(Error::NoSuchEnumValue(lhs.clone(), sym.clone()));
+                return Err(Error::new(ErrorF::NoSuchEnumValue(lhs.clone(), sym.clone()), expr.pos));
               }
             }
           }
@@ -333,7 +333,7 @@ impl<'a> Compiler<'a> {
     if stmts.is_empty() && decls.is_empty() {
       Ok(value)
     } else {
-      Err(Error::NotConstantEnough(String::from(src_name)))
+      Err(Error::new(ErrorF::NotConstantEnough(String::from(src_name)), expr.pos))
     }
   }
 
@@ -388,8 +388,8 @@ impl<'a> Compiler<'a> {
       }
       IRDeclF::ClassDecl(ir::decl::ClassDecl { visibility: _, name, extends, main_class, constructor, decls }) => {
         let gd_name = names::lisp_to_gd(&name);
-        let extends = table.get_var(&extends).ok_or_else(|| Error::NoSuchVar(extends.clone()))?.name.clone();
-        let extends = ClassExtends::try_from(extends)?;
+        let extends = table.get_var(&extends).ok_or_else(|| Error::new(ErrorF::NoSuchVar(extends.clone()), decl.pos))?.name.clone();
+        let extends = ClassExtends::try_from(extends).map_err(|x| Error::from_value(x, decl.pos))?;
         let class = self.declare_class(pipeline, builder, table, gd_name, extends, *main_class, constructor, decls, decl.pos)?;
         if *main_class {
           self.flatten_class_into_main(builder, class);
@@ -622,7 +622,7 @@ impl<'a> Compiler<'a> {
             // If a call magic declaration was specified, it MUST
             // exist or it's a compile error.
             match magic_table.get(m) {
-              None => return Err(Error::NoSuchMagic(m.to_owned())),
+              None => return Err(Error::new(ErrorF::NoSuchMagic(m.to_owned()), decl.pos)),
               Some(magic) => dyn_clone::clone_box(magic),
             }
           }
@@ -707,7 +707,7 @@ impl<'a> Compiler<'a> {
       if path.path().extension() == Some(OsStr::new("lisp")) {
         path.path_mut().set_extension("gd");
       }
-      let path = self.resolver.resolve_preload(&path).ok_or_else(|| Error::NoSuchFile(path.clone()))?;
+      let path = self.resolver.resolve_preload(&path).ok_or_else(|| Error::new(ErrorF::NoSuchFile(path.clone()), pos))?;
       Ok(Decl::new(
         DeclF::ConstDecl(var, Expr::call(None, "preload", vec!(Expr::from_value(path, pos)), pos)),
         pos,
@@ -764,12 +764,12 @@ impl<'a> Compiler<'a> {
         let ImportName { namespace: namespace, in_name: import_name, out_name: export_name } = imp;
         match namespace {
           Namespace::Function => {
-            let (call, _) = unit_table.get_fn(&export_name).ok_or(Error::NoSuchFn(export_name))?;
+            let (call, _) = unit_table.get_fn(&export_name).ok_or(Error::new(ErrorF::NoSuchFn(export_name), import.pos))?;
             let call = Compiler::translate_call(preload_name.clone(), call.clone());
             table.set_fn(import_name.clone(), call, Box::new(DefaultCall));
           }
           Namespace::Value => {
-            let mut var = unit_table.get_var(&export_name).ok_or(Error::NoSuchVar(export_name))?.clone();
+            let mut var = unit_table.get_var(&export_name).ok_or(Error::new(ErrorF::NoSuchVar(export_name), import.pos))?.clone();
             var.name = var.name.into_imported(preload_name.clone());
             table.set_var(import_name.clone(), var);
           }
@@ -779,14 +779,14 @@ impl<'a> Compiler<'a> {
       // If it was a restricted import list, validate the import names
       if let ImportDetails::Restricted(vec) = &import.details {
         for imp in vec {
-          imp.refine(exports).map_err(Error::from)?;
+          imp.refine(exports).map_err(|x| Error::from_value(x, import.pos))?;
         }
       }
     } else {
       // Simple resource import
       let name = match &import.details {
         ImportDetails::Named(s) => s.to_owned(),
-        _ => return Err(PError::from(Error::InvalidImportOnResource(import.filename.to_string()))),
+        _ => return Err(PError::from(Error::new(ErrorF::InvalidImportOnResource(import.filename.to_string()), import.pos))),
       };
       let var = LocalVar::file_constant(preload_name);
       // TODO Value hint? It would have to be based on the file extension / what resource type it is.

@@ -1,9 +1,9 @@
 
 use crate::compile::error::{Error as GDError};
+use crate::pipeline::source::SourceOffset;
 use crate::sxp::dotted::TryFromDottedExprError;
 use crate::ir::arglist::ArgListParseError;
 use crate::ir::modifier::{ParseError as ModifierParseError};
-use crate::pipeline::source::SourceOffset;
 
 use lalrpop_util::ParseError;
 

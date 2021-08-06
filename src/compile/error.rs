@@ -10,6 +10,7 @@ use crate::ir::modifier::{ParseError as ModifierParseError};
 use crate::compile::symbol_table::local_var::VarNameIntoExtendsError;
 use crate::runner::path::RPathBuf;
 use crate::runner::macro_server::response;
+use crate::pipeline::source::{SourceOffset, Sourced};
 
 use std::fmt;
 
@@ -26,7 +27,7 @@ use std::fmt;
 /// [`crate::pipeline::error`] for an error type which includes this
 /// one and is more general.
 #[derive(PartialEq, Eq, Debug)]
-pub enum Error {
+pub enum ErrorF {
   DottedListError,
   ArgListParseError(ArgListParseError),
   ImportDeclParseError(ImportDeclParseError),
@@ -59,160 +60,214 @@ pub enum Error {
   MacroBeforeDefinitionError(String),
 }
 
+/// Variant of [`ErrorF`] with source offset information. See
+/// [`Sourced`].
+#[derive(PartialEq, Eq, Debug)]
+pub struct Error {
+  pub value: ErrorF,
+  pub pos: SourceOffset,
+}
+
 const INTERNAL_ERROR_NOTE: &str = "Note: Unless you're doing something really strange, you should probably report this as a compiler bug";
+
+impl Error {
+
+  pub fn new(value: ErrorF, pos: SourceOffset) -> Error {
+    Error { value, pos }
+  }
+
+  pub fn from_value<T>(value: T, pos: SourceOffset) -> Error
+  where ErrorF: From<T> {
+    Error::new(ErrorF::from(value), pos)
+  }
+
+}
 
 impl fmt::Display for Error {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-    match self {
-      Error::DottedListError => {
+    match &self.value {
+      ErrorF::DottedListError => {
         write!(f, "Unexpected dotted list")
       }
-      Error::ArgListParseError(err) => {
+      ErrorF::ArgListParseError(err) => {
         write!(f, "{}", err)
       }
-      Error::ImportDeclParseError(err) => {
+      ErrorF::ImportDeclParseError(err) => {
         write!(f, "{}", err)
       }
-      Error::CannotCall(ast) => {
+      ErrorF::CannotCall(ast) => {
         write!(f, "Cannot make function call on expression {}", ast)
       }
-      Error::TooFewArgs(name, _) => {
+      ErrorF::TooFewArgs(name, _) => {
         write!(f, "Too few arguments to call {}", name)
       }
-      Error::TooManyArgs(name, _) => {
+      ErrorF::TooManyArgs(name, _) => {
         write!(f, "Too many arguments to call {}", name)
       }
-      Error::InvalidArg(name, provided, expected) => {
+      ErrorF::InvalidArg(name, provided, expected) => {
         write!(f, "Invalid argument to {}, given {}, expecting {}", name, provided, expected)
       }
-      Error::NoSuchVar(name) => {
+      ErrorF::NoSuchVar(name) => {
         write!(f, "No such variable {}", name)
       }
-      Error::NoSuchFn(name) => {
+      ErrorF::NoSuchFn(name) => {
         write!(f, "No such function {}", name)
       }
-      Error::NoSuchEnumValue(name, subname) => {
+      ErrorF::NoSuchEnumValue(name, subname) => {
         write!(f, "No such enum value {}:{}", name, subname)
       }
-      Error::NoSuchMagic(name) => {
+      ErrorF::NoSuchMagic(name) => {
         write!(f, "No such call magic {} ({})", name, INTERNAL_ERROR_NOTE)
       }
-      Error::UnknownDecl(ast) => {
+      ErrorF::UnknownDecl(ast) => {
         write!(f, "Unknown declaration {}", ast)
       }
-      Error::InvalidDecl(ast) => {
+      ErrorF::InvalidDecl(ast) => {
         write!(f, "Invalid declaration {}", ast)
       }
-      Error::UnquoteOutsideQuasiquote => {
+      ErrorF::UnquoteOutsideQuasiquote => {
         write!(f, "Unquote (,) can only be used inside quasiquote (`)")
       }
-      Error::UnquoteSplicedOutsideQuasiquote => {
+      ErrorF::UnquoteSplicedOutsideQuasiquote => {
         write!(f, "Spliced unquote (,.) can only be used inside quasiquote (`)")
       }
-      Error::BadUnquoteSpliced(ast) => {
+      ErrorF::BadUnquoteSpliced(ast) => {
         write!(f, "Spliced unquote (,.) does not make sense in this context: {}", ast)
       }
-      Error::NoSuchFile(p) => {
+      ErrorF::NoSuchFile(p) => {
         write!(f, "Cannot locate file {}", p)
       }
-      Error::AmbiguousNamespace(s) => {
+      ErrorF::AmbiguousNamespace(s) => {
         write!(f, "Ambiguous namespace when importing {}", s)
       }
-      Error::NotConstantEnough(s) => {
+      ErrorF::NotConstantEnough(s) => {
         write!(f, "Expression for constant declaration {} is not constant enough", s)
       }
-      Error::CannotAssignTo(s) => {
+      ErrorF::CannotAssignTo(s) => {
         write!(f, "Cannot assign to immutable variable {}", s)
       }
-      Error::CannotExtend(s) => {
+      ErrorF::CannotExtend(s) => {
         write!(f, "Cannot extend expression {}", s)
       }
-      Error::ExportOnInnerClassVar(v) => {
+      ErrorF::ExportOnInnerClassVar(v) => {
         write!(f, "Export declarations can only be used on a file's main class, but one was found on {}", v)
       }
-      Error::ResourceDoesNotExist(s) => {
+      ErrorF::ResourceDoesNotExist(s) => {
         write!(f, "Resource {} does not exist", s)
       }
-      Error::InvalidImportOnResource(s) => {
+      ErrorF::InvalidImportOnResource(s) => {
         write!(f, "Cannot use restricted or open import lists on resource import at {}", s)
       }
-      Error::GodotServerError(err) => {
+      ErrorF::GodotServerError(err) => {
         write!(f, "Error during Godot server task execution (error code {}): {}", err.error_code, err.error_string)
       }
-      Error::StaticConstructor => {
+      ErrorF::StaticConstructor => {
         write!(f, "Class constructors cannot be static")
       }
-      Error::StaticMethodOnLambdaClass(s) => {
+      ErrorF::StaticMethodOnLambdaClass(s) => {
         write!(f, "Static method {} is not allowed on anonymous class instance", s)
       }
-      Error::ModifierParseError(m) => {
+      ErrorF::ModifierParseError(m) => {
         write!(f, "Modifier error: {}", m)
       }
-      Error::MacroInMinimalistError(m) => {
+      ErrorF::MacroInMinimalistError(m) => {
         write!(f, "Attempt to expand macro {} in minimalist file ({})", m, INTERNAL_ERROR_NOTE)
       }
-      Error::MacroBeforeDefinitionError(m) => {
+      ErrorF::MacroBeforeDefinitionError(m) => {
         write!(f, "Attempt to use macro {} before definition was available", m)
       }
     }
   }
 }
 
+impl Sourced for Error {
+  type Item = ErrorF;
+
+  fn get_source(&self) -> SourceOffset {
+    self.pos
+  }
+
+  fn get_value(&self) -> &ErrorF {
+    &self.value
+  }
+
+}
+
+impl From<sxp::dotted::TryFromDottedExprError> for ErrorF {
+  fn from(_: sxp::dotted::TryFromDottedExprError) -> ErrorF {
+    ErrorF::DottedListError
+  }
+}
+
 impl From<sxp::dotted::TryFromDottedExprError> for Error {
-  fn from(_: sxp::dotted::TryFromDottedExprError) -> Error {
-    Error::DottedListError
+  fn from(err: sxp::dotted::TryFromDottedExprError) -> Error {
+    Error::new(ErrorF::DottedListError, err.pos)
+  }
+}
+
+impl From<ArgListParseError> for ErrorF {
+  fn from(err: ArgListParseError) -> ErrorF {
+    ErrorF::ArgListParseError(err)
   }
 }
 
 impl From<ArgListParseError> for Error {
   fn from(err: ArgListParseError) -> Error {
-    Error::ArgListParseError(err)
+    let pos = err.pos;
+    Error::new(ErrorF::from(err), pos)
   }
 }
 
-impl From<ImportDeclParseError> for Error {
-  fn from(err: ImportDeclParseError) -> Error {
-    Error::ImportDeclParseError(err)
+impl From<ImportDeclParseError> for ErrorF {
+  fn from(err: ImportDeclParseError) -> ErrorF {
+    ErrorF::ImportDeclParseError(err)
   }
 }
 
-impl From<ImportNameResolutionError> for Error {
-  fn from(err: ImportNameResolutionError) -> Error {
+impl From<ImportNameResolutionError> for ErrorF {
+  fn from(err: ImportNameResolutionError) -> ErrorF {
     match err {
       ImportNameResolutionError::UnknownName(id) => {
         match id.namespace {
-          Namespace::Function => Error::NoSuchFn(id.name),
-          Namespace::Value => Error::NoSuchVar(id.name),
+          Namespace::Function => ErrorF::NoSuchFn(id.name),
+          Namespace::Value => ErrorF::NoSuchVar(id.name),
         }
       }
       ImportNameResolutionError::AmbiguousNamespace(s) => {
-        Error::AmbiguousNamespace(s)
+        ErrorF::AmbiguousNamespace(s)
       }
     }
   }
 }
 
-impl From<VarNameIntoExtendsError> for Error {
-  fn from(err: VarNameIntoExtendsError) -> Error {
+impl From<VarNameIntoExtendsError> for ErrorF {
+  fn from(err: VarNameIntoExtendsError) -> ErrorF {
     match err {
       VarNameIntoExtendsError::CannotExtendLocal(s) => {
-        Error::CannotExtend(s)
+        ErrorF::CannotExtend(s)
       }
       VarNameIntoExtendsError::CannotExtendCurrentFile(s) => {
-        Error::CannotExtend(s)
+        ErrorF::CannotExtend(s)
       }
     }
   }
 }
 
-impl From<response::Failure> for Error {
-  fn from(err: response::Failure) -> Error {
-    Error::GodotServerError(err)
+impl From<response::Failure> for ErrorF {
+  fn from(err: response::Failure) -> ErrorF {
+    ErrorF::GodotServerError(err)
+  }
+}
+
+impl From<ModifierParseError> for ErrorF {
+  fn from(err: ModifierParseError) -> ErrorF {
+    ErrorF::ModifierParseError(err)
   }
 }
 
 impl From<ModifierParseError> for Error {
   fn from(err: ModifierParseError) -> Error {
-    Error::ModifierParseError(err)
+    let pos = err.pos;
+    Error::new(ErrorF::from(err), pos)
   }
 }

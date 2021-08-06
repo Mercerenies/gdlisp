@@ -1,7 +1,7 @@
 
 use crate::ir;
 use crate::ir::expr::LambdaClass;
-use crate::compile::error::Error;
+use crate::compile::error::{Error, ErrorF};
 use crate::compile::Compiler;
 use crate::compile::stateful::{SideEffects, StExpr, NeedsResult};
 use crate::compile::body::builder::StmtBuilder;
@@ -26,12 +26,12 @@ pub fn compile_lambda_class<'a>(compiler: &mut Compiler<'a>,
   let LambdaClass { extends, args: constructor_args, constructor, decls } = class.clone();
 
   // Validate the extends declaration (must be a global variable)
-  let extends_var = table.get_var(&extends).ok_or_else(|| Error::NoSuchVar(extends.clone()))?;
+  let extends_var = table.get_var(&extends).ok_or_else(|| Error::new(ErrorF::NoSuchVar(extends.clone()), pos))?;
   if extends_var.scope != VarScope::GlobalVar {
-    return Err(Error::CannotExtend(extends.clone()));
+    return Err(Error::new(ErrorF::CannotExtend(extends.clone()), pos));
   }
   let extends = extends_var.name.clone();
-  let extends = decl::ClassExtends::try_from(extends)?;
+  let extends = decl::ClassExtends::try_from(extends).map_err(|x| Error::from_value(x, pos))?;
 
   // New GD name
   let gd_class_name = compiler.name_generator().generate_with("_AnonymousClass");
@@ -57,12 +57,12 @@ pub fn compile_lambda_class<'a>(compiler: &mut Compiler<'a>,
 
   lambda::purge_globals(&mut closure_vars, table);
 
-  lambda::locally_bind_vars(compiler, table, &mut lambda_table, closure_vars.names())?;
-  lambda::locally_bind_fns(compiler, pipeline, table, &mut lambda_table, closure_fns.names(), false, &outer_ref_name)?;
+  lambda::locally_bind_vars(compiler, table, &mut lambda_table, closure_vars.names(), pos)?;
+  lambda::locally_bind_fns(compiler, pipeline, table, &mut lambda_table, closure_fns.names(), pos, false, &outer_ref_name)?;
   lambda::copy_global_vars(table, &mut lambda_table);
 
-  lambda::locally_bind_vars(compiler, table, &mut lambda_static_table, closure_vars.names())?;
-  lambda::locally_bind_fns(compiler, pipeline, table, &mut lambda_static_table, closure_fns.names(), true, &outer_ref_name)?;
+  lambda::locally_bind_vars(compiler, table, &mut lambda_static_table, closure_vars.names(), pos)?;
+  lambda::locally_bind_fns(compiler, pipeline, table, &mut lambda_static_table, closure_fns.names(), pos, true, &outer_ref_name)?;
   lambda::copy_global_vars(table, &mut lambda_static_table);
 
   let mut gd_src_closure_vars = Vec::new();
@@ -83,7 +83,7 @@ pub fn compile_lambda_class<'a>(compiler: &mut Compiler<'a>,
   }
   for func in closure_fns.names() {
     match table.get_fn(func) {
-      None => { return Err(Error::NoSuchFn(func.to_owned())) }
+      None => { return Err(Error::new(ErrorF::NoSuchFn(func.to_owned()), pos)) }
       Some((call, _)) => {
         if let Some(var) = lambda::closure_fn_to_gd_var(call) {
           gd_closure_vars.push(var.to_owned());
@@ -110,7 +110,7 @@ pub fn compile_lambda_class<'a>(compiler: &mut Compiler<'a>,
     if let ir::decl::ClassInnerDeclF::ClassFnDecl(fndecl) = &d.value {
       if fndecl.is_static.into() {
         // Static methods are not allowed on lambda classes
-        return Err(Error::StaticMethodOnLambdaClass(fndecl.name.clone()));
+        return Err(Error::new(ErrorF::StaticMethodOnLambdaClass(fndecl.name.clone()), d.pos));
       }
     }
 

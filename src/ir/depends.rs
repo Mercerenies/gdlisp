@@ -1,7 +1,7 @@
 
 use super::declaration_table::DeclarationTable;
 use super::identifier::{IdLike, Id, Namespace};
-use crate::compile::error::Error;
+use crate::compile::error::ErrorF;
 
 use std::collections::HashSet;
 
@@ -77,13 +77,13 @@ impl Dependencies {
 
 }
 
-impl From<DependencyError> for Error {
-  fn from(e: DependencyError) -> Error {
+impl From<DependencyError> for ErrorF {
+  fn from(e: DependencyError) -> ErrorF {
     match e {
       DependencyError::UnknownName(id) => {
         match id.namespace {
-          Namespace::Function => Error::NoSuchFn(id.name),
-          Namespace::Value => Error::NoSuchVar(id.name),
+          Namespace::Function => ErrorF::NoSuchFn(id.name),
+          Namespace::Value => ErrorF::NoSuchVar(id.name),
         }
       }
     }

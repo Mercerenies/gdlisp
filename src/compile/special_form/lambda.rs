@@ -9,7 +9,7 @@ use crate::compile::symbol_table::local_var::{LocalVar, VarScope, VarName};
 use crate::compile::symbol_table::function_call::{FnCall, FnSpecs, FnScope, FnName};
 use crate::compile::symbol_table::call_magic::DefaultCall;
 use crate::compile::stmt_wrapper;
-use crate::compile::error::Error;
+use crate::compile::error::{Error, ErrorF};
 use crate::compile::stateful::SideEffects;
 use crate::compile::names;
 use crate::gdscript::stmt::{Stmt, StmtF};
@@ -82,8 +82,8 @@ pub fn compile_labels_scc<'a>(compiler: &mut Compiler<'a>,
   purge_globals(&mut closure_vars, table);
 
   let mut lambda_table = SymbolTable::new();
-  locally_bind_vars(compiler, table, &mut lambda_table, closure_vars.names())?;
-  locally_bind_fns(compiler, pipeline, table, &mut lambda_table, closure_fns.names(), false, &outer_ref_name)?;
+  locally_bind_vars(compiler, table, &mut lambda_table, closure_vars.names(), pos)?;
+  locally_bind_fns(compiler, pipeline, table, &mut lambda_table, closure_fns.names(), pos, false, &outer_ref_name)?;
   copy_global_vars(table, &mut lambda_table);
 
   let mut gd_src_closure_vars = Vec::new();
@@ -104,7 +104,7 @@ pub fn compile_labels_scc<'a>(compiler: &mut Compiler<'a>,
   }
   for func in closure_fns.names() {
     match table.get_fn(func) {
-      None => { return Err(Error::NoSuchFn(func.to_owned())) }
+      None => { return Err(Error::new(ErrorF::NoSuchFn(func.to_owned()), pos)) }
       Some((call, _)) => {
         if let Some(var) = closure_fn_to_gd_var(call) {
           gd_closure_vars.push(var.to_owned());
@@ -198,7 +198,8 @@ pub fn compile_labels_scc<'a>(compiler: &mut Compiler<'a>,
 pub fn locally_bind_vars<'a, 'b, I, U>(compiler: &mut Compiler<'b>,
                                        table: &SymbolTable,
                                        lambda_table: &mut SymbolTable,
-                                       closure_vars: I)
+                                       closure_vars: I,
+                                       pos: SourceOffset)
                                        -> Result<(), Error>
 where I : Iterator<Item=&'a U>,
       U : Borrow<str>,
@@ -207,7 +208,7 @@ where I : Iterator<Item=&'a U>,
   for var in closure_vars {
     // Ensure the variable actually exists
     match table.get_var(var.borrow()) {
-      None => return Err(Error::NoSuchVar(var.borrow().to_owned())),
+      None => return Err(Error::new(ErrorF::NoSuchVar(var.borrow().to_owned()), pos)),
       Some(gdvar) => {
         let mut new_var = gdvar.to_owned();
         // Ad-hoc rule for closing around self (TODO Generalize?)
@@ -226,6 +227,7 @@ pub fn locally_bind_fns<'a, 'b, I, U, L>(compiler: &mut Compiler<'b>,
                                          table: &SymbolTable,
                                          lambda_table: &mut SymbolTable,
                                          closure_fns: I,
+                                         pos: SourceOffset,
                                          static_binding: bool,
                                          outer_reference_name: &str)
                                          -> Result<(), Error>
@@ -237,7 +239,7 @@ where I : Iterator<Item=&'a U>,
   for func in closure_fns {
     // Ensure the function actually exists
     match table.get_fn(func.borrow()) {
-      None => { return Err(Error::NoSuchFn(func.borrow().to_owned())) }
+      None => { return Err(Error::new(ErrorF::NoSuchFn(func.borrow().to_owned()), pos)) }
       Some((call, magic)) => {
         let mut call = call.clone();
         call.object.update_for_inner_scope(static_binding, compiler.preload_resolver(), pipeline, &outer_reference_name);
@@ -300,8 +302,8 @@ pub fn compile_lambda_stmt<'a>(compiler: &mut Compiler<'a>,
   // No need to close around global variables, as they're available everywhere
   purge_globals(&mut closure_vars, table);
 
-  locally_bind_vars(compiler, table, &mut lambda_table, closure_vars.names())?;
-  locally_bind_fns(compiler, pipeline, table, &mut lambda_table, closure_fns.names(), false, &outer_ref_name)?;
+  locally_bind_vars(compiler, table, &mut lambda_table, closure_vars.names(), pos)?;
+  locally_bind_fns(compiler, pipeline, table, &mut lambda_table, closure_fns.names(), pos, false, &outer_ref_name)?;
   copy_global_vars(table, &mut lambda_table);
 
   let mut gd_src_closure_vars = Vec::new();
@@ -322,7 +324,7 @@ pub fn compile_lambda_stmt<'a>(compiler: &mut Compiler<'a>,
   }
   for func in closure_fns.names() {
     match table.get_fn(func) {
-      None => { return Err(Error::NoSuchFn(func.to_owned())) }
+      None => { return Err(Error::new(ErrorF::NoSuchFn(func.to_owned()), pos)) }
       Some((call, _)) => {
         if let Some(var) = closure_fn_to_gd_var(call) {
           gd_closure_vars.push(var.to_owned());

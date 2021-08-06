@@ -17,6 +17,7 @@ pub mod file;
 pub mod declare;
 
 use crate::sxp::ast::{AST, ASTF};
+use crate::pipeline::source::{SourceOffset, Sourced};
 
 use std::fmt;
 
@@ -72,7 +73,7 @@ pub struct Unique<R> {
 /// parsing, it is assumed to be critical and immediately fails the
 /// entire parse, regardless of alternatives.
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub enum ParseError {
+pub enum ParseErrorF {
   /// A `UniquenessError` occurs when a parser wrapped in [`Unique`]
   /// triggers successfully twice in the same parse. This error is
   /// fatal.
@@ -83,6 +84,12 @@ pub enum ParseError {
   /// Generic error which is triggered when a [`Several`] exhausts its
   /// options.
   ExhaustedAlternatives,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ParseError {
+  pub value: ParseErrorF,
+  pub pos: SourceOffset,
 }
 
 /// A [`ParseRule`] takes an [`AST`] and attempts to parse it as a
@@ -149,27 +156,44 @@ pub trait ParseRule {
 
 impl ParseError {
 
+  pub fn new(value: ParseErrorF, pos: SourceOffset) -> ParseError {
+    ParseError { value, pos }
+  }
+
   /// Fatal errors should abort the entire parse process, not allowing
   /// any alternatives to run. Non-fatal errors allow alternative
   /// parse attempts to be run.
   pub fn is_fatal(&self) -> bool {
-    match self {
-      ParseError::UniquenessError(_) => true,
-      ParseError::Expecting(_, _) => false,
-      ParseError::ExhaustedAlternatives => false,
+    match &self.value {
+      ParseErrorF::UniquenessError(_) => true,
+      ParseErrorF::Expecting(_, _) => false,
+      ParseErrorF::ExhaustedAlternatives => false,
     }
+  }
+
+}
+
+impl Sourced for ParseError {
+  type Item = ParseErrorF;
+
+  fn get_source(&self) -> SourceOffset {
+    self.pos
+  }
+
+  fn get_value(&self) -> &ParseErrorF {
+    &self.value
   }
 
 }
 
 impl fmt::Display for ParseError {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-    match self {
-      ParseError::UniquenessError(e) =>
+    match &self.value {
+      ParseErrorF::UniquenessError(e) =>
         write!(f, "Got duplicate modifiers for {}, expecting at most one", e),
-      ParseError::Expecting(expected, actual) =>
+      ParseErrorF::Expecting(expected, actual) =>
         write!(f, "Expecting modifier '{}', found {}", expected, actual),
-      ParseError::ExhaustedAlternatives =>
+      ParseErrorF::ExhaustedAlternatives =>
         write!(f, "Invalid modifier, no alternatives matched"),
     }
   }
@@ -193,7 +217,7 @@ impl<M> ParseRule for Constant<M> where M: Clone {
         return Ok(self.result.clone());
       }
     }
-    Err(ParseError::Expecting(self.symbol_value.clone(), ast.clone()))
+    Err(ParseError::new(ParseErrorF::Expecting(self.symbol_value.clone(), ast.clone()), ast.pos))
   }
 
   fn name(&self) -> &str {
@@ -233,7 +257,7 @@ impl<'a, M> ParseRule for Several<'a, M> {
         }
       }
     }
-    Err(ParseError::ExhaustedAlternatives)
+    Err(ParseError::new(ParseErrorF::ExhaustedAlternatives, ast.pos))
   }
 
   fn name(&self) -> &str {
@@ -265,7 +289,7 @@ where R : ParseRule {
   fn parse_once(&mut self, ast: &AST) -> Result<Self::Modifier, ParseError> {
     let result = self.rule.parse_once(ast)?;
     if self.triggered {
-      Err(ParseError::UniquenessError(self.name().to_owned()))
+      Err(ParseError::new(ParseErrorF::UniquenessError(self.name().to_owned()), ast.pos))
     } else {
       self.triggered = true;
       Ok(result)
