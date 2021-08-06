@@ -1,6 +1,6 @@
 
 use super::ExpressionLevelPass;
-use crate::gdscript::expr::{self, Expr};
+use crate::gdscript::expr::{self, Expr, ExprF};
 use crate::gdscript::op;
 use crate::compile::error::Error;
 use super::constant;
@@ -13,14 +13,14 @@ impl ExpressionLevelPass for BasicMathOps {
     // (TODO Expand this)
 
     // Negation on constant
-    if let Expr::Unary(op::UnaryOp::Not, inner) = &expr {
+    if let ExprF::Unary(op::UnaryOp::Not, inner) = &expr.value {
       if let Some(b) = constant::deduce_bool(inner) {
-        expr = Expr::from(!b);
+        expr = Expr::from_value(!b, expr.pos);
       }
     }
 
     // Ternary if on constant
-    if let Expr::TernaryIf(if_expr) = &expr {
+    if let ExprF::TernaryIf(if_expr) = &expr.value {
       let expr::TernaryIf { true_case, cond, false_case } = if_expr.clone();
       if let Some(b) = constant::deduce_bool(&cond) {
         expr = if b { *true_case } else { *false_case };
@@ -29,8 +29,8 @@ impl ExpressionLevelPass for BasicMathOps {
 
     // Double negation elimination (TODO Maybe only in if statements;
     // it does technically Booleanize at least)
-    if let Expr::Unary(op::UnaryOp::Not, outer) = &expr {
-      if let Expr::Unary(op::UnaryOp::Not, inner) = &**outer {
+    if let ExprF::Unary(op::UnaryOp::Not, outer) = &expr.value {
+      if let ExprF::Unary(op::UnaryOp::Not, inner) = &outer.value {
         expr = (**inner).clone();
       }
     }

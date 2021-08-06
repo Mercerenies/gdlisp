@@ -58,7 +58,7 @@ impl IncCompiler {
     }
   }
 
-  fn resolve_macro_call(&mut self, pipeline: &mut Pipeline, head: &str, tail: &[&AST])
+  fn resolve_macro_call(&mut self, pipeline: &mut Pipeline, head: &str, tail: &[&AST], pos: SourceOffset)
                         -> Result<AST, PError> {
     match self.macros.get(head) {
       Some(MacroData { id, .. }) => {
@@ -71,7 +71,7 @@ impl IncCompiler {
         let server = pipeline.get_server_mut();
         server.set_global_name_generator(&self.names)?;
 
-        let ast = server.run_server_file(*id, args);
+        let ast = server.run_server_file(*id, args, pos);
 
         server.reset_global_name_generator()?;
 
@@ -93,7 +93,7 @@ impl IncCompiler {
       if let CallName::SimpleName(head) = head {
         let tail = &vec[1..];
         if self.macros.get(&head).is_some() {
-          return self.resolve_macro_call(pipeline, &head, tail).map(Some);
+          return self.resolve_macro_call(pipeline, &head, tail, ast.pos).map(Some);
         }
       }
     }
@@ -117,7 +117,7 @@ impl IncCompiler {
     if let Some(sf) = special_form::dispatch_form(self, pipeline, head, tail, pos)? {
       Ok(sf)
     } else if self.macros.get(head).is_some() {
-      let result = self.resolve_macro_call(pipeline, head, tail)?;
+      let result = self.resolve_macro_call(pipeline, head, tail, pos)?;
       self.compile_expr(pipeline, &result)
     } else {
       let args = tail.iter().map(|x| self.compile_expr(pipeline, x)).collect::<Result<Vec<_>, _>>()?;

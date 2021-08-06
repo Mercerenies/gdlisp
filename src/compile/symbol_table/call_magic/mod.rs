@@ -27,7 +27,7 @@ pub mod table;
 
 use dyn_clone::{self, DynClone};
 
-use crate::gdscript::expr::Expr;
+use crate::gdscript::expr::{Expr, ExprF};
 use crate::gdscript::stmt::Stmt;
 use crate::gdscript::op;
 use crate::gdscript::library;
@@ -39,6 +39,7 @@ use crate::compile::stateful::StExpr;
 use crate::compile::stmt_wrapper::{self, StmtWrapper};
 use crate::ir::arglist::VarArg;
 use crate::util;
+use crate::pipeline::source::SourceOffset;
 use super::function_call::FnCall;
 use super::SymbolTable;
 
@@ -69,7 +70,8 @@ pub trait CallMagic : DynClone {
                  compiler: &mut Compiler<'a>,
                  builder: &mut StmtBuilder,
                  table: &mut SymbolTable,
-                 args: Vec<StExpr>) -> Result<Expr, Error>;
+                 args: Vec<StExpr>,
+                 pos: SourceOffset) -> Result<Expr, Error>;
 }
 
 dyn_clone::clone_trait_object!(CallMagic);
@@ -156,7 +158,7 @@ pub struct InstanceOf;
 /// `*`.
 #[derive(Clone)]
 pub struct CompileToBinOp {
-  pub zero: Expr,
+  pub zero: ExprF, // TODO Not perfect, given that using ExprF here restricts us to non-recursive values, but it'll do for now
   pub bin: op::BinaryOp,
   pub assoc: Assoc,
 }
@@ -208,7 +210,7 @@ fn strip_st(x: Vec<StExpr>) -> Vec<Expr> {
 /// padding which needs to be done to make the call correct on the
 /// GDScript call. This is called by [`DefaultCall::compile`] to
 /// perform its work.
-pub fn compile_default_call(call: FnCall, mut args: Vec<Expr>) -> Result<Expr, Error> {
+pub fn compile_default_call(call: FnCall, mut args: Vec<Expr>, pos: SourceOffset) -> Result<Expr, Error> {
   let FnCall { scope: _, object, function, specs, is_macro: _ } = call;
   // First, check arity
   if args.len() < specs.min_arity() as usize {
@@ -224,21 +226,21 @@ pub fn compile_default_call(call: FnCall, mut args: Vec<Expr>) -> Result<Expr, E
   };
   // Extend with nil
   while args.len() < (specs.required + specs.optional) as usize {
-    args.push(Expr::null());
+    args.push(Expr::null(pos));
   }
   match specs.rest {
     None => {
       assert!(rest.is_empty());
     }
     Some(VarArg::RestArg) => {
-      args.push(library::construct_list(rest));
+      args.push(library::construct_list(rest, pos));
     }
     Some(VarArg::ArrArg) => {
-      args.push(Expr::ArrayLit(rest));
+      args.push(Expr::new(ExprF::ArrayLit(rest), pos));
     }
   }
-  let object: Option<Expr> = object.into();
-  Ok(Expr::Call(object.map(Box::new), function, args))
+  let object: Option<Expr> = object.into_expr(pos);
+  Ok(Expr::new(ExprF::Call(object.map(Box::new), function, args), pos))
 }
 
 impl CallMagic for DefaultCall {
@@ -250,9 +252,10 @@ impl CallMagic for DefaultCall {
                  _compiler: &mut Compiler<'a>,
                  _builder: &mut StmtBuilder,
                  _table: &mut SymbolTable,
-                 args: Vec<StExpr>) -> Result<Expr, Error> {
+                 args: Vec<StExpr>,
+                 pos: SourceOffset) -> Result<Expr, Error> {
     let args = strip_st(args);
-    compile_default_call(call, args)
+    compile_default_call(call, args, pos)
   }
 }
 
@@ -262,17 +265,18 @@ impl CallMagic for CompileToBinOp {
                  _compiler: &mut Compiler<'a>,
                  _builder: &mut StmtBuilder,
                  _table: &mut SymbolTable,
-                 args: Vec<StExpr>) -> Result<Expr, Error> {
+                 args: Vec<StExpr>,
+                 pos: SourceOffset) -> Result<Expr, Error> {
     let args = strip_st(args);
     if args.is_empty() {
-      Ok(self.zero.clone())
+      Ok(Expr::new(self.zero.clone(), pos))
     } else {
       Ok(match self.assoc {
         Assoc::Left => {
-          util::fold1(args.into_iter(), |x, y| Expr::Binary(Box::new(x), self.bin, Box::new(y)))
+          util::fold1(args.into_iter(), |x, y| Expr::new(ExprF::Binary(Box::new(x), self.bin, Box::new(y)), pos))
         }
         Assoc::Right => {
-          util::fold1(args.into_iter().rev(), |x, y| Expr::Binary(Box::new(y), self.bin, Box::new(x)))
+          util::fold1(args.into_iter().rev(), |x, y| Expr::new(ExprF::Binary(Box::new(y), self.bin, Box::new(x)), pos))
         }
       }.unwrap())
     }
@@ -285,7 +289,8 @@ impl CallMagic for CompileToTransCmp {
                  compiler: &mut Compiler<'a>,
                  builder: &mut StmtBuilder,
                  _table: &mut SymbolTable,
-                 mut args: Vec<StExpr>) -> Result<Expr, Error> {
+                 mut args: Vec<StExpr>,
+                 pos: SourceOffset) -> Result<Expr, Error> {
     match args.len() {
       0 => {
         Err(Error::TooFewArgs(call.function, args.len()))
@@ -293,12 +298,12 @@ impl CallMagic for CompileToTransCmp {
       1 => {
         // Dump to the builder as a simple statement if it's stateful.
         (&stmt_wrapper::Vacuous).wrap_to_builder(builder, args[0].clone());
-        Ok(Expr::from(true))
+        Ok(Expr::from_value(true, pos))
       }
       2 => {
         let a = args.remove(0).expr;
         let b = args.remove(0).expr;
-        Ok(Expr::Binary(Box::new(a), self.bin, Box::new(b)))
+        Ok(Expr::new(ExprF::Binary(Box::new(a), self.bin, Box::new(b)), pos))
       }
       _ => {
         // We need to use several of the arguments twice, so any
@@ -310,17 +315,17 @@ impl CallMagic for CompileToTransCmp {
         let args = args.into_iter().map(|x| {
           let StExpr { expr, side_effects } = x;
           if side_effects.modifies_state() {
-            let var_name = compiler.declare_var(builder, "_cmp", Some(expr));
-            Expr::Var(var_name)
+            let var_name = compiler.declare_var(builder, "_cmp", Some(expr), pos);
+            Expr::new(ExprF::Var(var_name), pos)
           } else {
             expr
           }
         });
         let comparisons = util::each_pair(args).map(|(x, y)| {
-          Expr::Binary(Box::new(x), self.bin, Box::new(y))
+          Expr::new(ExprF::Binary(Box::new(x), self.bin, Box::new(y)), pos)
         });
         Ok(
-          util::fold1(comparisons, |x, y| Expr::Binary(Box::new(x), op::BinaryOp::And, Box::new(y))).unwrap()
+          util::fold1(comparisons, |x, y| Expr::new(ExprF::Binary(Box::new(x), op::BinaryOp::And, Box::new(y)), pos)).unwrap()
         )
       }
     }
@@ -333,14 +338,15 @@ impl CallMagic for MinusOperation {
                  _compiler: &mut Compiler<'a>,
                  _builder: &mut StmtBuilder,
                  _table: &mut SymbolTable,
-                 args: Vec<StExpr>) -> Result<Expr, Error> {
+                 args: Vec<StExpr>,
+                 pos: SourceOffset) -> Result<Expr, Error> {
     let args = strip_st(args);
     match args.len() {
       0 => Err(Error::TooFewArgs(call.function, args.len())),
-      1 => Ok(Expr::Unary(op::UnaryOp::Negate, Box::new(args[0].clone()))),
+      1 => Ok(Expr::new(ExprF::Unary(op::UnaryOp::Negate, Box::new(args[0].clone())), pos)),
       _ => {
         Ok(
-          util::fold1(args.into_iter(), |x, y| Expr::Binary(Box::new(x), op::BinaryOp::Sub, Box::new(y))).unwrap()
+          util::fold1(args.into_iter(), |x, y| Expr::new(ExprF::Binary(Box::new(x), op::BinaryOp::Sub, Box::new(y)), pos)).unwrap()
         )
       }
     }
@@ -353,17 +359,19 @@ impl CallMagic for DivOperation {
                  _compiler: &mut Compiler<'a>,
                  _builder: &mut StmtBuilder,
                  _table: &mut SymbolTable,
-                 args: Vec<StExpr>) -> Result<Expr, Error> {
+                 args: Vec<StExpr>,
+                 pos: SourceOffset) -> Result<Expr, Error> {
     let mut args = strip_st(args);
     match args.len() {
       0 => Err(Error::TooFewArgs(call.function, args.len())),
-      1 => Ok(Expr::Binary(Box::new(Expr::from(1)),
-                           op::BinaryOp::Div,
-                           Box::new(expr_wrapper::float(args[0].clone())))),
+      1 => Ok(Expr::new(ExprF::Binary(Box::new(Expr::from_value(1, pos)),
+                                      op::BinaryOp::Div,
+                                      Box::new(expr_wrapper::float(args[0].clone()))),
+                        pos)),
       _ => {
         let first = Box::new(args.remove(0));
         let result = args.into_iter().fold(first, |x, y| {
-          Box::new(Expr::Binary(x, op::BinaryOp::Div, Box::new(expr_wrapper::float(y))))
+          Box::new(Expr::new(ExprF::Binary(x, op::BinaryOp::Div, Box::new(expr_wrapper::float(y))), pos))
         });
         Ok(*result)
       }
@@ -381,17 +389,19 @@ impl CallMagic for IntDivOperation {
                  _compiler: &mut Compiler<'a>,
                  _builder: &mut StmtBuilder,
                  _table: &mut SymbolTable,
-                 args: Vec<StExpr>) -> Result<Expr, Error> {
+                 args: Vec<StExpr>,
+                 pos: SourceOffset) -> Result<Expr, Error> {
     let mut args = strip_st(args);
     match args.len() {
       0 => Err(Error::TooFewArgs(call.function, args.len())),
-      1 => Ok(Expr::Binary(Box::new(Expr::from(1)),
-                           op::BinaryOp::Div,
-                           Box::new(expr_wrapper::int(args[0].clone())))),
+      1 => Ok(Expr::new(ExprF::Binary(Box::new(Expr::from_value(1, pos)),
+                                      op::BinaryOp::Div,
+                                      Box::new(expr_wrapper::int(args[0].clone()))),
+                        pos)),
       _ => {
         let first = Box::new(args.remove(0));
         let result = args.into_iter().fold(first, |x, y| {
-          Box::new(Expr::Binary(x, op::BinaryOp::Div, Box::new(expr_wrapper::int(y))))
+          Box::new(Expr::new(ExprF::Binary(x, op::BinaryOp::Div, Box::new(expr_wrapper::int(y))), pos))
         });
         Ok(*result)
       }
@@ -405,7 +415,8 @@ impl CallMagic for ModOperation {
                  _compiler: &mut Compiler<'a>,
                  _builder: &mut StmtBuilder,
                  _table: &mut SymbolTable,
-                 args: Vec<StExpr>) -> Result<Expr, Error> {
+                 args: Vec<StExpr>,
+                 pos: SourceOffset) -> Result<Expr, Error> {
     let mut args = strip_st(args);
     if args.len() < 2 {
       return Err(Error::TooFewArgs(call.function, args.len()));
@@ -415,7 +426,7 @@ impl CallMagic for ModOperation {
     }
     let y = args.pop().expect("Internal error in VectorOperation");
     let x = args.pop().expect("Internal error in VectorOperation");
-    Ok(Expr::Binary(Box::new(x), op::BinaryOp::Mod, Box::new(y)))
+    Ok(Expr::new(ExprF::Binary(Box::new(x), op::BinaryOp::Mod, Box::new(y)), pos))
   }
 }
 
@@ -425,7 +436,8 @@ impl CallMagic for NEqOperation {
                  compiler: &mut Compiler<'a>,
                  builder: &mut StmtBuilder,
                  table: &mut SymbolTable,
-                 args: Vec<StExpr>) -> Result<Expr, Error> {
+                 args: Vec<StExpr>,
+                 pos: SourceOffset) -> Result<Expr, Error> {
     // We only optimize for the 0, 1, and 2 argument cases. Any more
     // arguments than that and the resulting expression would just be
     // long and annoying, and it's simply easier to call the built-in
@@ -437,13 +449,13 @@ impl CallMagic for NEqOperation {
       1 => {
         // Dump to the builder as a simple statement if it's stateful.
         (&stmt_wrapper::Vacuous).wrap_to_builder(builder, args[0].clone());
-        Ok(Expr::from(true))
+        Ok(Expr::from_value(true, pos))
       }
       2 => {
-        Ok(Expr::Binary(Box::new(args[0].expr.clone()), op::BinaryOp::NE, Box::new(args[1].expr.clone())))
+        Ok(Expr::new(ExprF::Binary(Box::new(args[0].expr.clone()), op::BinaryOp::NE, Box::new(args[1].expr.clone())), pos))
       }
       _ => {
-        self.fallback.compile(call, compiler, builder, table, args)
+        self.fallback.compile(call, compiler, builder, table, args, pos)
       }
     }
   }
@@ -455,12 +467,14 @@ impl CallMagic for BooleanNotOperation {
                  _compiler: &mut Compiler<'a>,
                  _builder: &mut StmtBuilder,
                  _table: &mut SymbolTable,
-                 args: Vec<StExpr>) -> Result<Expr, Error> {
+                 args: Vec<StExpr>,
+                 pos: SourceOffset) -> Result<Expr, Error> {
     let args = strip_st(args);
     match args.len() {
       0 => Err(Error::TooFewArgs(call.function, args.len())),
-      1 => Ok(Expr::Unary(op::UnaryOp::Not,
-                          Box::new(args[0].clone()))),
+      1 => Ok(Expr::new(ExprF::Unary(op::UnaryOp::Not,
+                                     Box::new(args[0].clone())),
+                        pos)),
       _ => Err(Error::TooManyArgs(call.function, args.len())),
     }
   }
@@ -472,9 +486,10 @@ impl CallMagic for ListOperation {
                  _compiler: &mut Compiler<'a>,
                  _builder: &mut StmtBuilder,
                  _table: &mut SymbolTable,
-                 args: Vec<StExpr>) -> Result<Expr, Error> {
+                 args: Vec<StExpr>,
+                 pos: SourceOffset) -> Result<Expr, Error> {
     let args = strip_st(args);
-    Ok(library::construct_list(args))
+    Ok(library::construct_list(args, pos))
   }
 }
 
@@ -484,7 +499,8 @@ impl CallMagic for VectorOperation {
                  _compiler: &mut Compiler<'a>,
                  _builder: &mut StmtBuilder,
                  _table: &mut SymbolTable,
-                 args: Vec<StExpr>) -> Result<Expr, Error> {
+                 args: Vec<StExpr>,
+                 pos: SourceOffset) -> Result<Expr, Error> {
     let mut args = strip_st(args);
     match args.len() {
       0 | 1 => {
@@ -493,13 +509,13 @@ impl CallMagic for VectorOperation {
       2 => {
         let y = args.pop().expect("Internal error in VectorOperation");
         let x = args.pop().expect("Internal error in VectorOperation");
-        Ok(Expr::Call(None, String::from("Vector2"), vec!(x, y)))
+        Ok(Expr::call(None, "Vector2", vec!(x, y), pos))
       }
       3 => {
         let z = args.pop().expect("Internal error in VectorOperation");
         let y = args.pop().expect("Internal error in VectorOperation");
         let x = args.pop().expect("Internal error in VectorOperation");
-        Ok(Expr::Call(None, String::from("Vector3"), vec!(x, y, z)))
+        Ok(Expr::call(None, "Vector3", vec!(x, y, z), pos))
       }
       _ => {
         Err(Error::TooManyArgs(call.function, args.len()))
@@ -514,7 +530,8 @@ impl CallMagic for ArraySubscript {
                  _compiler: &mut Compiler<'a>,
                  _builder: &mut StmtBuilder,
                  _table: &mut SymbolTable,
-                 args: Vec<StExpr>) -> Result<Expr, Error> {
+                 args: Vec<StExpr>,
+                 pos: SourceOffset) -> Result<Expr, Error> {
     let mut args = strip_st(args);
     match args.len() {
       0 | 1 => {
@@ -523,7 +540,7 @@ impl CallMagic for ArraySubscript {
       2 => {
         let n = args.pop().expect("Internal error in ArraySubscript");
         let arr = args.pop().expect("Internal error in ArraySubscript");
-        Ok(Expr::Subscript(Box::new(arr), Box::new(n)))
+        Ok(Expr::new(ExprF::Subscript(Box::new(arr), Box::new(n)), pos))
       }
       _ => {
         Err(Error::TooManyArgs(call.function, args.len()))
@@ -538,7 +555,8 @@ impl CallMagic for ArraySubscriptAssign {
                  _compiler: &mut Compiler<'a>,
                  builder: &mut StmtBuilder,
                  _table: &mut SymbolTable,
-                 args: Vec<StExpr>) -> Result<Expr, Error> {
+                 args: Vec<StExpr>,
+                 pos: SourceOffset) -> Result<Expr, Error> {
     let mut args = strip_st(args);
     match args.len() {
       0 | 1 | 2 => {
@@ -548,7 +566,7 @@ impl CallMagic for ArraySubscriptAssign {
         let n = args.pop().expect("Internal error in ArraySubscriptAssign");
         let arr = args.pop().expect("Internal error in ArraySubscriptAssign");
         let x = args.pop().expect("Internal error in ArraySubscriptAssign");
-        let assign_target = Expr::Subscript(Box::new(arr), Box::new(n));
+        let assign_target = Expr::new(ExprF::Subscript(Box::new(arr), Box::new(n)), pos);
         builder.append(Stmt::Assign(Box::new(assign_target.clone()), op::AssignOp::Eq, Box::new(x)));
         Ok(assign_target)
       }
@@ -565,7 +583,8 @@ impl CallMagic for ElementOf {
                  _compiler: &mut Compiler<'a>,
                  _builder: &mut StmtBuilder,
                  _table: &mut SymbolTable,
-                 args: Vec<StExpr>) -> Result<Expr, Error> {
+                 args: Vec<StExpr>,
+                 pos: SourceOffset) -> Result<Expr, Error> {
     let mut args = strip_st(args);
     match args.len() {
       0 | 1 => {
@@ -574,7 +593,7 @@ impl CallMagic for ElementOf {
       2 => {
         let arr = args.pop().expect("Internal error in ElementOf");
         let value = args.pop().expect("Internal error in ElementOf");
-        Ok(Expr::Binary(Box::new(value), op::BinaryOp::In, Box::new(arr)))
+        Ok(Expr::new(ExprF::Binary(Box::new(value), op::BinaryOp::In, Box::new(arr)), pos))
       }
       _ => {
         Err(Error::TooManyArgs(call.function, args.len()))
@@ -589,7 +608,8 @@ impl CallMagic for InstanceOf {
                  _compiler: &mut Compiler<'a>,
                  _builder: &mut StmtBuilder,
                  _table: &mut SymbolTable,
-                 args: Vec<StExpr>) -> Result<Expr, Error> {
+                 args: Vec<StExpr>,
+                 pos: SourceOffset) -> Result<Expr, Error> {
     let mut args = strip_st(args);
     match args.len() {
       0 | 1 => {
@@ -598,7 +618,7 @@ impl CallMagic for InstanceOf {
       2 => {
         let type_ = args.pop().expect("Internal error in InstanceOf");
         let value = args.pop().expect("Internal error in InstanceOf");
-        Ok(Expr::Binary(Box::new(value), op::BinaryOp::Is, Box::new(type_)))
+        Ok(Expr::new(ExprF::Binary(Box::new(value), op::BinaryOp::Is, Box::new(type_)), pos))
       }
       _ => {
         Err(Error::TooManyArgs(call.function, args.len()))

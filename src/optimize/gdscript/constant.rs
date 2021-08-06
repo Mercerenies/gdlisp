@@ -1,5 +1,5 @@
 
-use crate::gdscript::expr::{self, Expr};
+use crate::gdscript::expr::{self, Expr, ExprF};
 use crate::gdscript::stmt::Stmt;
 use crate::gdscript::literal::Literal;
 
@@ -7,8 +7,8 @@ use crate::gdscript::literal::Literal;
 // the expression that produces it. If we can't tell or if the
 // expression is stateful, then we return None.
 pub fn deduce_bool(expr: &Expr) -> Option<bool> {
-  match expr {
-    Expr::Literal(lit) => {
+  match &expr.value {
+    ExprF::Literal(lit) => {
       match lit {
         Literal::Int(n) => Some(*n != 0),
         Literal::Float(f) => Some(**f != 0.0),
@@ -39,24 +39,24 @@ pub fn stmt_has_side_effects(stmt: &Stmt) -> bool {
 }
 
 pub fn expr_has_side_effects(expr: &Expr) -> bool {
-  match expr {
-    Expr::Var(_) => false,
-    Expr::Literal(_) => false,
+  match &expr.value {
+    ExprF::Var(_) => false,
+    ExprF::Literal(_) => false,
     // Subscript is a bit questionable, because it can't call
     // arbitrary methods (only works in a predefined, simple way), but
     // it can err out if out of bounds.
-    Expr::Subscript(a, b) => expr_has_side_effects(&*a) || expr_has_side_effects(&*b),
+    ExprF::Subscript(a, b) => expr_has_side_effects(&*a) || expr_has_side_effects(&*b),
     // Attribute is questionable as well because setget can do method
     // calls.
-    Expr::Attribute(a, _) => expr_has_side_effects(&*a),
-    Expr::Call(_, _, _) => true,
-    Expr::SuperCall(_, _) => true,
-    Expr::Unary(_, e) => expr_has_side_effects(e),
-    Expr::Binary(a, _, b) => expr_has_side_effects(&*a) || expr_has_side_effects(&*b),
-    Expr::TernaryIf(expr::TernaryIf { true_case: a, cond: b, false_case: c }) =>
+    ExprF::Attribute(a, _) => expr_has_side_effects(&*a),
+    ExprF::Call(_, _, _) => true,
+    ExprF::SuperCall(_, _) => true,
+    ExprF::Unary(_, e) => expr_has_side_effects(e),
+    ExprF::Binary(a, _, b) => expr_has_side_effects(&*a) || expr_has_side_effects(&*b),
+    ExprF::TernaryIf(expr::TernaryIf { true_case: a, cond: b, false_case: c }) =>
       expr_has_side_effects(&*a) || expr_has_side_effects(&*b) || expr_has_side_effects(&*c),
-    Expr::ArrayLit(es) => es.iter().any(expr_has_side_effects),
-    Expr::DictionaryLit(es) => es.iter().any(|(k, v)| expr_has_side_effects(k) || expr_has_side_effects(v)),
+    ExprF::ArrayLit(es) => es.iter().any(expr_has_side_effects),
+    ExprF::DictionaryLit(es) => es.iter().any(|(k, v)| expr_has_side_effects(k) || expr_has_side_effects(v)),
   }
 }
 
@@ -65,39 +65,44 @@ pub fn expr_has_side_effects(expr: &Expr) -> bool {
 // that variable can be safely replaced with the value without
 // changing the behavior of the code.
 pub fn expr_is_constant(expr: &Expr) -> bool {
-  match expr {
-    Expr::Var(_) => false,
-    Expr::Literal(_) => true,
-    Expr::Subscript(_, _) => false,
-    Expr::Attribute(_, _) => false,
-    Expr::Call(_, _, _) => false,
-    Expr::SuperCall(_, _) => false,
-    Expr::Unary(_, e) => expr_is_constant(&*e),
-    Expr::Binary(a, _, b) => expr_is_constant(&*a) && expr_is_constant(&*b),
-    Expr::TernaryIf(expr::TernaryIf { true_case: a, cond: b, false_case: c }) =>
+  match &expr.value {
+    ExprF::Var(_) => false,
+    ExprF::Literal(_) => true,
+    ExprF::Subscript(_, _) => false,
+    ExprF::Attribute(_, _) => false,
+    ExprF::Call(_, _, _) => false,
+    ExprF::SuperCall(_, _) => false,
+    ExprF::Unary(_, e) => expr_is_constant(&*e),
+    ExprF::Binary(a, _, b) => expr_is_constant(&*a) && expr_is_constant(&*b),
+    ExprF::TernaryIf(expr::TernaryIf { true_case: a, cond: b, false_case: c }) =>
       expr_is_constant(&*a) && expr_is_constant(&*b) && expr_is_constant(&*c),
     // These two produce mutable values that cannot be blindly substituted
-    Expr::ArrayLit(_) => false,
-    Expr::DictionaryLit(_) => false,
+    ExprF::ArrayLit(_) => false,
+    ExprF::DictionaryLit(_) => false,
   }
 }
 
 #[cfg(test)]
 mod tests {
   use super::*;
+  use crate::pipeline::source::SourceOffset;
+
+  fn e(expr: ExprF) -> Expr {
+    Expr::new(expr, SourceOffset::default())
+  }
 
   #[test]
   fn literals_as_bool_test() {
-    assert_eq!(deduce_bool(&Expr::from(0)), Some(false));
-    assert_eq!(deduce_bool(&Expr::from(1)), Some(true));
-    assert_eq!(deduce_bool(&Expr::Literal(Literal::Null)), Some(false));
-    assert_eq!(deduce_bool(&Expr::from(true)), Some(true));
-    assert_eq!(deduce_bool(&Expr::from(false)), Some(false));
+    assert_eq!(deduce_bool(&e(ExprF::from(0))), Some(false));
+    assert_eq!(deduce_bool(&e(ExprF::from(1))), Some(true));
+    assert_eq!(deduce_bool(&e(ExprF::Literal(Literal::Null))), Some(false));
+    assert_eq!(deduce_bool(&e(ExprF::from(true))), Some(true));
+    assert_eq!(deduce_bool(&e(ExprF::from(false))), Some(false));
   }
 
   #[test]
   fn arbitrary_expr_as_bool_test() {
-    assert_eq!(deduce_bool(&Expr::var("some-variable")), None);
+    assert_eq!(deduce_bool(&Expr::var("some-variable", SourceOffset::default())), None);
   }
 
 }

@@ -1,7 +1,7 @@
 
 use crate::gdscript::op;
 use crate::gdscript::stmt::Stmt;
-use crate::gdscript::expr::Expr;
+use crate::gdscript::expr::{Expr, ExprF};
 
 #[derive(Clone, Debug)]
 pub struct AssignmentStmt<'a> {
@@ -24,7 +24,7 @@ impl<'a> AssignmentStmt<'a> {
         Some(AssignmentStmt { assign_type: AssignType::VarDecl, var_name, expr })
       }
       Stmt::Assign(var_name, op, expr) => {
-        if let Expr::Var(var_name) = &**var_name {
+        if let ExprF::Var(var_name) = &var_name.value {
           Some(AssignmentStmt { assign_type: AssignType::Assignment(*op), var_name, expr })
         } else {
            None
@@ -57,7 +57,7 @@ impl<'a> From<AssignmentStmt<'a>> for Stmt {
     let expr = expr.clone();
     match assign_type {
       AssignType::VarDecl => Stmt::VarDecl(var_name, expr),
-      AssignType::Assignment(op) => Stmt::Assign(Box::new(Expr::Var(var_name)), op, Box::new(expr)),
+      AssignType::Assignment(op) => Stmt::Assign(Box::new(Expr::var(&var_name, expr.pos)), op, Box::new(expr)),
     }
   }
 

@@ -1,11 +1,9 @@
 
 //! Provides the [`Reify`] trait.
 
-use crate::gdscript::expr::Expr;
+use crate::gdscript::expr::{Expr, ExprF};
 use crate::gdscript::library;
 use super::ast::{AST, ASTF};
-
-use ordered_float::OrderedFloat;
 
 /// This trait describes any type for which there is a reasonable way
 /// to convert a `&self` into [`crate::gdscript::expr::Expr`]. Note
@@ -16,60 +14,37 @@ pub trait Reify {
   fn reify(&self) -> Expr;
 }
 
-impl Reify for i32 {
-  fn reify(&self) -> Expr {
-    Expr::from(*self)
-  }
-}
-
-impl Reify for OrderedFloat<f32> {
-  fn reify(&self) -> Expr {
-    Expr::from(*self)
-  }
-}
-
-impl Reify for bool {
-  fn reify(&self) -> Expr {
-    Expr::from(*self)
-  }
-}
-
-impl Reify for String {
-  fn reify(&self) -> Expr {
-    Expr::from(self.to_owned())
-  }
-}
-
 impl Reify for AST {
 
   fn reify(&self) -> Expr {
     match &self.value {
       ASTF::Nil => {
-        Expr::null()
+        Expr::null(self.pos)
       }
       ASTF::Cons(a, b) => {
-        Expr::Call(Some(Box::new(library::gdlisp_root())), String::from("cons"), vec!(a.reify(), b.reify()))
+        Expr::call(Some(library::gdlisp_root(self.pos)), "cons", vec!(a.reify(), b.reify()), self.pos)
       }
       ASTF::Array(v) => {
-        Expr::ArrayLit(v.iter().map(Reify::reify).collect())
+        Expr::new(ExprF::ArrayLit(v.iter().map(Reify::reify).collect()), self.pos)
       }
       ASTF::Dictionary(vec) => {
-        Expr::DictionaryLit(vec.iter().map(|(k, v)| (k.reify(), v.reify())).collect())
+        Expr::new(ExprF::DictionaryLit(vec.iter().map(|(k, v)| (k.reify(), v.reify())).collect()), self.pos)
       }
       ASTF::Int(n) => {
-        n.reify()
+        Expr::from_value(*n, self.pos)
       }
       ASTF::Bool(b) => {
-        b.reify()
+        Expr::from_value(*b, self.pos)
       }
       ASTF::Float(f) => {
-        f.reify()
+        Expr::from_value(*f, self.pos)
       }
       ASTF::String(s) => {
-        s.reify()
+        Expr::from_value(s.to_owned(), self.pos)
       }
       ASTF::Symbol(s) => {
-        Expr::Call(Some(Box::new(library::gdlisp_root())), String::from("intern"), vec!(s.reify()))
+        let s = Expr::from_value(s.to_owned(), self.pos);
+        Expr::call(Some(library::gdlisp_root(self.pos)), "intern", vec!(s), self.pos)
       }
     }
   }

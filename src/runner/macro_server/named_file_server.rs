@@ -13,10 +13,11 @@ use crate::compile::names;
 use crate::compile::names::fresh::FreshNameGenerator;
 use crate::compile::symbol_table::function_call::{FnCall, FnScope, FnSpecs, FnName};
 use crate::compile::symbol_table::call_magic::compile_default_call;
-use crate::gdscript::expr::{Expr as GDExpr};
+use crate::gdscript::expr::{Expr as GDExpr, ExprF as GDExprF};
 use crate::gdscript::library;
 use crate::ir::arglist::ArgList;
 use crate::pipeline::error::{Error as PError};
+use crate::pipeline::source::SourceOffset;
 use crate::parser;
 use super::command::ServerCommand;
 use super::response;
@@ -176,17 +177,20 @@ impl NamedFileServer {
   /// must be the macro ID from a prior invocation of `stand_up_macro`
   /// or [`add_reserved_macro`](NamedFileServer::add_reserved_macro)
   /// on the same `NamedFileServer` instance.
-  pub fn run_server_file(&mut self, id: MacroID, args: Vec<GDExpr>)
+  pub fn run_server_file(&mut self, id: MacroID, args: Vec<GDExpr>, pos: SourceOffset)
                          -> Result<AST, PError> {
     let call = self.get_file(id).expect("Invalid MacroID in run_server_file");
     let specs = FnSpecs::from(call.parms.clone());
     let call_object =
       if id.is_reserved() {
-        library::gdlisp_root()
+        library::gdlisp_root(pos)
       } else {
-        GDExpr::Subscript(
-          Box::new(GDExpr::Attribute(Box::new(GDExpr::var("MAIN")), String::from("loaded_files"))),
-          Box::new(GDExpr::from(call.index as i32)),
+        GDExpr::new(
+          GDExprF::Subscript(
+            Box::new(GDExpr::attribute(GDExpr::var("MAIN", pos), "loaded_files", pos)),
+            Box::new(GDExpr::from_value(call.index as i32, pos)),
+          ),
+          pos,
         )
       };
     let call = FnCall {
@@ -196,12 +200,12 @@ impl NamedFileServer {
       specs: specs,
       is_macro: true,
     };
-    self.do_macro_call(call, args)
+    self.do_macro_call(call, args, pos)
   }
 
-  fn do_macro_call(&mut self, call: FnCall, args: Vec<GDExpr>) -> Result<AST, PError> {
+  fn do_macro_call(&mut self, call: FnCall, args: Vec<GDExpr>, pos: SourceOffset) -> Result<AST, PError> {
     let server = self.server.get_mut()?;
-    let eval_str = compile_default_call(call, args)?.to_gd();
+    let eval_str = compile_default_call(call, args, pos)?.to_gd();
     let result = response_to_string(server.issue_command(&ServerCommand::Eval(eval_str))?)?;
     let parser = parser::ASTParser::new();
     let parsed = parser.parse(&result)?;

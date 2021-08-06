@@ -15,10 +15,11 @@ use crate::compile::error::Error;
 use crate::compile::stateful::SideEffects;
 use crate::compile::names;
 use crate::gdscript::stmt::{self, Stmt};
-use crate::gdscript::expr::Expr;
+use crate::gdscript::expr::{Expr, ExprF};
 use crate::gdscript::literal::Literal;
 use crate::gdscript::op;
 use crate::pipeline::Pipeline;
+use crate::pipeline::source::SourceOffset;
 use crate::util;
 
 type IRExpr = ir::expr::Expr;
@@ -28,10 +29,11 @@ pub fn compile_cond_stmt<'a>(compiler: &mut Compiler<'a>,
                              builder: &mut StmtBuilder,
                              table: &mut SymbolTable,
                              clauses: &[(IRExpr, Option<IRExpr>)],
-                             needs_result: NeedsResult)
+                             needs_result: NeedsResult,
+                             pos: SourceOffset)
                              -> Result<StExpr, Error> {
-  let (destination, result) = needs_result.into_destination(compiler, builder, "_cond");
-  let init: Vec<Stmt> = util::option_to_vec(destination.wrap_to_stmt(Compiler::nil_expr()));
+  let (destination, result) = needs_result.into_destination(compiler, builder, "_cond", pos);
+  let init: Vec<Stmt> = util::option_to_vec(destination.wrap_to_stmt(Compiler::nil_expr(pos)));
   let body = clauses.iter().rev().fold(Ok(init), |acc: Result<_, Error>, curr| {
     let acc = acc?;
     let (cond, body) = curr;
@@ -40,11 +42,11 @@ pub fn compile_cond_stmt<'a>(compiler: &mut Compiler<'a>,
         let mut outer_builder = StmtBuilder::new();
         let mut inner_builder = StmtBuilder::new();
         let cond = compiler.compile_expr(pipeline, &mut outer_builder, table, cond, NeedsResult::Yes)?.expr;
-        let var_name = compiler.declare_var(&mut outer_builder, "_cond", Some(cond));
-        let var_expr = StExpr { expr: Expr::Var(var_name.clone()), side_effects: SideEffects::None };
+        let var_name = compiler.declare_var(&mut outer_builder, "_cond", Some(cond), pos);
+        let var_expr = StExpr { expr: Expr::new(ExprF::Var(var_name.clone()), pos), side_effects: SideEffects::None };
         destination.wrap_to_builder(&mut inner_builder, var_expr);
         let if_branch = inner_builder.build_into(builder);
-        outer_builder.append(stmt::if_else(Expr::Var(var_name), if_branch, acc));
+        outer_builder.append(stmt::if_else(Expr::new(ExprF::Var(var_name), pos), if_branch, acc));
         Ok(outer_builder.build_into(builder))
       }
       Some(body) => {
@@ -68,7 +70,8 @@ pub fn compile_while_stmt<'a>(compiler: &mut Compiler<'a>,
                               table: &mut SymbolTable,
                               cond: &IRExpr,
                               body: &IRExpr,
-                              _needs_result: NeedsResult)
+                              _needs_result: NeedsResult,
+                              pos: SourceOffset)
                               -> Result<StExpr, Error> {
   // If the condition fits in a single GDScript expression, then we'll
   // just compile straight to a GDScript while loop. If not, then we
@@ -84,14 +87,14 @@ pub fn compile_while_stmt<'a>(compiler: &mut Compiler<'a>,
   if !cond_body.is_empty() {
     // Compound while form
     body_builder.append_all(&mut cond_body.into_iter());
-    let inner_cond_expr = Expr::Unary(op::UnaryOp::Not, Box::new(cond_expr));
+    let inner_cond_expr = Expr::new(ExprF::Unary(op::UnaryOp::Not, Box::new(cond_expr)), pos);
     body_builder.append(stmt::if_then(inner_cond_expr, vec!(Stmt::BreakStmt)));
-    cond_expr = Expr::Literal(Literal::Bool(true));
+    cond_expr = Expr::new(ExprF::Literal(Literal::Bool(true)), pos);
   }
   compiler.compile_stmt(pipeline, &mut body_builder, table, &stmt_wrapper::Vacuous, body)?;
   let body = body_builder.build_into(builder);
   builder.append(Stmt::WhileLoop(stmt::WhileLoop { condition: cond_expr, body: body }));
-  Ok(Compiler::nil_expr())
+  Ok(Compiler::nil_expr(pos))
 }
 
 pub fn compile_for_stmt<'a>(compiler: &mut Compiler<'a>,
@@ -101,7 +104,8 @@ pub fn compile_for_stmt<'a>(compiler: &mut Compiler<'a>,
                             name: &str,
                             iter: &IRExpr,
                             body: &IRExpr,
-                            _needs_result: NeedsResult)
+                            _needs_result: NeedsResult,
+                            pos: SourceOffset)
                             -> Result<StExpr, Error> {
   let closure_vars = body.get_locals();
   let citer = compiler.compile_expr(pipeline, builder, table, iter, NeedsResult::Yes)?.expr;
@@ -113,18 +117,18 @@ pub fn compile_for_stmt<'a>(compiler: &mut Compiler<'a>,
   })?;
   let body = inner_builder.build_into(builder);
   builder.append(Stmt::ForLoop(stmt::ForLoop { iter_var: var_name, collection: citer, body: body }));
-  Ok(Compiler::nil_expr())
+  Ok(Compiler::nil_expr(pos))
 }
 
 /// A [`Stmt`] which assigns the value of the local variable
 /// `local_var` to the variable `inst_var` on the Godot `self` object.
-pub fn assign_to_compiler(inst_var: String, local_var: String) -> Stmt {
-  assign_expr_to_compiler(inst_var, Expr::Var(local_var))
+pub fn assign_to_compiler(inst_var: String, local_var: String, pos: SourceOffset) -> Stmt {
+  assign_expr_to_compiler(inst_var, Expr::new(ExprF::Var(local_var), pos))
 }
 
 /// A [`Stmt`] which assigns `expr` to the variable `inst_var` on the
 /// Godot `self` object.
 pub fn assign_expr_to_compiler(inst_var: String, expr: Expr) -> Stmt {
-  let self_target = Expr::self_var().attribute(inst_var);
+  let self_target = Expr::self_var(expr.pos).attribute(inst_var, expr.pos);
   Stmt::simple_assign(self_target, expr)
 }

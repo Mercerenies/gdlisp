@@ -1,5 +1,4 @@
 
-use crate::gdscript::expr::Expr;
 use crate::runner::path::RPathBuf;
 use super::Pipeline;
 
@@ -10,11 +9,6 @@ use super::Pipeline;
 // whole Pipeline in general.
 pub trait CanLoad {
   fn current_filename(&self) -> Option<RPathBuf>;
-  #[deprecated(note="Use current_filename and VarName::CurrentFile directly")]
-  fn load_expr(&self) -> Option<Expr> {
-    let filename = self.current_filename()?;
-    Some(Expr::Call(None, String::from("load"), vec!(Expr::from(filename.to_string()))))
-  }
 }
 
 impl CanLoad for Pipeline {

@@ -13,6 +13,7 @@ use crate::graph::Graph;
 use crate::graph::top_sort::top_sort;
 use crate::graph::tarjan;
 use crate::pipeline::Pipeline;
+use crate::pipeline::source::SourceOffset;
 use super::lambda;
 
 use std::convert::AsRef;
@@ -26,10 +27,11 @@ pub fn compile_flet<'a>(compiler: &mut Compiler<'a>,
                         table: &mut SymbolTable,
                         clauses: &[(String, IRArgList, IRExpr)],
                         body: &IRExpr,
-                        needs_result: NeedsResult)
+                        needs_result: NeedsResult,
+                        pos: SourceOffset)
                         -> Result<StExpr, Error> {
   let local_fns = clauses.iter().map(|(name, args, fbody)| {
-    let call = compile_flet_call(compiler, pipeline, builder, table, args.to_owned(), fbody)?;
+    let call = compile_flet_call(compiler, pipeline, builder, table, args.to_owned(), fbody, pos)?;
     Ok((name.to_owned(), call))
   }).collect::<Result<Vec<_>, Error>>()?;
   table.with_local_fns(&mut local_fns.into_iter(), |table| {
@@ -42,7 +44,8 @@ fn compile_flet_call<'a>(compiler: &mut Compiler<'a>,
                          builder: &mut StmtBuilder,
                          table: &mut SymbolTable,
                          args: IRArgList,
-                         body: &IRExpr)
+                         body: &IRExpr,
+                         pos: SourceOffset)
                          -> Result<FnCall, Error> {
   if is_declaration_semiglobal(&args, body, table) {
     // No closure vars and any closure fns (if there are any) are
@@ -60,8 +63,8 @@ fn compile_flet_call<'a>(compiler: &mut Compiler<'a>,
     })
   } else {
     // Have to make a full closure object.
-    let stmt = lambda::compile_lambda_stmt(compiler, pipeline, builder, table, &args, body)?.expr;
-    let local_name = compiler.declare_var(builder, "_flet", Some(stmt));
+    let stmt = lambda::compile_lambda_stmt(compiler, pipeline, builder, table, &args, body, pos)?.expr;
+    let local_name = compiler.declare_var(builder, "_flet", Some(stmt), pos);
     let specs = FnSpecs::from(args);
     Ok(FnCall {
       scope: FnScope::Local(local_name.clone()),
@@ -79,7 +82,8 @@ pub fn compile_labels<'a>(compiler: &mut Compiler<'a>,
                           table: &mut SymbolTable,
                           clauses: &[(String, IRArgList, IRExpr)],
                           body: &IRExpr,
-                          needs_result: NeedsResult)
+                          needs_result: NeedsResult,
+                          pos: SourceOffset)
                           -> Result<StExpr, Error> {
   // TODO This is rife with string cloning, because of the sloppy way
   // Graph is implemented. Once we fix Graph, we can eliminate some
@@ -98,16 +102,17 @@ pub fn compile_labels<'a>(compiler: &mut Compiler<'a>,
   let ordering: Vec<_> = top_sort(&collated_graph)
     .expect("SCC detection failed (cycle in resulting graph)")
     .into_iter().copied().collect();
-  compile_labels_rec(compiler, pipeline, builder, table, body, needs_result, clauses, &dependencies, &sccs, &collated_graph, &ordering[..], 0)
+  compile_labels_rec(compiler, pipeline, builder, table, body, needs_result, pos, clauses, &dependencies, &sccs, &collated_graph, &ordering[..], 0)
 }
 
-// TODO Really...? A twelve argument recursive function? Really...? Do better.
+// TODO Really...? A THIRTEEN argument recursive function? Really...? Do better.
 fn compile_labels_rec<'a, 'b>(compiler: &mut Compiler<'a>,
                               pipeline: &mut Pipeline,
                               builder: &mut StmtBuilder,
                               table: &mut SymbolTable,
                               body: &IRExpr,
                               needs_result: NeedsResult,
+                              pos: SourceOffset,
                               clauses: &[(String, IRArgList, IRExpr)],
                               full_graph: &Graph<String>,
                               sccs: &tarjan::SCCSummary<'b, String>,
@@ -120,16 +125,16 @@ fn compile_labels_rec<'a, 'b>(compiler: &mut Compiler<'a>,
     let tarjan::SCC(current_scc) = sccs.get_scc_by_id(current_scc_idx).expect("SCC detection failed (invalid ID)");
     if current_scc.is_empty() {
       // That's weird. But whatever. No action needed.
-      compile_labels_rec(compiler, pipeline, builder, table, body, needs_result, clauses, full_graph, sccs, graph, ordering, ordering_idx + 1)
+      compile_labels_rec(compiler, pipeline, builder, table, body, needs_result, pos, clauses, full_graph, sccs, graph, ordering, ordering_idx + 1)
     } else {
       let name = current_scc.iter().next().expect("Internal error in SCC detection (no first element?)");
       if current_scc.len() == 1 && !full_graph.has_edge(name, name) {
         // Simple FLet-like case.
         let name = current_scc.iter().next().expect("Internal error in SCC detection (no first element?)");
         let (_, args, expr) = clauses.iter().find(|(n, _, _)| &n == name).expect("Internal error in SCC detection (no function found?)");
-        let call = compile_flet_call(compiler, pipeline, builder, table, args.to_owned(), expr)?;
+        let call = compile_flet_call(compiler, pipeline, builder, table, args.to_owned(), expr, pos)?;
         table.with_local_fn((*name).to_owned(), call, |table| {
-          compile_labels_rec(compiler, pipeline, builder, table, body, needs_result, clauses, full_graph, sccs, graph, ordering, ordering_idx + 1)
+          compile_labels_rec(compiler, pipeline, builder, table, body, needs_result, pos, clauses, full_graph, sccs, graph, ordering, ordering_idx + 1)
         })
       } else {
         // Complicated mutual recursion case.
@@ -140,9 +145,9 @@ fn compile_labels_rec<'a, 'b>(compiler: &mut Compiler<'a>,
         }
         // Go ahead and sort them just so we guarantee a consistent order for testing purposes.
         relevant_clauses.sort_by_key(|(name, _, _)| name);
-        let calls = lambda::compile_labels_scc(compiler, pipeline, builder, table, &relevant_clauses[..])?;
+        let calls = lambda::compile_labels_scc(compiler, pipeline, builder, table, &relevant_clauses[..], pos)?;
         table.with_local_fns(&mut calls.into_iter(), |table| {
-          compile_labels_rec(compiler, pipeline, builder, table, body, needs_result, clauses, full_graph, sccs, graph, ordering, ordering_idx + 1)
+          compile_labels_rec(compiler, pipeline, builder, table, body, needs_result, pos, clauses, full_graph, sccs, graph, ordering, ordering_idx + 1)
         })
       }
     }

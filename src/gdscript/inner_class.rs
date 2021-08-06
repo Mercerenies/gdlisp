@@ -17,6 +17,7 @@
 
 use super::decl::{self, Decl};
 use crate::pipeline::can_load::CanLoad;
+use crate::pipeline::source::SourceOffset;
 use crate::compile::symbol_table::SymbolTable;
 use crate::compile::symbol_table::local_var::VarName;
 use crate::compile::symbol_table::function_call::FnName;
@@ -39,11 +40,11 @@ pub const OUTER_REFERENCE_NAME: &str = "__gdlisp_outer_class";
 /// variable with name `var_name` will be initialized on the instance
 /// to be equal to the enclosing class resource. This resource will be
 /// loaded using `load`. The path to load is determined by `resolver`.
-pub fn add_outer_class_ref_named(inner_class: &mut decl::ClassDecl, resolver: &dyn PreloadResolver, current_file: &impl CanLoad, var_name: String) {
+pub fn add_outer_class_ref_named(inner_class: &mut decl::ClassDecl, resolver: &dyn PreloadResolver, current_file: &impl CanLoad, var_name: String, pos: SourceOffset) {
   let current_filename = current_file.current_filename()
     .and_then(|fname| resolver.resolve_preload(&fname))
     .expect("Error identifying current file"); // TODO Expect
-  let load_expr = VarName::load_expr(current_filename);
+  let load_expr = VarName::load_expr(current_filename, pos);
   let var_decl = Decl::VarDecl(None, var_name, Some(load_expr));
   inner_class.body.push(var_decl);
 }

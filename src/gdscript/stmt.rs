@@ -228,44 +228,49 @@ impl Stmt {
 #[cfg(test)]
 mod tests {
   use super::*;
-  use crate::gdscript::expr::Expr;
+  use crate::gdscript::expr::{Expr, ExprF};
   use crate::gdscript::literal::Literal;
+  use crate::pipeline::source::SourceOffset;
 
   fn assign(a: &Expr, op: AssignOp, b: &Expr) -> Stmt {
     Stmt::Assign(Box::new(a.clone()), op, Box::new(b.clone()))
   }
 
+  fn e(expr: ExprF) -> Expr {
+    Expr::new(expr, SourceOffset::default())
+  }
+
   #[test]
   fn expr_stmt() {
-    assert_eq!(Stmt::Expr(Expr::Var(String::from("foobar"))).to_gd(0), "foobar\n");
-    assert_eq!(Stmt::Expr(Expr::from(9)).to_gd(0), "9\n");
+    assert_eq!(Stmt::Expr(e(ExprF::Var(String::from("foobar")))).to_gd(0), "foobar\n");
+    assert_eq!(Stmt::Expr(e(ExprF::from(9))).to_gd(0), "9\n");
   }
 
   #[test]
   fn basic_indent() {
-    assert_eq!(Stmt::Expr(Expr::Var(String::from("foobar"))).to_gd(0), "foobar\n");
-    assert_eq!(Stmt::Expr(Expr::Var(String::from("foobar"))).to_gd(4), "    foobar\n");
-    assert_eq!(Stmt::Expr(Expr::Var(String::from("foobar"))).to_gd(8), "        foobar\n");
+    assert_eq!(Stmt::Expr(e(ExprF::Var(String::from("foobar")))).to_gd(0), "foobar\n");
+    assert_eq!(Stmt::Expr(e(ExprF::Var(String::from("foobar")))).to_gd(4), "    foobar\n");
+    assert_eq!(Stmt::Expr(e(ExprF::Var(String::from("foobar")))).to_gd(8), "        foobar\n");
   }
 
   #[test]
   fn simple_stmts() {
-    let expr = Expr::from(1000);
+    let expr = e(ExprF::from(1000));
     assert_eq!(Stmt::VarDecl(String::from("var_name"), expr.clone()).to_gd(0), "var var_name = 1000\n");
     assert_eq!(Stmt::ReturnStmt(expr.clone()).to_gd(0), "return 1000\n");
   }
 
   #[test]
   fn if_stmt() {
-    let cond1 = Expr::Var(String::from("condition1"));
-    let cond2 = Expr::Var(String::from("condition2"));
-    let cond3 = Expr::Var(String::from("condition3"));
+    let cond1 = e(ExprF::Var(String::from("condition1")));
+    let cond2 = e(ExprF::Var(String::from("condition2")));
+    let cond3 = e(ExprF::Var(String::from("condition3")));
 
-    let stmt1 = Stmt::Expr(Expr::from(1));
-    let stmt2 = Stmt::Expr(Expr::from(2));
-    let stmt3 = Stmt::Expr(Expr::from(3));
-    let stmt4 = Stmt::Expr(Expr::from(4));
-    let stmt5 = Stmt::Expr(Expr::from(5));
+    let stmt1 = Stmt::Expr(e(ExprF::from(1)));
+    let stmt2 = Stmt::Expr(e(ExprF::from(2)));
+    let stmt3 = Stmt::Expr(e(ExprF::from(3)));
+    let stmt4 = Stmt::Expr(e(ExprF::from(4)));
+    let stmt5 = Stmt::Expr(e(ExprF::from(5)));
 
     let if1 = Stmt::IfStmt(IfStmt {
       if_clause: (cond1.clone(), vec!()),
@@ -320,13 +325,13 @@ mod tests {
 
   #[test]
   fn nested_if() {
-    let cond1 = Expr::Var(String::from("condition1"));
-    let cond2 = Expr::Var(String::from("condition2"));
+    let cond1 = e(ExprF::Var(String::from("condition1")));
+    let cond2 = e(ExprF::Var(String::from("condition2")));
 
-    let stmt1 = Stmt::Expr(Expr::from(1));
-    let stmt2 = Stmt::Expr(Expr::from(2));
-    let stmt3 = Stmt::Expr(Expr::from(3));
-    let stmt4 = Stmt::Expr(Expr::from(4));
+    let stmt1 = Stmt::Expr(e(ExprF::from(1)));
+    let stmt2 = Stmt::Expr(e(ExprF::from(2)));
+    let stmt3 = Stmt::Expr(e(ExprF::from(3)));
+    let stmt4 = Stmt::Expr(e(ExprF::from(4)));
 
     let inner = Stmt::IfStmt(IfStmt {
       if_clause: (cond2.clone(), vec!(stmt2.clone(), stmt3.clone())),
@@ -344,8 +349,8 @@ mod tests {
 
   #[test]
   fn for_loop() {
-    let expr = Expr::Var(String::from("collection"));
-    let stmt = Stmt::Expr(Expr::from(1));
+    let expr = e(ExprF::Var(String::from("collection")));
+    let stmt = Stmt::Expr(e(ExprF::from(1)));
 
     let for1 = Stmt::ForLoop(ForLoop {
       iter_var: String::from("i"),
@@ -365,8 +370,8 @@ mod tests {
 
   #[test]
   fn while_loop() {
-    let expr = Expr::Var(String::from("condition"));
-    let stmt = Stmt::Expr(Expr::from(1));
+    let expr = e(ExprF::Var(String::from("condition")));
+    let stmt = Stmt::Expr(e(ExprF::from(1)));
 
     let while1 = Stmt::WhileLoop(WhileLoop {
       condition: expr.clone(),
@@ -384,13 +389,13 @@ mod tests {
 
   #[test]
   fn match_stmt() {
-    let expr = Expr::Var(String::from("expr"));
+    let expr = e(ExprF::Var(String::from("expr")));
 
     let ptn1 = Pattern::Literal(Literal::Int(100));
     let ptn2 = Pattern::Literal(Literal::Int(200));
 
-    let body1 = Stmt::Expr(Expr::Var(String::from("body1")));
-    let body2 = Stmt::Expr(Expr::Var(String::from("body2")));
+    let body1 = Stmt::Expr(e(ExprF::Var(String::from("body1"))));
+    let body2 = Stmt::Expr(e(ExprF::Var(String::from("body2"))));
 
     let match1 = Stmt::MatchStmt(expr.clone(), vec!());
     assert_eq!(match1.to_gd(0), "match expr:\n    _:\n        pass\n");
@@ -406,8 +411,8 @@ mod tests {
 
   #[test]
   fn assign_ops() {
-    let a = Expr::Var(String::from("a"));
-    let b = Expr::Var(String::from("b"));
+    let a = e(ExprF::Var(String::from("a")));
+    let b = e(ExprF::Var(String::from("b")));
     assert_eq!(assign(&a, AssignOp::Eq, &b).to_gd(0), "a = b\n");
     assert_eq!(assign(&a, AssignOp::Add, &b).to_gd(0), "a += b\n");
     assert_eq!(assign(&a, AssignOp::Sub, &b).to_gd(0), "a -= b\n");

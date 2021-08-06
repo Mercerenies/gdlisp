@@ -12,6 +12,7 @@
 
 use crate::gdscript::op::{self, UnaryOp, BinaryOp, OperatorHasInfo};
 use crate::gdscript::literal::Literal;
+use crate::pipeline::source::{SourceOffset, Sourced};
 
 pub const PRECEDENCE_LOWEST: i32 = -99;
 pub const PRECEDENCE_SUBSCRIPT: i32 = 21;
@@ -20,7 +21,7 @@ pub const PRECEDENCE_CALL: i32 = 19;
 
 /// The type of GDScript expressions.
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub enum Expr {
+pub enum ExprF {
   Var(String),
   Literal(Literal),
   /// Subscript access, i.e. `foo[bar]`.
@@ -42,6 +43,13 @@ pub enum Expr {
   DictionaryLit(Vec<(Expr, Expr)>),
 }
 
+/// GDScript expression with its source offset. See [`Sourced`].
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Expr {
+  pub value: ExprF,
+  pub pos: SourceOffset,
+}
+
 /// The type used by [`Expr::TernaryIf`].
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct TernaryIf {
@@ -60,47 +68,52 @@ fn maybe_parens(cond: bool, inner: String) -> String {
 
 impl Expr {
 
+  /// A new `Expr` with the given [`SourceOffset`].
+  pub fn new(value: ExprF, pos: SourceOffset) -> Expr {
+    Expr { value, pos }
+  }
+
   /// The literal expression `null`.
-  pub fn null() -> Expr {
-    Expr::Literal(Literal::Null)
+  pub fn null(pos: SourceOffset) -> Expr {
+    Expr::new(ExprF::Literal(Literal::Null), pos)
   }
 
   /// The expression referring to the special "self" variable.
-  pub fn self_var() -> Expr {
-    Expr::Var(String::from("self"))
+  pub fn self_var(pos: SourceOffset) -> Expr {
+    Expr::new(ExprF::Var(String::from("self")), pos)
   }
 
   /// A literal string.
-  pub fn str_lit(a: &str) -> Expr {
-    Expr::from(a.to_owned())
+  pub fn str_lit(a: &str, pos: SourceOffset) -> Expr {
+    Expr::new(ExprF::from(a.to_owned()), pos)
   }
 
   /// An [`Expr::Var`], referenced by name. The name will be cloned
   /// into the resulting value.
-  pub fn var(a: &str) -> Expr {
-    Expr::Var(a.to_owned())
+  pub fn var(a: &str, pos: SourceOffset) -> Expr {
+    Expr::new(ExprF::Var(a.to_owned()), pos)
   }
 
   /// An [`Expr::Attribute`] on `self`, referencing the name given by
   /// `attr`.
-  pub fn attribute(self, attr: impl Into<String>) -> Expr {
-    Expr::Attribute(Box::new(self), attr.into())
+  pub fn attribute(self, attr: impl Into<String>, pos: SourceOffset) -> Expr {
+    Expr::new(ExprF::Attribute(Box::new(self), attr.into()), pos)
   }
 
   /// Binary operator application.
-  pub fn binary(self, op: BinaryOp, rhs: Expr) -> Expr {
-    Expr::Binary(Box::new(self), op, Box::new(rhs))
+  pub fn binary(self, op: BinaryOp, rhs: Expr, pos: SourceOffset) -> Expr {
+    Expr::new(ExprF::Binary(Box::new(self), op, Box::new(rhs)), pos)
   }
 
   /// A function call expression.
-  pub fn call(lhs: Option<Expr>, name: &str, args: Vec<Expr>) -> Expr {
-    Expr::Call(lhs.map(Box::new), name.to_owned(), args)
+  pub fn call(lhs: Option<Expr>, name: &str, args: Vec<Expr>, pos: SourceOffset) -> Expr {
+    Expr::new(ExprF::Call(lhs.map(Box::new), name.to_owned(), args), pos)
   }
 
   /// A function call expression, with no receiver object. Equivalent
   /// to `Expr::call(None, name, args)`.
-  pub fn simple_call(name: &str, args: Vec<Expr>) -> Expr {
-    Expr::call(None, name, args)
+  pub fn simple_call(name: &str, args: Vec<Expr>, pos: SourceOffset) -> Expr {
+    Expr::call(None, name, args, pos)
   }
 
   /// A GDScript `yield` call.
@@ -108,12 +121,18 @@ impl Expr {
   /// `yield` takes either zero or two arguments, so this function can
   /// produce either form of `yield` (by passing either `None` or
   /// `Some(a, b)`).
-  pub fn yield_expr(args: Option<(Expr, Expr)>) -> Expr {
+  pub fn yield_expr(args: Option<(Expr, Expr)>, pos: SourceOffset) -> Expr {
     let args = match args {
       None => vec!(),
       Some((x, y)) => vec!(x, y),
     };
-    Expr::Call(None, String::from("yield"), args)
+    Expr::simple_call("yield", args, pos)
+  }
+
+  /// Uses a [`From`] instance of [`ExprF`] to construct an `Expr`.
+  pub fn from_value<T>(value: T, pos: SourceOffset) -> Expr
+  where ExprF : From<T> {
+    Expr::new(ExprF::from(value), pos)
   }
 
   /// Convert to a GDScript string, assuming the ambient precedence is
@@ -122,14 +141,14 @@ impl Expr {
   /// Generally, callers will want to invoke [`Expr::to_gd`] and let the
   /// expression manage its own precedence.
   pub fn to_gd_prec(&self, prec: i32) -> String {
-    match self {
-      Expr::Var(s) => s.clone(),
-      Expr::Literal(lit) => lit.to_gd(),
-      Expr::Subscript(lhs, index) =>
+    match &self.value {
+      ExprF::Var(s) => s.clone(),
+      ExprF::Literal(lit) => lit.to_gd(),
+      ExprF::Subscript(lhs, index) =>
         format!("{}[{}]", lhs.to_gd_prec(PRECEDENCE_SUBSCRIPT), index.to_gd_prec(PRECEDENCE_LOWEST)),
-      Expr::Attribute(lhs, name) =>
+      ExprF::Attribute(lhs, name) =>
         format!("{}.{}", lhs.to_gd_prec(PRECEDENCE_ATTRIBUTE), name),
-      Expr::Call(class, name, args) => {
+      ExprF::Call(class, name, args) => {
         let prefix = if let Some(class) = class {
           format!("{}.", class.to_gd_prec(PRECEDENCE_CALL))
         } else {
@@ -138,11 +157,11 @@ impl Expr {
         let arglist = args.iter().map(|arg| arg.to_gd_prec(PRECEDENCE_LOWEST)).collect::<Vec<_>>().join(", ");
         format!("{}{}({})", prefix, name, arglist)
       },
-      Expr::SuperCall(name, args) => {
+      ExprF::SuperCall(name, args) => {
         let arglist = args.iter().map(|arg| arg.to_gd_prec(PRECEDENCE_LOWEST)).collect::<Vec<_>>().join(", ");
         format!(".{}({})", name, arglist)
       },
-      Expr::Unary(op, arg) => {
+      ExprF::Unary(op, arg) => {
         let info = op.op_info();
         let arg = arg.to_gd_prec(info.precedence);
         let inner = if info.padding == op::Padding::NotRequired {
@@ -152,7 +171,7 @@ impl Expr {
         };
         maybe_parens(prec > info.precedence, inner)
       },
-      Expr::Binary(lhs, op, rhs) => {
+      ExprF::Binary(lhs, op, rhs) => {
         // Implicit assumption that all operators are left-associative.
         let info = op.op_info();
         let lhs = lhs.to_gd_prec(info.precedence);
@@ -164,7 +183,7 @@ impl Expr {
         };
         maybe_parens(prec > info.precedence, inner)
       },
-      Expr::TernaryIf(TernaryIf { true_case, cond, false_case }) => {
+      ExprF::TernaryIf(TernaryIf { true_case, cond, false_case }) => {
         // Ternary is right-associative.
         let info = op::TernaryOp.op_info();
         let lhs = true_case.to_gd_prec(info.precedence + 1);
@@ -173,7 +192,7 @@ impl Expr {
         let inner = format!("{} if {} else {}", lhs, cond, rhs);
         maybe_parens(prec > info.precedence, inner)
       },
-      Expr::ArrayLit(vec) => {
+      ExprF::ArrayLit(vec) => {
         let mut first = true;
         let mut result = String::from("[");
         for x in vec {
@@ -186,7 +205,7 @@ impl Expr {
         result.push(']');
         result
       },
-      Expr::DictionaryLit(vec) => {
+      ExprF::DictionaryLit(vec) => {
         let mut first = true;
         let mut result = String::from("{");
         for (k, v) in vec {
@@ -210,16 +229,29 @@ impl Expr {
 
 }
 
-impl<T> From<T> for Expr
+impl Sourced for Expr {
+  type Item = ExprF;
+
+  fn get_source(&self) -> SourceOffset {
+    self.pos
+  }
+
+  fn get_value(&self) -> &ExprF {
+    &self.value
+  }
+
+}
+
+impl<T> From<T> for ExprF
   where Literal : From<T> {
-  fn from(x: T) -> Expr {
-    Expr::Literal(Literal::from(x))
+  fn from(x: T) -> ExprF {
+    ExprF::Literal(Literal::from(x))
   }
 }
 
-impl From<TernaryIf> for Expr {
-  fn from(x: TernaryIf) -> Expr {
-    Expr::TernaryIf(x)
+impl From<TernaryIf> for ExprF {
+  fn from(x: TernaryIf) -> ExprF {
+    ExprF::TernaryIf(x)
   }
 }
 
@@ -227,74 +259,78 @@ impl From<TernaryIf> for Expr {
 mod tests {
   use super::*;
 
+  fn e(expr: ExprF) -> Expr {
+    Expr::new(expr, SourceOffset::default())
+  }
+
   #[test]
   fn basic_expr_types() {
-    let var = Expr::Var(String::from("foobar"));
-    let n = Expr::from(99);
+    let var = e(ExprF::Var(String::from("foobar")));
+    let n = e(ExprF::from(99));
     let name = String::from("attr");
 
-    let arg1 = Expr::from(1);
-    let arg2 = Expr::from(2);
-    let lhs = Expr::Binary(Box::new(arg1), BinaryOp::Add, Box::new(arg2));
+    let arg1 = e(ExprF::from(1));
+    let arg2 = e(ExprF::from(2));
+    let lhs = e(ExprF::Binary(Box::new(arg1), BinaryOp::Add, Box::new(arg2)));
 
-    let attr = Expr::Attribute(Box::new(var.clone()), name.clone());
-    let subs = Expr::Subscript(Box::new(var.clone()), Box::new(n.clone()));
+    let attr = e(ExprF::Attribute(Box::new(var.clone()), name.clone()));
+    let subs = e(ExprF::Subscript(Box::new(var.clone()), Box::new(n.clone())));
 
     assert_eq!(var.to_gd(), "foobar");
     assert_eq!(n.to_gd(), "99");
-    assert_eq!(Expr::Subscript(Box::new(var.clone()), Box::new(n.clone())).to_gd(), "foobar[99]");
+    assert_eq!(e(ExprF::Subscript(Box::new(var.clone()), Box::new(n.clone()))).to_gd(), "foobar[99]");
     assert_eq!(attr.to_gd(), "foobar.attr");
     assert_eq!(subs.to_gd(), "foobar[99]");
-    assert_eq!(Expr::Attribute(Box::new(attr.clone()), name.clone()).to_gd(), "foobar.attr.attr");
-    assert_eq!(Expr::Attribute(Box::new(subs.clone()), name.clone()).to_gd(), "foobar[99].attr");
-    assert_eq!(Expr::Subscript(Box::new(attr.clone()), Box::new(n.clone())).to_gd(), "foobar.attr[99]");
-    assert_eq!(Expr::Subscript(Box::new(subs.clone()), Box::new(n.clone())).to_gd(), "foobar[99][99]");
+    assert_eq!(e(ExprF::Attribute(Box::new(attr.clone()), name.clone())).to_gd(), "foobar.attr.attr");
+    assert_eq!(e(ExprF::Attribute(Box::new(subs.clone()), name.clone())).to_gd(), "foobar[99].attr");
+    assert_eq!(e(ExprF::Subscript(Box::new(attr.clone()), Box::new(n.clone()))).to_gd(), "foobar.attr[99]");
+    assert_eq!(e(ExprF::Subscript(Box::new(subs.clone()), Box::new(n.clone()))).to_gd(), "foobar[99][99]");
 
-    assert_eq!(Expr::Subscript(Box::new(lhs.clone()), Box::new(n.clone())).to_gd(), "(1 + 2)[99]");
-    assert_eq!(Expr::Attribute(Box::new(lhs.clone()), name.clone()).to_gd(), "(1 + 2).attr");
+    assert_eq!(e(ExprF::Subscript(Box::new(lhs.clone()), Box::new(n.clone()))).to_gd(), "(1 + 2)[99]");
+    assert_eq!(e(ExprF::Attribute(Box::new(lhs.clone()), name.clone())).to_gd(), "(1 + 2).attr");
 
   }
 
   #[test]
   fn call_exprs() {
-    let lhs = Expr::Var(String::from("lhs"));
+    let lhs = e(ExprF::Var(String::from("lhs")));
     let name = String::from("func");
-    let arg1 = Expr::from(1);
-    let arg2 = Expr::from(2);
-    let arg3 = Expr::from(3);
+    let arg1 = e(ExprF::from(1));
+    let arg2 = e(ExprF::from(2));
+    let arg3 = e(ExprF::from(3));
 
-    let lhs_p = Expr::Binary(Box::new(arg1.clone()), BinaryOp::Add, Box::new(arg2.clone()));
+    let lhs_p = e(ExprF::Binary(Box::new(arg1.clone()), BinaryOp::Add, Box::new(arg2.clone())));
 
-    assert_eq!(Expr::Call(None, name.clone(), vec!()).to_gd(), "func()");
-    assert_eq!(Expr::Call(None, name.clone(), vec!(arg1.clone())).to_gd(), "func(1)");
-    assert_eq!(Expr::Call(None, name.clone(), vec!(arg1.clone(), arg2.clone())).to_gd(), "func(1, 2)");
-    assert_eq!(Expr::Call(None, name.clone(), vec!(arg1.clone(), arg2.clone(), arg3.clone())).to_gd(), "func(1, 2, 3)");
+    assert_eq!(e(ExprF::Call(None, name.clone(), vec!())).to_gd(), "func()");
+    assert_eq!(e(ExprF::Call(None, name.clone(), vec!(arg1.clone()))).to_gd(), "func(1)");
+    assert_eq!(e(ExprF::Call(None, name.clone(), vec!(arg1.clone(), arg2.clone()))).to_gd(), "func(1, 2)");
+    assert_eq!(e(ExprF::Call(None, name.clone(), vec!(arg1.clone(), arg2.clone(), arg3.clone()))).to_gd(), "func(1, 2, 3)");
 
-    assert_eq!(Expr::Call(Some(Box::new(lhs.clone())), name.clone(), vec!()).to_gd(), "lhs.func()");
-    assert_eq!(Expr::Call(Some(Box::new(lhs.clone())), name.clone(), vec!(arg1.clone())).to_gd(), "lhs.func(1)");
-    assert_eq!(Expr::Call(Some(Box::new(lhs.clone())), name.clone(), vec!(arg1.clone(), arg2.clone())).to_gd(), "lhs.func(1, 2)");
-    assert_eq!(Expr::Call(Some(Box::new(lhs.clone())), name.clone(), vec!(arg1.clone(), arg2.clone(), arg3.clone())).to_gd(), "lhs.func(1, 2, 3)");
+    assert_eq!(e(ExprF::Call(Some(Box::new(lhs.clone())), name.clone(), vec!())).to_gd(), "lhs.func()");
+    assert_eq!(e(ExprF::Call(Some(Box::new(lhs.clone())), name.clone(), vec!(arg1.clone()))).to_gd(), "lhs.func(1)");
+    assert_eq!(e(ExprF::Call(Some(Box::new(lhs.clone())), name.clone(), vec!(arg1.clone(), arg2.clone()))).to_gd(), "lhs.func(1, 2)");
+    assert_eq!(e(ExprF::Call(Some(Box::new(lhs.clone())), name.clone(), vec!(arg1.clone(), arg2.clone(), arg3.clone()))).to_gd(), "lhs.func(1, 2, 3)");
 
-    assert_eq!(Expr::Call(Some(Box::new(lhs_p.clone())), name.clone(), vec!()).to_gd(), "(1 + 2).func()");
-    assert_eq!(Expr::Call(Some(Box::new(lhs_p.clone())), name.clone(), vec!(arg1.clone())).to_gd(), "(1 + 2).func(1)");
-    assert_eq!(Expr::Call(Some(Box::new(lhs_p.clone())), name.clone(), vec!(arg1.clone(), arg2.clone())).to_gd(), "(1 + 2).func(1, 2)");
-    assert_eq!(Expr::Call(Some(Box::new(lhs_p.clone())), name.clone(), vec!(arg1.clone(), arg2.clone(), arg3.clone())).to_gd(), "(1 + 2).func(1, 2, 3)");
+    assert_eq!(e(ExprF::Call(Some(Box::new(lhs_p.clone())), name.clone(), vec!())).to_gd(), "(1 + 2).func()");
+    assert_eq!(e(ExprF::Call(Some(Box::new(lhs_p.clone())), name.clone(), vec!(arg1.clone()))).to_gd(), "(1 + 2).func(1)");
+    assert_eq!(e(ExprF::Call(Some(Box::new(lhs_p.clone())), name.clone(), vec!(arg1.clone(), arg2.clone()))).to_gd(), "(1 + 2).func(1, 2)");
+    assert_eq!(e(ExprF::Call(Some(Box::new(lhs_p.clone())), name.clone(), vec!(arg1.clone(), arg2.clone(), arg3.clone()))).to_gd(), "(1 + 2).func(1, 2, 3)");
 
-    assert_eq!(Expr::SuperCall(name.clone(), vec!()).to_gd(), ".func()");
+    assert_eq!(e(ExprF::SuperCall(name.clone(), vec!())).to_gd(), ".func()");
 
   }
 
   fn unary(op: UnaryOp, expr: &Expr) -> Expr {
-    Expr::Unary(op, Box::new(expr.clone()))
+    e(ExprF::Unary(op, Box::new(expr.clone())))
   }
 
   fn binary(a: &Expr, op: BinaryOp, b: &Expr) -> Expr {
-    Expr::Binary(Box::new(a.clone()), op, Box::new(b.clone()))
+    e(ExprF::Binary(Box::new(a.clone()), op, Box::new(b.clone())))
   }
 
   #[test]
   fn unary_ops() {
-    let operand = Expr::from(3);
+    let operand = e(ExprF::from(3));
     assert_eq!(unary(UnaryOp::BitNot, &operand).to_gd(), "~3");
     assert_eq!(unary(UnaryOp::Negate, &operand).to_gd(), "-3");
     assert_eq!(unary(UnaryOp::Not, &operand).to_gd(), "!3");
@@ -302,8 +338,8 @@ mod tests {
 
   #[test]
   fn binary_ops() {
-    let a = Expr::Var(String::from("a"));
-    let b = Expr::Var(String::from("b"));
+    let a = e(ExprF::Var(String::from("a")));
+    let b = e(ExprF::Var(String::from("b")));
     assert_eq!(binary(&a, BinaryOp::Times, &b).to_gd(), "a * b");
     assert_eq!(binary(&a, BinaryOp::Div, &b).to_gd(), "a / b");
     assert_eq!(binary(&a, BinaryOp::Mod, &b).to_gd(), "a % b");
@@ -329,17 +365,17 @@ mod tests {
 
   #[test]
   fn ternary_op() {
-    let a = Box::new(Expr::from(1));
-    let b = Box::new(Expr::from(2));
-    let c = Box::new(Expr::from(3));
-    assert_eq!(Expr::TernaryIf(TernaryIf { true_case: a, cond: b, false_case: c }).to_gd(), "1 if 2 else 3");
+    let a = Box::new(e(ExprF::from(1)));
+    let b = Box::new(e(ExprF::from(2)));
+    let c = Box::new(e(ExprF::from(3)));
+    assert_eq!(e(ExprF::TernaryIf(TernaryIf { true_case: a, cond: b, false_case: c })).to_gd(), "1 if 2 else 3");
   }
 
   #[test]
   fn operator_precedence() {
-    let a = Expr::Var(String::from("a"));
-    let b = Expr::Var(String::from("b"));
-    let c = Expr::Var(String::from("c"));
+    let a = e(ExprF::Var(String::from("a")));
+    let b = e(ExprF::Var(String::from("b")));
+    let c = e(ExprF::Var(String::from("c")));
 
     let noparens = binary(&binary(&a, BinaryOp::Times, &b), BinaryOp::Add, &c);
     let needparens = binary(&binary(&a, BinaryOp::Add, &b), BinaryOp::Times, &c);
@@ -350,91 +386,91 @@ mod tests {
 
   #[test]
   fn ternary_if_precedence_1() {
-    let a = Box::new(Expr::from(1));
-    let b = Box::new(Expr::from(2));
-    let c = Box::new(Expr::from(3));
-    let d = Box::new(Expr::from(4));
-    let e = Box::new(Expr::from(5));
+    let a = Box::new(e(ExprF::from(1)));
+    let b = Box::new(e(ExprF::from(2)));
+    let c = Box::new(e(ExprF::from(3)));
+    let d = Box::new(e(ExprF::from(4)));
+    let f = Box::new(e(ExprF::from(5)));
 
-    let left_assoc = Expr::from(TernaryIf {
-      true_case: Box::new(Expr::from(TernaryIf { true_case: a.clone(), cond: b.clone(), false_case: c.clone() })),
+    let left_assoc = e(ExprF::from(TernaryIf {
+      true_case: Box::new(e(ExprF::from(TernaryIf { true_case: a.clone(), cond: b.clone(), false_case: c.clone() }))),
       cond: d.clone(),
-      false_case: e.clone(),
-    });
-    let right_assoc = Expr::from(TernaryIf {
+      false_case: f.clone(),
+    }));
+    let right_assoc = e(ExprF::from(TernaryIf {
       true_case: a.clone(),
       cond: b.clone(),
-      false_case: Box::new(Expr::from(TernaryIf { true_case: c.clone(), cond: d.clone(), false_case: e.clone() })),
-    });
+      false_case: Box::new(e(ExprF::from(TernaryIf { true_case: c.clone(), cond: d.clone(), false_case: f.clone() }))),
+    }));
     assert_eq!(left_assoc.to_gd(), "(1 if 2 else 3) if 4 else 5");
     assert_eq!(right_assoc.to_gd(), "1 if 2 else 3 if 4 else 5");
   }
 
   #[test]
   fn ternary_if_precedence_2() {
-    let a = Expr::Var(String::from("a"));
-    let b = Expr::Var(String::from("b"));
-    let c = Expr::Var(String::from("c"));
-    let d = Expr::Var(String::from("d"));
+    let a = e(ExprF::Var(String::from("a")));
+    let b = e(ExprF::Var(String::from("b")));
+    let c = e(ExprF::Var(String::from("c")));
+    let d = e(ExprF::Var(String::from("d")));
 
-    let case1 = Expr::from(TernaryIf {
+    let case1 = e(ExprF::from(TernaryIf {
       true_case: Box::new(binary(&a, BinaryOp::Or, &b)),
       cond: Box::new(c.clone()),
       false_case: Box::new(d.clone()),
-    });
+    }));
     assert_eq!(case1.to_gd(), "a || b if c else d");
 
-    let case2 = Expr::from(TernaryIf {
+    let case2 = e(ExprF::from(TernaryIf {
       true_case: Box::new(a.clone()),
       cond: Box::new(binary(&b, BinaryOp::Or, &c)),
       false_case: Box::new(d.clone()),
-    });
+    }));
     assert_eq!(case2.to_gd(), "a if b || c else d");
 
-    let case3 = Expr::from(TernaryIf {
+    let case3 = e(ExprF::from(TernaryIf {
       true_case: Box::new(a.clone()),
       cond: Box::new(b.clone()),
       false_case: Box::new(binary(&c, BinaryOp::Or, &d)),
-    });
+    }));
     assert_eq!(case3.to_gd(), "a if b else c || d");
 
-    let case4 = Expr::from(TernaryIf {
+    let case4 = e(ExprF::from(TernaryIf {
       true_case: Box::new(binary(&a, BinaryOp::Cast, &b)),
       cond: Box::new(c.clone()),
       false_case: Box::new(d.clone()),
-    });
+    }));
     assert_eq!(case4.to_gd(), "(a as b) if c else d");
 
-    let case5 = Expr::from(TernaryIf {
+    let case5 = e(ExprF::from(TernaryIf {
       true_case: Box::new(a.clone()),
       cond: Box::new(binary(&b, BinaryOp::Cast, &c)),
       false_case: Box::new(d.clone()),
-    });
+    }));
     assert_eq!(case5.to_gd(), "a if b as c else d");
 
-    let case6 = Expr::from(TernaryIf {
+    let case6 = e(ExprF::from(TernaryIf {
       true_case: Box::new(a.clone()),
       cond: Box::new(b.clone()),
       false_case: Box::new(binary(&c, BinaryOp::Cast, &d)),
-    });
+    }));
     assert_eq!(case6.to_gd(), "a if b else (c as d)");
 
   }
 
   #[test]
   fn arrays() {
-    assert_eq!(Expr::ArrayLit(vec!()).to_gd(), "[]");
-    assert_eq!(Expr::ArrayLit(vec!(Expr::from(1))).to_gd(), "[1]");
-    assert_eq!(Expr::ArrayLit(vec!(Expr::from(1), Expr::from(2))).to_gd(), "[1, 2]");
-    assert_eq!(Expr::ArrayLit(vec!(Expr::from(1), Expr::from(2), Expr::from(3))).to_gd(), "[1, 2, 3]");
+    assert_eq!(e(ExprF::ArrayLit(vec!())).to_gd(), "[]");
+    assert_eq!(e(ExprF::ArrayLit(vec!(e(ExprF::from(1))))).to_gd(), "[1]");
+    assert_eq!(e(ExprF::ArrayLit(vec!(e(ExprF::from(1)), e(ExprF::from(2))))).to_gd(), "[1, 2]");
+    assert_eq!(e(ExprF::ArrayLit(vec!(e(ExprF::from(1)), e(ExprF::from(2)), e(ExprF::from(3))))).to_gd(), "[1, 2, 3]");
   }
 
   #[test]
   fn dictionaries() {
-    assert_eq!(Expr::DictionaryLit(vec!()).to_gd(), "{}");
-    assert_eq!(Expr::DictionaryLit(vec!((Expr::from(1), Expr::from(2)))).to_gd(), "{1: 2}");
-    assert_eq!(Expr::DictionaryLit(vec!((Expr::from(1), Expr::from(2)), (Expr::from(3), Expr::from(4)))).to_gd(), "{1: 2, 3: 4}");
-    assert_eq!(Expr::DictionaryLit(vec!((Expr::from(1), Expr::from(2)), (Expr::from(3), Expr::from(4)), (Expr::from(5), Expr::from(6)))).to_gd(), "{1: 2, 3: 4, 5: 6}");
+    assert_eq!(e(ExprF::DictionaryLit(vec!())).to_gd(), "{}");
+    assert_eq!(e(ExprF::DictionaryLit(vec!((e(ExprF::from(1)), e(ExprF::from(2)))))).to_gd(), "{1: 2}");
+    assert_eq!(e(ExprF::DictionaryLit(vec!((e(ExprF::from(1)), e(ExprF::from(2))), (e(ExprF::from(3)), e(ExprF::from(4)))))).to_gd(), "{1: 2, 3: 4}");
+    assert_eq!(e(ExprF::DictionaryLit(vec!((e(ExprF::from(1)), e(ExprF::from(2))), (e(ExprF::from(3)), e(ExprF::from(4))), (e(ExprF::from(5)), e(ExprF::from(6)))))).to_gd(), "{1: 2, 3: 4, 5: 6}");
   }
 
 }

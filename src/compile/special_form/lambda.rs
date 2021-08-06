@@ -13,7 +13,7 @@ use crate::compile::error::Error;
 use crate::compile::stateful::SideEffects;
 use crate::compile::names;
 use crate::gdscript::stmt::Stmt;
-use crate::gdscript::expr::Expr;
+use crate::gdscript::expr::{Expr, ExprF};
 use crate::gdscript::decl::{self, Decl};
 use crate::gdscript::op;
 use crate::gdscript::arglist::ArgList;
@@ -21,6 +21,7 @@ use crate::gdscript::library;
 use crate::gdscript::inner_class::{self, NeedsOuterClassRef};
 use crate::pipeline::Pipeline;
 use crate::pipeline::can_load::CanLoad;
+use crate::pipeline::source::SourceOffset;
 use super::lambda_vararg::generate_lambda_class;
 
 use std::borrow::Borrow;
@@ -48,7 +49,8 @@ pub fn compile_labels_scc<'a>(compiler: &mut Compiler<'a>,
                               pipeline: &mut Pipeline,
                               builder: &mut StmtBuilder,
                               table: &mut SymbolTable,
-                              clauses: &[&(String, IRArgList, IRExpr)])
+                              clauses: &[&(String, IRArgList, IRExpr)],
+                              pos: SourceOffset)
                               -> Result<Vec<(String, FnCall)>, Error> {
   let class_name = compiler.name_generator().generate_with("_Labels");
 
@@ -138,7 +140,7 @@ pub fn compile_labels_scc<'a>(compiler: &mut Compiler<'a>,
     for (arg, gd_arg) in &gd_args {
       let access_type = *all_vars.get(&arg).unwrap_or(&AccessType::None);
       lambda_table.set_var(arg.to_owned(), LocalVar::local(gd_arg.to_owned(), access_type));
-      wrap_in_cell_if_needed(arg, gd_arg, &all_vars, &mut lambda_builder);
+      wrap_in_cell_if_needed(arg, gd_arg, &all_vars, &mut lambda_builder, pos);
     }
     compiler.compile_stmt(pipeline, &mut lambda_builder, &mut lambda_table, &stmt_wrapper::Return, body)?;
     let lambda_body = lambda_builder.build_into(builder);
@@ -161,7 +163,7 @@ pub fn compile_labels_scc<'a>(compiler: &mut Compiler<'a>,
 
   let mut constructor_body = Vec::new();
   for var in &gd_closure_vars {
-    constructor_body.push(super::assign_to_compiler(var.to_string(), var.to_string()));
+    constructor_body.push(super::assign_to_compiler(var.to_string(), var.to_string(), pos));
   }
   let constructor = decl::FnDecl {
     name: String::from(library::CONSTRUCTOR_NAME),
@@ -183,12 +185,12 @@ pub fn compile_labels_scc<'a>(compiler: &mut Compiler<'a>,
   };
 
   if needs_outer_ref {
-    inner_class::add_outer_class_ref_named(&mut class, compiler.preload_resolver(), pipeline, outer_ref_name);
+    inner_class::add_outer_class_ref_named(&mut class, compiler.preload_resolver(), pipeline, outer_ref_name, pos);
   }
 
   builder.add_helper(Decl::ClassDecl(class));
-  let constructor_args: Vec<_> = gd_src_closure_vars.into_iter().map(Expr::Var).collect();
-  let expr = Expr::Call(Some(Box::new(Expr::Var(class_name))), String::from("new"), constructor_args);
+  let constructor_args: Vec<_> = gd_src_closure_vars.into_iter().map(|x| Expr::new(ExprF::Var(x), pos)).collect();
+  let expr = Expr::call(Some(Expr::new(ExprF::Var(class_name), pos)), "new", constructor_args, pos);
   builder.append(Stmt::VarDecl(local_var_name, expr));
 
   Ok(bound_calls)
@@ -259,11 +261,11 @@ pub fn closure_fn_to_gd_var(call: &FnCall) -> Option<String> {
   call.scope.local_name().map(str::to_owned)
 }
 
-fn wrap_in_cell_if_needed(name: &str, gd_name: &str, all_vars: &Locals, lambda_builder: &mut StmtBuilder) {
+fn wrap_in_cell_if_needed(name: &str, gd_name: &str, all_vars: &Locals, lambda_builder: &mut StmtBuilder, pos: SourceOffset) {
   if all_vars.get(name).unwrap_or(&AccessType::None).requires_cell() {
-    lambda_builder.append(Stmt::Assign(Box::new(Expr::var(gd_name)),
+    lambda_builder.append(Stmt::Assign(Box::new(Expr::var(gd_name, pos)),
                                        op::AssignOp::Eq,
-                                       Box::new(library::construct_cell(Expr::var(gd_name)))));
+                                       Box::new(library::construct_cell(Expr::var(gd_name, pos)))));
   }
 }
 
@@ -272,7 +274,8 @@ pub fn compile_lambda_stmt<'a>(compiler: &mut Compiler<'a>,
                                builder: &mut StmtBuilder,
                                table: &mut SymbolTable,
                                args: &IRArgList,
-                               body: &IRExpr)
+                               body: &IRExpr,
+                               pos: SourceOffset)
                                -> Result<StExpr, Error> {
   let (arglist, gd_args) = args.clone().into_gd_arglist(&mut compiler.name_generator());
 
@@ -331,21 +334,21 @@ pub fn compile_lambda_stmt<'a>(compiler: &mut Compiler<'a>,
   }
 
   for (arg, gd_arg) in &gd_args {
-    wrap_in_cell_if_needed(arg, gd_arg, &all_vars, &mut lambda_builder);
+    wrap_in_cell_if_needed(arg, gd_arg, &all_vars, &mut lambda_builder, pos);
   }
   compiler.compile_stmt(pipeline, &mut lambda_builder, &mut lambda_table, &stmt_wrapper::Return, body)?;
   let lambda_body = lambda_builder.build_into(builder);
 
   let class_name = compiler.name_generator().generate_with("_LambdaBlock");
-  let mut class = generate_lambda_class(class_name.clone(), args.clone().into(), arglist, &gd_closure_vars, lambda_body);
+  let mut class = generate_lambda_class(class_name.clone(), args.clone().into(), arglist, &gd_closure_vars, lambda_body, pos);
 
   if needs_outer_ref {
-    inner_class::add_outer_class_ref_named(&mut class, compiler.preload_resolver(), pipeline, outer_ref_name);
+    inner_class::add_outer_class_ref_named(&mut class, compiler.preload_resolver(), pipeline, outer_ref_name, pos);
   }
 
   builder.add_helper(Decl::ClassDecl(class));
-  let constructor_args = gd_src_closure_vars.into_iter().map(Expr::Var).collect();
-  let expr = Expr::Call(Some(Box::new(Expr::Var(class_name))), String::from("new"), constructor_args);
+  let constructor_args = gd_src_closure_vars.into_iter().map(|x| Expr::new(ExprF::Var(x), pos)).collect();
+  let expr = Expr::call(Some(Expr::new(ExprF::Var(class_name), pos)), "new", constructor_args, pos);
   Ok(StExpr { expr, side_effects: SideEffects::None })
 }
 
@@ -353,10 +356,11 @@ pub fn compile_function_ref<'a>(compiler: &mut Compiler<'a>,
                                 pipeline: &mut Pipeline,
                                 builder: &mut StmtBuilder,
                                 _table: &mut SymbolTable,
-                                func: FnCall)
+                                func: FnCall,
+                                pos: SourceOffset)
                                 -> Result<StExpr, Error> {
   if let FnScope::Local(name) = func.scope {
-    Ok(StExpr { expr: Expr::Var(name), side_effects: SideEffects::None })
+    Ok(StExpr { expr: Expr::new(ExprF::Var(name), pos), side_effects: SideEffects::None })
   } else {
     let specs = func.specs;
     let arg_count = func.specs.runtime_arity();
@@ -368,20 +372,20 @@ pub fn compile_function_ref<'a>(compiler: &mut Compiler<'a>,
       closure_vars.push(name);
     }
     let closure_var_ctor_args: Vec<_> = closure_vars.iter().map(|name| {
-      Expr::var(name)
+      Expr::var(name, pos)
     }).collect();
 
     // TODO This into().map(Box::new) pattern needs to be written into FnName itself
     let object = if func.object == FnName::FileConstant { FnName::inner_static_load(compiler.preload_resolver(), pipeline) } else { func.object };
-    let object: Option<Expr> = object.into();
+    let object: Option<Expr> = object.into_expr(pos);
     let body = Stmt::ReturnStmt(
-      Expr::Call(object.map(Box::new), func.function, arg_names.into_iter().map(Expr::Var).collect())
+      Expr::call(object, &func.function, arg_names.into_iter().map(|x| Expr::new(ExprF::Var(x), pos)).collect(), pos)
     );
 
     let class_name = compiler.name_generator().generate_with("_FunctionRefBlock");
-    let class = generate_lambda_class(class_name.clone(), specs, arglist, &closure_vars[..], vec!(body));
+    let class = generate_lambda_class(class_name.clone(), specs, arglist, &closure_vars[..], vec!(body), pos);
     builder.add_helper(Decl::ClassDecl(class));
-    let expr = Expr::Call(Some(Box::new(Expr::Var(class_name))), String::from("new"), closure_var_ctor_args);
+    let expr = Expr::call(Some(Expr::new(ExprF::Var(class_name), pos)), "new", closure_var_ctor_args, pos);
     Ok(StExpr { expr, side_effects: SideEffects::None })
   }
 }

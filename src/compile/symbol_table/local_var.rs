@@ -3,10 +3,11 @@
 //! about variables.
 
 use crate::ir::access_type::AccessType;
-use crate::gdscript::expr::Expr;
+use crate::gdscript::expr::{Expr, ExprF};
 use crate::gdscript::decl;
 use crate::gdscript::literal::Literal;
 use crate::gdscript::library::CELL_CONTENTS;
+use crate::pipeline::source::SourceOffset;
 
 use std::borrow::ToOwned;
 use std::convert::TryFrom;
@@ -231,10 +232,10 @@ impl LocalVar {
   /// variable requires a cell (`self.access_type.requires_cell()`),
   /// then this access expression contains the necessary subscripting
   /// to access the *contents* of the cell, not the cell itself.
-  pub fn expr(&self) -> Expr {
-    let inner: Expr = self.name.clone().into();
+  pub fn expr(&self, pos: SourceOffset) -> Expr {
+    let inner: Expr = self.name.clone().into_expr(pos);
     if self.access_type.requires_cell() {
-      Expr::Attribute(Box::new(inner), CELL_CONTENTS.to_owned())
+      Expr::new(ExprF::Attribute(Box::new(inner), CELL_CONTENTS.to_owned()), pos)
     } else {
       inner
     }
@@ -250,8 +251,8 @@ impl VarName {
 
   /// Helper function to produce a `load(...)` GDScript expression for
   /// the file named `filename`.
-  pub fn load_expr(filename: String) -> Expr {
-    Expr::Call(None, String::from("load"), vec!(Expr::from(filename)))
+  pub fn load_expr(filename: String, pos: SourceOffset) -> Expr {
+    Expr::call(None, "load", vec!(Expr::from_value(filename, pos)), pos)
   }
 
   /// `VarName` for a local variable.
@@ -280,9 +281,9 @@ impl VarName {
   }
 
   /// Converts `self` to valid GDScript syntax. Equivalent to
-  /// `Expr::from(self.clone()).to_gd()`.
-  pub fn to_gd(&self) -> String {
-    Expr::from(self.clone()).to_gd()
+  /// `self.clone().into_expr(pos).to_gd()`.
+  pub fn to_gd(&self, pos: SourceOffset) -> String {
+    self.clone().into_expr(pos).to_gd()
   }
 
   /// If `self` refers to a simple (unqualified) name, such as a local
@@ -334,20 +335,16 @@ impl VarName {
     }
   }
 
-}
-
-/// `VarName` can always be converted into an [`Expr`]. `VarName` is,
-/// by definition, the subset of GDScript expressions suitable for
-/// variable name expansion.
-impl From<VarName> for Expr {
-
-  fn from(var_name: VarName) -> Expr {
-    match var_name {
-      VarName::Local(s) => Expr::Var(s),
-      VarName::FileConstant(s) => Expr::Var(s),
-      VarName::Superglobal(s) => Expr::Var(s),
-      VarName::ImportedConstant(lhs, s) => Expr::Attribute(Box::new(Expr::from(*lhs)), s),
-      VarName::CurrentFile(filename) => VarName::load_expr(filename),
+  /// [`VarName`] can always be converted into an [`Expr`]. `VarName`
+  /// is, by definition, the subset of GDScript expressions suitable
+  /// for variable name expansion.
+  pub fn into_expr(self, pos: SourceOffset) -> Expr {
+    match self {
+      VarName::Local(s) => Expr::new(ExprF::Var(s), pos),
+      VarName::FileConstant(s) => Expr::new(ExprF::Var(s), pos),
+      VarName::Superglobal(s) => Expr::new(ExprF::Var(s), pos),
+      VarName::ImportedConstant(lhs, s) => Expr::new(ExprF::Attribute(Box::new(lhs.into_expr(pos)), s), pos),
+      VarName::CurrentFile(filename) => VarName::load_expr(filename, pos),
     }
   }
 

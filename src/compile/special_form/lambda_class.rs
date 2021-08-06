@@ -7,10 +7,11 @@ use crate::compile::stateful::{SideEffects, StExpr, NeedsResult};
 use crate::compile::body::builder::StmtBuilder;
 use crate::compile::symbol_table::{SymbolTable, ClassTablePair};
 use crate::compile::symbol_table::local_var::{VarScope, LocalVar};
-use crate::gdscript::expr::Expr;
+use crate::gdscript::expr::{Expr, ExprF};
 use crate::gdscript::decl::{self, Decl};
 use crate::gdscript::inner_class::{self, NeedsOuterClassRef};
 use crate::pipeline::Pipeline;
+use crate::pipeline::source::SourceOffset;
 use super::lambda;
 
 use std::convert::TryFrom;
@@ -19,7 +20,8 @@ pub fn compile_lambda_class<'a>(compiler: &mut Compiler<'a>,
                                 pipeline: &mut Pipeline,
                                 builder: &mut StmtBuilder,
                                 table: &mut SymbolTable,
-                                class: &LambdaClass)
+                                class: &LambdaClass,
+                                pos: SourceOffset)
                                 -> Result<StExpr, Error> {
   let LambdaClass { extends, args: constructor_args, constructor, decls } = class.clone();
 
@@ -96,7 +98,7 @@ pub fn compile_lambda_class<'a>(compiler: &mut Compiler<'a>,
   constructor.args.args = gd_closure_vars.to_vec();
   constructor.args.args.extend(original_args);
   for name in gd_closure_vars.iter().rev() {
-    constructor.body.insert(0, super::assign_to_compiler(name.to_string(), name.to_string()));
+    constructor.body.insert(0, super::assign_to_compiler(name.to_string(), name.to_string(), pos));
   }
   let mut class_body = vec!();
   class_body.push(Decl::FnDecl(decl::Static::NonStatic, constructor));
@@ -123,13 +125,13 @@ pub fn compile_lambda_class<'a>(compiler: &mut Compiler<'a>,
   };
 
   if needs_outer_ref {
-    inner_class::add_outer_class_ref_named(&mut class, compiler.preload_resolver(), pipeline, outer_ref_name);
+    inner_class::add_outer_class_ref_named(&mut class, compiler.preload_resolver(), pipeline, outer_ref_name, pos);
   }
 
   builder.add_helper(Decl::ClassDecl(class));
 
   let constructor_args = constructor_args.iter().map(|expr| compiler.compile_expr(pipeline, builder, table, expr, NeedsResult::Yes).map(|x| x.expr)).collect::<Result<Vec<_>, _>>()?;
-  let constructor_args: Vec<_> = gd_src_closure_vars.into_iter().map(Expr::Var).chain(constructor_args.into_iter()).collect();
-  let expr = Expr::Call(Some(Box::new(Expr::Var(gd_class_name))), String::from("new"), constructor_args);
+  let constructor_args: Vec<_> = gd_src_closure_vars.into_iter().map(|x| Expr::new(ExprF::Var(x), pos)).chain(constructor_args.into_iter()).collect();
+  let expr = Expr::call(Some(Expr::new(ExprF::Var(gd_class_name), pos)), "new", constructor_args, pos);
   Ok(StExpr { expr, side_effects: SideEffects::None })
 }

@@ -21,32 +21,38 @@ pub fn is_expr_noop(expr: &Expr) -> bool {
 mod tests {
   use super::*;
   use crate::gdscript::op;
+  use crate::gdscript::expr::ExprF;
+  use crate::pipeline::source::SourceOffset;
+
+  fn e(expr: ExprF) -> Expr {
+    Expr::new(expr, SourceOffset::default())
+  }
 
   #[test]
   fn expr_noop() {
     // True
-    assert!(is_expr_noop(&Expr::var("example_variable")));
-    assert!(is_expr_noop(&Expr::from(1)));
-    assert!(is_expr_noop(&Expr::Unary(op::UnaryOp::Negate, Box::new(Expr::from(1)))));
-    assert!(is_expr_noop(&Expr::ArrayLit(vec!())));
-    assert!(is_expr_noop(&Expr::ArrayLit(vec!(Expr::from(1), Expr::from(2), Expr::from(3)))));
-    assert!(is_expr_noop(&Expr::Subscript(Box::new(Expr::from(1)), Box::new(Expr::from(2)))));
-    assert!(is_expr_noop(&Expr::Attribute(Box::new(Expr::from(1)), String::from("attribute_name"))));
+    assert!(is_expr_noop(&e(ExprF::Var(String::from("example_variable")))));
+    assert!(is_expr_noop(&e(ExprF::from(1))));
+    assert!(is_expr_noop(&e(ExprF::Unary(op::UnaryOp::Negate, Box::new(e(ExprF::from(1)))))));
+    assert!(is_expr_noop(&e(ExprF::ArrayLit(vec!()))));
+    assert!(is_expr_noop(&e(ExprF::ArrayLit(vec!(e(ExprF::from(1)), e(ExprF::from(2)), e(ExprF::from(3)))))));
+    assert!(is_expr_noop(&e(ExprF::Subscript(Box::new(e(ExprF::from(1))), Box::new(e(ExprF::from(2)))))));
+    assert!(is_expr_noop(&e(ExprF::Attribute(Box::new(e(ExprF::from(1))), String::from("attribute_name")))));
 
     // False
-    let call = Expr::Call(None, String::from("function_name"), vec!());
+    let call = e(ExprF::Call(None, String::from("function_name"), vec!()));
     assert!(!is_expr_noop(&call));
-    assert!(!is_expr_noop(&Expr::Unary(op::UnaryOp::Negate, Box::new(call.clone()))));
-    assert!(!is_expr_noop(&Expr::Binary(Box::new(Expr::from(2)), op::BinaryOp::Add, Box::new(call.clone()))));
+    assert!(!is_expr_noop(&e(ExprF::Unary(op::UnaryOp::Negate, Box::new(call.clone())))));
+    assert!(!is_expr_noop(&e(ExprF::Binary(Box::new(e(ExprF::from(2))), op::BinaryOp::Add, Box::new(call.clone())))));
   }
 
   #[test]
   fn stmt_noop() {
     // True
-    assert!(is_code_noop(&Stmt::Expr(Expr::from(1))));
+    assert!(is_code_noop(&Stmt::Expr(e(ExprF::from(1)))));
     assert!(is_code_noop(&Stmt::PassStmt));
     // False
-    let call = Expr::Call(None, String::from("function_name"), vec!());
+    let call = e(ExprF::Call(None, String::from("function_name"), vec!()));
     assert!(!is_code_noop(&Stmt::Expr(call)));
     assert!(!is_code_noop(&Stmt::BreakStmt));
     assert!(!is_code_noop(&Stmt::ContinueStmt));

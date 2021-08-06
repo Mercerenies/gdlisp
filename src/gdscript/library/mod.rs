@@ -10,7 +10,7 @@ pub mod classes;
 pub mod keys;
 pub mod magic;
 
-use super::expr::Expr;
+use super::expr::{Expr, ExprF};
 use crate::compile::Compiler;
 use crate::compile::names;
 use crate::compile::symbol_table::SymbolTable;
@@ -21,6 +21,7 @@ use crate::ir::macros::MacroData;
 use crate::pipeline::Pipeline;
 use crate::pipeline::translation_unit::TranslationUnit;
 use crate::pipeline::config::ProjectConfig;
+use crate::pipeline::source::SourceOffset;
 use classes::GDSCRIPT_CLASS_NAMES;
 
 use std::collections::{HashSet, HashMap};
@@ -38,42 +39,43 @@ pub const CELL_CONTENTS: &str = "contents";
 pub const CONSTRUCTOR_NAME: &str = "_init";
 
 /// An expression which accesses the global GDLisp singleton object.
-pub fn gdlisp_root() -> Expr {
-  Expr::Var(String::from(GDLISP_NAME))
+pub fn gdlisp_root(pos: SourceOffset) -> Expr {
+  Expr::var(GDLISP_NAME, pos)
 }
 
 /// An expression which accesses a specific field on [`gdlisp_root`].
-pub fn on_gdlisp_root(name: String) -> Expr {
-  Expr::Attribute(Box::new(gdlisp_root()), name)
+pub fn on_gdlisp_root(name: String, pos: SourceOffset) -> Expr {
+  Expr::new(ExprF::Attribute(Box::new(gdlisp_root(pos)), name), pos)
 }
 
 /// An expression representing the GDLisp `Cons` class.
-pub fn cons_class() -> Expr {
-  on_gdlisp_root(String::from("Cons"))
+pub fn cons_class(pos: SourceOffset) -> Expr {
+  on_gdlisp_root(String::from("Cons"), pos)
 }
 
 /// An expression representing the GDLisp `Symbol` class.
-pub fn symbol_class() -> Expr {
-  on_gdlisp_root(String::from("Symbol"))
+pub fn symbol_class(pos: SourceOffset) -> Expr {
+  on_gdlisp_root(String::from("Symbol"), pos)
 }
 
 /// An expression representing the GDLisp `Cell` class.
-pub fn cell_class() -> Expr {
-  on_gdlisp_root(String::from("Cell"))
+pub fn cell_class(pos: SourceOffset) -> Expr {
+  on_gdlisp_root(String::from("Cell"), pos)
 }
 
 /// Given a vector of expressions `vec`, produce an expression which
 /// produces a GDLisp list containing those expressions in order.
-pub fn construct_list(vec: Vec<Expr>) -> Expr {
-  vec.into_iter().rev().fold(Expr::null(), |rest, first| {
-    Expr::Call(Some(Box::new(cons_class())), String::from("new"), vec!(first, rest))
+pub fn construct_list(vec: Vec<Expr>, pos: SourceOffset) -> Expr {
+  vec.into_iter().rev().fold(Expr::null(pos), |rest, first| {
+    Expr::call(Some(cons_class(pos)), "new", vec!(first, rest), pos)
   })
 }
 
 /// Given a GDLisp expression, produce an expression which constructs
 /// a cell containing it.
 pub fn construct_cell(expr: Expr) -> Expr {
-  Expr::Call(Some(Box::new(cell_class())), String::from("new"), vec!(expr))
+  let pos = expr.pos;
+  Expr::call(Some(cell_class(pos)), "new", vec!(expr), pos)
 }
 
 /// An appropriate [`ProjectConfig`] for the `GDLisp.gd` source file.

@@ -10,6 +10,7 @@ use crate::compile::body::builder::StmtBuilder;
 use crate::compile::stateful::StExpr;
 use crate::compile::preload_resolver::PreloadResolver;
 use crate::pipeline::can_load::CanLoad;
+use crate::pipeline::source::SourceOffset;
 use super::call_magic::{CallMagic, DefaultCall};
 use super::local_var::VarName;
 use super::SymbolTable;
@@ -145,9 +146,10 @@ impl FnCall {
                        compiler: &mut Compiler<'a>,
                        builder: &mut StmtBuilder,
                        table: &mut SymbolTable,
-                       args: Vec<StExpr>)
+                       args: Vec<StExpr>,
+                       pos: SourceOffset)
                        -> Result<Expr, Error> {
-    self.into_expr_with_magic(&DefaultCall, compiler, builder, table, args)
+    self.into_expr_with_magic(&DefaultCall, compiler, builder, table, args, pos)
   }
 
   /// Compile, via [`CallMagic::compile`], the function call `self`
@@ -157,9 +159,10 @@ impl FnCall {
                                   compiler: &mut Compiler<'a>,
                                   builder: &mut StmtBuilder,
                                   table: &mut SymbolTable,
-                                  args: Vec<StExpr>)
+                                  args: Vec<StExpr>,
+                                  pos: SourceOffset)
                                   -> Result<Expr, Error> {
-    magic.compile(self, compiler, builder, table, args)
+    magic.compile(self, compiler, builder, table, args, pos)
   }
 
 }
@@ -381,30 +384,26 @@ impl FnName {
     }
   }
 
+  /// **Note:** An `Option` here does NOT denote failure to convert.
+  /// `FnName` can be converted to an `Option<Expr>`, in the sense
+  /// that "there is no expression here" is a completely valid result
+  /// of conversion and indicates a function call which is not
+  /// subscripted on a name.
+  pub fn into_expr(self, pos: SourceOffset) -> Option<Expr> {
+    match self {
+      FnName::FileConstant => None,
+      FnName::Superglobal => None,
+      FnName::ImportedConstant(var_name) => Some(var_name.into_expr(pos)),
+      FnName::OnLocalVar(var_name) => Some(var_name.into_expr(pos)),
+      FnName::OnLocalScope => None,
+      FnName::MacroCall(m) => Some(*m),
+    }
+  }
+
 }
 
 impl From<VarName> for FnName {
   fn from(var_name: VarName) -> FnName {
     FnName::imported_constant(var_name)
   }
-}
-
-/// **Note:** An `Option` here does NOT denote failure to convert.
-/// `FnName` can be converted to an `Option<Expr>`, in the sense that
-/// "there is no expression here" is a completely valid result of
-/// conversion and indicates a function call which is not subscripted
-/// on a name.
-impl From<FnName> for Option<Expr> {
-
-  fn from(fn_name: FnName) -> Option<Expr> {
-    match fn_name {
-      FnName::FileConstant => None,
-      FnName::Superglobal => None,
-      FnName::ImportedConstant(var_name) => Some(Expr::from(*var_name)),
-      FnName::OnLocalVar(var_name) => Some(Expr::from(*var_name)),
-      FnName::OnLocalScope => None,
-      FnName::MacroCall(m) => Some(*m),
-    }
-  }
-
 }

@@ -6,9 +6,10 @@
 //! implementations of it by structs.
 
 use crate::gdscript::stmt::Stmt;
-use crate::gdscript::expr::Expr;
+use crate::gdscript::expr::{Expr, ExprF};
 use crate::gdscript::op;
 use crate::compile::body::builder::StmtBuilder;
+use crate::pipeline::source::SourceOffset;
 use super::StExpr;
 
 /// A `StmtWrapper` provides a mechanism for taking an arbitrary
@@ -101,8 +102,8 @@ impl StmtWrapper for Vacuous {
 
 /// An [`AssignToExpr`] which assigns to an [`Expr::Var`] with the
 /// given name.
-pub fn assign_to_var(s: String) -> AssignToExpr {
-  AssignToExpr(Expr::Var(s))
+pub fn assign_to_var(s: String, pos: SourceOffset) -> AssignToExpr {
+  AssignToExpr(Expr::new(ExprF::Var(s), pos))
 }
 
 impl StmtWrapper for AssignToExpr {

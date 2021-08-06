@@ -1,6 +1,6 @@
 
 use crate::gdscript::stmt::{self, Stmt};
-use crate::gdscript::expr::{self, Expr};
+use crate::gdscript::expr::{self, Expr, ExprF};
 use crate::gdscript::op;
 use crate::compile::error::Error;
 use super::StatementLevelPass;
@@ -25,16 +25,20 @@ pub struct TernaryIfFold;
 impl TernaryIfFold {
 
   fn fold_into_ternary(acc: Expr, next: (Expr, Expr)) -> Expr {
-    Expr::from(expr::TernaryIf {
-      true_case: Box::new(next.1),
-      cond: Box::new(next.0),
-      false_case: Box::new(acc),
-    })
+    let pos = acc.pos;
+    Expr::from_value(
+      expr::TernaryIf {
+        true_case: Box::new(next.1),
+        cond: Box::new(next.0),
+        false_case: Box::new(acc),
+      },
+      pos,
+    )
   }
 
   fn match_simple_assign<'a>(&self, stmts: &'a [Stmt]) -> Option<(&'a str, &'a Expr)> {
     if let [Stmt::Assign(lhs, op::AssignOp::Eq, rhs)] = stmts {
-      if let Expr::Var(var_name) = &**lhs {
+      if let ExprF::Var(var_name) = &lhs.value {
         return Some((var_name, rhs));
       }
     }
@@ -67,7 +71,7 @@ impl TernaryIfFold {
       let else_body = else_body.clone();
 
       let final_expr = clauses.into_iter().rev().fold(else_body, TernaryIfFold::fold_into_ternary);
-      return Some(Stmt::Assign(Box::new(Expr::var(var_name)), op::AssignOp::Eq, Box::new(final_expr)));
+      return Some(Stmt::Assign(Box::new(Expr::var(var_name, final_expr.pos)), op::AssignOp::Eq, Box::new(final_expr)));
     }
 
     None
@@ -89,6 +93,11 @@ impl StatementLevelPass for TernaryIfFold {
 #[cfg(test)]
 mod tests {
   use super::*;
+  use crate::pipeline::source::SourceOffset;
+
+  fn e(expr: ExprF) -> Expr {
+    Expr::new(expr, SourceOffset::default())
+  }
 
   #[test]
   fn ternary_if_fold_test_1() {
@@ -99,18 +108,18 @@ mod tests {
      *   x = 2
      */
     let stmt1 = Stmt::IfStmt(stmt::IfStmt {
-      if_clause: (Expr::var("a"), vec!(Stmt::Assign(Box::new(Expr::var("x")), op::AssignOp::Eq, Box::new(Expr::from(1))))),
+      if_clause: (Expr::var("a", SourceOffset::default()), vec!(Stmt::Assign(Box::new(Expr::var("x", SourceOffset::default())), op::AssignOp::Eq, Box::new(e(ExprF::from(1)))))),
       elif_clauses: vec!(),
-      else_clause: Some(vec!(Stmt::Assign(Box::new(Expr::var("x")), op::AssignOp::Eq, Box::new(Expr::from(2))))),
+      else_clause: Some(vec!(Stmt::Assign(Box::new(Expr::var("x", SourceOffset::default())), op::AssignOp::Eq, Box::new(e(ExprF::from(2)))))),
     });
     let stmt2 = Stmt::Assign(
-      Box::new(Expr::var("x")),
+      Box::new(Expr::var("x", SourceOffset::default())),
       op::AssignOp::Eq,
-      Box::new(Expr::TernaryIf(expr::TernaryIf {
-        true_case: Box::new(Expr::from(1)),
-        cond: Box::new(Expr::var("a")),
-        false_case: Box::new(Expr::from(2)),
-      })),
+      Box::new(e(ExprF::TernaryIf(expr::TernaryIf {
+        true_case: Box::new(e(ExprF::from(1))),
+        cond: Box::new(Expr::var("a", SourceOffset::default())),
+        false_case: Box::new(e(ExprF::from(2))),
+      }))),
     );
     assert_eq!(TernaryIfFold.run_on_stmt(&stmt1).unwrap(), vec!(stmt2));
   }
@@ -126,22 +135,22 @@ mod tests {
      *   x = 3
      */
     let stmt1 = Stmt::IfStmt(stmt::IfStmt {
-      if_clause: (Expr::var("a"), vec!(Stmt::Assign(Box::new(Expr::var("x")), op::AssignOp::Eq, Box::new(Expr::from(1))))),
-      elif_clauses: vec!((Expr::var("b"), vec!(Stmt::Assign(Box::new(Expr::var("x")), op::AssignOp::Eq, Box::new(Expr::from(2)))))),
-      else_clause: Some(vec!(Stmt::Assign(Box::new(Expr::var("x")), op::AssignOp::Eq, Box::new(Expr::from(3))))),
+      if_clause: (Expr::var("a", SourceOffset::default()), vec!(Stmt::Assign(Box::new(Expr::var("x", SourceOffset::default())), op::AssignOp::Eq, Box::new(e(ExprF::from(1)))))),
+      elif_clauses: vec!((Expr::var("b", SourceOffset::default()), vec!(Stmt::Assign(Box::new(Expr::var("x", SourceOffset::default())), op::AssignOp::Eq, Box::new(e(ExprF::from(2))))))),
+      else_clause: Some(vec!(Stmt::Assign(Box::new(Expr::var("x", SourceOffset::default())), op::AssignOp::Eq, Box::new(e(ExprF::from(3)))))),
     });
     let stmt2 = Stmt::Assign(
-      Box::new(Expr::var("x")),
+      Box::new(Expr::var("x", SourceOffset::default())),
       op::AssignOp::Eq,
-      Box::new(Expr::TernaryIf(expr::TernaryIf {
-        true_case: Box::new(Expr::from(1)),
-        cond: Box::new(Expr::var("a")),
-        false_case: Box::new(Expr::TernaryIf(expr::TernaryIf {
-          true_case: Box::new(Expr::from(2)),
-          cond: Box::new(Expr::var("b")),
-          false_case: Box::new(Expr::from(3)),
-        })),
-      })),
+      Box::new(e(ExprF::TernaryIf(expr::TernaryIf {
+        true_case: Box::new(e(ExprF::from(1))),
+        cond: Box::new(Expr::var("a", SourceOffset::default())),
+        false_case: Box::new(e(ExprF::TernaryIf(expr::TernaryIf {
+          true_case: Box::new(e(ExprF::from(2))),
+          cond: Box::new(Expr::var("b", SourceOffset::default())),
+          false_case: Box::new(e(ExprF::from(3))),
+        }))),
+      }))),
     );
     assert_eq!(TernaryIfFold.run_on_stmt(&stmt1).unwrap(), vec!(stmt2));
   }
@@ -157,9 +166,9 @@ mod tests {
      *   x = 3
      */
     let stmt1 = Stmt::IfStmt(stmt::IfStmt {
-      if_clause: (Expr::var("a"), vec!(Stmt::Assign(Box::new(Expr::var("x")), op::AssignOp::Eq, Box::new(Expr::from(1))))),
-      elif_clauses: vec!((Expr::var("b"), vec!(Stmt::Assign(Box::new(Expr::var("y")), op::AssignOp::Eq, Box::new(Expr::from(2)))))),
-      else_clause: Some(vec!(Stmt::Assign(Box::new(Expr::var("x")), op::AssignOp::Eq, Box::new(Expr::from(3))))),
+      if_clause: (Expr::var("a", SourceOffset::default()), vec!(Stmt::Assign(Box::new(Expr::var("x", SourceOffset::default())), op::AssignOp::Eq, Box::new(e(ExprF::from(1)))))),
+      elif_clauses: vec!((Expr::var("b", SourceOffset::default()), vec!(Stmt::Assign(Box::new(Expr::var("y", SourceOffset::default())), op::AssignOp::Eq, Box::new(e(ExprF::from(2))))))),
+      else_clause: Some(vec!(Stmt::Assign(Box::new(Expr::var("x", SourceOffset::default())), op::AssignOp::Eq, Box::new(e(ExprF::from(3)))))),
     });
     assert_eq!(TernaryIfFold.run_on_stmt(&stmt1).unwrap(), vec!(stmt1));
   }
@@ -173,8 +182,8 @@ mod tests {
      *   x = 2
      */
     let stmt1 = Stmt::IfStmt(stmt::IfStmt {
-      if_clause: (Expr::var("a"), vec!(Stmt::Assign(Box::new(Expr::var("x")), op::AssignOp::Eq, Box::new(Expr::from(1))))),
-      elif_clauses: vec!((Expr::var("b"), vec!(Stmt::Assign(Box::new(Expr::var("x")), op::AssignOp::Eq, Box::new(Expr::from(2)))))),
+      if_clause: (Expr::var("a", SourceOffset::default()), vec!(Stmt::Assign(Box::new(Expr::var("x", SourceOffset::default())), op::AssignOp::Eq, Box::new(e(ExprF::from(1)))))),
+      elif_clauses: vec!((Expr::var("b", SourceOffset::default()), vec!(Stmt::Assign(Box::new(Expr::var("x", SourceOffset::default())), op::AssignOp::Eq, Box::new(e(ExprF::from(2))))))),
       else_clause: None,
     });
     assert_eq!(TernaryIfFold.run_on_stmt(&stmt1).unwrap(), vec!(stmt1));

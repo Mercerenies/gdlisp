@@ -2,15 +2,16 @@
 use crate::ir::arglist::VarArg;
 use crate::compile::symbol_table::function_call::FnSpecs;
 use crate::gdscript::decl::{self, Decl};
-use crate::gdscript::expr::Expr;
+use crate::gdscript::expr::{Expr, ExprF};
 use crate::gdscript::stmt::{self, Stmt};
 use crate::gdscript::op;
 use crate::gdscript::library;
 use crate::gdscript::arglist::ArgList;
+use crate::pipeline::source::SourceOffset;
 
 use std::convert::TryInto;
 
-pub fn generate_lambda_vararg(specs: FnSpecs) -> decl::FnDecl {
+pub fn generate_lambda_vararg(specs: FnSpecs, pos: SourceOffset) -> decl::FnDecl {
   let mut stmts = Vec::new();
 
   let args = "args";
@@ -18,29 +19,29 @@ pub fn generate_lambda_vararg(specs: FnSpecs) -> decl::FnDecl {
   let optional: Vec<_> = (0..specs.optional).map(|i| format!("optional_{}", i)).collect();
 
   for req in &required {
-    stmts.push(Stmt::VarDecl(req.to_owned(), Expr::null()));
+    stmts.push(Stmt::VarDecl(req.to_owned(), Expr::null(pos)));
     stmts.push(stmt::if_else(
-      Expr::binary(Expr::var(args), op::BinaryOp::Eq, Expr::null()),
+      Expr::binary(Expr::var(args, pos), op::BinaryOp::Eq, Expr::null(pos), pos),
       vec!(
-        Stmt::Expr(Expr::simple_call("push_error", vec!(Expr::str_lit("Not enough arguments"))))
+        Stmt::Expr(Expr::simple_call("push_error", vec!(Expr::str_lit("Not enough arguments", pos)), pos))
       ),
       vec!(
-        Stmt::simple_assign(Expr::var(req), Expr::var(args).attribute("car")),
-        Stmt::simple_assign(Expr::var(args), Expr::var(args).attribute("cdr")),
+        Stmt::simple_assign(Expr::var(req, pos), Expr::var(args, pos).attribute("car", pos)),
+        Stmt::simple_assign(Expr::var(args, pos), Expr::var(args, pos).attribute("cdr", pos)),
       ),
     ));
   }
 
   for opt in &optional {
-    stmts.push(Stmt::VarDecl(opt.to_owned(), Expr::null()));
+    stmts.push(Stmt::VarDecl(opt.to_owned(), Expr::null(pos)));
     stmts.push(stmt::if_else(
-      Expr::binary(Expr::var(args), op::BinaryOp::Eq, Expr::null()),
+      Expr::binary(Expr::var(args, pos), op::BinaryOp::Eq, Expr::null(pos), pos),
       vec!(
-        Stmt::simple_assign(Expr::var(opt), Expr::null()),
+        Stmt::simple_assign(Expr::var(opt, pos), Expr::null(pos)),
       ),
       vec!(
-        Stmt::simple_assign(Expr::var(opt), Expr::var(args).attribute("car")),
-        Stmt::simple_assign(Expr::var(args), Expr::var(args).attribute("cdr")),
+        Stmt::simple_assign(Expr::var(opt, pos), Expr::var(args, pos).attribute("car", pos)),
+        Stmt::simple_assign(Expr::var(args, pos), Expr::var(args, pos).attribute("cdr", pos)),
       ),
     ));
   }
@@ -48,27 +49,27 @@ pub fn generate_lambda_vararg(specs: FnSpecs) -> decl::FnDecl {
   let mut all_args: Vec<_> =
     required.into_iter()
     .chain(optional.into_iter())
-    .map(Expr::Var)
+    .map(|x| Expr::new(ExprF::Var(x), pos))
     .collect();
   match specs.rest {
     Some(VarArg::RestArg) => {
-      all_args.push(Expr::var(args));
-      stmts.push(Stmt::ReturnStmt(Expr::simple_call("call_func", all_args)));
+      all_args.push(Expr::var(args, pos));
+      stmts.push(Stmt::ReturnStmt(Expr::simple_call("call_func", all_args, pos)));
     }
     Some(VarArg::ArrArg) => {
-      let array = Expr::call(Some(Expr::var("GDLisp")), "list_to_array", vec!(Expr::var(args)));
+      let array = Expr::call(Some(Expr::var("GDLisp", pos)), "list_to_array", vec!(Expr::var(args, pos)), pos);
       all_args.push(array);
-      stmts.push(Stmt::ReturnStmt(Expr::simple_call("call_func", all_args)));
+      stmts.push(Stmt::ReturnStmt(Expr::simple_call("call_func", all_args, pos)));
     }
     None => {
       stmts.push(
         stmt::if_else(
-          Expr::binary(Expr::var(args), op::BinaryOp::Eq, Expr::null()),
+          Expr::binary(Expr::var(args, pos), op::BinaryOp::Eq, Expr::null(pos), pos),
           vec!(
-            Stmt::ReturnStmt(Expr::simple_call("call_func", all_args)),
+            Stmt::ReturnStmt(Expr::simple_call("call_func", all_args, pos)),
           ),
           vec!(
-            Stmt::Expr(Expr::simple_call("push_error", vec!(Expr::str_lit("Too many arguments")))),
+            Stmt::Expr(Expr::simple_call("push_error", vec!(Expr::str_lit("Too many arguments", pos)), pos)),
           ),
         )
       );
@@ -86,7 +87,8 @@ pub fn generate_lambda_class(class_name: String,
                              specs: FnSpecs,
                              args: ArgList,
                              closed_vars: &[String],
-                             lambda_body: Vec<Stmt>)
+                             lambda_body: Vec<Stmt>,
+                             pos: SourceOffset)
                              -> decl::ClassDecl {
   let func_name = String::from("call_func");
   let func = decl::FnDecl {
@@ -94,10 +96,10 @@ pub fn generate_lambda_class(class_name: String,
     args: args,
     body: lambda_body,
   };
-  let funcv = generate_lambda_vararg(specs);
+  let funcv = generate_lambda_vararg(specs, pos);
   let mut constructor_body = Vec::new();
   for name in closed_vars.iter() {
-    constructor_body.push(super::assign_to_compiler(name.to_string(), name.to_string()));
+    constructor_body.push(super::assign_to_compiler(name.to_string(), name.to_string(), pos));
   }
   let r: i32  = specs.required.try_into().unwrap();
   let o: i32  = specs.optional.try_into().unwrap();
@@ -106,9 +108,9 @@ pub fn generate_lambda_class(class_name: String,
     Some(VarArg::RestArg) => 1,
     Some(VarArg::ArrArg) => 2,
   };
-  constructor_body.push(super::assign_expr_to_compiler(String::from("__gdlisp_required"), Expr::from(r)));
-  constructor_body.push(super::assign_expr_to_compiler(String::from("__gdlisp_optional"), Expr::from(o)));
-  constructor_body.push(super::assign_expr_to_compiler(String::from("__gdlisp_rest"), Expr::from(x)));
+  constructor_body.push(super::assign_expr_to_compiler(String::from("__gdlisp_required"), Expr::from_value(r, pos)));
+  constructor_body.push(super::assign_expr_to_compiler(String::from("__gdlisp_optional"), Expr::from_value(o, pos)));
+  constructor_body.push(super::assign_expr_to_compiler(String::from("__gdlisp_rest"), Expr::from_value(x, pos)));
   let constructor =
     decl::FnDecl {
       name: String::from(library::CONSTRUCTOR_NAME),
@@ -137,7 +139,7 @@ mod tests {
   use crate::ir::arglist::VarArg;
 
   fn compile_vararg(specs: FnSpecs) -> String {
-    let result = generate_lambda_vararg(specs);
+    let result = generate_lambda_vararg(specs, SourceOffset::default());
     Decl::FnDecl(decl::Static::NonStatic, result).to_gd(0)
   }
 

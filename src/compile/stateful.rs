@@ -4,8 +4,9 @@
 use super::Compiler;
 use super::stmt_wrapper::{self, StmtWrapper};
 use super::body::builder::StmtBuilder;
-use crate::gdscript::expr::Expr;
+use crate::gdscript::expr::{Expr, ExprF};
 use crate::ir::access_type::AccessType;
+use crate::pipeline::source::SourceOffset;
 
 /// An `StExpr` is an expression coupled with a declaration of that
 /// expression's side effects.
@@ -114,15 +115,16 @@ impl NeedsResult {
   pub fn into_destination<'a>(self,
                               compiler: &mut Compiler<'a>,
                               builder: &mut StmtBuilder,
-                              prefix: &str)
+                              prefix: &str,
+                              pos: SourceOffset)
                               -> (Box<dyn StmtWrapper>, Expr) {
     if self.into() {
-      let var_name = compiler.declare_var(builder, prefix, None);
-      let destination = Box::new(stmt_wrapper::assign_to_var(var_name.clone())) as Box<dyn StmtWrapper>;
-      (destination, Expr::Var(var_name))
+      let var_name = compiler.declare_var(builder, prefix, None, pos);
+      let destination = Box::new(stmt_wrapper::assign_to_var(var_name.clone(), pos)) as Box<dyn StmtWrapper>;
+      (destination, Expr::new(ExprF::Var(var_name), pos))
     } else {
       let destination = Box::new(stmt_wrapper::Vacuous) as Box<dyn StmtWrapper>;
-      (destination, Expr::null())
+      (destination, Expr::null(pos))
     }
   }
 

@@ -12,7 +12,7 @@
 
 use super::error::Error;
 use super::symbol_table::local_var::{ValueHint, ValueHintsTable};
-use crate::gdscript::expr::Expr;
+use crate::gdscript::expr::{Expr, ExprF};
 use crate::gdscript::op;
 
 /// Trait representing data which can be checked for a const-ness
@@ -43,8 +43,8 @@ pub trait MaybeConstant {
 
 impl MaybeConstant for Expr {
   fn is_allowable_const(&self, table: &impl ValueHintsTable) -> bool {
-    match self {
-      Expr::Var(v) => {
+    match &self.value {
+      ExprF::Var(v) => {
         if let Some(value_hint) = table.get_value_hint(v) {
           // Again, playing it super-safe right now. Only superglobals
           // are allowed, and I'll only use sys/declare to define
@@ -56,16 +56,16 @@ impl MaybeConstant for Expr {
           false // TODO Better?
         }
       }
-      Expr::Literal(_) => {
+      ExprF::Literal(_) => {
         true
       }
-      Expr::Subscript(a, b) => {
+      ExprF::Subscript(a, b) => {
         a.is_allowable_const(table) && b.is_allowable_const(table)
       }
-      Expr::Attribute(_, _) => {
+      ExprF::Attribute(_, _) => {
         false // I know, but Godot seems to disallow this one on principle
       }
-      Expr::Call(obj, name, args) => {
+      ExprF::Call(obj, name, args) => {
         // Again, very conservative. I know Vector2 and Vector3 are safe.
         #[allow(clippy::collapsible_if)] // (Meh, it's more readable this way IMO)
         if obj.is_none() {
@@ -75,23 +75,23 @@ impl MaybeConstant for Expr {
         }
         false
       }
-      Expr::SuperCall(_, _) => {
+      ExprF::SuperCall(_, _) => {
         false
       }
-      Expr::Unary(_, a) => {
+      ExprF::Unary(_, a) => {
         a.is_allowable_const(table)
       }
-      Expr::Binary(a, op, b) => {
+      ExprF::Binary(a, op, b) => {
         // So casts don't seem to be considered const in GDScript...
         a.is_allowable_const(table) && b.is_allowable_const(table) && *op != op::BinaryOp::Cast
       }
-      Expr::TernaryIf(t) => {
+      ExprF::TernaryIf(t) => {
         t.true_case.is_allowable_const(table) && t.cond.is_allowable_const(table) && t.false_case.is_allowable_const(table)
       }
-      Expr::ArrayLit(arr) => {
+      ExprF::ArrayLit(arr) => {
         arr.iter().all(|x| x.is_allowable_const(table))
       }
-      Expr::DictionaryLit(arr) => {
+      ExprF::DictionaryLit(arr) => {
         arr.iter().all(|(k, v)| k.is_allowable_const(table) && v.is_allowable_const(table))
       }
     }

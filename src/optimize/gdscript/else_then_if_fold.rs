@@ -29,11 +29,16 @@ impl StatementLevelPass for ElseThenIfFold {
 #[cfg(test)]
 mod tests {
   use super::*;
-  use crate::gdscript::expr::Expr;
+  use crate::gdscript::expr::{Expr, ExprF};
   use crate::gdscript::stmt;
   use crate::gdscript::decl;
   use crate::gdscript::arglist::ArgList;
   use crate::optimize::gdscript::FunctionOptimization;
+  use crate::pipeline::source::SourceOffset;
+
+  fn e(expr: ExprF) -> Expr {
+    Expr::new(expr, SourceOffset::default())
+  }
 
   #[test]
   fn else_then_if_optimize_test() {
@@ -44,13 +49,13 @@ mod tests {
      *   if 2:
      *     return 2
      */
-    let inner_stmt = stmt::if_then(Expr::from(2), vec!(Stmt::ReturnStmt(Expr::from(2))));
-    let stmt = stmt::if_else(Expr::from(1), vec!(Stmt::ReturnStmt(Expr::from(1))), vec!(inner_stmt));
+    let inner_stmt = stmt::if_then(e(ExprF::from(2)), vec!(Stmt::ReturnStmt(e(ExprF::from(2)))));
+    let stmt = stmt::if_else(e(ExprF::from(1)), vec!(Stmt::ReturnStmt(e(ExprF::from(1)))), vec!(inner_stmt));
     let mut decl = decl::FnDecl { name: String::from("example"), args: ArgList::empty(), body: vec!(stmt) };
 
     let desired_stmt = Stmt::IfStmt(stmt::IfStmt {
-      if_clause: (Expr::from(1), vec!(Stmt::ReturnStmt(Expr::from(1)))),
-      elif_clauses: vec!((Expr::from(2), vec!(Stmt::ReturnStmt(Expr::from(2))))),
+      if_clause: (e(ExprF::from(1)), vec!(Stmt::ReturnStmt(e(ExprF::from(1))))),
+      elif_clauses: vec!((e(ExprF::from(2)), vec!(Stmt::ReturnStmt(e(ExprF::from(2)))))),
       else_clause: None,
     });
     let desired_decl = decl::FnDecl { name: String::from("example"), args: ArgList::empty(), body: vec!(desired_stmt) };

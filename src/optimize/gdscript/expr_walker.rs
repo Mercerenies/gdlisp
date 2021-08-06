@@ -1,7 +1,7 @@
 
 use super::stmt_walker;
 use crate::gdscript::stmt::{self, Stmt};
-use crate::gdscript::expr::{self, Expr};
+use crate::gdscript::expr::{self, Expr, ExprF};
 use crate::compile::error::Error;
 
 // Post-order traversal
@@ -19,15 +19,15 @@ pub fn walk_exprs<'a>(stmts: &[Stmt], mut walker: impl FnMut(&Expr) -> Result<Ex
 fn walk_impl_expr<'a>(walker: &mut (impl FnMut(&Expr) -> Result<Expr, Error> + 'a), expr: &Expr)
                       -> Result<Expr, Error> {
   let mut expr = expr.clone();
-  match &mut expr {
-    Expr::Subscript(a, b) => {
+  match &mut expr.value {
+    ExprF::Subscript(a, b) => {
       **a = walk_impl_expr(walker, &**a)?;
       **b = walk_impl_expr(walker, &**b)?;
     }
-    Expr::Attribute(a, _) => {
+    ExprF::Attribute(a, _) => {
       **a = walk_impl_expr(walker, &**a)?;
     }
-    Expr::Call(lhs, _, args) => {
+    ExprF::Call(lhs, _, args) => {
       if let Some(lhs) = lhs.as_mut() {
         **lhs = walk_impl_expr(walker, lhs)?;
       }
@@ -35,35 +35,35 @@ fn walk_impl_expr<'a>(walker: &mut (impl FnMut(&Expr) -> Result<Expr, Error> + '
         *arg = walk_impl_expr(walker, arg)?;
       }
     }
-    Expr::SuperCall(_, args) => {
+    ExprF::SuperCall(_, args) => {
       for arg in args.iter_mut() {
         *arg = walk_impl_expr(walker, arg)?;
       }
     }
-    Expr::Unary(_, a) => {
+    ExprF::Unary(_, a) => {
       **a = walk_impl_expr(walker, &**a)?;
     }
-    Expr::Binary(a, _, b) => {
+    ExprF::Binary(a, _, b) => {
       **a = walk_impl_expr(walker, &**a)?;
       **b = walk_impl_expr(walker, &**b)?;
     }
-    Expr::TernaryIf(expr::TernaryIf { true_case: a, cond: b, false_case: c }) => {
+    ExprF::TernaryIf(expr::TernaryIf { true_case: a, cond: b, false_case: c }) => {
       **a = walk_impl_expr(walker, &**a)?;
       **b = walk_impl_expr(walker, &**b)?;
       **c = walk_impl_expr(walker, &**c)?;
     }
-    Expr::ArrayLit(args) => {
+    ExprF::ArrayLit(args) => {
       for arg in args.iter_mut() {
         *arg = walk_impl_expr(walker, arg)?;
       }
     }
-    Expr::DictionaryLit(args) => {
+    ExprF::DictionaryLit(args) => {
       for (k, v) in args.iter_mut() {
         *k = walk_impl_expr(walker, k)?;
         *v = walk_impl_expr(walker, v)?;
       }
     }
-    Expr::Var(_) | Expr::Literal(_) => {}
+    ExprF::Var(_) | ExprF::Literal(_) => {}
   }
   walker(&expr)
 }

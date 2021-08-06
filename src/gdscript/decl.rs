@@ -244,10 +244,16 @@ impl From<Static> for bool {
 #[cfg(test)]
 mod tests {
   use super::*;
+  use crate::gdscript::expr::{Expr, ExprF};
+  use crate::pipeline::source::SourceOffset;
+
+  fn e(expr: ExprF) -> Expr {
+    Expr::new(expr, SourceOffset::default())
+  }
 
   #[test]
   fn var_and_const() {
-    let expr = Expr::from(10);
+    let expr = e(ExprF::from(10));
     assert_eq!(Decl::VarDecl(None, String::from("foo"), None).to_gd(0), "var foo\n");
     assert_eq!(Decl::VarDecl(None, String::from("foo"), Some(expr.clone())).to_gd(0), "var foo = 10\n");
     assert_eq!(Decl::ConstDecl(String::from("FOO"), expr.clone()).to_gd(0), "const FOO = 10\n");
@@ -255,15 +261,15 @@ mod tests {
 
   #[test]
   fn exported_var() {
-    let expr = Expr::from(10);
+    let expr = e(ExprF::from(10));
 
-    let export1 = Export { args: vec!(Expr::var("int")) };
+    let export1 = Export { args: vec!(Expr::var("int", SourceOffset::default())) };
     assert_eq!(Decl::VarDecl(Some(export1), String::from("foo"), None).to_gd(0), "export(int) var foo\n");
 
     let export2 = Export { args: vec!() };
     assert_eq!(Decl::VarDecl(Some(export2), String::from("foo"), None).to_gd(0), "export var foo\n");
 
-    let export3 = Export { args: vec!(Expr::var("int"), Expr::from(1), Expr::from(10)) };
+    let export3 = Export { args: vec!(Expr::var("int", SourceOffset::default()), Expr::from_value(1, SourceOffset::default()), Expr::from_value(10, SourceOffset::default())) };
     assert_eq!(Decl::VarDecl(Some(export3), String::from("foo"), Some(expr.clone())).to_gd(0), "export(int, 1, 10) var foo = 10\n");
   }
 
@@ -307,7 +313,7 @@ mod tests {
     let decl5 = Decl::FnDecl(Static::NonStatic, FnDecl {
       name: String::from("foobar"),
       args: ArgList::required(vec!(String::from("arg1"), String::from("arg2"))),
-      body: vec!(Stmt::Expr(Expr::Var(String::from("function_body"))))
+      body: vec!(Stmt::Expr(e(ExprF::Var(String::from("function_body")))))
     });
     assert_eq!(decl5.to_gd(0), "func foobar(arg1, arg2):\n    function_body\n");
 
@@ -366,13 +372,13 @@ mod tests {
 
     let decl3 = Decl::EnumDecl(EnumDecl {
       name: None,
-      clauses: vec!((String::from("Value1"), Some(Expr::from(99))), (String::from("Value2"), None)),
+      clauses: vec!((String::from("Value1"), Some(e(ExprF::from(99)))), (String::from("Value2"), None)),
     });
     assert_eq!(decl3.to_gd(0), "enum {\n    Value1 = 99,\n    Value2,\n}\n");
 
     let decl4 = Decl::EnumDecl(EnumDecl {
       name: Some(String::from("EnumName")),
-      clauses: vec!((String::from("Value1"), Some(Expr::from(99))), (String::from("Value2"), None)),
+      clauses: vec!((String::from("Value1"), Some(e(ExprF::from(99)))), (String::from("Value2"), None)),
     });
     assert_eq!(decl4.to_gd(0), "enum EnumName {\n    Value1 = 99,\n    Value2,\n}\n");
   }
