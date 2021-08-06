@@ -6,12 +6,13 @@ use super::closure_names::ClosureNames;
 use super::access_type::AccessType;
 use super::identifier::{Namespace, Id};
 use crate::sxp::ast::AST;
+use crate::pipeline::source::{SourceOffset, Sourced};
 
 use std::collections::HashSet;
 use std::collections::hash_map::RandomState;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub enum Expr {
+pub enum ExprF {
   LocalVar(String),
   Literal(literal::Literal),
   Progn(Vec<Expr>),
@@ -33,6 +34,12 @@ pub enum Expr {
   LambdaClass(Box<LambdaClass>),
   Yield(Option<(Box<Expr>, Box<Expr>)>),
   Return(Box<Expr>),
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Expr {
+  pub value: ExprF,
+  pub pos: SourceOffset,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -70,30 +77,46 @@ pub type Functions = ClosureNames<()>;
 
 impl Expr {
 
-  pub fn while_stmt(cond: Expr, body: Expr) -> Expr {
-    Expr::WhileStmt(Box::new(cond), Box::new(body))
+  pub fn new(value: ExprF, pos: SourceOffset) -> Expr {
+    Expr { value, pos }
   }
 
-  pub fn for_stmt(name: String, iter: Expr, body: Expr) -> Expr {
-    Expr::ForStmt(name, Box::new(iter), Box::new(body))
+  pub fn while_stmt(cond: Expr, body: Expr, pos: SourceOffset) -> Expr {
+    Expr::new(ExprF::WhileStmt(Box::new(cond), Box::new(body)), pos)
+  }
+
+  pub fn for_stmt(name: String, iter: Expr, body: Expr, pos: SourceOffset) -> Expr {
+    Expr::new(ExprF::ForStmt(name, Box::new(iter), Box::new(body)), pos)
+  }
+
+  pub fn literal(literal: literal::Literal, pos: SourceOffset) -> Expr {
+    Expr::new(ExprF::Literal(literal), pos)
+  }
+
+  pub fn progn(body: Vec<Expr>, pos: SourceOffset) -> Expr {
+    Expr::new(ExprF::Progn(body), pos)
+  }
+
+  pub fn call(name: String, args: Vec<Expr>, pos: SourceOffset) -> Expr {
+    Expr::new(ExprF::Call(name, args), pos)
   }
 
   fn walk_locals(&self, acc_vars: &mut Locals, acc_fns: &mut Functions) {
-    match self {
-      Expr::LocalVar(s) => {
+    match &self.value {
+      ExprF::LocalVar(s) => {
         acc_vars.visit(s.to_owned(), AccessType::Read);
       }
-      Expr::Literal(_) => {}
-//      Expr::Subscript(a, b) => {
+      ExprF::Literal(_) => {}
+//      ExprF::Subscript(a, b) => {
 //        a.walk_locals(acc_vars, acc_fns);
 //        b.walk_locals(acc_vars, acc_fns);
 //      }
-      Expr::Progn(exprs) => {
+      ExprF::Progn(exprs) => {
         for expr in exprs {
           expr.walk_locals(acc_vars, acc_fns);
         }
       }
-      Expr::CondStmt(clauses) => {
+      ExprF::CondStmt(clauses) => {
         for clause in clauses {
           clause.0.walk_locals(acc_vars, acc_fns);
           if let Some(body) = &clause.1 {
@@ -101,24 +124,24 @@ impl Expr {
           }
         }
       }
-      Expr::WhileStmt(cond, body) => {
+      ExprF::WhileStmt(cond, body) => {
         cond.walk_locals(acc_vars, acc_fns);
         body.walk_locals(acc_vars, acc_fns);
       }
-      Expr::ForStmt(var, iter, body) => {
+      ExprF::ForStmt(var, iter, body) => {
         let mut local_vars = Locals::new();
         iter.walk_locals(acc_vars, acc_fns);
         body.walk_locals(&mut local_vars, acc_fns);
         local_vars.remove(&var);
         acc_vars.merge_with(local_vars);
       }
-      Expr::Call(name, args) => {
+      ExprF::Call(name, args) => {
         acc_fns.visit(name.to_owned(), ());
         for expr in args {
           expr.walk_locals(acc_vars, acc_fns);
         }
       }
-      Expr::Let(clauses, body) => {
+      ExprF::Let(clauses, body) => {
         let mut vars = HashSet::new();
         for clause in clauses {
           vars.insert(clause.0.to_owned());
@@ -134,12 +157,13 @@ impl Expr {
           }
         }
       }
-      Expr::FLet(clauses, body) => {
+      ExprF::FLet(clauses, body) => {
         let mut fns = HashSet::new();
         for clause in clauses {
           let (name, args, fbody) = clause;
           fns.insert(name.to_owned());
-          Expr::Lambda(args.to_owned(), Box::new(fbody.to_owned())).walk_locals(acc_vars, acc_fns);
+          let lambda_body = ExprF::Lambda(args.to_owned(), Box::new(fbody.to_owned()));
+          Expr::new(lambda_body, self.pos).walk_locals(acc_vars, acc_fns);
         }
         let mut local_scope = Functions::new();
         body.walk_locals(acc_vars, &mut local_scope);
@@ -149,7 +173,7 @@ impl Expr {
           }
         }
       }
-      Expr::Labels(clauses, body) => {
+      ExprF::Labels(clauses, body) => {
         let mut fns = HashSet::new();
         for clause in clauses {
           let (name, _, _) = clause;
@@ -162,7 +186,8 @@ impl Expr {
         let mut local_scope = Functions::new();
         for clause in clauses {
           let (_, args, fbody) = clause;
-          Expr::Lambda(args.to_owned(), Box::new(fbody.to_owned())).walk_locals(acc_vars, &mut local_scope);
+          let lambda_body = ExprF::Lambda(args.to_owned(), Box::new(fbody.to_owned()));
+          Expr::new(lambda_body, self.pos).walk_locals(acc_vars, acc_fns);
         }
         body.walk_locals(acc_vars, &mut local_scope);
         for func in local_scope.names() {
@@ -171,7 +196,7 @@ impl Expr {
           }
         }
       }
-      Expr::Lambda(args, body) => {
+      ExprF::Lambda(args, body) => {
         let vars: HashSet<_, RandomState> = args.iter_vars().map(|x| x.to_owned()).collect();
         let mut local_scope = Locals::new();
         body.walk_locals(&mut local_scope, acc_fns);
@@ -183,7 +208,7 @@ impl Expr {
           }
         }
       }
-      Expr::Assign(target, expr) => {
+      ExprF::Assign(target, expr) => {
         match target {
           AssignTarget::Variable(s) => {
             acc_vars.visit(s.to_owned(), AccessType::RW);
@@ -194,33 +219,33 @@ impl Expr {
         }
         expr.walk_locals(acc_vars, acc_fns);
       }
-      Expr::FuncRef(target) => {
+      ExprF::FuncRef(target) => {
         match target {
           FuncRefTarget::SimpleName(name) => acc_fns.visit(name.to_owned(), ()),
         }
       }
-      Expr::Array(vec) => {
+      ExprF::Array(vec) => {
         for x in vec {
           x.walk_locals(acc_vars, acc_fns);
         }
       }
-      Expr::Dictionary(vec) => {
+      ExprF::Dictionary(vec) => {
         for (k, v) in vec {
           k.walk_locals(acc_vars, acc_fns);
           v.walk_locals(acc_vars, acc_fns);
         }
       }
-      Expr::Quote(_) => {}
-      Expr::FieldAccess(lhs, _) => {
+      ExprF::Quote(_) => {}
+      ExprF::FieldAccess(lhs, _) => {
         lhs.walk_locals(acc_vars, acc_fns);
       }
-      Expr::MethodCall(lhs, _, args) => {
+      ExprF::MethodCall(lhs, _, args) => {
         lhs.walk_locals(acc_vars, acc_fns);
         for expr in args {
           expr.walk_locals(acc_vars, acc_fns);
         }
       }
-      Expr::LambdaClass(cls) => {
+      ExprF::LambdaClass(cls) => {
         let LambdaClass { extends, args, constructor, decls } = &**cls;
         for arg in args {
           arg.walk_locals(acc_vars, acc_fns);
@@ -243,13 +268,13 @@ impl Expr {
           acc_fns.merge_with(decl_fns);
         }
       }
-      Expr::Yield(arg) => {
+      ExprF::Yield(arg) => {
         if let Some((x, y)) = arg {
           x.walk_locals(acc_vars, acc_fns);
           y.walk_locals(acc_vars, acc_fns);
         }
       }
-      Expr::Return(expr) => {
+      ExprF::Return(expr) => {
         expr.walk_locals(acc_vars, acc_fns);
       }
     };
@@ -284,6 +309,19 @@ impl Expr {
 
 }
 
+impl Sourced for Expr {
+  type Item = ExprF;
+
+  fn get_source(&self) -> SourceOffset {
+    self.pos
+  }
+
+  fn get_value(&self) -> &ExprF {
+    &self.value
+  }
+
+}
+
 #[cfg(test)]
 mod tests {
   use super::*;
@@ -301,23 +339,26 @@ mod tests {
     Functions::from_hashset(vec.into_iter().collect())
   }
 
-  fn nil() -> Expr {
-    Expr::Literal(Literal::Nil)
+  // For most of these tests, we don't care about SourceOffset, so
+  // let's just make it easier to construct values with SourceOffset
+  // of 0.
+  fn e(expr: ExprF) -> Expr {
+    Expr::new(expr, SourceOffset::default())
   }
 
   #[test]
   fn test_locals_simple() {
-    assert_eq!(Expr::LocalVar(String::from("foobar")).get_locals(), lhash(vec!("foobar".to_owned())));
-    assert_eq!(Expr::LocalVar(String::from("aaa")).get_locals(), lhash(vec!("aaa".to_owned())));
-    assert_eq!(Expr::Literal(Literal::Int(99)).get_locals(), lhash(vec!()));
-    assert_eq!(Expr::Literal(Literal::Nil).get_locals(), lhash(vec!()));
-    assert_eq!(Expr::Progn(vec!()).get_locals(), lhash(vec!()));
+    assert_eq!(e(ExprF::LocalVar(String::from("foobar"))).get_locals(), lhash(vec!("foobar".to_owned())));
+    assert_eq!(e(ExprF::LocalVar(String::from("aaa"))).get_locals(), lhash(vec!("aaa".to_owned())));
+    assert_eq!(e(ExprF::Literal(Literal::Int(99))).get_locals(), lhash(vec!()));
+    assert_eq!(e(ExprF::Literal(Literal::Nil)).get_locals(), lhash(vec!()));
+    assert_eq!(e(ExprF::Progn(vec!())).get_locals(), lhash(vec!()));
   }
 
   #[test]
   fn test_locals_compound() {
-    let progn = Expr::Progn(vec!(Expr::LocalVar(String::from("aa")),
-                                 Expr::LocalVar(String::from("bb"))));
+    let progn = e(ExprF::Progn(vec!(e(ExprF::LocalVar(String::from("aa"))),
+                                    e(ExprF::LocalVar(String::from("bb"))))));
     assert_eq!(progn.get_locals(), lhash(vec!("aa".to_owned(), "bb".to_owned())));
   }
 
@@ -325,28 +366,28 @@ mod tests {
   fn test_locals_let() {
 
     // Declared variable
-    let e1 = Expr::Let(vec!(("var".to_owned(), nil())),
-                       Box::new(nil()));
+    let e1 = e(ExprF::Let(vec!(("var".to_owned(), e(ExprF::Literal(Literal::Nil)))),
+                          Box::new(e(ExprF::Literal(Literal::Nil)))));
     assert_eq!(e1.get_locals(), lhash(vec!()));
 
     // Declared and used variable
-    let e2 = Expr::Let(vec!(("var".to_owned(), nil())),
-                       Box::new(Expr::LocalVar("var".to_owned())));
+    let e2 = e(ExprF::Let(vec!(("var".to_owned(), e(ExprF::Literal(Literal::Nil)))),
+                          Box::new(e(ExprF::LocalVar("var".to_owned())))));
     assert_eq!(e2.get_locals(), lhash(vec!()));
 
     // Different variable
-    let e3 = Expr::Let(vec!(("var_unused".to_owned(), nil())),
-                       Box::new(Expr::LocalVar("var1".to_owned())));
+    let e3 = e(ExprF::Let(vec!(("var_unused".to_owned(), e(ExprF::Literal(Literal::Nil)))),
+                          Box::new(e(ExprF::LocalVar("var1".to_owned())))));
     assert_eq!(e3.get_locals(), lhash(vec!("var1".to_owned())));
 
     // Variable in decl
-    let e4 = Expr::Let(vec!(("var_unused".to_owned(), Expr::LocalVar("var".to_owned()))),
-                       Box::new(nil()));
+    let e4 = e(ExprF::Let(vec!(("var_unused".to_owned(), e(ExprF::LocalVar("var".to_owned())))),
+                          Box::new(e(ExprF::Literal(Literal::Nil)))));
     assert_eq!(e4.get_locals(), lhash(vec!("var".to_owned())));
 
     // Variable in decl (soon to be shadowed)
-    let e4 = Expr::Let(vec!(("var".to_owned(), Expr::LocalVar("var".to_owned()))),
-                       Box::new(nil()));
+    let e4 = e(ExprF::Let(vec!(("var".to_owned(), e(ExprF::LocalVar("var".to_owned())))),
+                          Box::new(e(ExprF::Literal(Literal::Nil)))));
     assert_eq!(e4.get_locals(), lhash(vec!("var".to_owned())));
 
   }
@@ -355,44 +396,44 @@ mod tests {
   fn test_locals_assignment() {
 
     // Simple assignment
-    let e1 = Expr::Assign(AssignTarget::Variable(String::from("var")), Box::new(Expr::Literal(Literal::Nil)));
+    let e1 = e(ExprF::Assign(AssignTarget::Variable(String::from("var")), Box::new(e(ExprF::Literal(Literal::Nil)))));
     assert_eq!(e1.get_locals(), lhash_rw(vec!(("var".to_owned(), AccessType::RW))));
 
     // Assignment including RHS
-    let e2 = Expr::Assign(AssignTarget::Variable(String::from("var1")), Box::new(Expr::LocalVar("var2".to_owned())));
+    let e2 = e(ExprF::Assign(AssignTarget::Variable(String::from("var1")), Box::new(e(ExprF::LocalVar("var2".to_owned())))));
     assert_eq!(e2.get_locals(), lhash_rw(vec!(("var1".to_owned(), AccessType::RW), ("var2".to_owned(), AccessType::Read))));
 
     // Reading and writing (I)
-    let e3 = Expr::Progn(vec!(
-      Expr::Assign(AssignTarget::Variable(String::from("var")), Box::new(Expr::Literal(Literal::Nil))),
-      Expr::LocalVar("var".to_owned()),
-    ));
+    let e3 = e(ExprF::Progn(vec!(
+      e(ExprF::Assign(AssignTarget::Variable(String::from("var")), Box::new(e(ExprF::Literal(Literal::Nil))))),
+      e(ExprF::LocalVar("var".to_owned())),
+    )));
     assert_eq!(e3.get_locals(), lhash_rw(vec!(("var".to_owned(), AccessType::RW))));
 
     // Reading and writing (II)
-    let e4 = Expr::Progn(vec!(
-      Expr::LocalVar("var".to_owned()),
-      Expr::Assign(AssignTarget::Variable(String::from("var")), Box::new(Expr::Literal(Literal::Nil))),
-    ));
+    let e4 = e(ExprF::Progn(vec!(
+      e(ExprF::LocalVar("var".to_owned())),
+      e(ExprF::Assign(AssignTarget::Variable(String::from("var")), Box::new(e(ExprF::Literal(Literal::Nil))))),
+    )));
     assert_eq!(e4.get_locals(), lhash_rw(vec!(("var".to_owned(), AccessType::RW))));
 
   }
 
   #[test]
   fn test_functions_trivial() {
-    let e1 = Expr::Literal(Literal::Int(1));
+    let e1 = e(ExprF::Literal(Literal::Int(1)));
     assert_eq!(e1.get_functions(), fhash(vec!()));
   }
 
   #[test]
   fn test_functions_calls() {
-    let e1 = Expr::Call("abc".to_owned(), vec!(Expr::Call("def".to_owned(), vec!())));
+    let e1 = e(ExprF::Call("abc".to_owned(), vec!(e(ExprF::Call("def".to_owned(), vec!())))));
     assert_eq!(e1.get_functions(), fhash(vec!("abc".to_owned(), "def".to_owned())));
   }
 
   #[test]
   fn test_functions_ref() {
-    let e1 = Expr::FuncRef(FuncRefTarget::SimpleName("abc".to_owned()));
+    let e1 = e(ExprF::FuncRef(FuncRefTarget::SimpleName("abc".to_owned())));
     assert_eq!(e1.get_functions(), fhash(vec!("abc".to_owned())));
   }
 

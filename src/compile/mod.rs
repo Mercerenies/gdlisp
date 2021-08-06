@@ -51,6 +51,7 @@ use std::convert::TryFrom;
 
 type IRDecl = ir::decl::Decl;
 type IRExpr = ir::expr::Expr;
+type IRExprF = ir::expr::ExprF;
 type IRArgList = ir::arglist::ArgList;
 type IRLiteral = ir::literal::Literal;
 
@@ -110,13 +111,13 @@ impl<'a> Compiler<'a> {
                       -> Result<StExpr, Error> {
     // TODO I made a mess of this when converting to IR. Separate this
     // into many helper functions, probably over multiple files.
-    match expr {
-      IRExpr::LocalVar(s) => {
+    match &expr.value {
+      IRExprF::LocalVar(s) => {
         table.get_var(s).ok_or_else(|| Error::NoSuchVar(s.clone())).map(|var| {
           StExpr { expr: var.expr(), side_effects: SideEffects::from(var.access_type) }
         })
       }
-      IRExpr::Literal(lit) => {
+      IRExprF::Literal(lit) => {
         match lit {
           IRLiteral::Nil => Ok(Compiler::nil_expr()),
           IRLiteral::Int(n) => Ok(StExpr { expr: Expr::from(*n), side_effects: SideEffects::None }),
@@ -130,20 +131,20 @@ impl<'a> Compiler<'a> {
             }),
         }
       }
-      IRExpr::Progn(body) => {
+      IRExprF::Progn(body) => {
         let body: Vec<_> = body.iter().collect();
         self.compile_stmts(pipeline, builder, table, &body[..], needs_result)
       }
-      IRExpr::CondStmt(clauses) => {
+      IRExprF::CondStmt(clauses) => {
         special_form::compile_cond_stmt(self, pipeline, builder, table, clauses, needs_result)
       }
-      IRExpr::WhileStmt(cond, body) => {
+      IRExprF::WhileStmt(cond, body) => {
         special_form::compile_while_stmt(self, pipeline, builder, table, cond, body, needs_result)
       }
-      IRExpr::ForStmt(name, iter, body) => {
+      IRExprF::ForStmt(name, iter, body) => {
         special_form::compile_for_stmt(self, pipeline, builder, table, &*name, iter, body, needs_result)
       }
-      IRExpr::Call(f, args) => {
+      IRExprF::Call(f, args) => {
         let (fcall, call_magic) = match table.get_fn(f) {
           None => return Err(Error::NoSuchFn(f.clone())),
           Some((p, m)) => (p.clone(), dyn_clone::clone_box(m))
@@ -162,7 +163,7 @@ impl<'a> Compiler<'a> {
           side_effects: SideEffects::ModifiesState
         })
       }
-      IRExpr::Let(clauses, body) => {
+      IRExprF::Let(clauses, body) => {
         let closure_vars = body.get_locals();
         let var_names = clauses.iter().map::<Result<(String, String), Error>, _>(|clause| {
           let (ast_name, expr) = clause;
@@ -181,16 +182,16 @@ impl<'a> Compiler<'a> {
           self.compile_expr(pipeline, builder, table, body, needs_result)
         })
       }
-      IRExpr::FLet(clauses, body) => {
+      IRExprF::FLet(clauses, body) => {
         flet::compile_flet(self, pipeline, builder, table, clauses, body, needs_result)
       }
-      IRExpr::Labels(clauses, body) => {
+      IRExprF::Labels(clauses, body) => {
         flet::compile_labels(self, pipeline, builder, table, clauses, body, needs_result)
       }
-      IRExpr::Lambda(args, body) => {
+      IRExprF::Lambda(args, body) => {
         lambda::compile_lambda_stmt(self, pipeline, builder, table, args, body)
       }
-      IRExpr::FuncRef(name) => {
+      IRExprF::FuncRef(name) => {
         match name {
           FuncRefTarget::SimpleName(name) => {
             let func = table.get_fn(name).ok_or_else(|| Error::NoSuchFn(name.clone()))?.0.clone();
@@ -198,7 +199,7 @@ impl<'a> Compiler<'a> {
           }
         }
       }
-      IRExpr::Assign(AssignTarget::Variable(name), expr) => {
+      IRExprF::Assign(AssignTarget::Variable(name), expr) => {
         let var = table.get_var(name).ok_or_else(|| Error::NoSuchVar(name.clone()))?.to_owned();
         if !var.assignable {
           return Err(Error::CannotAssignTo(var.name.to_gd()));
@@ -206,7 +207,7 @@ impl<'a> Compiler<'a> {
         self.compile_stmt(pipeline, builder, table, &stmt_wrapper::AssignToExpr(var.expr()), expr)?;
         Ok(StExpr { expr: var.expr(), side_effects: SideEffects::from(var.access_type) })
       }
-      IRExpr::Assign(AssignTarget::InstanceField(lhs, name), expr) => {
+      IRExprF::Assign(AssignTarget::InstanceField(lhs, name), expr) => {
         // TODO Weirdness with setget makes this stateful flag not
         // always right? I mean, foo:bar can have side effects if bar
         // is protected by a setget.
@@ -224,7 +225,7 @@ impl<'a> Compiler<'a> {
           Ok(Compiler::nil_expr())
         }
       }
-      IRExpr::Array(vec) => {
+      IRExprF::Array(vec) => {
         let mut side_effects = SideEffects::None;
         let vec = vec.iter().map(|expr| {
           let StExpr { expr: cexpr, side_effects: state } = self.compile_expr(pipeline, builder, table, expr, NeedsResult::Yes)?;
@@ -233,7 +234,7 @@ impl<'a> Compiler<'a> {
         }).collect::<Result<Vec<_>, Error>>()?;
         Ok(StExpr { expr: Expr::ArrayLit(vec), side_effects })
       }
-      IRExpr::Dictionary(vec) => {
+      IRExprF::Dictionary(vec) => {
         let mut side_effects = SideEffects::None;
         let vec = vec.iter().map(|(k, v)| {
 
@@ -247,13 +248,13 @@ impl<'a> Compiler<'a> {
         }).collect::<Result<Vec<_>, Error>>()?;
         Ok(StExpr { expr: Expr::DictionaryLit(vec), side_effects })
       }
-      IRExpr::Quote(ast) => {
+      IRExprF::Quote(ast) => {
         Ok(StExpr { expr: ast.reify(), side_effects: SideEffects::None })
       }
-      IRExpr::FieldAccess(lhs, sym) => {
+      IRExprF::FieldAccess(lhs, sym) => {
 
         // This is a special case to validate enum names, as an extra sanity check.
-        if let IRExpr::LocalVar(lhs) = &**lhs {
+        if let IRExprF::LocalVar(lhs) = &lhs.value {
           if let Some(LocalVar { value_hint, .. }) = table.get_var(lhs) {
             if let Some(ValueHint::Enum(vs)) = value_hint {
               // It's an enum and we know its values; validate
@@ -269,7 +270,7 @@ impl<'a> Compiler<'a> {
         Ok(StExpr { expr: Expr::Attribute(Box::new(lhs), names::lisp_to_gd(sym)), side_effects })
 
       }
-      IRExpr::MethodCall(lhs, sym, args) => {
+      IRExprF::MethodCall(lhs, sym, args) => {
         // Note: No call magic, no optional/rest arguments. When
         // calling a method, we assume all arguments are required, we
         // perform no optimization, we do not check arity, and we
@@ -283,10 +284,10 @@ impl<'a> Compiler<'a> {
           side_effects: SideEffects::ModifiesState
         })
       }
-      IRExpr::LambdaClass(cls) => {
+      IRExprF::LambdaClass(cls) => {
         lambda_class::compile_lambda_class(self, pipeline, builder, table, cls)
       }
-      IRExpr::Yield(arg) => {
+      IRExprF::Yield(arg) => {
         match arg {
           None => Ok(StExpr { expr: Expr::yield_expr(None), side_effects: SideEffects::ModifiesState }),
           Some((x, y)) => {
@@ -296,12 +297,12 @@ impl<'a> Compiler<'a> {
           }
         }
       }
-      IRExpr::Return(expr) => {
+      IRExprF::Return(expr) => {
         self.compile_stmt(pipeline, builder, table, &stmt_wrapper::Return, expr)?;
         Ok(Compiler::nil_expr())
       }
       /* // This will eventually be an optimization.
-      IRExpr::Funcall(f, args) => {
+      IRExprF::Funcall(f, args) => {
         let func_expr = self.compile_expr(builder, table, f, NeedsResult::Yes)?.0;
         let args_expr = args.iter().map(|arg| {
           self.compile_expr(builder, table, arg, NeedsResult::Yes).map(|x| x.0)
@@ -539,8 +540,8 @@ impl<'a> Compiler<'a> {
     // Expr::LocalVar since we need to allow type names.
     //
     // TODO Validate that the local vars appearing here make sense.
-    match expr {
-      IRExpr::LocalVar(s) => Ok(Expr::Var(s.to_owned())),
+    match &expr.value {
+      IRExprF::LocalVar(s) => Ok(Expr::Var(s.to_owned())),
       _ => {
         let expr = self.compile_simple_expr(pipeline, table, "export", expr, NeedsResult::Yes)?;
         expr.validate_const_expr("export", table)?;
@@ -634,7 +635,7 @@ impl<'a> Compiler<'a> {
       }
       IRDecl::ConstDecl(ir::decl::ConstDecl { visibility: _, name, value }) => {
         let mut var = LocalVar::file_constant(names::lisp_to_gd(name)); // Can't assign to constants
-        if let IRExpr::Literal(value) = value {
+        if let IRExprF::Literal(value) = &value.value {
           if let Ok(value) = Literal::try_from(value.clone()) {
             var = var.with_hint(ValueHint::Literal(value));
           }

@@ -1,5 +1,6 @@
 
-use crate::ir::expr::{Expr, AssignTarget};
+use crate::ir::expr::{Expr, ExprF, AssignTarget};
+use crate::pipeline::source::SourceOffset;
 
 // This enum represents the different ways a (set ...) assignment form
 // can expand.
@@ -15,14 +16,14 @@ impl AssignmentForm {
     format!("set-{}", name)
   }
 
-  pub fn into_expr(self, rhs: Expr) -> Expr {
+  pub fn into_expr(self, rhs: Expr, pos: SourceOffset) -> Expr {
     match self {
       AssignmentForm::Simple(target) => {
-        Expr::Assign(target, Box::new(rhs))
+        Expr::new(ExprF::Assign(target, Box::new(rhs)), pos)
       }
       AssignmentForm::SetterCall(f, mut args) => {
         args.insert(0, rhs);
-        Expr::Call(f, args)
+        Expr::new(ExprF::Call(f, args), pos)
       }
     }
   }

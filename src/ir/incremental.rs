@@ -7,7 +7,7 @@ use super::call_name::CallName;
 use super::arglist::{ArgList, SimpleArgList};
 use super::literal::Literal;
 use super::import::{ImportDecl, ImportName};
-use super::expr::Expr;
+use super::expr::{Expr, ExprF};
 use super::special_form;
 use super::depends::Dependencies;
 use super::decl::{self, Decl};
@@ -26,6 +26,7 @@ use crate::gdscript::decl::Static;
 use crate::pipeline::error::{Error as PError};
 use crate::pipeline::Pipeline;
 use crate::pipeline::translation_unit::TranslationUnit;
+use crate::pipeline::source::SourceOffset;
 
 use std::convert::{TryFrom, TryInto};
 use std::borrow::{Cow, Borrow};
@@ -111,16 +112,16 @@ impl IncCompiler {
     }
   }
 
-  pub fn resolve_simple_call(&mut self, pipeline: &mut Pipeline, head: &str, tail: &[&AST])
+  pub fn resolve_simple_call(&mut self, pipeline: &mut Pipeline, head: &str, tail: &[&AST], pos: SourceOffset)
                              -> Result<Expr, PError> {
-    if let Some(sf) = special_form::dispatch_form(self, pipeline, head, tail)? {
+    if let Some(sf) = special_form::dispatch_form(self, pipeline, head, tail, pos)? {
       Ok(sf)
     } else if self.macros.get(head).is_some() {
       let result = self.resolve_macro_call(pipeline, head, tail)?;
       self.compile_expr(pipeline, &result)
     } else {
       let args = tail.iter().map(|x| self.compile_expr(pipeline, x)).collect::<Result<Vec<_>, _>>()?;
-      Ok(Expr::Call(head.to_owned(), args))
+      Ok(Expr::new(ExprF::Call(head.to_owned(), args), pos))
     }
   }
 
@@ -129,43 +130,43 @@ impl IncCompiler {
       ASTF::Nil | ASTF::Cons(_, _) => {
         let vec: Vec<&AST> = DottedExpr::new(expr).try_into()?;
         if vec.is_empty() {
-          Ok(Expr::Literal(Literal::Nil))
+          Ok(Expr::literal(Literal::Nil, expr.pos))
         } else {
           let head = self.resolve_call_name(pipeline, vec[0])?;
           let tail = &vec[1..];
           match head {
             CallName::SimpleName(head) => {
-              self.resolve_simple_call(pipeline, &head, tail)
+              self.resolve_simple_call(pipeline, &head, tail, expr.pos)
             }
             CallName::MethodName(target, head) => {
               let args = tail.iter().map(|x| self.compile_expr(pipeline, x)).collect::<Result<Vec<_>, _>>()?;
-              Ok(Expr::MethodCall(target, head, args))
+              Ok(Expr::new(ExprF::MethodCall(target, head, args), expr.pos))
             }
           }
         }
       }
       ASTF::Array(vec) => {
         let vec = vec.iter().map(|e| self.compile_expr(pipeline, e)).collect::<Result<Vec<_>, _>>()?;
-        Ok(Expr::Array(vec))
+        Ok(Expr::new(ExprF::Array(vec), expr.pos))
       }
       ASTF::Dictionary(vec) => {
         let vec = vec.iter().map(|(k, v)| Ok((self.compile_expr(pipeline, k)?, self.compile_expr(pipeline, v)?))).collect::<Result<Vec<_>, PError>>()?;
-        Ok(Expr::Dictionary(vec))
+        Ok(Expr::new(ExprF::Dictionary(vec), expr.pos))
       }
       ASTF::Int(n) => {
-        Ok(Expr::Literal(Literal::Int(*n)))
+        Ok(Expr::new(ExprF::Literal(Literal::Int(*n)), expr.pos))
       }
       ASTF::Bool(b) => {
-        Ok(Expr::Literal(Literal::Bool(*b)))
+        Ok(Expr::new(ExprF::Literal(Literal::Bool(*b)), expr.pos))
       }
       ASTF::Float(f) => {
-        Ok(Expr::Literal(Literal::Float(*f)))
+        Ok(Expr::new(ExprF::Literal(Literal::Float(*f)), expr.pos))
       }
       ASTF::String(s) => {
-        Ok(Expr::Literal(Literal::String(s.to_owned())))
+        Ok(Expr::new(ExprF::Literal(Literal::String(s.to_owned())), expr.pos))
       }
       ASTF::Symbol(s) => {
-        Ok(Expr::LocalVar(s.to_string()))
+        Ok(Expr::new(ExprF::LocalVar(s.to_string()), expr.pos))
       }
     }
   }
@@ -199,7 +200,7 @@ impl IncCompiler {
               call_magic: None,
               name: name.to_owned(),
               args: args,
-              body: Expr::Progn(body),
+              body: Expr::progn(body, vec[0].pos),
             };
             for m in mods {
               m.apply(&mut decl);
@@ -222,7 +223,7 @@ impl IncCompiler {
               visibility: Visibility::MACRO,
               name: name.to_owned(),
               args: args,
-              body: Expr::Progn(body),
+              body: Expr::progn(body, vec[0].pos),
             };
             for m in mods {
               m.apply(&mut decl);
@@ -265,7 +266,7 @@ impl IncCompiler {
               _ => return Err(PError::from(Error::InvalidDecl(decl.clone()))),
             };
             let (mods, decl_body) = modifier::class::parser().parse(&vec[3..])?;
-            let mut class = decl::ClassDecl::new(name, superclass);
+            let mut class = decl::ClassDecl::new(name, superclass, vec[0].pos);
             for m in mods {
               m.apply(&mut class);
             }
@@ -479,7 +480,7 @@ impl IncCompiler {
             let body = body.iter().map(|expr| self.compile_expr(pipeline, expr)).collect::<Result<Vec<_>, _>>()?;
             if fname == "_init" {
               // Constructor
-              acc.constructor = decl::ConstructorDecl { args, body: Expr::Progn(body) };
+              acc.constructor = decl::ConstructorDecl { args, body: Expr::progn(body, vec[0].pos) };
               for m in mods {
                 m.apply_to_constructor(&mut acc.constructor)?;
               }
@@ -488,7 +489,7 @@ impl IncCompiler {
                 is_static: Static::NonStatic,
                 name: fname.to_owned(),
                 args,
-                body: Expr::Progn(body),
+                body: Expr::progn(body, vec[0].pos),
               };
               for m in mods {
                 m.apply(&mut decl);
@@ -590,6 +591,7 @@ impl IncCompiler {
 
   pub fn compile_toplevel(mut self, pipeline: &mut Pipeline, body: &AST)
                           -> Result<(decl::TopLevel, HashMap<String, MacroData>), PError> {
+    let pos = body.pos;
     let body: Result<Vec<_>, TryFromDottedExprError> = DottedExpr::new(body).try_into();
     let body: Vec<_> = body?; // *sigh* Sometimes the type checker just doesn't get it ...
 
@@ -611,7 +613,7 @@ impl IncCompiler {
       call_magic: None,
       name: MAIN_BODY_NAME.to_owned(),
       args: ArgList::empty(),
-      body: Expr::Progn(main),
+      body: Expr::progn(main, pos),
     });
     self.table.add(main_decl);
 

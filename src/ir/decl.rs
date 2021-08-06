@@ -6,6 +6,7 @@ use super::import::ImportDecl;
 use super::identifier::{Namespace, Id, IdLike};
 use super::export::Visibility;
 use crate::gdscript::decl::Static;
+use crate::pipeline::source::SourceOffset;
 
 use std::collections::HashSet;
 
@@ -255,13 +256,13 @@ impl EnumDecl {
 
 impl ClassDecl {
 
-  pub fn new(name: String, extends: String) -> ClassDecl {
+  pub fn new(name: String, extends: String, pos: SourceOffset) -> ClassDecl {
     ClassDecl {
       visibility: Visibility::CLASS,
       name: name,
       extends: extends,
       main_class: false,
-      constructor: ConstructorDecl::default(),
+      constructor: ConstructorDecl::empty(pos),
       decls: vec!(),
     }
   }
@@ -269,6 +270,15 @@ impl ClassDecl {
 }
 
 impl ConstructorDecl {
+
+  /// An empty constructor, marked as starting at `pos`. `pos` should
+  /// be the position of the start of the class declaration.
+  pub fn empty(pos: SourceOffset) -> ConstructorDecl {
+    ConstructorDecl {
+      args: SimpleArgList { args: vec!() },
+      body: Expr::literal(Literal::Nil, pos),
+    }
+  }
 
   pub fn dependencies(&self) -> HashSet<Id> {
     let mut ids: HashSet<Id> = self.body.get_ids().collect();
@@ -341,17 +351,6 @@ impl DeclareType {
     match self {
       DeclareType::Value | DeclareType::Superglobal => Namespace::Value,
       DeclareType::Function(_) | DeclareType::SuperglobalFn(_) => Namespace::Function,
-    }
-  }
-
-}
-
-impl Default for ConstructorDecl {
-
-  fn default() -> ConstructorDecl {
-    ConstructorDecl {
-      args: SimpleArgList { args: vec!() },
-      body: Expr::Literal(Literal::Nil),
     }
   }
 

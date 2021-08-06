@@ -47,7 +47,7 @@ pub fn compile_toplevel(pipeline: &mut Pipeline, body: &AST)
 mod tests {
   use super::*;
   use crate::ir::literal::Literal;
-  use crate::ir::expr::{Expr, AssignTarget};
+  use crate::ir::expr::{Expr, ExprF, AssignTarget};
   use crate::ir::arglist::ArgList;
   use crate::ir::export::Visibility;
   use crate::pipeline::Pipeline;
@@ -83,6 +83,18 @@ mod tests {
     AST::dotted_list(data, nil())
   }
 
+  fn call(name: &str, args: Vec<Expr>) -> Expr {
+    Expr::call(String::from(name), args, SourceOffset::default())
+  }
+
+  fn literal(literal: Literal) -> Expr {
+    Expr::literal(literal, SourceOffset::default())
+  }
+
+  fn progn(body: Vec<Expr>) -> Expr {
+    Expr::progn(body, SourceOffset::default())
+  }
+
   fn compile_expr(pipeline: &mut Pipeline, expr: &AST)
                   -> Result<Expr, PError> {
     let mut compiler = incremental::IncCompiler::new(expr.all_symbols());
@@ -110,7 +122,7 @@ mod tests {
   #[test]
   fn compile_call() {
     let ast = list(vec!(symbol("foobar"), int(10)));
-    let expected = Expr::Call(String::from("foobar"), vec!(Expr::Literal(Literal::Int(10))));
+    let expected = call("foobar", vec!(literal(Literal::Int(10))));
     let actual = do_compile_expr(&ast).unwrap();
     assert_eq!(actual, expected);
   }
@@ -120,30 +132,30 @@ mod tests {
   #[test]
   fn compile_builtin() {
     let ast = list(vec!(symbol("cons"), int(10)));
-    let expected = Expr::Call(String::from("cons"), vec!(Expr::Literal(Literal::Int(10))));
+    let expected = call("cons", vec!(literal(Literal::Int(10))));
     let actual = do_compile_expr(&ast).unwrap();
     assert_eq!(actual, expected);
   }
 
   #[test]
   fn compile_int() {
-    assert_eq!(do_compile_expr(&int(99)).unwrap(), Expr::Literal(Literal::Int(99)));
-    assert_eq!(do_compile_expr(&int(-10)).unwrap(), Expr::Literal(Literal::Int(-10)));
+    assert_eq!(do_compile_expr(&int(99)).unwrap(), literal(Literal::Int(99)));
+    assert_eq!(do_compile_expr(&int(-10)).unwrap(), literal(Literal::Int(-10)));
   }
 
   #[test]
   fn compile_nil() {
-    assert_eq!(do_compile_expr(&nil()).unwrap(), Expr::Literal(Literal::Nil));
+    assert_eq!(do_compile_expr(&nil()).unwrap(), literal(Literal::Nil));
   }
 
   #[test]
   fn compile_progn() {
     assert_eq!(do_compile_expr(&list(vec!(symbol("progn")))).unwrap(),
-               Expr::Progn(vec!()));
+               progn(vec!()));
     assert_eq!(do_compile_expr(&list(vec!(symbol("progn"), int(1)))).unwrap(),
-               Expr::Progn(vec!(Expr::Literal(Literal::Int(1)))));
+               progn(vec!(literal(Literal::Int(1)))));
     assert_eq!(do_compile_expr(&list(vec!(symbol("progn"), int(1), int(2)))).unwrap(),
-               Expr::Progn(vec!(Expr::Literal(Literal::Int(1)), Expr::Literal(Literal::Int(2)))));
+               progn(vec!(literal(Literal::Int(1)), literal(Literal::Int(2)))));
   }
 
   #[test]
@@ -158,7 +170,7 @@ mod tests {
                  call_magic: None,
                  name: "foobar".to_owned(),
                  args: ArgList::required(vec!("a".to_owned(), "b".to_owned())),
-                 body: Expr::Progn(vec!(Expr::Literal(Literal::Int(20)))),
+                 body: progn(vec!(literal(Literal::Int(20)))),
                }));
   }
 
@@ -173,7 +185,7 @@ mod tests {
                  visibility: Visibility::MACRO,
                  name: "foobar".to_owned(),
                  args: ArgList::required(vec!("a".to_owned(), "b".to_owned())),
-                 body: Expr::Progn(vec!(Expr::Literal(Literal::Int(20)))),
+                 body: progn(vec!(literal(Literal::Int(20)))),
                }));
   }
 
@@ -182,7 +194,7 @@ mod tests {
     assert_eq!(do_compile_expr(&list(vec!(symbol("set"),
                                           symbol("foobar"),
                                           int(1)))).unwrap(),
-               Expr::Assign(AssignTarget::Variable(String::from("foobar")), Box::new(Expr::Literal(Literal::Int(1)))));
+               Expr::new(ExprF::Assign(AssignTarget::Variable(String::from("foobar")), Box::new(literal(Literal::Int(1)))), SourceOffset::default()));
   }
 
 }

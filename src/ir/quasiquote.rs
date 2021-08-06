@@ -2,7 +2,7 @@
 use crate::sxp::ast::{AST, ASTF};
 use crate::ir::incremental::IncCompiler;
 use crate::compile::error::{Error as GDError};
-use super::expr::Expr;
+use super::expr::{Expr, ExprF};
 use super::literal::Literal;
 use crate::pipeline::error::Error;
 use crate::pipeline::Pipeline;
@@ -115,33 +115,33 @@ fn quasiquote_spliced(icompiler: &mut IncCompiler,
     UnquotedValue::SimpleValue(arg) => {
       let body = match &arg.value {
         ASTF::Nil => {
-          Expr::Literal(Literal::Nil)
+          Expr::new(ExprF::Literal(Literal::Nil), arg.pos)
         }
         ASTF::Int(n) => {
-          Expr::Literal(Literal::Int(*n))
+          Expr::new(ExprF::Literal(Literal::Int(*n)), arg.pos)
         }
         ASTF::Bool(b) => {
-          Expr::Literal(Literal::Bool(*b))
+          Expr::new(ExprF::Literal(Literal::Bool(*b)), arg.pos)
         }
         ASTF::Float(f) => {
-          Expr::Literal(Literal::Float(*f))
+          Expr::new(ExprF::Literal(Literal::Float(*f)), arg.pos)
         }
         ASTF::String(s) => {
-          Expr::Literal(Literal::String(s.to_owned()))
+          Expr::new(ExprF::Literal(Literal::String(s.to_owned())), arg.pos)
         }
         ASTF::Symbol(s) => {
-          Expr::Literal(Literal::Symbol(s.to_owned()))
+          Expr::new(ExprF::Literal(Literal::Symbol(s.to_owned())), arg.pos)
         }
         ASTF::Cons(car, cdr) => {
           let car = quasiquote_spliced(icompiler, pipeline, car, depth)?;
           let cdr = quasiquote_indexed(icompiler, pipeline, cdr, depth)?;
           match car {
             QQSpliced::Single(car) => {
-              Expr::Call(String::from("cons"), vec!(car, cdr))
+              Expr::call(String::from("cons"), vec!(car, cdr), arg.pos)
             }
             QQSpliced::Several(car) => {
-              let converted_car = Expr::Call(String::from("sys/qq-smart-list"), vec!(car));
-              Expr::Call(String::from("append"), vec!(converted_car, cdr))
+              let converted_car = Expr::call(String::from("sys/qq-smart-list"), vec!(car), arg.pos);
+              Expr::call(String::from("append"), vec!(converted_car, cdr), arg.pos)
             }
           }
         }
@@ -156,9 +156,9 @@ fn quasiquote_spliced(icompiler: &mut IncCompiler,
                 current_vec.push(x)
               }
               QQSpliced::Several(x) => {
-                let x = Expr::Call(String::from("sys/qq-smart-array"), vec!(x));
+                let x = Expr::call(String::from("sys/qq-smart-array"), vec!(x), arg.pos);
                 if !current_vec.is_empty() {
-                  acc.push(Expr::Array(current_vec));
+                  acc.push(Expr::new(ExprF::Array(current_vec), arg.pos));
                   current_vec = vec!();
                 }
                 acc.push(x);
@@ -166,14 +166,14 @@ fn quasiquote_spliced(icompiler: &mut IncCompiler,
             }
           }
           if !current_vec.is_empty() {
-            acc.push(Expr::Array(current_vec));
+            acc.push(Expr::new(ExprF::Array(current_vec), arg.pos))
           }
-          Expr::Call(String::from("+"), acc)
+          Expr::call(String::from("+"), acc, arg.pos)
         }
         ASTF::Dictionary(v) => {
           // TODO Does unquote-spliced make sense in this context?
           let v1 = v.iter().map(|(k, v)| Ok((quasiquote_indexed(icompiler, pipeline, k, depth)?, quasiquote_indexed(icompiler, pipeline, v, depth)?))).collect::<Result<Vec<_>, Error>>()?;
-          Expr::Dictionary(v1)
+          Expr::new(ExprF::Dictionary(v1), arg.pos)
         }
       };
       Ok(QQSpliced::Single(body))
