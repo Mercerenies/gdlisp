@@ -48,6 +48,7 @@ mod tests {
   use super::*;
   use crate::ir::literal::Literal;
   use crate::ir::expr::{Expr, ExprF, AssignTarget};
+  use crate::ir::decl::DeclF;
   use crate::ir::arglist::ArgList;
   use crate::ir::export::Visibility;
   use crate::pipeline::Pipeline;
@@ -165,13 +166,13 @@ mod tests {
                                           list(vec!(symbol("a"),
                                                     symbol("b"))),
                                           int(20)))).unwrap(),
-               Decl::FnDecl(decl::FnDecl {
+               Decl::new(DeclF::FnDecl(decl::FnDecl {
                  visibility: Visibility::FUNCTION,
                  call_magic: None,
                  name: "foobar".to_owned(),
                  args: ArgList::required(vec!("a".to_owned(), "b".to_owned())),
                  body: progn(vec!(literal(Literal::Int(20)))),
-               }));
+               }), SourceOffset::default()));
   }
 
   #[test]
@@ -181,12 +182,12 @@ mod tests {
                                           list(vec!(symbol("a"),
                                                     symbol("b"))),
                                           int(20)))).unwrap(),
-               Decl::MacroDecl(decl::MacroDecl {
+               Decl::new(DeclF::MacroDecl(decl::MacroDecl {
                  visibility: Visibility::MACRO,
                  name: "foobar".to_owned(),
                  args: ArgList::required(vec!("a".to_owned(), "b".to_owned())),
                  body: progn(vec!(literal(Literal::Int(20)))),
-               }));
+               }), SourceOffset::default()));
   }
 
   #[test]

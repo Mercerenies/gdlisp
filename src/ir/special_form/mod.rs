@@ -5,7 +5,7 @@ pub mod assignment;
 use crate::sxp::ast::{AST, ASTF};
 use crate::sxp::dotted::DottedExpr;
 use super::expr::{ExprF, Expr, FuncRefTarget, AssignTarget, LambdaClass};
-use super::decl::{self, Decl};
+use super::decl::{self, Decl, DeclF};
 use super::arglist::ArgList;
 use super::quasiquote::quasiquote;
 use crate::compile::error::{Error as GDError};
@@ -407,7 +407,7 @@ pub fn macrolet_form(icompiler: &mut IncCompiler,
     Ok(decl::MacroDecl { visibility: Visibility::MACRO, name, args, body: Expr::progn(body, clause.pos) })
   }).collect::<Result<Vec<_>, _>>()?;
 
-  macrolet_bind_locals(icompiler, pipeline, &mut fn_clauses.into_iter(), |icompiler, pipeline| {
+  macrolet_bind_locals(icompiler, pipeline, &mut fn_clauses.into_iter(), pos, |icompiler, pipeline| {
     let body = tail[1..].iter().map(|expr| icompiler.compile_expr(pipeline, expr)).collect::<Result<Vec<_>, _>>()?;
     Ok(Expr::progn(body, pos))
   })
@@ -417,6 +417,7 @@ pub fn macrolet_form(icompiler: &mut IncCompiler,
 fn macrolet_bind_locals<B, E, F, I>(icompiler: &mut IncCompiler,
                                     pipeline: &mut Pipeline,
                                     macros: &mut I,
+                                    pos: SourceOffset,
                                     func: F)
                                     -> Result<B, E>
 where E : From<Error>,
@@ -429,13 +430,13 @@ where E : From<Error>,
                                       // compile without it.
     Some(m) => icompiler.locally_save_macro(&m.name.to_string(), |icompiler| {
       let name = m.name.to_string();
-      icompiler.bind_macro(pipeline, m.to_owned(), true)?;
+      icompiler.bind_macro(pipeline, m.to_owned(), pos, true)?;
       let old_symbol_value = {
         let table = icompiler.declaration_table();
         table.get(&*Id::build(Namespace::Function, &name)).cloned()
       };
-      icompiler.declaration_table().add(Decl::MacroDecl(m.clone()));
-      let result = macrolet_bind_locals(icompiler, pipeline, macros, func);
+      icompiler.declaration_table().add(Decl::new(DeclF::MacroDecl(m.clone()), pos));
+      let result = macrolet_bind_locals(icompiler, pipeline, macros, pos, func);
       if let Some(old_symbol_value) = old_symbol_value {
         let table = icompiler.declaration_table();
         table.add(old_symbol_value);

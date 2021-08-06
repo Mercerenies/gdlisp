@@ -61,7 +61,7 @@ pub fn create_macro_file(pipeline: &mut Pipeline, imports: Vec<ImportDecl>, src_
     let mut toplevel = TopLevel { imports, decls, minimalist_flag: minimalist };
     // Strip main class qualifier; we don't need or want it during macro expansion.
     for d in &mut toplevel.decls {
-      if let ir::decl::Decl::ClassDecl(cdecl) = d {
+      if let ir::decl::DeclF::ClassDecl(cdecl) = &mut d.value {
         cdecl.main_class = false;
       }
     }

@@ -6,7 +6,7 @@ use super::import::ImportDecl;
 use super::identifier::{Namespace, Id, IdLike};
 use super::export::Visibility;
 use crate::gdscript::decl::Static;
-use crate::pipeline::source::SourceOffset;
+use crate::pipeline::source::{SourceOffset, Sourced};
 
 use std::collections::HashSet;
 
@@ -18,13 +18,19 @@ pub struct TopLevel {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub enum Decl {
+pub enum DeclF {
   FnDecl(FnDecl),
   MacroDecl(MacroDecl),
   ConstDecl(ConstDecl),
   ClassDecl(ClassDecl),
   EnumDecl(EnumDecl),
   DeclareDecl(DeclareDecl),
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct Decl {
+  pub value: DeclF,
+  pub pos: SourceOffset,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -137,6 +143,10 @@ impl TopLevel {
 
 impl Decl {
 
+  pub fn new(value: DeclF, pos: SourceOffset) -> Decl {
+    Decl { value, pos }
+  }
+
   pub fn to_id(&self) -> Id {
     Id::new(self.namespace(), self.name().to_owned())
   }
@@ -146,37 +156,37 @@ impl Decl {
   }
 
   pub fn name(&self) -> &str {
-    match self {
-      Decl::FnDecl(decl) => &decl.name,
-      Decl::MacroDecl(decl) => &decl.name,
-      Decl::ConstDecl(decl) => &decl.name,
-      Decl::ClassDecl(decl) => &decl.name,
-      Decl::EnumDecl(decl) => &decl.name,
-      Decl::DeclareDecl(decl) => &decl.name,
+    match &self.value {
+      DeclF::FnDecl(decl) => &decl.name,
+      DeclF::MacroDecl(decl) => &decl.name,
+      DeclF::ConstDecl(decl) => &decl.name,
+      DeclF::ClassDecl(decl) => &decl.name,
+      DeclF::EnumDecl(decl) => &decl.name,
+      DeclF::DeclareDecl(decl) => &decl.name,
     }
   }
 
   // Gets the direct dependencies required by the declaration.
   pub fn dependencies(&self) -> HashSet<Id> {
-    match self {
-      Decl::FnDecl(f) => {
+    match &self.value {
+      DeclF::FnDecl(f) => {
         let mut ids: HashSet<Id> = f.body.get_ids().collect();
         for name in f.args.iter_vars() {
           ids.remove(&*Id::build(Namespace::Value, name));
         }
         ids
       }
-      Decl::MacroDecl(m) => {
+      DeclF::MacroDecl(m) => {
         let mut ids: HashSet<Id> = m.body.get_ids().collect();
         for name in m.args.iter_vars() {
           ids.remove(&*Id::build(Namespace::Value, name));
         }
         ids
       }
-      Decl::ConstDecl(c) => {
+      DeclF::ConstDecl(c) => {
         c.value.get_ids().collect()
       }
-      Decl::ClassDecl(c) => {
+      DeclF::ClassDecl(c) => {
         let mut ids = HashSet::new();
         ids.insert(Id::new(Namespace::Value, c.extends.to_owned()));
         ids.extend(c.constructor.dependencies());
@@ -186,7 +196,7 @@ impl Decl {
         ids.remove(&Id::new(Namespace::Value, String::from("self")));
         ids
       }
-      Decl::EnumDecl(enum_decl) => {
+      DeclF::EnumDecl(enum_decl) => {
         let mut ids = HashSet::new();
         for (_, expr) in &enum_decl.clauses {
           if let Some(expr) = expr {
@@ -195,52 +205,53 @@ impl Decl {
         }
         ids
       }
-      Decl::DeclareDecl(_) => {
+      DeclF::DeclareDecl(_) => {
         HashSet::new()
       }
     }
   }
 
   pub fn is_macro(&self) -> bool {
-    matches!(self, Decl::MacroDecl(_))
+    matches!(&self.value, DeclF::MacroDecl(_))
   }
 
+  #[deprecated(note="Use visibility() or export::Visibility constants instead")]
   pub fn is_exported_by_default(&self) -> bool {
     // (sys/declare ...) statements are never exported and are always
     // file-local by default.
-    !(matches!(self, Decl::DeclareDecl(_)))
+    !(matches!(&self.value, DeclF::DeclareDecl(_)))
   }
 
   pub fn namespace(&self) -> Namespace {
-    match self {
-      Decl::FnDecl(_) => Namespace::Function,
-      Decl::MacroDecl(_) => Namespace::Function,
-      Decl::ConstDecl(_) => Namespace::Value,
-      Decl::ClassDecl(_) => Namespace::Value,
-      Decl::EnumDecl(_) => Namespace::Value,
-      Decl::DeclareDecl(d) => d.declare_type.namespace(),
+    match &self.value {
+      DeclF::FnDecl(_) => Namespace::Function,
+      DeclF::MacroDecl(_) => Namespace::Function,
+      DeclF::ConstDecl(_) => Namespace::Value,
+      DeclF::ClassDecl(_) => Namespace::Value,
+      DeclF::EnumDecl(_) => Namespace::Value,
+      DeclF::DeclareDecl(d) => d.declare_type.namespace(),
     }
   }
 
   pub fn visibility(&self) -> Visibility {
-    match self {
-      Decl::FnDecl(d) => d.visibility,
-      Decl::MacroDecl(d) => d.visibility,
-      Decl::ConstDecl(d) => d.visibility,
-      Decl::ClassDecl(d) => d.visibility,
-      Decl::EnumDecl(d) => d.visibility,
-      Decl::DeclareDecl(d) => d.visibility,
+    match &self.value {
+      DeclF::FnDecl(d) => d.visibility,
+      DeclF::MacroDecl(d) => d.visibility,
+      DeclF::ConstDecl(d) => d.visibility,
+      DeclF::ClassDecl(d) => d.visibility,
+      DeclF::EnumDecl(d) => d.visibility,
+      DeclF::DeclareDecl(d) => d.visibility,
     }
   }
 
   pub fn visibility_mut(&mut self) -> &mut Visibility {
-    match self {
-      Decl::FnDecl(d) => &mut d.visibility,
-      Decl::MacroDecl(d) => &mut d.visibility,
-      Decl::ConstDecl(d) => &mut d.visibility,
-      Decl::ClassDecl(d) => &mut d.visibility,
-      Decl::EnumDecl(d) => &mut d.visibility,
-      Decl::DeclareDecl(d) => &mut d.visibility,
+    match &mut self.value {
+      DeclF::FnDecl(d) => &mut d.visibility,
+      DeclF::MacroDecl(d) => &mut d.visibility,
+      DeclF::ConstDecl(d) => &mut d.visibility,
+      DeclF::ClassDecl(d) => &mut d.visibility,
+      DeclF::EnumDecl(d) => &mut d.visibility,
+      DeclF::DeclareDecl(d) => &mut d.visibility,
     }
   }
 
@@ -352,6 +363,19 @@ impl DeclareType {
       DeclareType::Value | DeclareType::Superglobal => Namespace::Value,
       DeclareType::Function(_) | DeclareType::SuperglobalFn(_) => Namespace::Function,
     }
+  }
+
+}
+
+impl Sourced for Decl {
+  type Item = DeclF;
+
+  fn get_source(&self) -> SourceOffset {
+    self.pos
+  }
+
+  fn get_value(&self) -> &DeclF {
+    &self.value
   }
 
 }

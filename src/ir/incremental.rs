@@ -10,7 +10,7 @@ use super::import::{ImportDecl, ImportName};
 use super::expr::{Expr, ExprF};
 use super::special_form;
 use super::depends::Dependencies;
-use super::decl::{self, Decl};
+use super::decl::{self, Decl, DeclF};
 use super::macros::{self, MacroData};
 use super::identifier::{Id, IdLike, Namespace};
 use super::modifier::{self, ParseRule};
@@ -205,7 +205,7 @@ impl IncCompiler {
             for m in mods {
               m.apply(&mut decl);
             }
-            Ok(Decl::FnDecl(decl))
+            Ok(Decl::new(DeclF::FnDecl(decl), vec[0].pos))
           }
           "defmacro" => {
             if vec.len() < 3 {
@@ -228,7 +228,7 @@ impl IncCompiler {
             for m in mods {
               m.apply(&mut decl);
             }
-            Ok(Decl::MacroDecl(decl))
+            Ok(Decl::new(DeclF::MacroDecl(decl), vec[0].pos))
           }
           "defconst" => {
             if vec.len() < 3 {
@@ -247,7 +247,7 @@ impl IncCompiler {
             for m in mods {
               m.apply(&mut decl);
             }
-            Ok(Decl::ConstDecl(decl))
+            Ok(Decl::new(DeclF::ConstDecl(decl), vec[0].pos))
           }
           "defclass" => {
             if vec.len() < 3 {
@@ -273,7 +273,7 @@ impl IncCompiler {
             for decl in decl_body {
               self.compile_class_inner_decl(pipeline, &mut class, decl)?;
             }
-            Ok(Decl::ClassDecl(class))
+            Ok(Decl::new(DeclF::ClassDecl(class), vec[0].pos))
           }
           "defenum" => {
             if vec.len() < 2 {
@@ -306,7 +306,7 @@ impl IncCompiler {
             for m in mods {
               m.apply(&mut enum_decl);
             }
-            Ok(Decl::EnumDecl(enum_decl))
+            Ok(Decl::new(DeclF::EnumDecl(enum_decl), vec[0].pos))
           }
           "sys/declare" => {
             // (sys/declare value name)
@@ -364,7 +364,7 @@ impl IncCompiler {
             for m in mods {
               m.apply(&mut declare);
             }
-            Ok(Decl::DeclareDecl(declare))
+            Ok(Decl::new(DeclF::DeclareDecl(declare), vec[0].pos))
           }
           _ => {
             Err(PError::from(Error::UnknownDecl(decl.clone())))
@@ -580,8 +580,8 @@ impl IncCompiler {
         Err(e) => return Err(e),
         Ok(d) => {
           self.table.add(d.clone());
-          if let Decl::MacroDecl(mdecl) = d {
-            self.bind_macro(pipeline, mdecl, false)?;
+          if let DeclF::MacroDecl(mdecl) = d.value {
+            self.bind_macro(pipeline, mdecl, d.pos, false)?;
           }
         }
       };
@@ -608,19 +608,23 @@ impl IncCompiler {
     for curr in body {
       self.compile_decl_or_expr(pipeline, &mut main, curr)?;
     }
-    let main_decl = Decl::FnDecl(decl::FnDecl {
+    let main_decl = DeclF::FnDecl(decl::FnDecl {
       visibility: Visibility::FUNCTION,
       call_magic: None,
       name: MAIN_BODY_NAME.to_owned(),
       args: ArgList::empty(),
       body: Expr::progn(main, pos),
     });
+    // main_decl is synthesized from the file itself, so
+    // SourceOffset(0) isn't just a cop-out here; it's the actual
+    // right answer.
+    let main_decl = Decl::new(main_decl, SourceOffset(0));
     self.table.add(main_decl);
 
     Ok(self.into())
   }
 
-  pub fn bind_macro(&mut self, pipeline: &mut Pipeline, mut decl: decl::MacroDecl, generate_name: bool) -> Result<(), PError> {
+  pub fn bind_macro(&mut self, pipeline: &mut Pipeline, mut decl: decl::MacroDecl, pos: SourceOffset, generate_name: bool) -> Result<(), PError> {
     let orig_name = decl.name.to_owned();
 
     let tmp_name = if generate_name {
@@ -646,7 +650,7 @@ impl IncCompiler {
     decl.name = tmp_name.to_owned();
     let table = if generate_name {
       let mut table = self.table.clone();
-      table.add(Decl::MacroDecl(decl.to_owned()));
+      table.add(Decl::new(DeclF::MacroDecl(decl.to_owned()), pos));
       Cow::Owned(table)
     } else {
       Cow::Borrowed(&self.table)

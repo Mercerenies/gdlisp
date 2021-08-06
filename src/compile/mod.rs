@@ -50,6 +50,7 @@ use std::cmp::max;
 use std::convert::TryFrom;
 
 type IRDecl = ir::decl::Decl;
+type IRDeclF = ir::decl::DeclF;
 type IRExpr = ir::expr::Expr;
 type IRExprF = ir::expr::ExprF;
 type IRArgList = ir::arglist::ArgList;
@@ -360,14 +361,14 @@ impl<'a> Compiler<'a> {
                       table: &mut SymbolTable,
                       decl: &IRDecl)
                       -> Result<(), Error> {
-    match decl {
-      IRDecl::FnDecl(ir::decl::FnDecl { visibility: _, call_magic: _, name, args, body }) => {
+    match &decl.value {
+      IRDeclF::FnDecl(ir::decl::FnDecl { visibility: _, call_magic: _, name, args, body }) => {
         let gd_name = names::lisp_to_gd(&name);
         let function = self.declare_function(pipeline, builder, table, gd_name, args.clone(), body, &stmt_wrapper::Return)?;
         builder.add_decl(Decl::FnDecl(decl::Static::IsStatic, function));
         Ok(())
       }
-      IRDecl::MacroDecl(ir::decl::MacroDecl { visibility: _, name, args, body }) => {
+      IRDeclF::MacroDecl(ir::decl::MacroDecl { visibility: _, name, args, body }) => {
         // Note: Macros compile identically to functions, as far as
         // this stage of compilation is concerned. They'll be resolved
         // and then purged during the IR phase.
@@ -376,14 +377,14 @@ impl<'a> Compiler<'a> {
         builder.add_decl(Decl::FnDecl(decl::Static::IsStatic, function));
         Ok(())
       }
-      IRDecl::ConstDecl(ir::decl::ConstDecl { visibility: _, name, value }) => {
+      IRDeclF::ConstDecl(ir::decl::ConstDecl { visibility: _, name, value }) => {
         let gd_name = names::lisp_to_gd(&name);
         let value = self.compile_simple_expr(pipeline, table, name, value, NeedsResult::Yes)?;
         value.validate_const_expr(&name, table)?;
         builder.add_decl(Decl::ConstDecl(gd_name, value));
         Ok(())
       }
-      IRDecl::ClassDecl(ir::decl::ClassDecl { visibility: _, name, extends, main_class, constructor, decls }) => {
+      IRDeclF::ClassDecl(ir::decl::ClassDecl { visibility: _, name, extends, main_class, constructor, decls }) => {
         let gd_name = names::lisp_to_gd(&name);
         let extends = table.get_var(&extends).ok_or_else(|| Error::NoSuchVar(extends.clone()))?.name.clone();
         let extends = ClassExtends::try_from(extends)?;
@@ -396,7 +397,7 @@ impl<'a> Compiler<'a> {
           Ok(())
         }
       }
-      IRDecl::EnumDecl(ir::decl::EnumDecl { visibility: _, name, clauses }) => {
+      IRDeclF::EnumDecl(ir::decl::EnumDecl { visibility: _, name, clauses }) => {
         let gd_name = names::lisp_to_gd(&name);
         let gd_clauses = clauses.iter().map(|(const_name, const_value)| {
           let gd_const_name = names::lisp_to_gd(const_name);
@@ -409,7 +410,7 @@ impl<'a> Compiler<'a> {
         builder.add_decl(Decl::EnumDecl(decl::EnumDecl { name: Some(gd_name), clauses: gd_clauses }));
         Ok(())
       }
-      IRDecl::DeclareDecl(_) => {
+      IRDeclF::DeclareDecl(_) => {
         // (sys/declare ...) statements have no runtime presence and do
         // nothing here.
         Ok(())
@@ -602,8 +603,8 @@ impl<'a> Compiler<'a> {
                table: &mut SymbolTable,
                decl: &IRDecl)
                -> Result<(), Error> {
-    match decl {
-      IRDecl::FnDecl(ir::decl::FnDecl { visibility: _, call_magic, name, args, body: _ }) => {
+    match &decl.value {
+      IRDeclF::FnDecl(ir::decl::FnDecl { visibility: _, call_magic, name, args, body: _ }) => {
         let func = function_call::FnCall::file_constant(
           function_call::FnSpecs::from(args.to_owned()),
           function_call::FnScope::Global,
@@ -622,7 +623,7 @@ impl<'a> Compiler<'a> {
         };
         table.set_fn(name.clone(), func, call_magic);
       }
-      IRDecl::MacroDecl(ir::decl::MacroDecl { visibility: _, name, args, body: _ }) => {
+      IRDeclF::MacroDecl(ir::decl::MacroDecl { visibility: _, name, args, body: _ }) => {
         // As above, macros compile basically the same as functions in
         // terms of call semantics and should be resolved during the
         // IR stage.
@@ -633,7 +634,7 @@ impl<'a> Compiler<'a> {
         );
         table.set_fn(name.clone(), func, Box::new(DefaultCall));
       }
-      IRDecl::ConstDecl(ir::decl::ConstDecl { visibility: _, name, value }) => {
+      IRDeclF::ConstDecl(ir::decl::ConstDecl { visibility: _, name, value }) => {
         let mut var = LocalVar::file_constant(names::lisp_to_gd(name)); // Can't assign to constants
         if let IRExprF::Literal(value) = &value.value {
           if let Ok(value) = Literal::try_from(value.clone()) {
@@ -642,7 +643,7 @@ impl<'a> Compiler<'a> {
         }
         table.set_var(name.clone(), var);
       }
-      IRDecl::ClassDecl(ir::decl::ClassDecl { visibility: _, name, main_class, .. }) => {
+      IRDeclF::ClassDecl(ir::decl::ClassDecl { visibility: _, name, main_class, .. }) => {
         if *main_class {
           let var = LocalVar::current_file(pipeline.current_filename().expect("Could not identify current filename").to_string()).with_hint(ValueHint::ClassName); // TODO Expect?
           table.set_var(name.clone(), var);
@@ -653,14 +654,14 @@ impl<'a> Compiler<'a> {
           table.set_var(name.clone(), var);
         }
       }
-      IRDecl::EnumDecl(edecl) => {
+      IRDeclF::EnumDecl(edecl) => {
         let name = edecl.name.clone();
         let var = LocalVar::file_constant(names::lisp_to_gd(&name))
           .no_assign() // Can't assign to constants
           .with_hint(ValueHint::enumeration(edecl.value_names()));
         table.set_var(name, var);
       }
-      IRDecl::DeclareDecl(ddecl) => {
+      IRDeclF::DeclareDecl(ddecl) => {
         let ir::decl::DeclareDecl { visibility: _, declare_type, name } = ddecl;
         match declare_type {
           ir::decl::DeclareType::Value => {
