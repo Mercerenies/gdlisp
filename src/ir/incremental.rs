@@ -416,7 +416,7 @@ impl IncCompiler {
             _ => return Err(PError::from(Error::InvalidDecl(curr.clone()))),
           };
           let value = self.compile_expr(pipeline, vec[2])?;
-          acc.decls.push(decl::ClassInnerDecl::ClassConstDecl(decl::ConstDecl { visibility: Visibility::CONST, name, value }));
+          acc.decls.push(decl::ClassInnerDecl::new(decl::ClassInnerDeclF::ClassConstDecl(decl::ConstDecl { visibility: Visibility::CONST, name, value }), vec[0].pos));
           Ok(())
         }
         "defvar" => {
@@ -459,7 +459,7 @@ impl IncCompiler {
             }
 
             let decl = decl::ClassVarDecl { export, name, value };
-            acc.decls.push(decl::ClassInnerDecl::ClassVarDecl(decl));
+            acc.decls.push(decl::ClassInnerDecl::new(decl::ClassInnerDeclF::ClassVarDecl(decl), vec[0].pos));
             Ok(())
           } else {
             Err(PError::from(Error::InvalidDecl(curr.clone())))
@@ -494,7 +494,7 @@ impl IncCompiler {
               for m in mods {
                 m.apply(&mut decl);
               }
-              acc.decls.push(decl::ClassInnerDecl::ClassFnDecl(decl));
+              acc.decls.push(decl::ClassInnerDecl::new(decl::ClassInnerDeclF::ClassFnDecl(decl), vec[0].pos));
             }
             Ok(())
           } else {
@@ -513,7 +513,7 @@ impl IncCompiler {
           let args = vec.get(2).map_or(&nil, |x| *x);
           let args: Vec<_> = DottedExpr::new(args).try_into()?;
           let args = SimpleArgList::parse(args)?;
-          acc.decls.push(decl::ClassInnerDecl::ClassSignalDecl(decl::ClassSignalDecl { name, args }));
+          acc.decls.push(decl::ClassInnerDecl::new(decl::ClassInnerDeclF::ClassSignalDecl(decl::ClassSignalDecl { name, args }), vec[0].pos));
           Ok(())
         }
         _ => {

@@ -81,11 +81,17 @@ pub struct ConstructorDecl { // TODO Super
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub enum ClassInnerDecl {
+pub enum ClassInnerDeclF {
   ClassSignalDecl(ClassSignalDecl),
   ClassConstDecl(ConstDecl),
   ClassVarDecl(ClassVarDecl),
   ClassFnDecl(ClassFnDecl),
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ClassInnerDecl {
+  pub value: ClassInnerDeclF,
+  pub pos: SourceOffset,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -313,12 +319,16 @@ impl ConstructorDecl {
 
 impl ClassInnerDecl {
 
+  pub fn new(value: ClassInnerDeclF, pos: SourceOffset) -> ClassInnerDecl {
+    ClassInnerDecl { value, pos }
+  }
+
   pub fn dependencies(&self) -> HashSet<Id> {
-    match self {
-      ClassInnerDecl::ClassSignalDecl(_) => HashSet::new(),
-      ClassInnerDecl::ClassConstDecl(_) => HashSet::new(),
-      ClassInnerDecl::ClassVarDecl(_) => HashSet::new(),
-      ClassInnerDecl::ClassFnDecl(func) => {
+    match &self.value {
+      ClassInnerDeclF::ClassSignalDecl(_) => HashSet::new(),
+      ClassInnerDeclF::ClassConstDecl(_) => HashSet::new(),
+      ClassInnerDeclF::ClassVarDecl(_) => HashSet::new(),
+      ClassInnerDeclF::ClassFnDecl(func) => {
         let mut ids: HashSet<Id> = func.body.get_ids().collect();
         for name in func.args.iter_vars() {
           ids.remove(&*Id::build(Namespace::Value, name));
@@ -330,10 +340,10 @@ impl ClassInnerDecl {
   }
 
   pub fn get_names(&self) -> (Locals, Functions) {
-    match self {
-      ClassInnerDecl::ClassSignalDecl(_) | ClassInnerDecl::ClassVarDecl(_) |
-        ClassInnerDecl::ClassConstDecl(_) => (Locals::new(), Functions::new()),
-      ClassInnerDecl::ClassFnDecl(fndecl) => {
+    match &self.value {
+      ClassInnerDeclF::ClassSignalDecl(_) | ClassInnerDeclF::ClassVarDecl(_) |
+        ClassInnerDeclF::ClassConstDecl(_) => (Locals::new(), Functions::new()),
+      ClassInnerDeclF::ClassFnDecl(fndecl) => {
         let (mut loc, func) = fndecl.body.get_names();
         for name in fndecl.args.iter_vars() {
           loc.remove(name);
@@ -347,10 +357,10 @@ impl ClassInnerDecl {
   }
 
   pub fn is_static(&self) -> bool {
-    match self {
-      ClassInnerDecl::ClassSignalDecl(_) | ClassInnerDecl::ClassVarDecl(_) => false,
-      ClassInnerDecl::ClassConstDecl(_) => true,
-      ClassInnerDecl::ClassFnDecl(decl) => decl.is_static.into(),
+    match &self.value {
+      ClassInnerDeclF::ClassSignalDecl(_) | ClassInnerDeclF::ClassVarDecl(_) => false,
+      ClassInnerDeclF::ClassConstDecl(_) => true,
+      ClassInnerDeclF::ClassFnDecl(decl) => decl.is_static.into(),
     }
   }
 
@@ -375,6 +385,19 @@ impl Sourced for Decl {
   }
 
   fn get_value(&self) -> &DeclF {
+    &self.value
+  }
+
+}
+
+impl Sourced for ClassInnerDecl {
+  type Item = ClassInnerDeclF;
+
+  fn get_source(&self) -> SourceOffset {
+    self.pos
+  }
+
+  fn get_value(&self) -> &ClassInnerDeclF {
     &self.value
   }
 

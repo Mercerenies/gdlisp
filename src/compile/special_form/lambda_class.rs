@@ -107,7 +107,7 @@ pub fn compile_lambda_class<'a>(compiler: &mut Compiler<'a>,
   }
   for d in &decls {
 
-    if let ir::decl::ClassInnerDecl::ClassFnDecl(fndecl) = d {
+    if let ir::decl::ClassInnerDeclF::ClassFnDecl(fndecl) = &d.value {
       if fndecl.is_static.into() {
         // Static methods are not allowed on lambda classes
         return Err(Error::StaticMethodOnLambdaClass(fndecl.name.clone()));

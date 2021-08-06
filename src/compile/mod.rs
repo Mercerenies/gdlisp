@@ -564,20 +564,20 @@ impl<'a> Compiler<'a> {
                                   decl: &ir::decl::ClassInnerDecl)
                                   -> Result<Decl, Error> {
     let table = tables.into_table(decl.is_static());
-    match decl {
-      ir::decl::ClassInnerDecl::ClassSignalDecl(s) => {
+    match &decl.value {
+      ir::decl::ClassInnerDeclF::ClassSignalDecl(s) => {
         let name = names::lisp_to_gd(&s.name);
         let args = s.args.args.iter().map(|x| names::lisp_to_gd(&x)).collect();
         Ok(Decl::SignalDecl(name, ArgList::required(args)))
       }
-      ir::decl::ClassInnerDecl::ClassConstDecl(c) => {
+      ir::decl::ClassInnerDeclF::ClassConstDecl(c) => {
         // TODO Merge this with IRDecl::ConstDecl above
         let gd_name = names::lisp_to_gd(&c.name);
         let value = self.compile_simple_expr(pipeline, table, &c.name, &c.value, NeedsResult::Yes)?;
         value.validate_const_expr(&c.name, table)?;
         Ok(Decl::ConstDecl(gd_name, value))
       }
-      ir::decl::ClassInnerDecl::ClassVarDecl(v) => {
+      ir::decl::ClassInnerDeclF::ClassVarDecl(v) => {
         let exports = v.export.as_ref().map(|export| {
           export.args.iter().map(|expr| self.compile_export(pipeline, table, expr)).collect::<Result<Vec<_>, _>>()
         }).transpose()?;
@@ -590,7 +590,7 @@ impl<'a> Compiler<'a> {
         }).transpose()?;
         Ok(Decl::VarDecl(exports, name, value))
       }
-      ir::decl::ClassInnerDecl::ClassFnDecl(f) => {
+      ir::decl::ClassInnerDeclF::ClassFnDecl(f) => {
         let gd_name = names::lisp_to_gd(&f.name);
         let func = self.declare_function(pipeline,
                                          builder,
