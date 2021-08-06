@@ -22,6 +22,28 @@ pub struct SourcePos {
   pub column: usize,
 }
 
+/// Trait for types which contain [source offset](SourceOffset)
+/// information.
+///
+/// Several data structures in GDLisp take the following form. There
+/// is one type `FooF` which represents some abstract syntax tree.
+/// `FooF` values contain `Foo` values, while `Foo` is a struct that
+/// is roughly isomorphic to `(FooF, SourceOffset)`. For any such
+/// `Foo` type, this trait applies and provides the mechanism to get
+/// the underlying data structure and the source offset.
+pub trait Sourced {
+  /// The type of value underlying this data structure. In the `Foo`
+  /// example in the trait description, this would be `FooF`.
+  type Item;
+
+  /// Gets the [`SourceOffset`] for the position `self` starts at.
+  fn get_source(&self) -> SourceOffset;
+
+  /// Gets the value underlying `self`.
+  fn get_value(&self) -> &Self::Item;
+
+}
+
 /// Returns the position of all of the newlines in the source text.
 /// For the purposes of this function, CARRIAGE RETURN (U+001D) and
 /// NEWLINE (U+001A) are considered to be newlines. Additionally, a

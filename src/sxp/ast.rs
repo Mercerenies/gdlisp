@@ -1,7 +1,7 @@
 
 //! Defines the basic [`AST`] type.
 
-use crate::pipeline::source::SourceOffset;
+use crate::pipeline::source::{SourceOffset, Sourced};
 
 use ordered_float::OrderedFloat;
 
@@ -310,6 +310,19 @@ impl fmt::Display for AST {
         write!(f, "}}")
       }
     }
+  }
+
+}
+
+impl Sourced for AST {
+  type Item = ASTF;
+
+  fn get_source(&self) -> SourceOffset {
+    self.pos
+  }
+
+  fn get_value(&self) -> &ASTF {
+    &self.value
   }
 
 }
