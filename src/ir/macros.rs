@@ -7,9 +7,10 @@ use crate::gdscript::decl;
 use crate::gdscript::library;
 use crate::runner::into_gd_file::IntoGDFile;
 use crate::runner::macro_server::named_file_server::MacroID;
-use crate::pipeline::error::{Error as PError};
+use crate::pipeline::error::{Error as PError, IOError};
 use crate::pipeline::Pipeline;
 use crate::pipeline::can_load::CanLoad;
+use crate::pipeline::source::SourceOffset;
 use crate::ir;
 use crate::ir::import::ImportDecl;
 use crate::ir::decl::TopLevel;
@@ -45,12 +46,12 @@ impl MacroData {
 
 }
 
-pub fn create_macro_file(pipeline: &mut Pipeline, imports: Vec<ImportDecl>, src_table: &DeclarationTable, names: HashSet<Id>, minimalist: bool) -> Result<NamedTempFile, PError> {
+pub fn create_macro_file(pipeline: &mut Pipeline, imports: Vec<ImportDecl>, src_table: &DeclarationTable, names: HashSet<Id>, pos: SourceOffset, minimalist: bool) -> Result<NamedTempFile, PError> {
   let mut table = SymbolTable::new();
   library::bind_builtins(&mut table, minimalist);
 
   let current_filename = pipeline.current_filename().expect("Error identifying current filename"); // TODO Expect?
-  let mut tmp_file = make_tmp()?;
+  let mut tmp_file = make_tmp().map_err(|err| IOError::new(err, pos))?;
   let mut resolver = pipeline.make_preload_resolver();
   // Replace the current file name with the macro file name.
   resolver.insert(current_filename.into_path(), tmp_file.path().to_owned());
@@ -72,8 +73,8 @@ pub fn create_macro_file(pipeline: &mut Pipeline, imports: Vec<ImportDecl>, src_
   compiler.compile_toplevel(pipeline, &mut builder, &mut table, &toplevel)?;
   let result = builder.build();
 
-  result.write_to_gd(&mut tmp_file)?;
-  tmp_file.flush()?;
+  result.write_to_gd(&mut tmp_file).map_err(|err| IOError::new(err, pos))?;
+  tmp_file.flush().map_err(|err| IOError::new(err, pos))?;
   Ok(tmp_file)
 
 }

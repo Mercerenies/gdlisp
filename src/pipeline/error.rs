@@ -17,8 +17,15 @@ use std::fmt;
 #[derive(Debug)]
 pub enum Error {
   ParseError(ParseError<SourceOffset, String, String>),
-  IOError(io::Error),
+  IOError(IOError),
   GDError(GDError),
+}
+
+/// An [`io::Error`] which has a [`SourceOffset`] attached to it.
+#[derive(Debug)]
+pub struct IOError {
+  pub error: io::Error,
+  pub pos: SourceOffset,
 }
 
 impl fmt::Display for Error {
@@ -28,6 +35,26 @@ impl fmt::Display for Error {
       Error::IOError(err) => write!(f, "{}", err),
       Error::GDError(err) => write!(f, "{}", err),
     }
+  }
+}
+
+impl fmt::Display for IOError {
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    write!(f, "{}", self.error)
+  }
+}
+
+impl IOError {
+
+  pub fn new(error: io::Error, pos: SourceOffset) -> IOError {
+    IOError { error, pos }
+  }
+
+}
+
+impl From<IOError> for io::Error {
+  fn from(err: IOError) -> io::Error {
+    err.error
   }
 }
 
@@ -61,8 +88,8 @@ where SourceOffset : From<L> {
   }
 }
 
-impl From<io::Error> for Error {
-  fn from(e: io::Error) -> Error {
+impl From<IOError> for Error {
+  fn from(e: IOError) -> Error {
     Error::IOError(e)
   }
 }

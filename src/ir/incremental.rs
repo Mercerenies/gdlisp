@@ -23,7 +23,7 @@ use crate::compile::resource_type::ResourceType;
 use crate::compile::names::fresh::FreshNameGenerator;
 use crate::gdscript::library;
 use crate::gdscript::decl::Static;
-use crate::pipeline::error::{Error as PError};
+use crate::pipeline::error::{Error as PError, IOError};
 use crate::pipeline::Pipeline;
 use crate::pipeline::translation_unit::TranslationUnit;
 use crate::pipeline::source::SourceOffset;
@@ -69,11 +69,11 @@ impl IncCompiler {
 
         let args: Vec<_> = tail.iter().map(|x| x.reify()).collect();
         let server = pipeline.get_server_mut();
-        server.set_global_name_generator(&self.names)?;
+        server.set_global_name_generator(&self.names).map_err(|err| IOError::new(err, pos))?;
 
         let ast = server.run_server_file(*id, args, pos);
 
-        server.reset_global_name_generator()?;
+        server.reset_global_name_generator().map_err(|err| IOError::new(err, pos))?;
 
         ast
       }
@@ -665,8 +665,8 @@ impl IncCompiler {
     // Aside from built-in functions, it must be the case that
     // all referenced functions are already defined.
     let names = deps.try_into_knowns().map_err(|x| Error::from_value(x, pos))?;
-    let tmpfile = macros::create_macro_file(pipeline, self.imports.clone(), table.borrow(), names, self.minimalist)?;
-    let m_id = pipeline.get_server_mut().stand_up_macro(tmp_name, decl.args, tmpfile)?;
+    let tmpfile = macros::create_macro_file(pipeline, self.imports.clone(), table.borrow(), names, pos, self.minimalist)?;
+    let m_id = pipeline.get_server_mut().stand_up_macro(tmp_name, decl.args, tmpfile).map_err(|err| IOError::new(err, pos))?;
     self.macros.insert(orig_name, MacroData { id: m_id, imported: false });
 
     Ok(())

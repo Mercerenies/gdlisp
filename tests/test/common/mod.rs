@@ -23,8 +23,9 @@ use gdlisp::ir::incremental::IncCompiler;
 use gdlisp::gdscript::library;
 use gdlisp::gdscript::decl;
 use gdlisp::pipeline::Pipeline;
-use gdlisp::pipeline::error::{Error as PError};
+use gdlisp::pipeline::error::{Error as PError, IOError};
 use gdlisp::pipeline::config::ProjectConfig;
+use gdlisp::pipeline::source::SourceOffset;
 
 use tempfile::{Builder, TempDir};
 
@@ -151,11 +152,11 @@ pub fn parse_and_run_err(input: &str) -> Result<String, PError> {
   let mut builder = CodeBuilder::new(decl::ClassExtends::named(String::from("Reference")));
   compiler.compile_toplevel(&mut pipeline, &mut builder, &mut table, &decls)?;
 
-  let mut temp_dir = Builder::new().prefix("__gdlisp_test").rand_bytes(5).tempdir()?;
+  let mut temp_dir = Builder::new().prefix("__gdlisp_test").rand_bytes(5).tempdir().map_err(|err| IOError::new(err, SourceOffset(0)))?;
   let code_output = builder.build();
   // println!("{}", code_output.to_gd());
-  dump_files(&mut temp_dir, &code_output)?;
-  let result = runner::run_project(temp_dir)?;
+  dump_files(&mut temp_dir, &code_output).map_err(|err| IOError::new(err, SourceOffset(0)))?;
+  let result = runner::run_project(temp_dir).map_err(|err| IOError::new(err, SourceOffset(0)))?;
 
   match result.find(BEGIN_GDLISP_TESTS) {
     None => Ok(result),

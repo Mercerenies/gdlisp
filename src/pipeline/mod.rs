@@ -9,7 +9,8 @@ pub mod source;
 
 use translation_unit::TranslationUnit;
 use config::ProjectConfig;
-use error::Error;
+use error::{Error, IOError};
+use source::SourceOffset;
 use resolver::{NameResolver, DefaultNameResolver};
 use crate::parser;
 use crate::ir;
@@ -93,12 +94,12 @@ impl Pipeline {
   where P : AsRef<Path> + ?Sized {
     let input_path = input_path.as_ref();
     let output_path = input_to_output_filename(input_path);
-    let mut input_file = self.resolver.resolve_input_path(input_path)?;
-    let mut output_file = self.resolver.resolve_output_path(&output_path)?;
+    let mut input_file = self.resolver.resolve_input_path(input_path).map_err(|err| IOError::new(err, SourceOffset(0)))?;
+    let mut output_file = self.resolver.resolve_output_path(&output_path).map_err(|err| IOError::new(err, SourceOffset(0)))?;
 
-    let contents = util::read_to_end(&mut input_file)?;
+    let contents = util::read_to_end(&mut input_file).map_err(|err| IOError::new(err, SourceOffset(0)))?;
     let unit = self.compile_code(&input_path, &contents)?;
-    write!(output_file, "{}", unit.gdscript.to_gd())?;
+    write!(output_file, "{}", unit.gdscript.to_gd()).map_err(|err| IOError::new(err, SourceOffset(0)))?;
 
     let file_path = input_path.strip_prefix(&self.config.root_directory).expect("Non-local file load detected").to_owned(); // TODO Expect
     let mut old_file_path = Some(RPathBuf::new(PathSrc::Res, file_path).expect("Non-local file load detected")); // TODO Expect
@@ -109,7 +110,8 @@ impl Pipeline {
       .prefix("__gdlisp_file")
       .suffix(".gd")
       .rand_bytes(5)
-      .tempfile()?;
+      .tempfile()
+      .map_err(|err| IOError::new(err, SourceOffset(0)))?;
 
     let mut input_path_store_name = input_path.strip_prefix(&self.config.root_directory).expect("Non-local file load detected").to_owned(); // TODO Expect
     input_path_store_name.set_extension("gd");
@@ -131,9 +133,9 @@ impl Pipeline {
     }
 
     if !unit.ir.minimalist_flag {
-      write!(tmpfile, "{}", tmpresult.to_gd())?;
-      tmpfile.flush()?;
-      self.server.stand_up_file(tmpfile)?;
+      write!(tmpfile, "{}", tmpresult.to_gd()).map_err(|err| IOError::new(err, SourceOffset(0)))?;
+      tmpfile.flush().map_err(|err| IOError::new(err, SourceOffset(0)))?;
+      self.server.stand_up_file(tmpfile).map_err(|err| IOError::new(err, SourceOffset(0)))?;
     }
 
     mem::swap(&mut old_file_path, &mut self.current_file_path);

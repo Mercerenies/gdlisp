@@ -16,7 +16,7 @@ use crate::compile::symbol_table::call_magic::compile_default_call;
 use crate::gdscript::expr::{Expr as GDExpr, ExprF as GDExprF};
 use crate::gdscript::library;
 use crate::ir::arglist::ArgList;
-use crate::pipeline::error::{Error as PError};
+use crate::pipeline::error::{Error as PError, IOError};
 use crate::pipeline::source::SourceOffset;
 use crate::parser;
 use super::command::ServerCommand;
@@ -204,9 +204,10 @@ impl NamedFileServer {
   }
 
   fn do_macro_call(&mut self, call: FnCall, args: Vec<GDExpr>, pos: SourceOffset) -> Result<AST, PError> {
-    let server = self.server.get_mut()?;
+    let server = self.server.get_mut().map_err(|err| IOError::new(err, pos))?;
     let eval_str = compile_default_call(call, args, pos)?.to_gd();
-    let result = response_to_string(server.issue_command(&ServerCommand::Eval(eval_str))?)?;
+    let result = server.issue_command(&ServerCommand::Eval(eval_str)).map_err(|err| IOError::new(err, pos))?;
+    let result = response_to_string(result).map_err(|err| IOError::new(err, pos))?;
     let parser = parser::ASTParser::new();
     let parsed = parser.parse(&result)?;
     Ok(parsed)
