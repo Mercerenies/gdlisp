@@ -1,6 +1,6 @@
 
 use crate::compile::error::{Error as GDError};
-use crate::pipeline::source::SourceOffset;
+use crate::pipeline::source::{SourceOffset, Sourced};
 use crate::sxp::dotted::TryFromDottedExprError;
 use crate::ir::arglist::ArgListParseError;
 use crate::ir::modifier::{ParseError as ModifierParseError};
@@ -26,6 +26,38 @@ pub enum Error {
 pub struct IOError {
   pub error: io::Error,
   pub pos: SourceOffset,
+}
+
+/// [`Error`] is [`Sourced`] in a somewhat trivial way. It's not a
+/// recursive data type, so it doesn't "contain" a separate value in
+/// the same sense as other implementors like [`GDError`] (which
+/// contains [`GDErrorF`](crate::compile::error::GDErrorF)). But An
+/// `Error` always has its `SourceOffset` nonetheless.
+impl Sourced for Error {
+  type Item = Error;
+
+  fn get_source(&self) -> SourceOffset {
+    match self {
+      Error::ParseError(err) => get_source_from_parse_error(err),
+      Error::IOError(err) => err.pos,
+      Error::GDError(err) => err.get_source(),
+    }
+  }
+
+  fn get_value(&self) -> &Error {
+    self
+  }
+
+}
+
+fn get_source_from_parse_error<T, E>(err: &ParseError<SourceOffset, T, E>) -> SourceOffset {
+  match err {
+    ParseError::InvalidToken { location } => *location,
+    ParseError::UnrecognizedEOF { location, .. } => *location,
+    ParseError::UnrecognizedToken { token: (location, _, _), .. } => *location,
+    ParseError::ExtraToken { token: (location, _, _), .. } => *location,
+    ParseError::User { .. } => SourceOffset::default(), // TODO There's no error location information for this one. Can we get the user error type E to contain that information somehow?
+  }
 }
 
 impl fmt::Display for Error {
