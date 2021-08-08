@@ -22,6 +22,15 @@ pub struct SourcePos {
   pub column: usize,
 }
 
+/// A `SourcedValue` is a view of a [`Sourced`] instance, with its
+/// [`SourceOffset`] converted to a [`SourcePos`] by looking at the
+/// original material from which the offset was constructed.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct SourcedValue<'a, T: Sourced> {
+  source: &'a T,
+  error_pos: SourcePos,
+}
+
 /// Trait for types which contain [source offset](SourceOffset)
 /// information.
 ///
@@ -41,6 +50,36 @@ pub trait Sourced {
 
   /// Gets the value underlying `self`.
   fn get_value(&self) -> &Self::Item;
+
+}
+
+impl<'a, T: Sourced> SourcedValue<'a, T> {
+
+  /// Constructs a `SourcedValue` view of `value`, assuming
+  /// `value.get_source()` is a reference to a position in the string
+  /// `source_code`.
+  pub fn new(value: &'a T, source_code: &str) -> SourcedValue<'a, T> {
+    let error_offset = value.get_source();
+    let error_pos = SourcePos::from_offset(error_offset, source_code);
+    SourcedValue { source: value, error_pos }
+  }
+
+  pub fn get_source_pos(&self) -> SourcePos {
+    self.error_pos
+  }
+
+}
+
+impl<'a, T: Sourced> Sourced for SourcedValue<'a, T> {
+  type Item = T::Item;
+
+  fn get_source(&self) -> SourceOffset {
+    self.source.get_source()
+  }
+
+  fn get_value(&self) -> &Self::Item {
+    self.source.get_value()
+  }
 
 }
 
@@ -76,6 +115,8 @@ impl SourcePos {
     SourcePos { line, column }
   }
 
+  /// Converts `offset` into a [`SourcePos`] representing a position
+  /// in the given string of text `source`.
   pub fn from_offset(offset: SourceOffset, source: &str) -> SourcePos {
     let lines = {
       let mut lines = find_newlines(source);
@@ -112,6 +153,18 @@ impl From<usize> for SourceOffset {
 impl fmt::Display for SourceOffset {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     write!(f, "{}", self.0)
+  }
+}
+
+impl fmt::Display for SourcePos {
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    write!(f, "line {} column {}", self.line, self.column)
+  }
+}
+
+impl<'a, T: Sourced + fmt::Display> fmt::Display for SourcedValue<'a, T> {
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    write!(f, "On {}: {}", self.error_pos, self.source)
   }
 }
 
