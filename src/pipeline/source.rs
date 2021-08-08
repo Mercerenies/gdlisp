@@ -5,7 +5,12 @@
 //! All source positions always refer to the original GDLisp source
 //! file, never to the position in an intermediate representation.
 
+use crate::util;
+
 use std::fmt;
+use std::io::{self, BufReader};
+use std::path::Path;
+use std::fs::File;
 
 /// A `SourceOffset` is really just a [`usize`] representing a
 /// 0-indexed byte offset into the original file.
@@ -62,6 +67,17 @@ impl<'a, T: Sourced> SourcedValue<'a, T> {
     let error_offset = value.get_source();
     let error_pos = SourcePos::from_offset(error_offset, source_code);
     SourcedValue { source: value, error_pos }
+  }
+
+  /// Constructs a `SourcedValue` view of `value`, assuming
+  /// `value.get_source()` is a reference to a position in the file
+  /// indicated. Returns an IO error in case of error reading the
+  /// file.
+  pub fn from_file<P>(value: &'a T, source_file: &P) -> io::Result<SourcedValue<'a, T>>
+  where P: AsRef<Path> + ?Sized {
+    let mut input_file = BufReader::new(File::open(source_file)?);
+    let file_contents = util::read_to_end(&mut input_file)?;
+    Ok(SourcedValue::new(value, &file_contents))
   }
 
   pub fn get_source_pos(&self) -> SourcePos {

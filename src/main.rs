@@ -16,6 +16,7 @@ use gdlisp::gdscript::decl;
 use gdlisp::command_line::{parse_args, show_help_message};
 use gdlisp::pipeline::Pipeline;
 use gdlisp::pipeline::config::ProjectConfig;
+use gdlisp::pipeline::source::SourcedValue;
 use gdlisp::runner::version::get_godot_version;
 
 use walkdir::WalkDir;
@@ -30,8 +31,10 @@ fn run_pseudo_repl() {
   let mut pipeline = Pipeline::new(ProjectConfig { root_directory: PathBuf::from_str(".").unwrap(), optimizations: true }); // Infallible
 
   for line in stdin.lock().lines() {
-    match pipeline.compile_code("./REPL.lisp", &line.unwrap()) {
+    let line = line.unwrap();
+    match pipeline.compile_code("./REPL.lisp", &line) {
       Err(err) => {
+        let err = SourcedValue::new(&err, &line);
         println!("Error: {}", err);
       }
       Ok(trans) => {
@@ -48,6 +51,7 @@ fn compile_file<P : AsRef<Path> + ?Sized>(input: &P) {
   let mut pipeline = Pipeline::new(ProjectConfig { root_directory: input.parent().unwrap_or(input).to_owned(), optimizations: true });
   match pipeline.load_file(input.file_name().unwrap()) {
     Err(err) => {
+      let err = SourcedValue::from_file(&err, input).unwrap();
       println!("Error: {}", err);
     }
     Ok(_unit) => {}
@@ -63,6 +67,7 @@ fn compile_all_files<P : AsRef<Path> + ?Sized>(input: &P) {
       let path = entry.path().strip_prefix(&pipeline.config().root_directory).expect("Non-local file load detected");
       match pipeline.load_file(path) {
         Err(err) => {
+          let err = SourcedValue::from_file(&err, entry.path()).unwrap();
           println!("Error in {}: {}", entry.path().to_string_lossy(), err);
         }
         Ok(_unit) => {}
