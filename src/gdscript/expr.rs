@@ -50,7 +50,7 @@ pub struct Expr {
   pub pos: SourceOffset,
 }
 
-/// The type used by [`Expr::TernaryIf`].
+/// The type used by [`ExprF::TernaryIf`].
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct TernaryIf {
   pub true_case: Box<Expr>,
@@ -88,13 +88,13 @@ impl Expr {
     Expr::new(ExprF::from(a.to_owned()), pos)
   }
 
-  /// An [`Expr::Var`], referenced by name. The name will be cloned
+  /// An [`ExprF::Var`], referenced by name. The name will be cloned
   /// into the resulting value.
   pub fn var(a: &str, pos: SourceOffset) -> Expr {
     Expr::new(ExprF::Var(a.to_owned()), pos)
   }
 
-  /// An [`Expr::Attribute`] on `self`, referencing the name given by
+  /// An [`ExprF::Attribute`] on `self`, referencing the name given by
   /// `attr`.
   pub fn attribute(self, attr: impl Into<String>, pos: SourceOffset) -> Expr {
     Expr::new(ExprF::Attribute(Box::new(self), attr.into()), pos)

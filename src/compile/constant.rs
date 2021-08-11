@@ -29,7 +29,7 @@ pub trait MaybeConstant: Sourced {
   fn is_allowable_const(&self, table: &impl ValueHintsTable) -> bool;
 
   /// Check whether [`MaybeConstant::is_allowable_const`] is true. If
-  /// not, return [`Error::NotConstantEnough`]. The `name` is used to
+  /// not, return [`ErrorF::NotConstantEnough`]. The `name` is used to
   /// produce a more convenient error message and is not used to
   /// determine whether or not the value is constant.
   fn validate_const_expr(&self, name: &str, table: &impl ValueHintsTable) -> Result<(), Error> {

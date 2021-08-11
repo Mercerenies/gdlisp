@@ -6,7 +6,7 @@ use crate::compile::error::ErrorF;
 use std::collections::HashSet;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub struct Dependencies {
+pub struct Dependencies { ///// Consider storing where we saw the identifiers
   pub known: HashSet<Id>,
   pub imports: HashSet<Id>,
   pub unknown: HashSet<Id>,

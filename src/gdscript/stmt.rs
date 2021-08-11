@@ -45,7 +45,7 @@ pub struct Stmt {
   pub pos: SourceOffset,
 }
 
-/// The type of if statements, used in [`Stmt::IfStmt`].
+/// The type of if statements, used in [`StmtF::IfStmt`].
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct IfStmt {
   pub if_clause: (Expr, Vec<Stmt>),
@@ -53,7 +53,7 @@ pub struct IfStmt {
   pub else_clause: Option<Vec<Stmt>>,
 }
 
-/// The type of for loops, used in [`Stmt::ForLoop`].
+/// The type of for loops, used in [`StmtF::ForLoop`].
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ForLoop {
   pub iter_var: String,
@@ -61,7 +61,7 @@ pub struct ForLoop {
   pub body: Vec<Stmt>,
 }
 
-/// The type of while loops, used in [`Stmt::WhileLoop`].
+/// The type of while loops, used in [`StmtF::WhileLoop`].
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct WhileLoop {
   pub condition: Expr,

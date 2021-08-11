@@ -146,7 +146,7 @@ pub trait ParseRule {
   /// Produces a [`Unique`] parser representing `self`. A `Unique`
   /// parser will parse `self` successfully only once. If `self`
   /// parses successfully twice or more, a fatal
-  /// [`ParseError::UniquenessError`] will be signaled.
+  /// [`ParseErrorF::UniquenessError`] will be signaled.
   fn unique(self) -> Unique<Self>
   where Self : Sized {
     Unique { triggered: false, rule: self }

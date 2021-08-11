@@ -69,16 +69,16 @@ pub trait StmtWrapper {
 }
 
 /// A [`StmtWrapper`] which wraps the expression in a
-/// [`Stmt::ReturnStmt`].
+/// [`StmtF::ReturnStmt`].
 pub struct Return;
 
-/// A [`StmtWrapper`] which wraps the expression in a [`Stmt::Expr`].
+/// A [`StmtWrapper`] which wraps the expression in a [`StmtF::Expr`].
 /// This is a vacuous statement wrapper, as per
 /// [`StmtWrapper::is_vacuous`].
 pub struct Vacuous;
 
 /// A [`StmtWrapper`] which wraps the expression in a
-/// [`Stmt::Assign`], where the left-hand side is given by the
+/// [`StmtF::Assign`], where the left-hand side is given by the
 /// `AssignToExpr` value.
 pub struct AssignToExpr(pub Expr);
 
@@ -102,7 +102,7 @@ impl StmtWrapper for Vacuous {
 
 }
 
-/// An [`AssignToExpr`] which assigns to an [`Expr::Var`] with the
+/// An [`AssignToExpr`] which assigns to an [`ExprF::Var`] with the
 /// given name.
 pub fn assign_to_var(s: String, pos: SourceOffset) -> AssignToExpr {
   AssignToExpr(Expr::new(ExprF::Var(s), pos))
