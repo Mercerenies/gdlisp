@@ -187,14 +187,14 @@ pub fn assign_form(icompiler: &mut IncCompiler,
   }
   let assign_target = match &tail[0].value {
     ASTF::Symbol(s) => {
-      AssignmentForm::Simple(AssignTarget::Variable(s.to_owned()))
+      AssignmentForm::Simple(AssignTarget::Variable(tail[0].pos, s.to_owned()))
     }
     _ => {
       let x = tail[0];
       let inner: Vec<_> = DottedExpr::new(x).try_into()?;
       if inner[0].value == ASTF::Symbol(String::from("access-slot")) {
         if let ExprF::FieldAccess(lhs, slot_name) = access_slot_form(icompiler, pipeline, &inner[1..], pos)?.value {
-          AssignmentForm::Simple(AssignTarget::InstanceField(lhs, slot_name))
+          AssignmentForm::Simple(AssignTarget::InstanceField(inner[0].pos, lhs, slot_name))
         } else {
           return Err(Error::from(GDError::new(GDErrorF::InvalidArg(String::from("set"), x.clone(), String::from("symbol")), pos)));
         }

@@ -195,7 +195,7 @@ mod tests {
     assert_eq!(do_compile_expr(&list(vec!(symbol("set"),
                                           symbol("foobar"),
                                           int(1)))).unwrap(),
-               Expr::new(ExprF::Assign(AssignTarget::Variable(String::from("foobar")), Box::new(literal(Literal::Int(1)))), SourceOffset::default()));
+               Expr::new(ExprF::Assign(AssignTarget::Variable(SourceOffset::default(), String::from("foobar")), Box::new(literal(Literal::Int(1)))), SourceOffset::default()));
   }
 
 }

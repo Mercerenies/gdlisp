@@ -22,10 +22,9 @@ pub fn progn_tests() {
 
 #[test]
 pub fn nonexistent_assignment_test() {
-  // TODO SourceOffset here points to 0 but should probably point to nonexistent-var (5)
   assert_eq!(
     parse_compile_and_output_err("(set nonexistent-var 0)"),
-    Err(PError::from(GDError::new(GDErrorF::NoSuchVar(String::from("nonexistent-var")), SourceOffset(21)))),
+    Err(PError::from(GDError::new(GDErrorF::NoSuchVar(String::from("nonexistent-var")), SourceOffset(5)))),
   );
 }
 

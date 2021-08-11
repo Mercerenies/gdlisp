@@ -202,15 +202,15 @@ impl<'a> Compiler<'a> {
           }
         }
       }
-      IRExprF::Assign(AssignTarget::Variable(name), expr) => {
-        let var = table.get_var(name).ok_or_else(|| Error::new(ErrorF::NoSuchVar(name.clone()), expr.pos))?.to_owned();
+      IRExprF::Assign(AssignTarget::Variable(pos, name), expr) => {
+        let var = table.get_var(name).ok_or_else(|| Error::new(ErrorF::NoSuchVar(name.clone()), *pos))?.to_owned();
         if !var.assignable {
-          return Err(Error::new(ErrorF::CannotAssignTo(var.name.to_gd(expr.pos)), expr.pos));
+          return Err(Error::new(ErrorF::CannotAssignTo(var.name.to_gd(*pos)), expr.pos));
         }
-        self.compile_stmt(pipeline, builder, table, &stmt_wrapper::AssignToExpr(var.expr(expr.pos)), expr)?;
-        Ok(StExpr { expr: var.expr(expr.pos), side_effects: SideEffects::from(var.access_type) })
+        self.compile_stmt(pipeline, builder, table, &stmt_wrapper::AssignToExpr(var.expr(*pos)), expr)?;
+        Ok(StExpr { expr: var.expr(*pos), side_effects: SideEffects::from(var.access_type) })
       }
-      IRExprF::Assign(AssignTarget::InstanceField(lhs, name), expr) => {
+      IRExprF::Assign(AssignTarget::InstanceField(pos, lhs, name), expr) => {
         // TODO Weirdness with setget makes this stateful flag not
         // always right? I mean, foo:bar can have side effects if bar
         // is protected by a setget.
@@ -218,7 +218,7 @@ impl<'a> Compiler<'a> {
         // Assign to a temp if it's stateful
         if needs_result == NeedsResult::Yes && side_effects.modifies_state() {
           let var = self.declare_var(builder, "_assign", Some(lhs), expr.pos);
-          lhs = Expr::new(ExprF::Var(var), expr.pos);
+          lhs = Expr::new(ExprF::Var(var), *pos);
         }
         let lhs = Expr::new(ExprF::Attribute(Box::new(lhs), names::lisp_to_gd(name)), expr.pos);
         self.compile_stmt(pipeline, builder, table, &stmt_wrapper::AssignToExpr(lhs.clone()), expr)?;
