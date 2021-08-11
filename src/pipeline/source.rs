@@ -166,6 +166,12 @@ impl From<usize> for SourceOffset {
   }
 }
 
+impl From<SourceOffset> for usize {
+  fn from(x: SourceOffset) -> usize {
+    x.0
+  }
+}
+
 impl fmt::Display for SourceOffset {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     write!(f, "{}", self.0)
