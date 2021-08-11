@@ -108,10 +108,9 @@ static func run():
 
 #[test]
 pub fn bad_member_var_class_test_1() {
-  // TODO SourceOffset should be pointing to 38 here, but it points to 0 somehow.
   assert_eq!(
     parse_compile_decl_err("((defclass ClassName (Node) (defvar x (if 1 2 3)) (defn _init (x) (set self:x x)) (defn get-x () self:x)))"),
-    Err(PError::from(GDError::new(GDErrorF::NotConstantEnough(String::from("x")), SourceOffset(0)))),
+    Err(PError::from(GDError::new(GDErrorF::NotConstantEnough(String::from("x")), SourceOffset(38)))),
   );
 }
 
