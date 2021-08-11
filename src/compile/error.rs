@@ -32,8 +32,11 @@ pub enum ErrorF {
   ArgListParseError(ArgListParseError),
   ImportDeclParseError(ImportDeclParseError),
   CannotCall(AST),
+  #[deprecated(note="Use WrongNumberArgs instead")]
   TooFewArgs(String, usize),
+  #[deprecated(note="Use WrongNumberArgs instead")]
   TooManyArgs(String, usize),
+  WrongNumberArgs(String, ArgErrorInfo),
   InvalidArg(String, AST, String), // Function, argument, expected
   NoSuchVar(String),
   NoSuchFn(String),
@@ -58,6 +61,12 @@ pub enum ErrorF {
   ModifierParseError(ModifierParseError),
   MacroInMinimalistError(String),
   MacroBeforeDefinitionError(String),
+}
+
+#[derive(PartialEq, Eq, Debug)]
+pub struct ArgErrorInfo {
+  pub expected: usize,
+  pub actual: usize,
 }
 
 /// Variant of [`ErrorF`] with source offset information. See
@@ -103,6 +112,9 @@ impl fmt::Display for Error {
       }
       ErrorF::TooManyArgs(name, _) => {
         write!(f, "Too many arguments to call {}", name)
+      }
+      ErrorF::WrongNumberArgs(name, ArgErrorInfo { expected, actual }) => {
+        write!(f, "Wrong number of arguments to call {}: expected {}, got {}", name, expected, actual)
       }
       ErrorF::InvalidArg(name, provided, expected) => {
         write!(f, "Invalid argument to {}, given {}, expecting {}", name, provided, expected)
