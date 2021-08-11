@@ -1,8 +1,6 @@
 
 extern crate gdlisp;
 
-// TODO Lazy loading in NamedFileServer so these tests don't have to be #[ignore]
-
 // TODO Once we have constant exports, make a test for ambiguous import namespace.
 
 use super::common::import::MockFileLoader;
