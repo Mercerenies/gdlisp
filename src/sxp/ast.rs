@@ -155,6 +155,33 @@ impl AST {
     Ok(())
   }
 
+  fn _recurse_mut<'a, 'b, F1, F2, E>(&'a mut self, func: &mut F1, default: &mut F2) -> Result<(), E>
+  where F1 : FnMut(&'b mut AST) -> Result<(), E>,
+        F2 : FnMut() -> Result<(), E>,
+        'a : 'b {
+    match &mut self.value {
+      ASTF::Cons(car, cdr) => {
+        func(&mut *car)?;
+        func(&mut *cdr)?;
+      }
+      ASTF::Array(arr) => {
+        for x in arr {
+          func(x)?;
+        }
+      }
+      ASTF::Dictionary(d) => {
+        for (k, v) in d {
+          func(k)?;
+          func(v)?;
+        }
+      }
+      ASTF::Nil | ASTF::Int(_) | ASTF::Bool(_) | ASTF::Float(_) | ASTF::String(_) | ASTF::Symbol(_) => {
+        default()?;
+      }
+    }
+    Ok(())
+  }
+
   fn _walk_preorder<'a, 'b, F, E>(&'a self, func: &mut F) -> Result<(), E>
   where F: FnMut(&'b AST) -> Result<(), E>,
         'a: 'b {
@@ -162,10 +189,22 @@ impl AST {
     self._recurse(&mut |x| x._walk_preorder(func), &mut || Ok(()))
   }
 
+  fn _walk_preorder_mut<'a, F, E>(&'a mut self, func: &mut F) -> Result<(), E>
+  where F: for<'b> FnMut(&'b mut AST) -> Result<(), E> {
+    func(self)?;
+    self._recurse_mut(&mut |x| x._walk_preorder_mut(func), &mut || Ok(()))
+  }
+
   fn _walk_postorder<'a, 'b, F, E>(&'a self, func: &mut F) -> Result<(), E>
   where F: FnMut(&'b AST) -> Result<(), E>,
         'a: 'b {
     self._recurse(&mut |x| x._walk_postorder(func), &mut || Ok(()))?;
+    func(self)
+  }
+
+  fn _walk_postorder_mut<'a, F, E>(&'a mut self, func: &mut F) -> Result<(), E>
+  where F: for<'b> FnMut(&'b mut AST) -> Result<(), E> {
+    self._recurse_mut(&mut |x| x._walk_postorder_mut(func), &mut || Ok(()))?;
     func(self)
   }
 
@@ -183,6 +222,12 @@ impl AST {
     self._walk_preorder(&mut func)
   }
 
+  /// As [`AST::walk_preorder`], but with a mutable `self`.
+  pub fn walk_preorder_mut<'a, F, E>(&'a mut self, mut func: F) -> Result<(), E>
+  where F: for<'b> FnMut(&'b mut AST) -> Result<(), E> {
+    self._walk_preorder_mut(&mut func)
+  }
+
   /// Walk the `AST`, calling a function on the node itself and every
   /// child recursively. That includes both elements of an
   /// [`ASTF::Cons`], all elements of an [`ASTF::Array`], and any
@@ -195,6 +240,32 @@ impl AST {
   where F: FnMut(&'b AST) -> Result<(), E>,
         'a: 'b {
     self._walk_postorder(&mut func)
+  }
+
+  /// As [`AST::walk_postorder`], but with a mutable `self`.
+  pub fn walk_postorder_mut<'a, F, E>(&'a mut self, mut func: F) -> Result<(), E>
+  where F: for<'b> FnMut(&'b mut AST) -> Result<(), E> {
+    self._walk_postorder_mut(&mut func)
+  }
+
+  /// Walk the `AST`, transforming all of the [`SourceOffset`] tags
+  /// using the given function. The walk is performed using
+  /// [`AST::walk_preorder_mut`].
+  pub fn each_source_mut<F>(&mut self, mut func: F)
+  where F: FnMut(SourceOffset) -> SourceOffset {
+    let result = self.walk_preorder_mut(|ast| {
+      ast.pos = func(ast.pos);
+      Ok(())
+    });
+    AST::extract_err(result)
+  }
+
+  /// As [`AST::each_source_mut`], but returns a new object.
+  pub fn each_source<F>(&self, func: F) -> AST
+  where F: FnMut(SourceOffset) -> SourceOffset {
+    let mut ast = self.clone();
+    ast.each_source_mut(func);
+    ast
   }
 
   fn extract_err<T>(res: Result<T, Infallible>) -> T {
@@ -403,6 +474,21 @@ mod tests {
     let bar = AST::symbol("bar", SourceOffset::default());
     assert_eq!(cons(foo.clone(), bar.clone()).all_symbols(), vec!("foo", "bar"));
     assert_eq!(AST::dotted_list(vec!(foo.clone(), bar.clone()), nil()).all_symbols(), vec!("foo", "bar"));
+  }
+
+  #[test]
+  fn each_source() {
+    let example1_1 = AST::symbol("foo", SourceOffset(3));
+    let example1_2 = AST::symbol("foo", SourceOffset(13));
+    assert_eq!(example1_1.each_source(add10), example1_2);
+
+    let example2_1 = AST::new(ASTF::Array(vec!(AST::symbol("foo", SourceOffset(3)), AST::symbol("foo", SourceOffset(4)))), SourceOffset(9));
+    let example2_2 = AST::new(ASTF::Array(vec!(AST::symbol("foo", SourceOffset(13)), AST::symbol("foo", SourceOffset(14)))), SourceOffset(19));
+    assert_eq!(example2_1.each_source(add10), example2_2);
+  }
+
+  fn add10(x: SourceOffset) -> SourceOffset {
+    (usize::from(x) + 10).into()
   }
 
 }
