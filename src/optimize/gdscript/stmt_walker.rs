@@ -135,6 +135,9 @@ mod tests {
 
   // TODO More test coverage
 
+  #[derive(Copy, Clone, Debug, Eq, PartialEq)]
+  struct SampleError;
+
   fn s(stmt: StmtF) -> Stmt {
     Stmt::new(stmt, SourceOffset::default())
   }
@@ -182,6 +185,20 @@ mod tests {
       vec!(s(StmtF::BreakStmt)),
       vec!(stmt, s(StmtF::PassStmt)),
     ));
+  }
+
+  #[test]
+  fn test_walk_simple_error_1() {
+    let stmts = vec!(s(StmtF::PassStmt));
+    let result = walk_stmts(&stmts, on_each_stmt(|_| Err(SampleError)));
+    assert_eq!(result, Err(SampleError));
+  }
+
+  #[test]
+  fn test_walk_simple_error_2() {
+    let stmts = vec!();
+    let result = walk_stmts(&stmts, on_each_stmt(|_| Err(SampleError)));
+    assert_eq!(result, Ok(vec!()));
   }
 
 }
