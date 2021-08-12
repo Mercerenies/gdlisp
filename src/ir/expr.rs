@@ -101,6 +101,14 @@ impl Expr {
     Expr::new(ExprF::Call(name, args), pos)
   }
 
+  pub fn yield_none(pos: SourceOffset) -> Expr {
+    Expr::new(ExprF::Yield(None), pos)
+  }
+
+  pub fn yield_some(lhs: Expr, rhs: Expr, pos: SourceOffset) -> Expr {
+    Expr::new(ExprF::Yield(Some((Box::new(lhs), Box::new(rhs)))), pos)
+  }
+
   fn walk_locals(&self, acc_vars: &mut Locals, acc_fns: &mut Functions) {
     match &self.value {
       ExprF::LocalVar(s) => {
