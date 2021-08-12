@@ -765,12 +765,12 @@ impl<'a> Compiler<'a> {
         let ImportName { namespace: namespace, in_name: import_name, out_name: export_name } = imp;
         match namespace {
           Namespace::Function => {
-            let (call, _) = unit_table.get_fn(&export_name).ok_or(Error::new(ErrorF::NoSuchFn(export_name), import.pos))?;
+            let (call, _) = unit_table.get_fn(&export_name).ok_or_else(|| Error::new(ErrorF::NoSuchFn(export_name), import.pos))?;
             let call = Compiler::translate_call(preload_name.clone(), call.clone());
             table.set_fn(import_name.clone(), call, Box::new(DefaultCall));
           }
           Namespace::Value => {
-            let mut var = unit_table.get_var(&export_name).ok_or(Error::new(ErrorF::NoSuchVar(export_name), import.pos))?.clone();
+            let mut var = unit_table.get_var(&export_name).ok_or_else(|| Error::new(ErrorF::NoSuchVar(export_name), import.pos))?.clone();
             var.name = var.name.into_imported(preload_name.clone());
             table.set_var(import_name.clone(), var);
           }

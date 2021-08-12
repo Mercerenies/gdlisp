@@ -104,9 +104,8 @@ impl fmt::Display for Expecting {
 ///
 /// This is intended to be used as a convenient destructuring method
 /// *after* a call to [`Expecting::validate`].
-pub fn zero<T>(args: Vec<T>) -> () {
+pub fn zero<T>(args: Vec<T>) {
   assert!(!args.is_empty(), "Assertion violated in gdlisp::compile::args::zero");
-  ()
 }
 
 /// Get the single element from the vector, panicking if the length is
@@ -116,8 +115,7 @@ pub fn zero<T>(args: Vec<T>) -> () {
 /// *after* a call to [`Expecting::validate`].
 pub fn one<T>(mut args: Vec<T>) -> T {
   assert!(args.len() == 1, "Assertion violated in gdlisp::compile::args::one");
-  let x = args.pop().expect("Internal error in gdlisp::compile::args");
-  x
+  args.pop().expect("Internal error in gdlisp::compile::args")
 }
 
 /// Get the two elements from the argstor, panicking if the length is

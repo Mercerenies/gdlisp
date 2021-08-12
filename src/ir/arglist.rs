@@ -5,7 +5,7 @@ use crate::compile::symbol_table::function_call::FnSpecs;
 use crate::sxp::ast::{AST, ASTF};
 use crate::pipeline::source::{SourceOffset, Sourced};
 
-use std::convert::{TryFrom, TryInto};
+use std::convert::TryFrom;
 use std::borrow::Borrow;
 use std::cmp::Ordering;
 use std::fmt;
@@ -247,8 +247,8 @@ impl From<ArgList> for FnSpecs {
     // TODO We need to define an upper limit on argument list length
     // (and check if Godot already has one we need to respect)
     FnSpecs::new(
-      arglist.required_args.len().try_into().unwrap(),
-      arglist.optional_args.len().try_into().unwrap(),
+      arglist.required_args.len(),
+      arglist.optional_args.len(),
       arglist.rest_arg.map(|x| x.1),
     )
   }
@@ -317,6 +317,7 @@ mod tests {
   use super::*;
   use crate::parser;
   use crate::sxp::dotted::DottedExpr;
+  use std::convert::TryInto;
 
   fn parse_ast(input: &str) -> AST {
     let parser = parser::ASTParser::new();
