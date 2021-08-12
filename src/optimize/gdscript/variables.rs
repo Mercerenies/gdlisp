@@ -35,22 +35,22 @@ pub fn get_variable_info(stmts: &[Stmt]) -> HashMap<String, VarInfo> {
   let mut map = HashMap::new();
 
   // Read declarations
-  stmt_walker::walk_stmts(stmts, stmt_walker::on_each_stmt(|stmt| {
+  stmt_walker::walk_stmts_ok(stmts, stmt_walker::on_each_stmt_ok(|stmt| {
     if let StmtF::VarDecl(s, e) = &stmt.value {
       map.insert(s.to_owned(), VarInfo::new(e.clone()));
     }
-    Ok(vec!(stmt.clone())) // Pass through
-  })).expect("Internal error in variables::get_variable_info"); // Cannot fail
+    vec!(stmt.clone()) // Pass through
+  }));
 
   // Read modifications
-  stmt_walker::walk_stmts(stmts, stmt_walker::on_each_stmt(|stmt| {
+  stmt_walker::walk_stmts_ok(stmts, stmt_walker::on_each_stmt_ok(|stmt| {
     if let StmtF::Assign(s, _, _) = &stmt.value {
       if let ExprF::Var(s) = &s.value {
         map.entry(s.to_owned()).and_modify(|v| v.write_count += 1);
       }
     }
-    Ok(vec!(stmt.clone())) // Pass through
-  })).expect("Internal error in variables::get_variable_info"); // Cannot fail
+    vec!(stmt.clone()) // Pass through
+  }));
 
   // Read accesses
   expr_walker::walk_exprs(stmts, |expr| {

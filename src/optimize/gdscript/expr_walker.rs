@@ -6,6 +6,8 @@ use crate::compile::error::Error;
 
 // Post-order traversal
 
+// TODO Provide infallible variants of all of these as well (like in stmt_walker)
+
 pub fn walk_expr<'a>(stmt: &Stmt, mut walker: impl FnMut(&Expr) -> Result<Expr, Error> + 'a)
                      -> Result<Vec<Stmt>, Error> {
   stmt_walker::walk_stmt(stmt, stmt_walker::on_each_stmt(|s| walk_impl(&mut walker, s)))
@@ -117,3 +119,5 @@ fn walk_impl<'a>(walker: &mut (impl FnMut(&Expr) -> Result<Expr, Error> + 'a), s
   };
   Ok(vec!(Stmt::new(new_stmt, stmt.pos)))
 }
+
+// TODO Test me :)

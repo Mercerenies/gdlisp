@@ -14,16 +14,16 @@ pub struct DeadVarElimination;
 impl FunctionOptimization for DeadVarElimination {
   fn run_on_function(&self, function: &mut decl::FnDecl) -> Result<(), Error> {
     let vars = get_variable_info(&function.body);
-    function.body = stmt_walker::walk_stmts(&function.body, stmt_walker::on_each_stmt(|stmt| {
+    function.body = stmt_walker::walk_stmts_ok(&function.body, stmt_walker::on_each_stmt_ok(|stmt| {
       if let StmtF::VarDecl(var_name, expr) = &stmt.value {
         if let Some(info) = vars.get(var_name) {
           if !info.is_ever_used() {
-            return Ok(vec!(Stmt::expr(expr.clone())));
+            return vec!(Stmt::expr(expr.clone()));
           }
         }
       }
-      Ok(vec!(stmt.clone()))
-    }))?;
+      vec!(stmt.clone())
+    }));
     Ok(())
   }
 }
