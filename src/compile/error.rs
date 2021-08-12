@@ -15,10 +15,6 @@ use crate::pipeline::source::{SourceOffset, Sourced};
 
 use std::fmt;
 
-// TODO TooFewArgs and TooManyArgs sometimes use the second argument
-// to specify expected # of args and sometimes use it to specify the
-// given # of args. Standardize this, likely by taking two arguments.
-
 /// This type captures all errors that can occur during compilation of
 /// GDLisp code.
 ///
@@ -33,10 +29,6 @@ pub enum ErrorF {
   ArgListParseError(ArgListParseError),
   ImportDeclParseError(ImportDeclParseError),
   CannotCall(AST),
-  #[deprecated(note="Use WrongNumberArgs instead")]
-  TooFewArgs(String, usize),
-  #[deprecated(note="Use WrongNumberArgs instead")]
-  TooManyArgs(String, usize),
   WrongNumberArgs(String, Expecting, usize),
   InvalidArg(String, AST, String), // Function, argument, expected
   NoSuchVar(String),
@@ -101,12 +93,6 @@ impl fmt::Display for Error {
       }
       ErrorF::CannotCall(ast) => {
         write!(f, "Cannot make function call on expression {}", ast)
-      }
-      ErrorF::TooFewArgs(name, _) => {
-        write!(f, "Too few arguments to call {}", name)
-      }
-      ErrorF::TooManyArgs(name, _) => {
-        write!(f, "Too many arguments to call {}", name)
       }
       ErrorF::WrongNumberArgs(name, expected, actual) => {
         write!(f, "Wrong number of arguments to call {}: expected {}, got {}", name, expected, actual)
