@@ -93,3 +93,49 @@ impl fmt::Display for Expecting {
     }
   }
 }
+
+/// Panic if the vector is nonempty. This method is provided for
+/// symmetry with [`one`], [`two`], and [`three`].
+///
+/// This is intended to be used as a convenient destructuring method
+/// *after* a call to [`Expecting::validate`].
+pub fn zero<T>(args: Vec<T>) -> () {
+  assert!(!args.is_empty(), "Assertion violated in gdlisp::compile::args::zero");
+  ()
+}
+
+/// Get the single element from the vector, panicking if the length is
+/// wrong.
+///
+/// This is intended to be used as a convenient destructuring method
+/// *after* a call to [`Expecting::validate`].
+pub fn one<T>(mut args: Vec<T>) -> T {
+  assert!(args.len() == 1, "Assertion violated in gdlisp::compile::args::one");
+  let x = args.pop().expect("Internal error in gdlisp::compile::args");
+  x
+}
+
+/// Get the two elements from the argstor, panicking if the length is
+/// wrong.
+///
+/// This is intended to be used as a convenient destructuring method
+/// *after* a call to [`Expecting::validate`].
+pub fn two<T>(mut args: Vec<T>) -> (T, T) {
+  assert!(args.len() == 2, "Assertion violated in gdlisp::compile::args::two");
+  let y = args.pop().expect("Internal error in gdlisp::compile::args");
+  let x = args.pop().expect("Internal error in gdlisp::compile::args");
+  (x, y)
+}
+
+/// Get the three elements from the argstor, panicking if the length is
+/// wrong.
+///
+/// This is intended to be used as a convenient destructuring method
+/// *after* a call to [`Expecting::validate`].
+pub fn three<T>(mut args: Vec<T>) -> (T, T, T) {
+  assert!(args.len() == 3, "Assertion violated in gdlisp::compile::args::three");
+  let z = args.pop().expect("Internal error in gdlisp::compile::args");
+  let y = args.pop().expect("Internal error in gdlisp::compile::args");
+  let x = args.pop().expect("Internal error in gdlisp::compile::args");
+  (x, y, z)
+}
