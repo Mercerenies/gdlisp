@@ -139,10 +139,47 @@ pub struct Export {
   pub args: Vec<Expr>,
 }
 
+#[derive(Clone, Debug, Copy, Eq, PartialEq)]
+pub struct DuplicateMainClassError(pub SourceOffset);
+
 impl TopLevel {
 
   pub fn new() -> TopLevel {
     TopLevel::default()
+  }
+
+  /// Find the class in `self` for which [`ClassDecl::main_class`] is
+  /// true. If there is no such class, then `None` is returned. If
+  /// there are multiple such classes, then
+  /// [`DuplicateMainClassError`] is returned.
+  pub fn find_main_class(&self) -> Result<Option<&ClassDecl>, DuplicateMainClassError> {
+    let all_main_classes: Vec<_> = self.decls.iter().filter(|decl| {
+      if let DeclF::ClassDecl(cdecl) = &decl.value {
+        cdecl.main_class
+      } else {
+        false
+      }
+    }).collect();
+    match all_main_classes.len() {
+      0 => {
+        // No main class; return None
+        Ok(None)
+      }
+      1 => {
+        // Single main class; return it
+        if let DeclF::ClassDecl(cdecl) = &all_main_classes[0].value {
+          Ok(Some(&cdecl))
+        } else {
+          panic!("Internal error in TopLevel::find_main_class (this is a bug in GDLisp)")
+        }
+      }
+      _ => {
+        // Duplicate main classes; produce an error at the position of
+        // the second
+        let second_main_class = all_main_classes[1];
+        Err(DuplicateMainClassError(second_main_class.pos))
+      }
+    }
   }
 
 }
@@ -419,4 +456,88 @@ impl From<(ClassDecl, Vec<Expr>)> for expr::LambdaClass {
       decls: decl.decls,
     }
   }
+}
+
+#[cfg(test)]
+mod tests {
+  use super::*;
+
+  fn sample_class(class_name: &str, main_class: bool) -> ClassDecl {
+    ClassDecl {
+      visibility: Visibility::Public,
+      name: String::from(class_name),
+      extends: String::from("Reference"),
+      main_class,
+      constructor: ConstructorDecl::empty(SourceOffset::default()),
+      decls: vec!(),
+    }
+  }
+
+  #[test]
+  fn find_main_class_test_1() {
+    let example = TopLevel {
+      imports: vec!(),
+      decls: vec!(
+        Decl::new(DeclF::ClassDecl(sample_class("Foo", false)), SourceOffset::default()),
+        Decl::new(DeclF::ClassDecl(sample_class("Bar", false)), SourceOffset::default()),
+      ),
+      minimalist_flag: false,
+    };
+    assert_eq!(example.find_main_class(), Ok(None));
+  }
+
+  #[test]
+  fn find_main_class_test_2() {
+    let example = TopLevel {
+      imports: vec!(),
+      decls: vec!(
+        Decl::new(DeclF::ClassDecl(sample_class("Foo", true)), SourceOffset::default()),
+        Decl::new(DeclF::ClassDecl(sample_class("Bar", false)), SourceOffset::default()),
+      ),
+      minimalist_flag: false,
+    };
+    assert_eq!(example.find_main_class(), Ok(Some(&sample_class("Foo", true))));
+  }
+
+  #[test]
+  fn find_main_class_test_3() {
+    let example = TopLevel {
+      imports: vec!(),
+      decls: vec!(
+        Decl::new(DeclF::ClassDecl(sample_class("Foo", false)), SourceOffset::default()),
+        Decl::new(DeclF::ClassDecl(sample_class("Bar", true)), SourceOffset::default()),
+      ),
+      minimalist_flag: false,
+    };
+    assert_eq!(example.find_main_class(), Ok(Some(&sample_class("Bar", true))));
+  }
+
+  #[test]
+  fn find_main_class_test_4() {
+    let example = TopLevel {
+      imports: vec!(),
+      decls: vec!(
+        Decl::new(DeclF::ClassDecl(sample_class("Foo", true)), SourceOffset::default()),
+        Decl::new(DeclF::ClassDecl(sample_class("Bar", true)), SourceOffset::default()),
+      ),
+      minimalist_flag: false,
+    };
+    assert_eq!(example.find_main_class(), Err(DuplicateMainClassError(SourceOffset(0))));
+  }
+
+  #[test]
+  fn find_main_class_test_5() {
+    // Nontrivial source offset
+    let example = TopLevel {
+      imports: vec!(),
+      decls: vec!(
+        Decl::new(DeclF::ClassDecl(sample_class("Foo", true)), SourceOffset(10)),
+        Decl::new(DeclF::ClassDecl(sample_class("Bar", true)), SourceOffset(20)),
+      ),
+      minimalist_flag: false,
+    };
+    // Should be reported at the source position of the *second* main class
+    assert_eq!(example.find_main_class(), Err(DuplicateMainClassError(SourceOffset(20))));
+  }
+
 }
