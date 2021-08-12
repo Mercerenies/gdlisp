@@ -9,6 +9,7 @@ use super::decl::{self, Decl, DeclF};
 use super::arglist::ArgList;
 use super::quasiquote::quasiquote;
 use crate::compile::error::{Error as GDError, ErrorF as GDErrorF};
+use crate::compile::args::Expecting;
 use crate::ir::incremental::IncCompiler;
 use crate::ir::identifier::{Id, Namespace};
 use crate::ir::export::Visibility;
@@ -90,9 +91,7 @@ pub fn while_form(icompiler: &mut IncCompiler,
                   tail: &[&AST],
                   pos: SourceOffset)
                   -> Result<Expr, Error> {
-  if tail.is_empty() {
-    return Err(Error::from(GDError::new(GDErrorF::TooFewArgs(String::from("while"), tail.len()), pos)));
-  }
+  Expecting::at_least(1).validate("while", pos, tail)?;
   let cond = icompiler.compile_expr(pipeline, tail[0])?;
   let body = tail[1..].iter().map(|x| icompiler.compile_expr(pipeline, x)).collect::<Result<Vec<_>, _>>()?;
   Ok(Expr::while_stmt(cond, Expr::progn(body, pos), pos))
@@ -103,9 +102,7 @@ pub fn for_form(icompiler: &mut IncCompiler,
                 tail: &[&AST],
                 pos: SourceOffset)
                 -> Result<Expr, Error> {
-  if tail.len() < 2 {
-    return Err(Error::from(GDError::new(GDErrorF::TooFewArgs(String::from("for"), tail.len()), pos)));
-  }
+  Expecting::at_least(2).validate("for", pos, tail)?;
   let name = match &tail[0].value {
     ASTF::Symbol(s) => s.to_owned(),
     _ => return Err(Error::from(GDError::new(GDErrorF::InvalidArg(String::from("for"), (*tail[0]).clone(), String::from("variable name")), pos))),
@@ -120,9 +117,7 @@ pub fn let_form(icompiler: &mut IncCompiler,
                 tail: &[&AST],
                 pos: SourceOffset)
                 -> Result<Expr, Error> {
-  if tail.is_empty() {
-    return Err(Error::from(GDError::new(GDErrorF::TooFewArgs(String::from("let"), tail.len()), pos)));
-  }
+  Expecting::at_least(1).validate("let", pos, tail)?;
   let vars: Vec<_> = DottedExpr::new(tail[0]).try_into()?;
   let var_clauses = vars.into_iter().map(|clause| {
     let var: Vec<_> = match DottedExpr::new(clause) {
@@ -146,9 +141,7 @@ pub fn lambda_form(icompiler: &mut IncCompiler,
                    tail: &[&AST],
                    pos: SourceOffset)
                    -> Result<Expr, Error> {
-  if tail.is_empty() {
-    return Err(Error::from(GDError::new(GDErrorF::TooFewArgs(String::from("lambda"), 1), pos)));
-  }
+  Expecting::at_least(1).validate("lambda", pos, tail)?;
   let args: Vec<_> = DottedExpr::new(tail[0]).try_into()?;
   let args = ArgList::parse(args)?;
   let body = tail[1..].iter().map(|expr| icompiler.compile_expr(pipeline, expr)).collect::<Result<Vec<_>, _>>()?;
@@ -158,12 +151,7 @@ pub fn lambda_form(icompiler: &mut IncCompiler,
 pub fn function_form(tail: &[&AST],
                      pos: SourceOffset)
                      -> Result<Expr, Error> {
-  if tail.is_empty() {
-    return Err(Error::from(GDError::new(GDErrorF::TooFewArgs(String::from("function"), 1), pos)));
-  }
-  if tail.len() > 1 {
-    return Err(Error::from(GDError::new(GDErrorF::TooManyArgs(String::from("function"), 1), pos)));
-  }
+  Expecting::exactly(1).validate("function", pos, tail)?;
   match &tail[0].value {
     ASTF::Symbol(s) => {
       Ok(Expr::new(ExprF::FuncRef(FuncRefTarget::SimpleName(s.clone())), pos))
@@ -179,12 +167,7 @@ pub fn assign_form(icompiler: &mut IncCompiler,
                    tail: &[&AST],
                    pos: SourceOffset)
                    -> Result<Expr, Error> {
-  if tail.len() < 2 {
-    return Err(Error::from(GDError::new(GDErrorF::TooFewArgs(String::from("set"), 2), pos)))
-  }
-  if tail.len() > 2 {
-    return Err(Error::from(GDError::new(GDErrorF::TooManyArgs(String::from("set"), 2), pos)))
-  }
+  Expecting::exactly(2).validate("set", pos, tail)?;
   let assign_target = match &tail[0].value {
     ASTF::Symbol(s) => {
       AssignmentForm::Simple(AssignTarget::Variable(tail[0].pos, s.to_owned()))
@@ -217,9 +200,9 @@ pub fn flet_form(icompiler: &mut IncCompiler,
                  pos: SourceOffset,
                  binding_rule: impl LocalBinding)
                  -> Result<Expr, Error> {
-  if tail.is_empty() {
-    return Err(Error::from(GDError::new(GDErrorF::TooFewArgs(String::from("flet"), tail.len()), pos)));
-  }
+  // TODO This function is used for flet and labels, so using "flet"
+  // in all of the errors is not strictly correct.
+  Expecting::at_least(1).validate("flet", pos, tail)?;
   let fns: Vec<_> = DottedExpr::new(tail[0]).try_into()?;
 
   // Get all of the names of the declared functions
@@ -268,12 +251,7 @@ pub fn flet_form(icompiler: &mut IncCompiler,
 }
 
 pub fn quote_form(tail: &[&AST], pos: SourceOffset) -> Result<Expr, Error> {
-  if tail.is_empty() {
-    return Err(Error::from(GDError::new(GDErrorF::TooFewArgs(String::from("quote"), 1), pos)))
-  }
-  if tail.len() > 1 {
-    return Err(Error::from(GDError::new(GDErrorF::TooManyArgs(String::from("quote"), 1), pos)))
-  }
+  Expecting::exactly(1).validate("quote", pos, tail)?;
   Ok(Expr::new(ExprF::Quote(tail[0].clone()), pos))
 }
 
@@ -282,12 +260,7 @@ pub fn quasiquote_form(icompiler: &mut IncCompiler,
                        tail: &[&AST],
                        pos: SourceOffset)
                        -> Result<Expr, Error> {
-  if tail.is_empty() {
-    return Err(Error::from(GDError::new(GDErrorF::TooFewArgs(String::from("quasiquote"), 1), pos)))
-  }
-  if tail.len() > 1 {
-    return Err(Error::from(GDError::new(GDErrorF::TooManyArgs(String::from("quasiquote"), 1), pos)))
-  }
+  Expecting::exactly(1).validate("quasiquote", pos, tail)?;
   quasiquote(icompiler, pipeline, tail[0])
 }
 
@@ -296,12 +269,7 @@ pub fn access_slot_form(icompiler: &mut IncCompiler,
                         tail: &[&AST],
                         pos: SourceOffset)
                         -> Result<Expr, Error> {
-  if tail.len() < 2 {
-    return Err(Error::from(GDError::new(GDErrorF::TooFewArgs(String::from("access-slot"), 2), pos)))
-  }
-  if tail.len() > 2 {
-    return Err(Error::from(GDError::new(GDErrorF::TooManyArgs(String::from("access-slot"), 2), pos)))
-  }
+  Expecting::exactly(2).validate("access-slot", pos, tail)?;
   let lhs = icompiler.compile_expr(pipeline, tail[0])?;
   let slot_name = match &tail[1].value {
     ASTF::Symbol(s) => s.to_owned(),
@@ -315,9 +283,7 @@ pub fn new_form(icompiler: &mut IncCompiler,
                 tail: &[&AST],
                 pos: SourceOffset)
                 -> Result<Expr, Error> {
-  if tail.is_empty() {
-    return Err(Error::from(GDError::new(GDErrorF::TooFewArgs(String::from("new"), 1), pos)));
-  }
+  Expecting::at_least(1).validate("new", pos, tail)?;
   let super_call = match &tail[0].value {
     ASTF::Symbol(_) => AST::dotted_list(vec!((*tail[0]).clone()), AST::new(ASTF::Nil, tail[0].pos)),
     _ => tail[0].clone(),
@@ -344,22 +310,32 @@ pub fn yield_form(icompiler: &mut IncCompiler,
                   tail: &[&AST],
                   pos: SourceOffset)
                   -> Result<Expr, Error> {
+  Expecting::between(0, 2).validate("yield", pos, tail)?;
   match tail.len() {
     0 => {
-      Ok(Expr::new(ExprF::Yield(None), pos))
+      Ok(Expr::yield_none(pos))
     }
     1 => {
-      // TODO This isn't completely accurate, as we accept either 0 or 2
-      // arguments, so TooFewArgs here is misleading.
-      Err(Error::from(GDError::new(GDErrorF::TooFewArgs(String::from("yield"), 2), pos)))
+      // TODO yield() is weird in that it's the only thing in GDLisp
+      // right now that takes a non-interval number of arguments.
+      // Every other function or special form can be broadly described
+      // as taking [a, b] or [a, infinity) arguments, where a and b
+      // are integers. yield() takes {0, 2}.
+      //
+      // It would be nice to *define* some semantics for yield(x), for
+      // consistency, but I can't think of what that would mean. OTOH
+      // how do we correctly report errors for this relatively bizarre
+      // special form, since WrongNumberArgs assumes an interval as
+      // expected argument count?
+      Err(Error::from(GDError::new(GDErrorF::InvalidArg(String::from("yield"), AST::nil(SourceOffset(0)), String::from("additional argument (yield takes 0 or 2 arguments)")), pos)))
     }
     2 => {
       let lhs = icompiler.compile_expr(pipeline, tail[0])?;
       let rhs = icompiler.compile_expr(pipeline, tail[1])?;
-      Ok(Expr::new(ExprF::Yield(Some((Box::new(lhs), Box::new(rhs)))), pos))
+      Ok(Expr::yield_some(lhs, rhs, pos))
     }
     _ => {
-      Err(Error::from(GDError::new(GDErrorF::TooManyArgs(String::from("yield"), 2), pos)))
+      unreachable!()
     }
   }
 }
@@ -369,18 +345,9 @@ pub fn return_form(icompiler: &mut IncCompiler,
                    tail: &[&AST],
                    pos: SourceOffset)
                    -> Result<Expr, Error> {
-  match tail.len() {
-    0 => {
-      Err(Error::from(GDError::new(GDErrorF::TooFewArgs(String::from("return"), 1), pos)))
-    }
-    1 => {
-      let expr = icompiler.compile_expr(pipeline, tail[0])?;
-      Ok(Expr::new(ExprF::Return(Box::new(expr)), pos))
-    }
-    _ => {
-      Err(Error::from(GDError::new(GDErrorF::TooManyArgs(String::from("return"), 1), pos)))
-    }
-  }
+  Expecting::exactly(1).validate("return", pos, tail)?;
+  let expr = icompiler.compile_expr(pipeline, tail[0])?;
+  Ok(Expr::new(ExprF::Return(Box::new(expr)), pos))
 }
 
 pub fn macrolet_form(icompiler: &mut IncCompiler,
@@ -388,9 +355,7 @@ pub fn macrolet_form(icompiler: &mut IncCompiler,
                      tail: &[&AST],
                      pos: SourceOffset)
                      -> Result<Expr, Error> {
-  if tail.is_empty() {
-    return Err(Error::from(GDError::new(GDErrorF::TooFewArgs(String::from("macrolet"), tail.len()), pos)));
-  }
+  Expecting::at_least(1).validate("macrolet", pos, tail)?;
   let fns: Vec<_> = DottedExpr::new(tail[0]).try_into()?;
   let fn_clauses = fns.into_iter().map(|clause| {
     let func: Vec<_> = DottedExpr::new(clause).try_into()?;
