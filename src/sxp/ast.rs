@@ -2,6 +2,7 @@
 //! Defines the basic [`AST`] type.
 
 use crate::pipeline::source::{SourceOffset, Sourced};
+use crate::util::extract_err;
 
 use ordered_float::OrderedFloat;
 
@@ -257,7 +258,7 @@ impl AST {
       ast.pos = func(ast.pos);
       Ok(())
     });
-    AST::extract_err(result)
+    extract_err(result)
   }
 
   /// As [`AST::each_source_mut`], but returns a new object.
@@ -266,13 +267,6 @@ impl AST {
     let mut ast = self.clone();
     ast.each_source_mut(func);
     ast
-  }
-
-  fn extract_err<T>(res: Result<T, Infallible>) -> T {
-    match res {
-      Ok(x) => x,
-      Err(contra) => match contra {}
-    }
   }
 
   /// Walk the `AST`, producing a list of all symbols that appear (as
@@ -288,7 +282,7 @@ impl AST {
       }
       Ok(())
     });
-    let () = AST::extract_err(err);
+    let () = extract_err(err);
     result
   }
 

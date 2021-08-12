@@ -7,6 +7,7 @@ pub mod lattice;
 use std::collections::HashMap;
 use std::hash::Hash;
 use std::io::{self, Read};
+use std::convert::Infallible;
 
 /// `fold1` acts like [`Iterator::fold`] but without a "starting"
 /// value.
@@ -95,6 +96,16 @@ pub fn option_to_vec<T>(value: Option<T>) -> Vec<T> {
   }
 }
 
+/// This is equivalent to the nightly-only Rust function
+/// `Result::into_ok`, for safely unwrapping `Result` values which can
+/// provably never be an error.
+pub fn extract_err<T>(value: Result<T, Infallible>) -> T {
+  match value {
+    Ok(value) => value,
+    Err(contra) => match contra {},
+  }
+}
+
 #[cfg(test)]
 mod tests {
   use super::*;
@@ -109,6 +120,11 @@ mod tests {
 
     let vec3: Vec<i32> = vec!(1, 2, 3, 4);
     assert_eq!(fold1(vec3.into_iter(), |x, y| x - y), Some(-8));
+  }
+
+  #[test]
+  fn test_extract_err() {
+    assert_eq!(extract_err(Ok(1)), 1);
   }
 
 }
