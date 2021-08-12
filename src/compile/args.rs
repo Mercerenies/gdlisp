@@ -37,6 +37,11 @@ impl Expecting {
     Expecting { minimum, maximum }
   }
 
+  /// Synonym for [`Expecting::new`].
+  pub fn between(minimum: usize, maximum: usize) -> Expecting {
+    Expecting::new(minimum, maximum)
+  }
+
   /// An `Expecting` which demands a specific number of arguments.
   pub fn exactly(value: usize) -> Expecting {
     Expecting::new(value, value)
