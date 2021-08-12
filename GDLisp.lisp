@@ -19,7 +19,12 @@
   (defvar __is_gdlisp_function #t)
   (defvar __gdlisp_required 0)
   (defvar __gdlisp_optional 0)
-  (defvar __gdlisp_rest 1))
+  (defvar __gdlisp_rest 1)
+  ;; Constants for the different types of "rest" arguments a function
+  ;; can take. (i.e. the valid values for __gdlisp_rest)
+  (defconst __gdlisp_vararg_no   0)
+  (defconst __gdlisp_vararg_rest 1)
+  (defconst __gdlisp_vararg_arr  2))
 
 (defclass Cell (Reference)
   (defvar contents)

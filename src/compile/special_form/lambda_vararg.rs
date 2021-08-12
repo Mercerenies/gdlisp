@@ -106,11 +106,7 @@ pub fn generate_lambda_class(class_name: String,
   }
   let r: i32  = specs.required.try_into().unwrap();
   let o: i32  = specs.optional.try_into().unwrap();
-  let x: i32 = match specs.rest { // TODO Document these constants on the GDScript side
-    None => 0,
-    Some(VarArg::RestArg) => 1,
-    Some(VarArg::ArrArg) => 2,
-  };
+  let x: i32  = VarArg::arg_to_const(specs.rest);
   constructor_body.push(super::assign_expr_to_compiler(String::from("__gdlisp_required"), Expr::from_value(r, pos)));
   constructor_body.push(super::assign_expr_to_compiler(String::from("__gdlisp_optional"), Expr::from_value(o, pos)));
   constructor_body.push(super::assign_expr_to_compiler(String::from("__gdlisp_rest"), Expr::from_value(x, pos)));

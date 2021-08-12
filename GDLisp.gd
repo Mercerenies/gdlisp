@@ -13,6 +13,9 @@ class Function extends Reference:
     var __gdlisp_required = 0
     var __gdlisp_optional = 0
     var __gdlisp_rest = 1
+    const __gdlisp_vararg_no = 0
+    const __gdlisp_vararg_rest = 1
+    const __gdlisp_vararg_arr = 2
 class Cell extends Reference:
     func _init(contents_2):
         self.contents = contents_2
