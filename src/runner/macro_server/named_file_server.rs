@@ -50,7 +50,7 @@ use std::convert::TryFrom;
 /// Macros are indexed by [`MacroID`], a wrapper struct around `u32`.
 pub struct NamedFileServer {
   server: LazyServer,
-  macro_files: HashMap<MacroID, (MacroCall, Option<NamedTempFile>)>, // TODO Make MacroCall contain the temp file
+  macro_files: HashMap<MacroID, MacroCall>,
   next_id: MacroID,
   next_reserved_id: MacroID,
 }
@@ -61,12 +61,13 @@ pub struct NamedFileServer {
 #[repr(transparent)]
 pub struct MacroID(u32);
 
-#[derive(Clone, Debug)]
+#[derive(Debug)]
 struct MacroCall {
-  index: u32, // Index in the lookup table on the GDScript side
+  index: u32, // Index in the lookup table on the GDScript side.
   original_name: String, // Probably not needed, but we have it so we may as well keep track of it.
   name: String,
   parms: ArgList,
+  file: Option<NamedTempFile>, // Macros can optionally retain a file resource, which will be deleted when the macro is discarded from scope.
 }
 
 // TODO Make this return GDError like it probably should.
@@ -106,12 +107,13 @@ impl NamedFileServer {
   pub fn add_reserved_macro(&mut self, name: String, parms: ArgList) -> MacroID {
     let id = self.next_reserved_id;
     self.next_reserved_id = self.next_reserved_id.next();
-    self.macro_files.insert(id, (MacroCall {
+    self.macro_files.insert(id, MacroCall {
       index: 0, // TODO This is weird
       original_name: name.clone(),
       name,
       parms,
-    }, None));
+      file: None,
+    });
     id
   }
 
@@ -152,15 +154,15 @@ impl NamedFileServer {
   pub fn stand_up_macro(&mut self, name: String, parms: ArgList, file: NamedTempFile) -> io::Result<MacroID> {
     let idx = self.load_file_on_server(file.path())?;
     let gdname = names::lisp_to_gd(&name);
-    let call = MacroCall { index: idx, original_name: name, name: gdname, parms };
+    let call = MacroCall { index: idx, original_name: name, name: gdname, parms, file: Some(file) };
     let id = self.next_id;
     self.next_id = self.next_id.next();
-    self.macro_files.insert(id, (call, Some(file)));
+    self.macro_files.insert(id, call);
     Ok(id)
   }
 
   fn get_file(&self, id: MacroID) -> Option<&MacroCall> {
-    self.macro_files.get(&id).map(|x| &x.0)
+    self.macro_files.get(&id)
   }
 
   /// Run a macro with the given arguments. `id` should be a
