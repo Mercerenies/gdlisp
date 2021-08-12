@@ -37,6 +37,7 @@ use crate::compile::error::{Error, ErrorF};
 use crate::compile::body::builder::StmtBuilder;
 use crate::compile::stateful::StExpr;
 use crate::compile::stmt_wrapper::{self, StmtWrapper};
+use crate::compile::args::Expecting;
 use crate::ir::arglist::VarArg;
 use crate::util;
 use crate::pipeline::source::SourceOffset;
@@ -213,12 +214,8 @@ fn strip_st(x: Vec<StExpr>) -> Vec<Expr> {
 pub fn compile_default_call(call: FnCall, mut args: Vec<Expr>, pos: SourceOffset) -> Result<Expr, Error> {
   let FnCall { scope: _, object, function, specs, is_macro: _ } = call;
   // First, check arity
-  if args.len() < specs.min_arity() as usize {
-    return Err(Error::new(ErrorF::TooFewArgs(function, args.len()), pos));
-  }
-  if args.len() > specs.max_arity() as usize {
-    return Err(Error::new(ErrorF::TooManyArgs(function, args.len()), pos));
-  }
+  Expecting::from(specs).validate(&function, pos, &args)?;
+  // Get the "rest" arguments
   let rest = if args.len() < (specs.required + specs.optional) as usize {
     vec!()
   } else {
@@ -228,8 +225,11 @@ pub fn compile_default_call(call: FnCall, mut args: Vec<Expr>, pos: SourceOffset
   while args.len() < (specs.required + specs.optional) as usize {
     args.push(Expr::null(pos));
   }
+  // Bind the "rest" arguments
   match specs.rest {
     None => {
+      // We already checked arity, so if this assertion fails it's a
+      // bug in the compiler.
       assert!(rest.is_empty());
     }
     Some(VarArg::RestArg) => {
@@ -239,6 +239,7 @@ pub fn compile_default_call(call: FnCall, mut args: Vec<Expr>, pos: SourceOffset
       args.push(Expr::new(ExprF::ArrayLit(rest), pos));
     }
   }
+  // Then compile the call.
   let object: Option<Expr> = object.into_expr(pos);
   Ok(Expr::new(ExprF::Call(object.map(Box::new), function, args), pos))
 }
@@ -291,9 +292,10 @@ impl CallMagic for CompileToTransCmp {
                  _table: &mut SymbolTable,
                  mut args: Vec<StExpr>,
                  pos: SourceOffset) -> Result<Expr, Error> {
+    Expecting::at_least(1).validate(&call.function, pos, &args)?;
     match args.len() {
       0 => {
-        Err(Error::new(ErrorF::TooFewArgs(call.function, args.len()), pos))
+        unreachable!()
       }
       1 => {
         // Dump to the builder as a simple statement if it's stateful.
@@ -418,12 +420,7 @@ impl CallMagic for ModOperation {
                  args: Vec<StExpr>,
                  pos: SourceOffset) -> Result<Expr, Error> {
     let mut args = strip_st(args);
-    if args.len() < 2 {
-      return Err(Error::new(ErrorF::TooFewArgs(call.function, args.len()), pos));
-    }
-    if args.len() > 2 {
-      return Err(Error::new(ErrorF::TooManyArgs(call.function, args.len()), pos));
-    }
+    Expecting::exactly(2).validate(&call.function, pos, &args)?;
     let y = args.pop().expect("Internal error in VectorOperation");
     let x = args.pop().expect("Internal error in VectorOperation");
     Ok(Expr::new(ExprF::Binary(Box::new(x), op::BinaryOp::Mod, Box::new(y)), pos))

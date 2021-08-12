@@ -9,6 +9,7 @@ use crate::compile::error::Error;
 use crate::compile::body::builder::StmtBuilder;
 use crate::compile::stateful::StExpr;
 use crate::compile::preload_resolver::PreloadResolver;
+use crate::compile::args::Expecting;
 use crate::pipeline::can_load::CanLoad;
 use crate::pipeline::source::SourceOffset;
 use super::call_magic::{CallMagic, DefaultCall};
@@ -405,5 +406,11 @@ impl FnName {
 impl From<VarName> for FnName {
   fn from(var_name: VarName) -> FnName {
     FnName::imported_constant(var_name)
+  }
+}
+
+impl From<FnSpecs> for Expecting {
+  fn from(specs: FnSpecs) -> Expecting {
+    Expecting::new(specs.min_arity(), specs.max_arity())
   }
 }
