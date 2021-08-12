@@ -6,6 +6,7 @@ use crate::sxp;
 use crate::sxp::ast::AST;
 use crate::ir::arglist::ArgListParseError;
 use crate::ir::identifier::Namespace;
+use crate::ir::decl::DuplicateMainClassError;
 use crate::ir::import::{ImportDeclParseError, ImportNameResolutionError};
 use crate::ir::modifier::{ParseError as ModifierParseError};
 use crate::compile::symbol_table::local_var::VarNameIntoExtendsError;
@@ -54,6 +55,7 @@ pub enum ErrorF {
   ModifierParseError(ModifierParseError),
   MacroInMinimalistError(String),
   MacroBeforeDefinitionError(String),
+  DuplicateMainClass,
 }
 
 /// Variant of [`ErrorF`] with source offset information. See
@@ -169,6 +171,9 @@ impl fmt::Display for Error {
       ErrorF::MacroBeforeDefinitionError(m) => {
         write!(f, "Attempt to use macro {} before definition was available", m)
       }
+      ErrorF::DuplicateMainClass => {
+        write!(f, "File has two main classes") // TODO Would be nice to have the source offset of the *original* main class here as well.
+      }
     }
   }
 }
@@ -262,5 +267,11 @@ impl From<ModifierParseError> for Error {
   fn from(err: ModifierParseError) -> Error {
     let pos = err.pos;
     Error::new(ErrorF::from(err), pos)
+  }
+}
+
+impl From<DuplicateMainClassError> for Error {
+  fn from(err: DuplicateMainClassError) -> Error {
+    Error::new(ErrorF::DuplicateMainClass, err.0)
   }
 }

@@ -4,6 +4,7 @@ use crate::pipeline::source::{SourceOffset, Sourced};
 use crate::sxp::dotted::TryFromDottedExprError;
 use crate::ir::arglist::ArgListParseError;
 use crate::ir::modifier::{ParseError as ModifierParseError};
+use crate::ir::decl::DuplicateMainClassError;
 
 use lalrpop_util::ParseError;
 
@@ -146,6 +147,12 @@ impl From<ArgListParseError> for Error {
 
 impl From<ModifierParseError> for Error {
   fn from(e: ModifierParseError) -> Error {
+    Error::from(GDError::from(e))
+  }
+}
+
+impl From<DuplicateMainClassError> for Error {
+  fn from(e: DuplicateMainClassError) -> Error {
     Error::from(GDError::from(e))
   }
 }

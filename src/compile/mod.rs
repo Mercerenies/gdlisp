@@ -421,7 +421,6 @@ impl<'a> Compiler<'a> {
     }
   }
 
-  // TODO It's an error to have multiple main classes in one file, but we don't currently report this.
   fn flatten_class_into_main(&mut self,
                              builder: &mut CodeBuilder,
                              class: decl::ClassDecl) {
@@ -819,10 +818,15 @@ impl<'a> Compiler<'a> {
                           table: &mut SymbolTable,
                           toplevel: &ir::decl::TopLevel)
                           -> Result<(), PError> {
+
+    // Special check to make sure there is only one main class.
+    let _ = toplevel.find_main_class()?;
+
     for imp in &toplevel.imports {
       self.resolve_import(pipeline, builder, table, imp)?;
     }
     self.compile_decls(pipeline, builder, table, &toplevel.decls)
+
   }
 
 }

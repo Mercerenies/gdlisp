@@ -640,3 +640,11 @@ pub fn nonsense_modifier_class_test_4() {
     Err(PError::from(ModifierParseError::new(ModifierParseErrorF::UniquenessError(String::from("static")), SourceOffset(53)))),
   );
 }
+
+#[test]
+pub fn duplicate_main_class_test() {
+  assert_eq!(
+    parse_compile_decl_err("((defclass Foo (Node) main) (defclass Bar (Node) main))"),
+    Err(PError::from(GDError::new(GDErrorF::DuplicateMainClass, SourceOffset(29)))),
+  );
+}
