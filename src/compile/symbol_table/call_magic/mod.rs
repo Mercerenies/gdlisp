@@ -33,7 +33,7 @@ use crate::gdscript::op;
 use crate::gdscript::library;
 use crate::gdscript::expr_wrapper;
 use crate::compile::Compiler;
-use crate::compile::error::{Error, ErrorF};
+use crate::compile::error::Error;
 use crate::compile::body::builder::StmtBuilder;
 use crate::compile::stateful::StExpr;
 use crate::compile::stmt_wrapper::{self, StmtWrapper};
@@ -343,12 +343,18 @@ impl CallMagic for MinusOperation {
                  args: Vec<StExpr>,
                  pos: SourceOffset) -> Result<Expr, Error> {
     let args = strip_st(args);
+    Expecting::at_least(1).validate(&call.function, pos, &args)?;
     match args.len() {
-      0 => Err(Error::new(ErrorF::TooFewArgs(call.function, args.len()), pos)),
-      1 => Ok(Expr::new(ExprF::Unary(op::UnaryOp::Negate, Box::new(args[0].clone())), pos)),
+      0 => {
+        unreachable!()
+      }
+      1 => {
+        let arg = args::one(args);
+        Ok(arg.unary(op::UnaryOp::Negate, pos))
+      }
       _ => {
         Ok(
-          util::fold1(args.into_iter(), |x, y| Expr::new(ExprF::Binary(Box::new(x), op::BinaryOp::Sub, Box::new(y)), pos)).unwrap()
+          util::fold1(args.into_iter(), |x, y| x.binary(op::BinaryOp::Sub, y, pos)).unwrap()
         )
       }
     }
@@ -364,18 +370,22 @@ impl CallMagic for DivOperation {
                  args: Vec<StExpr>,
                  pos: SourceOffset) -> Result<Expr, Error> {
     let mut args = strip_st(args);
+    Expecting::at_least(1).validate(&call.function, pos, &args)?;
     match args.len() {
-      0 => Err(Error::new(ErrorF::TooFewArgs(call.function, args.len()), pos)),
-      1 => Ok(Expr::new(ExprF::Binary(Box::new(Expr::from_value(1, pos)),
-                                      op::BinaryOp::Div,
-                                      Box::new(expr_wrapper::float(args[0].clone()))),
-                        pos)),
+      0 => {
+        unreachable!()
+      }
+      1 => {
+        let one = Expr::from_value(1, pos);
+        let arg = args::one(args);
+        Ok(one.binary(op::BinaryOp::Div, expr_wrapper::float(arg), pos))
+      }
       _ => {
-        let first = Box::new(args.remove(0));
+        let first = args.remove(0);
         let result = args.into_iter().fold(first, |x, y| {
-          Box::new(Expr::new(ExprF::Binary(x, op::BinaryOp::Div, Box::new(expr_wrapper::float(y))), pos))
+          x.binary(op::BinaryOp::Div, expr_wrapper::float(y), pos)
         });
-        Ok(*result)
+        Ok(result)
       }
     }
   }
@@ -394,18 +404,22 @@ impl CallMagic for IntDivOperation {
                  args: Vec<StExpr>,
                  pos: SourceOffset) -> Result<Expr, Error> {
     let mut args = strip_st(args);
+    Expecting::at_least(1).validate(&call.function, pos, &args)?;
     match args.len() {
-      0 => Err(Error::new(ErrorF::TooFewArgs(call.function, args.len()), pos)),
-      1 => Ok(Expr::new(ExprF::Binary(Box::new(Expr::from_value(1, pos)),
-                                      op::BinaryOp::Div,
-                                      Box::new(expr_wrapper::int(args[0].clone()))),
-                        pos)),
+      0 => {
+        unreachable!()
+      }
+      1 => {
+        let one = Expr::from_value(1, pos);
+        let arg = args::one(args);
+        Ok(one.binary(op::BinaryOp::Div, expr_wrapper::int(arg), pos))
+      }
       _ => {
-        let first = Box::new(args.remove(0));
+        let first = args.remove(0);
         let result = args.into_iter().fold(first, |x, y| {
-          Box::new(Expr::new(ExprF::Binary(x, op::BinaryOp::Div, Box::new(expr_wrapper::int(y))), pos))
+          x.binary(op::BinaryOp::Div, expr_wrapper::int(y), pos)
         });
-        Ok(*result)
+        Ok(result)
       }
     }
   }
