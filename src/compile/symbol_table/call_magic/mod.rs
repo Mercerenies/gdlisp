@@ -37,7 +37,7 @@ use crate::compile::error::{Error, ErrorF};
 use crate::compile::body::builder::StmtBuilder;
 use crate::compile::stateful::StExpr;
 use crate::compile::stmt_wrapper::{self, StmtWrapper};
-use crate::compile::args::Expecting;
+use crate::compile::args::{self, Expecting};
 use crate::ir::arglist::VarArg;
 use crate::util;
 use crate::pipeline::source::SourceOffset;
@@ -419,10 +419,9 @@ impl CallMagic for ModOperation {
                  _table: &mut SymbolTable,
                  args: Vec<StExpr>,
                  pos: SourceOffset) -> Result<Expr, Error> {
-    let mut args = strip_st(args);
+    let args = strip_st(args);
     Expecting::exactly(2).validate(&call.function, pos, &args)?;
-    let y = args.pop().expect("Internal error in VectorOperation");
-    let x = args.pop().expect("Internal error in VectorOperation");
+    let (x, y) = args::two(args);
     Ok(Expr::new(ExprF::Binary(Box::new(x), op::BinaryOp::Mod, Box::new(y)), pos))
   }
 }
@@ -439,9 +438,10 @@ impl CallMagic for NEqOperation {
     // arguments than that and the resulting expression would just be
     // long and annoying, and it's simply easier to call the built-in
     // anyway.
+    Expecting::at_least(1).validate(&call.function, pos, &args)?;
     match args.len() {
       0 => {
-        Err(Error::new(ErrorF::TooFewArgs(call.function, args.len()), pos))
+        unreachable!()
       }
       1 => {
         // Dump to the builder as a simple statement if it's stateful.
@@ -449,7 +449,8 @@ impl CallMagic for NEqOperation {
         Ok(Expr::from_value(true, pos))
       }
       2 => {
-        Ok(Expr::new(ExprF::Binary(Box::new(args[0].expr.clone()), op::BinaryOp::NE, Box::new(args[1].expr.clone())), pos))
+        let (lhs, rhs) = args::two(strip_st(args));
+        Ok(lhs.binary(op::BinaryOp::NE, rhs, pos))
       }
       _ => {
         self.fallback.compile(call, compiler, builder, table, args, pos)
@@ -467,13 +468,9 @@ impl CallMagic for BooleanNotOperation {
                  args: Vec<StExpr>,
                  pos: SourceOffset) -> Result<Expr, Error> {
     let args = strip_st(args);
-    match args.len() {
-      0 => Err(Error::new(ErrorF::TooFewArgs(call.function, args.len()), pos)),
-      1 => Ok(Expr::new(ExprF::Unary(op::UnaryOp::Not,
-                                     Box::new(args[0].clone())),
-                        pos)),
-      _ => Err(Error::new(ErrorF::TooManyArgs(call.function, args.len()), pos)),
-    }
+    Expecting::exactly(1).validate(&call.function, pos, &args)?;
+    let arg = args::one(args);
+    Ok(arg.unary(op::UnaryOp::Not, pos))
   }
 }
 
@@ -498,24 +495,19 @@ impl CallMagic for VectorOperation {
                  _table: &mut SymbolTable,
                  args: Vec<StExpr>,
                  pos: SourceOffset) -> Result<Expr, Error> {
-    let mut args = strip_st(args);
+    let args = strip_st(args);
+    Expecting::between(2, 3).validate(&call.function, pos, &args)?;
     match args.len() {
-      0 | 1 => {
-        Err(Error::new(ErrorF::TooFewArgs(call.function, args.len()), pos))
-      }
       2 => {
-        let y = args.pop().expect("Internal error in VectorOperation");
-        let x = args.pop().expect("Internal error in VectorOperation");
+        let (x, y) = args::two(args);
         Ok(Expr::call(None, "Vector2", vec!(x, y), pos))
       }
       3 => {
-        let z = args.pop().expect("Internal error in VectorOperation");
-        let y = args.pop().expect("Internal error in VectorOperation");
-        let x = args.pop().expect("Internal error in VectorOperation");
+        let (x, y, z) = args::three(args);
         Ok(Expr::call(None, "Vector3", vec!(x, y, z), pos))
       }
       _ => {
-        Err(Error::new(ErrorF::TooManyArgs(call.function, args.len()), pos))
+        unreachable!()
       }
     }
   }
@@ -529,20 +521,10 @@ impl CallMagic for ArraySubscript {
                  _table: &mut SymbolTable,
                  args: Vec<StExpr>,
                  pos: SourceOffset) -> Result<Expr, Error> {
-    let mut args = strip_st(args);
-    match args.len() {
-      0 | 1 => {
-        Err(Error::new(ErrorF::TooFewArgs(call.function, args.len()), pos))
-      }
-      2 => {
-        let n = args.pop().expect("Internal error in ArraySubscript");
-        let arr = args.pop().expect("Internal error in ArraySubscript");
-        Ok(Expr::new(ExprF::Subscript(Box::new(arr), Box::new(n)), pos))
-      }
-      _ => {
-        Err(Error::new(ErrorF::TooManyArgs(call.function, args.len()), pos))
-      }
-    }
+    let args = strip_st(args);
+    Expecting::exactly(2).validate(&call.function, pos, &args)?;
+    let (arr, n) = args::two(args);
+    Ok(arr.subscript(n, pos))
   }
 }
 
@@ -554,23 +536,13 @@ impl CallMagic for ArraySubscriptAssign {
                  _table: &mut SymbolTable,
                  args: Vec<StExpr>,
                  pos: SourceOffset) -> Result<Expr, Error> {
-    let mut args = strip_st(args);
-    match args.len() {
-      0 | 1 | 2 => {
-        Err(Error::new(ErrorF::TooFewArgs(call.function, args.len()), pos))
-      }
-      3 => {
-        let n = args.pop().expect("Internal error in ArraySubscriptAssign");
-        let arr = args.pop().expect("Internal error in ArraySubscriptAssign");
-        let x = args.pop().expect("Internal error in ArraySubscriptAssign");
-        let assign_target = Expr::new(ExprF::Subscript(Box::new(arr), Box::new(n)), pos);
-        builder.append(Stmt::simple_assign(assign_target.clone(), x, pos));
-        Ok(assign_target)
-      }
-      _ => {
-        Err(Error::new(ErrorF::TooManyArgs(call.function, args.len()), pos))
-      }
-    }
+    let args = strip_st(args);
+    Expecting::exactly(3).validate(&call.function, pos, &args)?;
+    let (x, arr, n) = args::three(args);
+
+    let assign_target = arr.subscript(n, pos);
+    builder.append(Stmt::simple_assign(assign_target.clone(), x, pos));
+    Ok(assign_target)
   }
 }
 
@@ -582,20 +554,11 @@ impl CallMagic for ElementOf {
                  _table: &mut SymbolTable,
                  args: Vec<StExpr>,
                  pos: SourceOffset) -> Result<Expr, Error> {
-    let mut args = strip_st(args);
-    match args.len() {
-      0 | 1 => {
-        Err(Error::new(ErrorF::TooFewArgs(call.function, args.len()), pos))
-      }
-      2 => {
-        let arr = args.pop().expect("Internal error in ElementOf");
-        let value = args.pop().expect("Internal error in ElementOf");
-        Ok(Expr::new(ExprF::Binary(Box::new(value), op::BinaryOp::In, Box::new(arr)), pos))
-      }
-      _ => {
-        Err(Error::new(ErrorF::TooManyArgs(call.function, args.len()), pos))
-      }
-    }
+    let args = strip_st(args);
+    Expecting::exactly(2).validate(&call.function, pos, &args)?;
+    let (value, arr) = args::two(args);
+
+    Ok(value.binary(op::BinaryOp::In, arr, pos))
   }
 }
 
@@ -607,19 +570,10 @@ impl CallMagic for InstanceOf {
                  _table: &mut SymbolTable,
                  args: Vec<StExpr>,
                  pos: SourceOffset) -> Result<Expr, Error> {
-    let mut args = strip_st(args);
-    match args.len() {
-      0 | 1 => {
-        Err(Error::new(ErrorF::TooFewArgs(call.function, args.len()), pos))
-      }
-      2 => {
-        let type_ = args.pop().expect("Internal error in InstanceOf");
-        let value = args.pop().expect("Internal error in InstanceOf");
-        Ok(Expr::new(ExprF::Binary(Box::new(value), op::BinaryOp::Is, Box::new(type_)), pos))
-      }
-      _ => {
-        Err(Error::new(ErrorF::TooManyArgs(call.function, args.len()), pos))
-      }
-    }
+    let args = strip_st(args);
+    Expecting::exactly(2).validate(&call.function, pos, &args)?;
+    let (value, type_) = args::two(args);
+
+    Ok(value.binary(op::BinaryOp::Is, type_, pos))
   }
 }

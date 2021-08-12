@@ -3,6 +3,7 @@ extern crate gdlisp;
 
 use gdlisp::ir::modifier::{ParseError as ModifierParseError, ParseErrorF as ModifierParseErrorF};
 use gdlisp::compile::error::{Error as GDError, ErrorF as GDErrorF};
+use gdlisp::compile::args::Expecting;
 use gdlisp::pipeline::error::{Error as PError};
 use gdlisp::pipeline::source::SourceOffset;
 
@@ -49,7 +50,7 @@ pub fn macro_from_macro_test() {
 pub fn bad_args_macro_test() {
   assert_eq!(
     parse_compile_decl_err("((defmacro foo (x) (+ x 1)) (defmacro bar (x) (cons 'foo (cons x ()))) (bar))"),
-    Err(PError::from(GDError::new(GDErrorF::TooFewArgs(String::from("bar"), 0), SourceOffset(71)))),
+    Err(PError::from(GDError::new(GDErrorF::WrongNumberArgs(String::from("bar"), Expecting::exactly(1), 0), SourceOffset(71)))),
   );
 }
 
