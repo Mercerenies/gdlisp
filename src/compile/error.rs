@@ -1,6 +1,7 @@
 
 //! Errors that can occur as a result of GDLisp code.
 
+use super::args::Expecting;
 use crate::sxp;
 use crate::sxp::ast::AST;
 use crate::ir::arglist::ArgListParseError;
@@ -36,7 +37,7 @@ pub enum ErrorF {
   TooFewArgs(String, usize),
   #[deprecated(note="Use WrongNumberArgs instead")]
   TooManyArgs(String, usize),
-  WrongNumberArgs(String, ArgErrorInfo),
+  WrongNumberArgs(String, Expecting, usize),
   InvalidArg(String, AST, String), // Function, argument, expected
   NoSuchVar(String),
   NoSuchFn(String),
@@ -61,12 +62,6 @@ pub enum ErrorF {
   ModifierParseError(ModifierParseError),
   MacroInMinimalistError(String),
   MacroBeforeDefinitionError(String),
-}
-
-#[derive(PartialEq, Eq, Debug)]
-pub struct ArgErrorInfo {
-  pub expected: usize,
-  pub actual: usize,
 }
 
 /// Variant of [`ErrorF`] with source offset information. See
@@ -113,7 +108,7 @@ impl fmt::Display for Error {
       ErrorF::TooManyArgs(name, _) => {
         write!(f, "Too many arguments to call {}", name)
       }
-      ErrorF::WrongNumberArgs(name, ArgErrorInfo { expected, actual }) => {
+      ErrorF::WrongNumberArgs(name, expected, actual) => {
         write!(f, "Wrong number of arguments to call {}: expected {}, got {}", name, expected, actual)
       }
       ErrorF::InvalidArg(name, provided, expected) => {
