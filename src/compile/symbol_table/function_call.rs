@@ -117,8 +117,8 @@ pub enum FnName {
 /// structure simply designates the shape of the function.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct FnSpecs {
-  pub required: u32,
-  pub optional: u32,
+  pub required: usize,
+  pub optional: usize,
   pub rest: Option<VarArg>,
 }
 
@@ -170,7 +170,7 @@ impl FnCall {
 impl FnSpecs {
 
   /// Convenience constructor for a `FnSpecs`.
-  pub fn new(required: u32, optional: u32, rest: Option<VarArg>) -> FnSpecs {
+  pub fn new(required: usize, optional: usize, rest: Option<VarArg>) -> FnSpecs {
     FnSpecs { required, optional, rest }
   }
 
@@ -209,7 +209,7 @@ impl FnSpecs {
   /// assert_eq!(FnSpecs::new(2, 1, Some(VarArg::RestArg)).runtime_arity(), 4);
   /// assert_eq!(FnSpecs::new(1, 2, Some(VarArg::ArrArg)).runtime_arity(), 4);
   /// ```
-  pub fn runtime_arity(&self) -> u32 {
+  pub fn runtime_arity(&self) -> usize {
     self.required + self.optional + if self.has_rest() { 1 } else { 0 }
   }
 
@@ -230,7 +230,7 @@ impl FnSpecs {
   /// assert_eq!(FnSpecs::new(2, 1, Some(VarArg::RestArg)).min_arity(), 2);
   /// assert_eq!(FnSpecs::new(1, 2, Some(VarArg::ArrArg)).min_arity(), 1);
   /// ```
-  pub fn min_arity(&self) -> u32 {
+  pub fn min_arity(&self) -> usize {
     self.required
   }
 
@@ -238,7 +238,7 @@ impl FnSpecs {
   /// to a function with this shape.
   ///
   /// If the function takes a rest argument, then this returns
-  /// [`u32::MAX`].
+  /// [`usize::MAX`].
   ///
   /// # Examples
   ///
@@ -249,15 +249,15 @@ impl FnSpecs {
   /// assert_eq!(FnSpecs::new(5, 0, None).max_arity(), 5);
   /// assert_eq!(FnSpecs::new(0, 5, None).max_arity(), 5);
   /// assert_eq!(FnSpecs::new(2, 5, None).max_arity(), 7);
-  /// assert_eq!(FnSpecs::new(0, 0, Some(VarArg::RestArg)).max_arity(), u32::MAX);
-  /// assert_eq!(FnSpecs::new(0, 0, Some(VarArg::ArrArg)).max_arity(), u32::MAX);
-  /// assert_eq!(FnSpecs::new(2, 1, Some(VarArg::RestArg)).max_arity(), u32::MAX);
-  /// assert_eq!(FnSpecs::new(1, 2, Some(VarArg::ArrArg)).max_arity(), u32::MAX);
+  /// assert_eq!(FnSpecs::new(0, 0, Some(VarArg::RestArg)).max_arity(), usize::MAX);
+  /// assert_eq!(FnSpecs::new(0, 0, Some(VarArg::ArrArg)).max_arity(), usize::MAX);
+  /// assert_eq!(FnSpecs::new(2, 1, Some(VarArg::RestArg)).max_arity(), usize::MAX);
+  /// assert_eq!(FnSpecs::new(1, 2, Some(VarArg::ArrArg)).max_arity(), usize::MAX);
   /// ```
-  pub fn max_arity(&self) -> u32 {
-    // TODO Is u32.MAX correct here? If we put an upper limit on
+  pub fn max_arity(&self) -> usize {
+    // TODO Is usize.MAX correct here? If we put an upper limit on
     // function arity, use that instead.
-    if self.has_rest() { u32::MAX } else { self.required + self.optional }
+    if self.has_rest() { usize::MAX } else { self.required + self.optional }
   }
 
 }
