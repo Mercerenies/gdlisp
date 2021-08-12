@@ -100,6 +100,16 @@ impl Expr {
     Expr::new(ExprF::Attribute(Box::new(self), attr.into()), pos)
   }
 
+  /// An [`ExprF::Subscript`] on `self`, subscripted by `rhs`.
+  pub fn subscript(self, rhs: Expr, pos: SourceOffset) -> Expr {
+    Expr::new(ExprF::Subscript(Box::new(self), Box::new(rhs)), pos)
+  }
+
+  /// A unary operator application.
+  pub fn unary(self, op: UnaryOp, pos: SourceOffset) -> Expr {
+    Expr::new(ExprF::Unary(op, Box::new(self)), pos)
+  }
+
   /// Binary operator application.
   pub fn binary(self, op: BinaryOp, rhs: Expr, pos: SourceOffset) -> Expr {
     Expr::new(ExprF::Binary(Box::new(self), op, Box::new(rhs)), pos)
