@@ -9,6 +9,7 @@ pub mod stateful;
 pub mod preload_resolver;
 pub mod resource_type;
 pub mod constant;
+pub mod args;
 
 use body::builder::{CodeBuilder, StmtBuilder, HasDecls};
 use names::fresh::FreshNameGenerator;
