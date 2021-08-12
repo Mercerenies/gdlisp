@@ -127,4 +127,61 @@ pub fn walk_stmts_ok<'a>(stmts: &[Stmt], mut walker: impl FnMut(&[Stmt]) -> Vec<
   extract_err(result)
 }
 
-// TODO Test me :)
+#[cfg(test)]
+mod tests {
+  use super::*;
+  use crate::gdscript::expr::{Expr, ExprF};
+  use crate::pipeline::source::SourceOffset;
+
+  // TODO More test coverage
+
+  fn s(stmt: StmtF) -> Stmt {
+    Stmt::new(stmt, SourceOffset::default())
+  }
+
+  fn e(expr: ExprF) -> Expr {
+    Expr::new(expr, SourceOffset::default())
+  }
+
+  #[test]
+  fn test_walk_simple_stmt() {
+    let stmt = s(StmtF::PassStmt);
+    let mut call_result = Vec::new();
+    walk_stmt_ok(&stmt, |x| { call_result.push(x.to_vec()); x.to_vec() });
+    assert_eq!(call_result, vec!(vec!(s(StmtF::PassStmt))));
+  }
+
+  #[test]
+  fn test_walk_simple_stmt_seq() {
+    let stmts = vec!(s(StmtF::PassStmt), s(StmtF::BreakStmt));
+    let mut call_result = Vec::new();
+    walk_stmts_ok(&stmts, |x| { call_result.push(x.to_vec()); x.to_vec() });
+    assert_eq!(call_result, vec!(vec!(s(StmtF::PassStmt), s(StmtF::BreakStmt))));
+  }
+
+  #[test]
+  fn test_walk_complex_stmt() {
+    let stmt = stmt::if_else(e(ExprF::from(1)), vec!(s(StmtF::PassStmt)), vec!(s(StmtF::BreakStmt)), SourceOffset::default());
+    let mut call_result = Vec::new();
+    walk_stmt_ok(&stmt, |x| { call_result.push(x.to_vec()); x.to_vec() });
+    assert_eq!(call_result, vec!(
+      vec!(s(StmtF::PassStmt)),
+      vec!(s(StmtF::BreakStmt)),
+      vec!(stmt),
+    ));
+  }
+
+  #[test]
+  fn test_walk_complex_stmt_seq() {
+    let stmt = stmt::if_else(e(ExprF::from(1)), vec!(s(StmtF::PassStmt)), vec!(s(StmtF::BreakStmt)), SourceOffset::default());
+    let stmts = vec!(stmt.clone(), s(StmtF::PassStmt));
+    let mut call_result = Vec::new();
+    walk_stmts_ok(&stmts, |x| { call_result.push(x.to_vec()); x.to_vec() });
+    assert_eq!(call_result, vec!(
+      vec!(s(StmtF::PassStmt)),
+      vec!(s(StmtF::BreakStmt)),
+      vec!(stmt, s(StmtF::PassStmt)),
+    ));
+  }
+
+}

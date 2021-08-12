@@ -376,7 +376,6 @@ pub fn compile_function_ref<'a>(compiler: &mut Compiler<'a>,
       Expr::var(name, pos)
     }).collect();
 
-    // TODO This into().map(Box::new) pattern needs to be written into FnName itself
     let object = if func.object == FnName::FileConstant { FnName::inner_static_load(compiler.preload_resolver(), pipeline) } else { func.object };
     let object: Option<Expr> = object.into_expr(pos);
     let body = Stmt::new(
