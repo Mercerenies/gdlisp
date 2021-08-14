@@ -12,6 +12,7 @@ pub mod arglist;
 pub mod library;
 pub mod expr_wrapper;
 pub mod inner_class;
+pub mod metadata;
 
 use std::fmt;
 use std::convert::TryInto;
