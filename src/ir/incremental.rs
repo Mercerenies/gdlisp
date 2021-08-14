@@ -609,29 +609,21 @@ impl IncCompiler {
         return Ok(());
       }
     }
-    let imp = self.compile_import(curr)?;
-    if let Some(imp) = imp {
+    if let Some(imp) = self.compile_import(curr)? { // TODO Consider doing the is_decl thing with imports so we have a nice, pure function called is_import to call here instead?
       let res_type = ResourceType::from(&imp);
       if res_type.can_have_macros() {
         let file = pipeline.load_file(imp.filename.path())?;
         self.import_macros_from(&file, &imp);
       }
       self.imports.push(imp);
+    } else if IncCompiler::is_decl(curr) {
+      let d = self.compile_decl(pipeline, curr)?;
+      self.table.add(d.clone());
+      if let DeclF::MacroDecl(mdecl) = d.value {
+        self.bind_macro(pipeline, mdecl, d.pos, false)?;
+      }
     } else {
-      // TODO The intention of catching DottedListError here is to
-      // catch the initial dotted list check. If we encounter
-      // DottedListError somewhere else in the computation, it's
-      // possible it's an error we need to propagate. Consider this.
-      match self.compile_decl(pipeline, curr) {
-        Err(PError::GDError(Error { pos: _, value: ErrorF::UnknownDecl(_) })) | Err(PError::GDError(Error { pos: _, value: ErrorF::DottedListError })) => main.push(self.compile_expr(pipeline, curr)?),
-        Err(e) => return Err(e),
-        Ok(d) => {
-          self.table.add(d.clone());
-          if let DeclF::MacroDecl(mdecl) = d.value {
-            self.bind_macro(pipeline, mdecl, d.pos, false)?;
-          }
-        }
-      };
+      main.push(self.compile_expr(pipeline, curr)?);
     }
     Ok(())
   }
