@@ -389,8 +389,7 @@ impl<'a> Compiler<'a> {
       }
       IRDeclF::ClassDecl(ir::decl::ClassDecl { visibility: _, name, extends, main_class, constructor, decls }) => {
         let gd_name = names::lisp_to_gd(&name);
-        let extends = table.get_var(&extends).ok_or_else(|| Error::new(ErrorF::NoSuchVar(extends.clone()), decl.pos))?.name.clone();
-        let extends = ClassExtends::try_from(extends).map_err(|x| Error::from_value(x, decl.pos))?;
+        let extends = Compiler::resolve_extends(table, &extends, decl.pos)?;
         let class = self.declare_class(pipeline, builder, table, gd_name, extends, *main_class, constructor, decls, decl.pos)?;
         if *main_class {
           self.flatten_class_into_main(builder, class);
@@ -604,6 +603,12 @@ impl<'a> Compiler<'a> {
     }
   }
 
+  fn resolve_extends(table: &SymbolTable, extends: &str, pos: SourceOffset) -> Result<ClassExtends, Error> {
+    let var = table.get_var(extends).ok_or_else(|| Error::new(ErrorF::NoSuchVar(extends.to_owned()), pos))?;
+    let var_name = var.name.clone();
+    ClassExtends::try_from(var_name).map_err(|x| Error::from_value(x, pos))
+  }
+
   fn bind_decl(magic_table: &MagicTable,
                pipeline: &mut Pipeline,
                table: &mut SymbolTable,
@@ -649,7 +654,7 @@ impl<'a> Compiler<'a> {
         }
         table.set_var(name.clone(), var);
       }
-      IRDeclF::ClassDecl(ir::decl::ClassDecl { visibility: _, name, main_class, .. }) => {
+      IRDeclF::ClassDecl(ir::decl::ClassDecl { name, main_class, .. }) => {
         if *main_class {
           let var = LocalVar::current_file(pipeline.current_filename().expect("Could not identify current filename").to_string()).with_hint(ValueHint::ClassName); // TODO Expect?
           table.set_var(name.clone(), var);
