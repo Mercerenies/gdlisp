@@ -47,6 +47,16 @@ pub struct IncCompiler {
 #[allow(clippy::new_without_default)]
 impl IncCompiler {
 
+  /// Here, we list the heads for all valid declaration types. Note
+  /// that `progn` is specifically not included here; `progn` is an
+  /// expression-level special form which is also a deeply magical
+  /// construct treated in a special way by the compiler during
+  /// parsing. It is *not* a declaration, even though it can look like
+  /// one syntactically.
+  pub const DECL_HEADS: [&'static str; 6] = [
+    "defn", "defmacro", "defconst", "defclass", "defenum", "sys/declare"
+  ];
+
   pub fn new(names: Vec<&str>) -> IncCompiler {
     let names = FreshNameGenerator::new(names).to_owned_names();
     IncCompiler {
@@ -178,6 +188,33 @@ impl IncCompiler {
         Ok(Expr::new(ExprF::LocalVar(s.to_string()), expr.pos))
       }
     }
+  }
+
+  /// A simple check to see whether a given AST should be parsed as a
+  /// declaration or not.
+  ///
+  /// There are many contexts (including the very top-level of a file)
+  /// where either a declaration or an expression is acceptable. This
+  /// function is used to determine whether the AST should be parsed
+  /// as a declaration or an expression. Note that a `true` result for
+  /// `is_decl` is *not* a guarantee that parsing as a declaration
+  /// will be error-free; it is merely an indication that the
+  /// declaration parse should be attempted.
+  ///
+  /// If `decl` is not a proper list (as per the definition in
+  /// [`DottedExpr`](crate::sxp::dotted::DottedExpr)), then `is_decl`
+  /// returns false. Otherwise, the first term of the list is checked
+  /// against several known symbol values
+  /// ([`IncCompiler::DECL_HEADS`]) to determine if the AST represents
+  /// a declaration.
+  pub fn is_decl(decl: &AST) -> bool {
+    let vec: Result<Vec<&AST>, _> = DottedExpr::new(decl).try_into();
+    if let Ok(vec) = vec {
+      if let Some(AST { value: ASTF::Symbol(head), pos: _ }) = vec.get(0) {
+        return IncCompiler::DECL_HEADS.contains(&head.borrow());
+      }
+    }
+    false
   }
 
   // TODO Separate into a piece that checks whether we're a valid
@@ -728,6 +765,40 @@ impl From<IncCompiler> for (decl::TopLevel, HashMap<String, MacroData>) {
     };
     let macros: HashMap<_, _> = compiler.macros.into_iter().filter(|(_, x)| !x.imported).collect();
     (toplevel, macros)
+  }
+
+}
+
+#[cfg(test)]
+mod tests {
+  use super::*;
+  use crate::parser;
+
+  fn parse_ast(input: &str) -> AST {
+    let parser = parser::ASTParser::new();
+    parser.parse(input).unwrap()
+  }
+
+  // TODO More tests
+
+  #[test]
+  fn is_decl_test() {
+    assert!(IncCompiler::is_decl(&parse_ast("(defn foo ())")));
+    assert!(IncCompiler::is_decl(&parse_ast("(defclass Example (Reference) (defn bar (x)))")));
+    assert!(IncCompiler::is_decl(&parse_ast("(defmacro foo ())")));
+    assert!(IncCompiler::is_decl(&parse_ast("(defconst MY_CONST 3)")));
+    assert!(IncCompiler::is_decl(&parse_ast("(defenum MyEnum A B C)")));
+    assert!(IncCompiler::is_decl(&parse_ast("(sys/declare value xyz)")));
+  }
+
+  #[test]
+  fn is_not_decl_test() {
+    assert!(!IncCompiler::is_decl(&parse_ast("100")));
+    assert!(!IncCompiler::is_decl(&parse_ast("((defn foo ()))")));
+    assert!(!IncCompiler::is_decl(&parse_ast("abc")));
+    assert!(!IncCompiler::is_decl(&parse_ast("(progn 1 2 3)")));
+    assert!(!IncCompiler::is_decl(&parse_ast("(progn (defconst MY_CONST 3))")));
+    assert!(!IncCompiler::is_decl(&parse_ast("#t")));
   }
 
 }
