@@ -56,6 +56,12 @@ pub enum VarName {
   /// case, as `VarName::CurrentFile` is required to compile to a
   /// `load(...)` call rather than a simple name.
   CurrentFile(String),
+  /// A lazy evaluated value, implemented as a 0-ary function call on
+  /// the current file.
+  LazyValue(String),
+  /// A lazy evaluated value, implemented as a 0-ary function call on
+  /// an imported file constant.
+  ImportedLazyValue(Box<VarName>, String),
 }
 
 /// [`VarName`] can always be converted (without loss of information)
@@ -71,6 +77,11 @@ pub enum VarNameIntoExtendsError {
   /// It is not permitted to have a class extend the currently loading
   /// file. This would cause a cyclic load error in Godot.
   CannotExtendCurrentFile(String),
+  /// It is not permitted to extend lazy-constructed values, as lazy
+  /// values are implemented as 0-ary function calls, and function
+  /// calls cannot be made in the "extends" clause of a class
+  /// declaration.
+  CannotExtendLazyValue(String),
 }
 
 /// The scope of a variable.
@@ -298,6 +309,8 @@ impl VarName {
       VarName::Superglobal(s) => Some(&s),
       VarName::ImportedConstant(_, _) => None,
       VarName::CurrentFile(_) => None,
+      VarName::LazyValue(_) => None,
+      VarName::ImportedLazyValue(_, _) => None,
     }
   }
 
@@ -332,6 +345,15 @@ impl VarName {
         // The current file imports as the name of the import itself.
         VarName::FileConstant(import_name)
       }
+      VarName::LazyValue(s) => {
+        // Import the value by qualifying the name.
+        VarName::ImportedLazyValue(Box::new(VarName::FileConstant(import_name)), s)
+      }
+      VarName::ImportedLazyValue(lhs, s) => {
+        // Import the value transitively.
+        let lhs = Box::new(lhs.into_imported(import_name));
+        VarName::ImportedLazyValue(lhs, s)
+      }
     }
   }
 
@@ -345,6 +367,8 @@ impl VarName {
       VarName::Superglobal(s) => Expr::new(ExprF::Var(s), pos),
       VarName::ImportedConstant(lhs, s) => Expr::new(ExprF::Attribute(Box::new(lhs.into_expr(pos)), s), pos),
       VarName::CurrentFile(filename) => VarName::load_expr(filename, pos),
+      VarName::LazyValue(s) => Expr::call(None, &s, vec!(), pos),
+      VarName::ImportedLazyValue(lhs, s) => Expr::call(Some(lhs.into_expr(pos)), &s, vec!(), pos),
     }
   }
 
@@ -374,6 +398,12 @@ impl TryFrom<VarName> for decl::ClassExtends {
       }
       VarName::CurrentFile(s) => {
         Err(VarNameIntoExtendsError::CannotExtendCurrentFile(s))
+      }
+      VarName::LazyValue(s) => {
+        Err(VarNameIntoExtendsError::CannotExtendLazyValue(s))
+      }
+      VarName::ImportedLazyValue(_, s) => {
+        Err(VarNameIntoExtendsError::CannotExtendLazyValue(s))
       }
     }
   }

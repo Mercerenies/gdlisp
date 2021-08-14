@@ -247,6 +247,9 @@ impl From<VarNameIntoExtendsError> for ErrorF {
       VarNameIntoExtendsError::CannotExtendCurrentFile(s) => {
         ErrorF::CannotExtend(s)
       }
+      VarNameIntoExtendsError::CannotExtendLazyValue(s) => {
+        ErrorF::CannotExtend(s)
+      }
     }
   }
 }
