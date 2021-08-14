@@ -18,16 +18,17 @@ use constant::MaybeConstant;
 use crate::sxp::reify::Reify;
 use crate::gdscript::literal::Literal;
 use crate::gdscript::expr::{Expr, ExprF};
-use crate::gdscript::stmt::{Stmt, StmtF};
+use crate::gdscript::stmt::{self, Stmt, StmtF};
 use crate::gdscript::decl::{self, Decl, DeclF, ClassExtends};
 use crate::gdscript::op;
 use crate::gdscript::library;
 use crate::gdscript::arglist::ArgList;
 use crate::gdscript::inner_class::{self, NeedsOuterClassRef};
+use crate::gdscript::metadata::{self, MetadataCompiler};
 use error::{Error, ErrorF};
 use stmt_wrapper::StmtWrapper;
 use symbol_table::{HasSymbolTable, SymbolTable, ClassTablePair};
-use symbol_table::local_var::{LocalVar, ValueHint};
+use symbol_table::local_var::{LocalVar, ValueHint, VarName};
 use symbol_table::function_call;
 use symbol_table::call_magic::{CallMagic, DefaultCall};
 use symbol_table::call_magic::table::MagicTable;
@@ -399,6 +400,52 @@ impl<'a> Compiler<'a> {
           Ok(())
         }
       }
+      IRDeclF::ObjectDecl(ir::decl::ObjectDecl { visibility: _, name, extends, constructor, decls }) => {
+        let gd_name = names::lisp_to_gd(&name);
+
+        // Construct a singleton class.
+        let class_name = self.gen.generate_with(&format!("_{}_Singleton", gd_name));
+        let extends = Compiler::resolve_extends(table, &extends, decl.pos)?;
+        let singleton_class = self.declare_class(pipeline, builder, table, class_name.clone(), extends, false, constructor, decls, decl.pos)?;
+
+        // We need a reference to the current file GDScript object.
+        // (TODO This is part of inner_class; make it a function over
+        // there)
+        let current_filename = pipeline.current_filename()
+          .and_then(|fname| self.resolver.resolve_preload(&fname))
+          .expect("Error identifying current file"); // TODO Expect
+        let load_expr = VarName::load_expr(current_filename, decl.pos);
+
+        // Now make a function that lazy-initializes an instance of
+        // that class.
+        let meta_target = metadata::singleton(&gd_name);
+        let self_ref_var = "this_file";
+        let singleton_var = "value";
+        let meta_compiler = MetadataCompiler::new(Expr::var(self_ref_var, decl.pos));
+        let function = decl::FnDecl {
+          name: gd_name,
+          args: ArgList::empty(),
+          body: vec!(
+            Stmt::var_decl(String::from(self_ref_var), load_expr, decl.pos),
+            stmt::if_then(
+              meta_compiler.has_meta(&meta_target).unary(op::UnaryOp::Not, decl.pos),
+              vec!(
+                Stmt::var_decl(String::from(singleton_var),
+                               Expr::call(Some(Expr::var(&class_name, decl.pos)), "new", vec!(), decl.pos),
+                               decl.pos),
+                Stmt::expr(meta_compiler.set_meta(&meta_target, Expr::var(singleton_var, decl.pos))),
+                Stmt::return_stmt(Expr::var(singleton_var, decl.pos), decl.pos),
+              ),
+              decl.pos,
+            ),
+            Stmt::return_stmt(meta_compiler.get_meta(&meta_target), decl.pos),
+          ),
+        };
+
+        builder.add_decl(Decl::new(DeclF::ClassDecl(singleton_class), decl.pos));
+        builder.add_decl(Decl::new(DeclF::FnDecl(decl::Static::IsStatic, function), decl.pos));
+        Ok(())
+      }
       IRDeclF::EnumDecl(ir::decl::EnumDecl { visibility: _, name, clauses }) => {
         let gd_name = names::lisp_to_gd(&name);
         let gd_clauses = clauses.iter().map(|(const_name, const_value)| {
@@ -664,6 +711,12 @@ impl<'a> Compiler<'a> {
             .with_hint(ValueHint::ClassName);
           table.set_var(name.clone(), var);
         }
+      }
+      IRDeclF::ObjectDecl(ir::decl::ObjectDecl { name, .. }) => {
+        let var = LocalVar::lazy_value(names::lisp_to_gd(name))
+          .no_assign() // Can't assign to object names
+          .with_hint(ValueHint::ObjectName);
+        table.set_var(name.clone(), var);
       }
       IRDeclF::EnumDecl(edecl) => {
         let name = edecl.name.clone();

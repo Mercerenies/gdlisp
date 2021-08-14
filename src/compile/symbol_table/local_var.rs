@@ -107,6 +107,9 @@ pub enum ValueHint {
   /// The variable refers to a class. Class names cannot be reassigned
   /// and are always valid as types.
   ClassName,
+  /// The variable refers to a singleton object. Singleton objects
+  /// cannot be reassigned.
+  ObjectName,
   /// The variable refers to a GDScript literal value, whose exact
   /// value is already known.
   Literal(Literal),
@@ -202,6 +205,19 @@ impl LocalVar {
   pub fn current_file(name: String) -> LocalVar {
     LocalVar {
       name: VarName::CurrentFile(name),
+      access_type: AccessType::Read,
+      scope: VarScope::GlobalVar,
+      assignable: false,
+      value_hint: None,
+    }
+  }
+
+  /// A file-level lazy value. File-level values are treated as
+  /// constant, are always [`AccessType::Read`], and are never
+  /// `assignable`.
+  pub fn lazy_value(name: String) -> LocalVar {
+    LocalVar {
+      name: VarName::LazyValue(name),
       access_type: AccessType::Read,
       scope: VarScope::GlobalVar,
       assignable: false,

@@ -25,6 +25,9 @@ impl Visibility {
   /// Default visibility for class declarations.
   pub const CLASS: Visibility = Visibility::Public;
 
+  /// Default visibility for object declarations.
+  pub const OBJECT: Visibility = Visibility::Public;
+
   /// Default visibility for enum declarations.
   pub const ENUM: Visibility = Visibility::Public;
 
