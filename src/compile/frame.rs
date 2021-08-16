@@ -2,6 +2,8 @@
 //! A compiler frame contains a [`Compiler`], as well as information
 //! about the current stack frame data.
 
+#![allow(deprecated)]
+
 use super::Compiler;
 use super::preload_resolver::PreloadResolver;
 use super::symbol_table::{SymbolTable, HasSymbolTable};

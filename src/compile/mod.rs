@@ -76,6 +76,7 @@ impl Compiler {
     Compiler { gen, resolver, magic_table }
   }
 
+  #[deprecated(note="Call from CompilerFrame instead")]
   pub fn compile_stmts(&mut self,
                        pipeline: &mut Pipeline,
                        builder: &mut StmtBuilder,
@@ -96,6 +97,7 @@ impl Compiler {
     }
   }
 
+  #[deprecated(note="Call from CompilerFrame instead")]
   pub fn compile_stmt(&mut self,
                       pipeline: &mut Pipeline,
                       builder: &mut StmtBuilder,
@@ -109,6 +111,7 @@ impl Compiler {
     Ok(())
   }
 
+  #[deprecated(note="Call from CompilerFrame instead")]
   pub fn compile_expr(&mut self,
                       pipeline: &mut Pipeline,
                       builder: &mut StmtBuilder,
@@ -324,6 +327,7 @@ impl Compiler {
 
   // Compile an expression, but fail if a builder is required for
   // helper stmts or decls.
+  #[deprecated(note="Call from CompilerFrame instead")]
   pub fn compile_simple_expr(&mut self,
                              pipeline: &mut Pipeline,
                              table: &mut SymbolTable,
@@ -361,6 +365,7 @@ impl Compiler {
     CompilerFrame::new(self, pipeline, builder, table)
   }
 
+  //// To CompilerFrame too
   pub fn compile_decl(&mut self,
                       pipeline: &mut Pipeline,
                       builder: &mut CodeBuilder,
