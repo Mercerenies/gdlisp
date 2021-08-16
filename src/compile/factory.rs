@@ -3,6 +3,7 @@
 //! declaration types.
 
 use super::Compiler;
+use super::frame::CompilerFrame;
 use super::names::fresh::FreshNameGenerator;
 use super::body::builder::{StmtBuilder, CodeBuilder, HasDecls};
 use super::stmt_wrapper::{self, StmtWrapper};
@@ -55,17 +56,14 @@ pub fn flatten_class_into_main(builder: &mut CodeBuilder, class: decl::ClassDecl
   }
 }
 
-pub fn declare_function(compiler: &mut Compiler,
-                        pipeline: &mut Pipeline,
-                        builder: &mut impl HasDecls,
-                        table: &mut SymbolTable,
+pub fn declare_function(frame: &mut CompilerFrame<impl HasDecls>,
                         gd_name: String,
                         args: IRArgList,
                         body: &IRExpr,
                         result_destination: &impl StmtWrapper)
                         -> Result<decl::FnDecl, Error> {
   let local_vars = body.get_locals();
-    let (arglist, gd_args) = args.into_gd_arglist(compiler.name_generator());
+    let (arglist, gd_args) = args.into_gd_arglist(frame.name_generator());
     let mut stmt_builder = StmtBuilder::new();
     for arg in &gd_args {
       if local_vars.get(&arg.0).unwrap_or(&AccessType::None).requires_cell() {
@@ -73,13 +71,13 @@ pub fn declare_function(compiler: &mut Compiler,
         wrap_var_in_cell(&mut stmt_builder, &arg.1, body.pos)
       }
     }
-    table.with_local_vars(&mut gd_args.into_iter().map(|x| (x.0.to_owned(), LocalVar::local(x.1, *local_vars.get(&x.0).unwrap_or(&AccessType::None)))), |table| {
-      compiler.compile_stmt(pipeline, &mut stmt_builder, table, result_destination, body)
+    frame.with_local_vars(&mut gd_args.into_iter().map(|x| (x.0.to_owned(), LocalVar::local(x.1, *local_vars.get(&x.0).unwrap_or(&AccessType::None)))), |frame| {
+      frame.compiler.compile_stmt(frame.pipeline, &mut stmt_builder, frame.table, result_destination, body)
     })?;
     Ok(decl::FnDecl {
       name: gd_name,
       args: arglist,
-      body: stmt_builder.build_into(builder),
+      body: stmt_builder.build_into(frame.builder),
     })
 }
 
@@ -88,6 +86,7 @@ fn wrap_var_in_cell(stmt_builder: &mut StmtBuilder, arg: &str, pos: SourceOffset
   stmt_builder.append(Stmt::simple_assign(var.clone(), library::construct_cell(var), pos));
 }
 
+// TODO Use CompilerFrame
 pub fn declare_class(compiler: &mut Compiler,
                      pipeline: &mut Pipeline,
                      builder: &mut impl HasDecls,
@@ -127,7 +126,7 @@ pub fn declare_class(compiler: &mut Compiler,
       }
     }
 
-    body.push(Decl::new(DeclF::FnDecl(decl::Static::NonStatic, declare_constructor(compiler, pipeline, builder, instance_table, constructor)?), pos));
+    body.push(Decl::new(DeclF::FnDecl(decl::Static::NonStatic, declare_constructor(&mut compiler.frame(pipeline, builder, instance_table), constructor)?), pos));
 
     for d in decls {
       let tables = ClassTablePair { instance_table, static_table: &mut static_table };
@@ -148,16 +147,10 @@ pub fn declare_class(compiler: &mut Compiler,
   Ok(decl)
 }
 
-pub fn declare_constructor(compiler: &mut Compiler,
-                           pipeline: &mut Pipeline,
-                           builder: &mut impl HasDecls,
-                           table: &mut SymbolTable,
+pub fn declare_constructor(frame: &mut CompilerFrame<impl HasDecls>,
                            constructor: &ir::decl::ConstructorDecl)
                            -> Result<decl::FnDecl, Error> {
-  declare_function(compiler,
-                   pipeline,
-                   builder,
-                   table,
+  declare_function(frame,
                    String::from(library::CONSTRUCTOR_NAME),
                    IRArgList::from(constructor.args.clone()),
                    &constructor.body,

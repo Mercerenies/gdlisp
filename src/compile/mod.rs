@@ -13,6 +13,7 @@ pub mod args;
 pub mod factory;
 pub mod frame;
 
+use frame::CompilerFrame;
 use body::builder::{CodeBuilder, StmtBuilder, HasDecls};
 use names::fresh::FreshNameGenerator;
 use preload_resolver::PreloadResolver;
@@ -352,6 +353,14 @@ impl Compiler {
     &*self.resolver
   }
 
+  pub fn frame<'a, 'b, 'c, 'd, B>(&'a mut self,
+                                  pipeline: &'b mut Pipeline,
+                                  builder: &'c mut B,
+                                  table: &'d mut SymbolTable)
+                                  -> CompilerFrame<'a, 'b, 'c, 'd, B> {
+    CompilerFrame::new(self, pipeline, builder, table)
+  }
+
   pub fn compile_decl(&mut self,
                       pipeline: &mut Pipeline,
                       builder: &mut CodeBuilder,
@@ -361,7 +370,7 @@ impl Compiler {
     match &decl.value {
       IRDeclF::FnDecl(ir::decl::FnDecl { visibility: _, call_magic: _, name, args, body }) => {
         let gd_name = names::lisp_to_gd(&name);
-        let function = factory::declare_function(self, pipeline, builder, table, gd_name, args.clone(), body, &stmt_wrapper::Return)?;
+        let function = factory::declare_function(&mut self.frame(pipeline, builder, table), gd_name, args.clone(), body, &stmt_wrapper::Return)?;
         builder.add_decl(Decl::new(DeclF::FnDecl(decl::Static::IsStatic, function), decl.pos));
         Ok(())
       }
@@ -370,7 +379,7 @@ impl Compiler {
         // this stage of compilation is concerned. They'll be resolved
         // and then purged during the IR phase.
         let gd_name = names::lisp_to_gd(&name);
-        let function = factory::declare_function(self, pipeline, builder, table, gd_name, args.clone(), body, &stmt_wrapper::Return)?;
+        let function = factory::declare_function(&mut self.frame(pipeline, builder, table), gd_name, args.clone(), body, &stmt_wrapper::Return)?;
         builder.add_decl(Decl::new(DeclF::FnDecl(decl::Static::IsStatic, function), decl.pos));
         Ok(())
       }
@@ -513,10 +522,7 @@ impl Compiler {
       }
       ir::decl::ClassInnerDeclF::ClassFnDecl(f) => {
         let gd_name = names::lisp_to_gd(&f.name);
-        let func = factory::declare_function(self,
-                                             pipeline,
-                                             builder,
-                                             table,
+        let func = factory::declare_function(&mut self.frame(pipeline, builder, table),
                                              gd_name,
                                              IRArgList::from(f.args.clone()),
                                              &f.body,

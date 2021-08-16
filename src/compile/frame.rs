@@ -4,6 +4,7 @@
 
 use super::Compiler;
 use super::symbol_table::{SymbolTable, HasSymbolTable};
+use super::names::fresh::FreshNameGenerator;
 use crate::pipeline::Pipeline;
 
 /// A `CompilerFrame` contains references to all of the pertinent
@@ -34,6 +35,10 @@ impl<'a, 'b, 'c, 'd, B> CompilerFrame<'a, 'b, 'c, 'd, B> {
              table: &'d mut SymbolTable)
              -> Self {
     CompilerFrame { compiler, pipeline, builder, table }
+  }
+
+  pub fn name_generator(&mut self) -> &mut FreshNameGenerator {
+    self.compiler.name_generator()
   }
 
 }

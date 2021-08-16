@@ -94,7 +94,7 @@ pub fn compile_lambda_class(compiler: &mut Compiler,
     }
   }
 
-  let mut constructor = factory::declare_constructor(compiler, pipeline, builder, &mut lambda_table, &constructor)?;
+  let mut constructor = factory::declare_constructor(&mut compiler.frame(pipeline, builder, &mut lambda_table), &constructor)?;
   let original_args = constructor.args.args;
   constructor.args.args = gd_closure_vars.to_vec();
   constructor.args.args.extend(original_args);
