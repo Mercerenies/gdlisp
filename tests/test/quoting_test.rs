@@ -1,5 +1,5 @@
 
-use super::common::{parse_compile_and_output, parse_and_run};
+use super::common::*;
 
 #[test]
 pub fn quote_test() {

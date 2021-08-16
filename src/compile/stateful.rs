@@ -2,6 +2,7 @@
 //! Types for expressing whether or not an [`Expr`] has side effects.
 
 use super::Compiler;
+use super::factory;
 use super::stmt_wrapper::{self, StmtWrapper};
 use super::body::builder::StmtBuilder;
 use crate::gdscript::expr::{Expr, ExprF};
@@ -119,7 +120,7 @@ impl NeedsResult {
                               pos: SourceOffset)
                               -> (Box<dyn StmtWrapper>, Expr) {
     if self.into() {
-      let var_name = compiler.declare_var(builder, prefix, None, pos);
+      let var_name = factory::declare_var(compiler.name_generator(), builder, prefix, None, pos);
       let destination = Box::new(stmt_wrapper::assign_to_var(var_name.clone(), pos)) as Box<dyn StmtWrapper>;
       (destination, Expr::new(ExprF::Var(var_name), pos))
     } else {

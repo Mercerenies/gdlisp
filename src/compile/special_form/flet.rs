@@ -8,6 +8,7 @@ use crate::compile::symbol_table::local_var::VarName;
 use crate::compile::error::Error;
 use crate::compile::stateful::{StExpr, NeedsResult};
 use crate::compile::stmt_wrapper;
+use crate::compile::factory;
 use crate::gdscript::decl::{self, Decl, DeclF};
 use crate::graph::Graph;
 use crate::graph::top_sort::top_sort;
@@ -64,7 +65,7 @@ fn compile_flet_call<'a>(compiler: &mut Compiler<'a>,
   } else {
     // Have to make a full closure object.
     let stmt = lambda::compile_lambda_stmt(compiler, pipeline, builder, table, &args, body, pos)?.expr;
-    let local_name = compiler.declare_var(builder, "_flet", Some(stmt), pos);
+    let local_name = factory::declare_var(compiler.name_generator(), builder, "_flet", Some(stmt), pos);
     let specs = FnSpecs::from(args);
     Ok(FnCall {
       scope: FnScope::Local(local_name.clone()),

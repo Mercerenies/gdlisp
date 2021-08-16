@@ -14,6 +14,7 @@ use crate::compile::stmt_wrapper;
 use crate::compile::error::Error;
 use crate::compile::stateful::SideEffects;
 use crate::compile::names;
+use crate::compile::factory;
 use crate::gdscript::stmt::{self, Stmt, StmtF};
 use crate::gdscript::expr::{Expr, ExprF};
 use crate::gdscript::literal::Literal;
@@ -42,7 +43,7 @@ pub fn compile_cond_stmt<'a>(compiler: &mut Compiler<'a>,
         let mut outer_builder = StmtBuilder::new();
         let mut inner_builder = StmtBuilder::new();
         let cond = compiler.compile_expr(pipeline, &mut outer_builder, table, cond, NeedsResult::Yes)?.expr;
-        let var_name = compiler.declare_var(&mut outer_builder, "_cond", Some(cond), pos);
+        let var_name = factory::declare_var(compiler.name_generator(), &mut outer_builder, "_cond", Some(cond), pos);
         let var_expr = StExpr { expr: Expr::new(ExprF::Var(var_name.clone()), pos), side_effects: SideEffects::None };
         destination.wrap_to_builder(&mut inner_builder, var_expr);
         let if_branch = inner_builder.build_into(builder);

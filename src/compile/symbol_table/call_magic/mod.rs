@@ -33,6 +33,7 @@ use crate::gdscript::op;
 use crate::gdscript::library;
 use crate::gdscript::expr_wrapper;
 use crate::compile::Compiler;
+use crate::compile::factory;
 use crate::compile::error::Error;
 use crate::compile::body::builder::StmtBuilder;
 use crate::compile::stateful::StExpr;
@@ -317,7 +318,7 @@ impl CallMagic for CompileToTransCmp {
         let args = args.into_iter().map(|x| {
           let StExpr { expr, side_effects } = x;
           if side_effects.modifies_state() {
-            let var_name = compiler.declare_var(builder, "_cmp", Some(expr), pos);
+            let var_name = factory::declare_var(compiler.name_generator(), builder, "_cmp", Some(expr), pos);
             Expr::new(ExprF::Var(var_name), pos)
           } else {
             expr

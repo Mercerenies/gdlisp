@@ -10,6 +10,7 @@ pub mod preload_resolver;
 pub mod resource_type;
 pub mod constant;
 pub mod args;
+pub mod factory;
 
 use body::builder::{CodeBuilder, StmtBuilder, HasDecls};
 use names::fresh::FreshNameGenerator;
@@ -180,7 +181,7 @@ impl<'a> Compiler<'a> {
             } else {
               result_value
             };
-          let gd_name = self.declare_var(builder, &names::lisp_to_gd(&ast_name), Some(result_value), clause.1.pos);
+          let gd_name = factory::declare_var(&mut self.gen, builder, &names::lisp_to_gd(&ast_name), Some(result_value), clause.1.pos);
           Ok((ast_name, gd_name))
         }).collect::<Result<Vec<_>, _>>()?;
         table.with_local_vars(&mut var_names.into_iter().map(|x| (x.0.clone(), LocalVar::local(x.1, *closure_vars.get(&x.0).unwrap_or(&AccessType::None)))), |table| {
@@ -219,7 +220,7 @@ impl<'a> Compiler<'a> {
         let StExpr { expr: mut lhs, side_effects } = self.compile_expr(pipeline, builder, table, lhs, NeedsResult::Yes)?;
         // Assign to a temp if it's stateful
         if needs_result == NeedsResult::Yes && side_effects.modifies_state() {
-          let var = self.declare_var(builder, "_assign", Some(lhs), expr.pos);
+          let var = factory::declare_var(&mut self.gen, builder, "_assign", Some(lhs), expr.pos);
           lhs = Expr::new(ExprF::Var(var), *pos);
         }
         let lhs = Expr::new(ExprF::Attribute(Box::new(lhs), names::lisp_to_gd(name)), expr.pos);
@@ -349,14 +350,6 @@ impl<'a> Compiler<'a> {
 
   pub fn preload_resolver(&self) -> &dyn PreloadResolver {
     &*self.resolver
-  }
-
-  pub fn declare_var(&mut self, builder: &mut StmtBuilder, prefix: &str, value: Option<Expr>, pos: SourceOffset)
-                     -> String {
-    let var_name = self.gen.generate_with(prefix);
-    let value = value.unwrap_or(Compiler::nil_expr(pos).expr);
-    builder.append(Stmt::var_decl(var_name.clone(), value, pos));
-    var_name
   }
 
   pub fn compile_decl(&mut self,
