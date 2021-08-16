@@ -143,26 +143,26 @@ impl FnCall {
 
   /// As [`FnCall::into_expr_with_magic`] with [`DefaultCall`] as the
   /// call magic type.
-  pub fn into_expr<'a>(self,
-                       compiler: &mut Compiler<'a>,
-                       builder: &mut StmtBuilder,
-                       table: &mut SymbolTable,
-                       args: Vec<StExpr>,
-                       pos: SourceOffset)
-                       -> Result<Expr, Error> {
+  pub fn into_expr(self,
+                   compiler: &mut Compiler,
+                   builder: &mut StmtBuilder,
+                   table: &mut SymbolTable,
+                   args: Vec<StExpr>,
+                   pos: SourceOffset)
+                   -> Result<Expr, Error> {
     self.into_expr_with_magic(&DefaultCall, compiler, builder, table, args, pos)
   }
 
   /// Compile, via [`CallMagic::compile`], the function call `self`
   /// into an [`Expr`].
-  pub fn into_expr_with_magic<'a>(self,
-                                  magic: &dyn CallMagic,
-                                  compiler: &mut Compiler<'a>,
-                                  builder: &mut StmtBuilder,
-                                  table: &mut SymbolTable,
-                                  args: Vec<StExpr>,
-                                  pos: SourceOffset)
-                                  -> Result<Expr, Error> {
+  pub fn into_expr_with_magic(self,
+                              magic: &dyn CallMagic,
+                              compiler: &mut Compiler,
+                              builder: &mut StmtBuilder,
+                              table: &mut SymbolTable,
+                              args: Vec<StExpr>,
+                              pos: SourceOffset)
+                              -> Result<Expr, Error> {
     magic.compile(self, compiler, builder, table, args, pos)
   }
 

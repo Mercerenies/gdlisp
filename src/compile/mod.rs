@@ -59,17 +59,17 @@ type IRExprF = ir::expr::ExprF;
 type IRArgList = ir::arglist::ArgList;
 type IRLiteral = ir::literal::Literal;
 
-pub struct Compiler<'a> {
-  gen: FreshNameGenerator<'a>,
+pub struct Compiler {
+  gen: FreshNameGenerator,
   resolver: Box<dyn PreloadResolver>,
   magic_table: MagicTable,
 }
 
-impl<'a> Compiler<'a> {
+impl Compiler {
 
   /// Constructs a new compiler associated with the given name
   /// generator and preload resolver.
-  pub fn new(gen: FreshNameGenerator<'a>, resolver: Box<dyn PreloadResolver>) -> Compiler<'a> {
+  pub fn new(gen: FreshNameGenerator, resolver: Box<dyn PreloadResolver>) -> Compiler {
     let magic_table = library::magic::standard_magic_table();
     Compiler { gen, resolver, magic_table }
   }
@@ -343,7 +343,7 @@ impl<'a> Compiler<'a> {
     StExpr { expr: Expr::null(pos), side_effects: SideEffects::None }
   }
 
-  pub fn name_generator(&mut self) -> &mut FreshNameGenerator<'a> {
+  pub fn name_generator(&mut self) -> &mut FreshNameGenerator {
     &mut self.gen
   }
 

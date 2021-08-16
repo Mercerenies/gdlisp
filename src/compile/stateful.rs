@@ -113,12 +113,12 @@ impl NeedsResult {
   /// IR expression, and the returned `Expr` can be used to reference
   /// it later. If `self` is `No`, then the returned `Expr` is nil, as
   /// we chose not to store the result anywhere.
-  pub fn into_destination<'a>(self,
-                              compiler: &mut Compiler<'a>,
-                              builder: &mut StmtBuilder,
-                              prefix: &str,
-                              pos: SourceOffset)
-                              -> (Box<dyn StmtWrapper>, Expr) {
+  pub fn into_destination(self,
+                          compiler: &mut Compiler,
+                          builder: &mut StmtBuilder,
+                          prefix: &str,
+                          pos: SourceOffset)
+                          -> (Box<dyn StmtWrapper>, Expr) {
     if self.into() {
       let var_name = factory::declare_var(compiler.name_generator(), builder, prefix, None, pos);
       let destination = Box::new(stmt_wrapper::assign_to_var(var_name.clone(), pos)) as Box<dyn StmtWrapper>;

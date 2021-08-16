@@ -67,13 +67,13 @@ pub trait CallMagic : DynClone {
   /// fresh name generator and compilation state, `builder` provides
   /// the enclosing block body as a [`StmtBuilder`], and `table`
   /// provides the enclosing scope information.
-  fn compile<'a>(&self,
-                 call: FnCall,
-                 compiler: &mut Compiler<'a>,
-                 builder: &mut StmtBuilder,
-                 table: &mut SymbolTable,
-                 args: Vec<StExpr>,
-                 pos: SourceOffset) -> Result<Expr, Error>;
+  fn compile(&self,
+             call: FnCall,
+             compiler: &mut Compiler,
+             builder: &mut StmtBuilder,
+             table: &mut SymbolTable,
+             args: Vec<StExpr>,
+             pos: SourceOffset) -> Result<Expr, Error>;
 }
 
 dyn_clone::clone_trait_object!(CallMagic);
@@ -249,26 +249,26 @@ impl CallMagic for DefaultCall {
   // TODO Currently, this uses the GD name in error messages, which is
   // super wonky, especially for stdlib calls. Store the Lisp name and
   // use it for this.
-  fn compile<'a>(&self,
-                 call: FnCall,
-                 _compiler: &mut Compiler<'a>,
-                 _builder: &mut StmtBuilder,
-                 _table: &mut SymbolTable,
-                 args: Vec<StExpr>,
-                 pos: SourceOffset) -> Result<Expr, Error> {
+  fn compile(&self,
+             call: FnCall,
+             _compiler: &mut Compiler,
+             _builder: &mut StmtBuilder,
+             _table: &mut SymbolTable,
+             args: Vec<StExpr>,
+             pos: SourceOffset) -> Result<Expr, Error> {
     let args = strip_st(args);
     compile_default_call(call, args, pos)
   }
 }
 
 impl CallMagic for CompileToBinOp {
-  fn compile<'a>(&self,
-                 _call: FnCall,
-                 _compiler: &mut Compiler<'a>,
-                 _builder: &mut StmtBuilder,
-                 _table: &mut SymbolTable,
-                 args: Vec<StExpr>,
-                 pos: SourceOffset) -> Result<Expr, Error> {
+  fn compile(&self,
+             _call: FnCall,
+             _compiler: &mut Compiler,
+             _builder: &mut StmtBuilder,
+             _table: &mut SymbolTable,
+             args: Vec<StExpr>,
+             pos: SourceOffset) -> Result<Expr, Error> {
     let args = strip_st(args);
     if args.is_empty() {
       Ok(Expr::new(self.zero.clone(), pos))
@@ -286,13 +286,13 @@ impl CallMagic for CompileToBinOp {
 }
 
 impl CallMagic for CompileToTransCmp {
-  fn compile<'a>(&self,
-                 call: FnCall,
-                 compiler: &mut Compiler<'a>,
-                 builder: &mut StmtBuilder,
-                 _table: &mut SymbolTable,
-                 mut args: Vec<StExpr>,
-                 pos: SourceOffset) -> Result<Expr, Error> {
+  fn compile(&self,
+             call: FnCall,
+             compiler: &mut Compiler,
+             builder: &mut StmtBuilder,
+             _table: &mut SymbolTable,
+             mut args: Vec<StExpr>,
+             pos: SourceOffset) -> Result<Expr, Error> {
     Expecting::at_least(1).validate(&call.function, pos, &args)?;
     match args.len() {
       0 => {
@@ -336,13 +336,13 @@ impl CallMagic for CompileToTransCmp {
 }
 
 impl CallMagic for MinusOperation {
-  fn compile<'a>(&self,
-                 call: FnCall,
-                 _compiler: &mut Compiler<'a>,
-                 _builder: &mut StmtBuilder,
-                 _table: &mut SymbolTable,
-                 args: Vec<StExpr>,
-                 pos: SourceOffset) -> Result<Expr, Error> {
+  fn compile(&self,
+             call: FnCall,
+             _compiler: &mut Compiler,
+             _builder: &mut StmtBuilder,
+             _table: &mut SymbolTable,
+             args: Vec<StExpr>,
+             pos: SourceOffset) -> Result<Expr, Error> {
     let args = strip_st(args);
     Expecting::at_least(1).validate(&call.function, pos, &args)?;
     match args.len() {
@@ -363,13 +363,13 @@ impl CallMagic for MinusOperation {
 }
 
 impl CallMagic for DivOperation {
-  fn compile<'a>(&self,
-                 call: FnCall,
-                 _compiler: &mut Compiler<'a>,
-                 _builder: &mut StmtBuilder,
-                 _table: &mut SymbolTable,
-                 args: Vec<StExpr>,
-                 pos: SourceOffset) -> Result<Expr, Error> {
+  fn compile(&self,
+             call: FnCall,
+             _compiler: &mut Compiler,
+             _builder: &mut StmtBuilder,
+             _table: &mut SymbolTable,
+             args: Vec<StExpr>,
+             pos: SourceOffset) -> Result<Expr, Error> {
     let mut args = strip_st(args);
     Expecting::at_least(1).validate(&call.function, pos, &args)?;
     match args.len() {
@@ -397,13 +397,13 @@ impl CallMagic for DivOperation {
 // a vector. I want to do integer division to each component of the
 // vector, which GDScript has no built-in way to do.
 impl CallMagic for IntDivOperation {
-  fn compile<'a>(&self,
-                 call: FnCall,
-                 _compiler: &mut Compiler<'a>,
-                 _builder: &mut StmtBuilder,
-                 _table: &mut SymbolTable,
-                 args: Vec<StExpr>,
-                 pos: SourceOffset) -> Result<Expr, Error> {
+  fn compile(&self,
+             call: FnCall,
+             _compiler: &mut Compiler,
+             _builder: &mut StmtBuilder,
+             _table: &mut SymbolTable,
+             args: Vec<StExpr>,
+             pos: SourceOffset) -> Result<Expr, Error> {
     let mut args = strip_st(args);
     Expecting::at_least(1).validate(&call.function, pos, &args)?;
     match args.len() {
@@ -427,13 +427,13 @@ impl CallMagic for IntDivOperation {
 }
 
 impl CallMagic for ModOperation {
-  fn compile<'a>(&self,
-                 call: FnCall,
-                 _compiler: &mut Compiler<'a>,
-                 _builder: &mut StmtBuilder,
-                 _table: &mut SymbolTable,
-                 args: Vec<StExpr>,
-                 pos: SourceOffset) -> Result<Expr, Error> {
+  fn compile(&self,
+             call: FnCall,
+             _compiler: &mut Compiler,
+             _builder: &mut StmtBuilder,
+             _table: &mut SymbolTable,
+             args: Vec<StExpr>,
+             pos: SourceOffset) -> Result<Expr, Error> {
     let args = strip_st(args);
     Expecting::exactly(2).validate(&call.function, pos, &args)?;
     let (x, y) = args::two(args);
@@ -442,13 +442,13 @@ impl CallMagic for ModOperation {
 }
 
 impl CallMagic for NEqOperation {
-  fn compile<'a>(&self,
-                 call: FnCall,
-                 compiler: &mut Compiler<'a>,
-                 builder: &mut StmtBuilder,
-                 table: &mut SymbolTable,
-                 args: Vec<StExpr>,
-                 pos: SourceOffset) -> Result<Expr, Error> {
+  fn compile(&self,
+             call: FnCall,
+             compiler: &mut Compiler,
+             builder: &mut StmtBuilder,
+             table: &mut SymbolTable,
+             args: Vec<StExpr>,
+             pos: SourceOffset) -> Result<Expr, Error> {
     // We only optimize for the 0, 1, and 2 argument cases. Any more
     // arguments than that and the resulting expression would just be
     // long and annoying, and it's simply easier to call the built-in
@@ -475,13 +475,13 @@ impl CallMagic for NEqOperation {
 }
 
 impl CallMagic for BooleanNotOperation {
-  fn compile<'a>(&self,
-                 call: FnCall,
-                 _compiler: &mut Compiler<'a>,
-                 _builder: &mut StmtBuilder,
-                 _table: &mut SymbolTable,
-                 args: Vec<StExpr>,
-                 pos: SourceOffset) -> Result<Expr, Error> {
+  fn compile(&self,
+             call: FnCall,
+             _compiler: &mut Compiler,
+             _builder: &mut StmtBuilder,
+             _table: &mut SymbolTable,
+             args: Vec<StExpr>,
+             pos: SourceOffset) -> Result<Expr, Error> {
     let args = strip_st(args);
     Expecting::exactly(1).validate(&call.function, pos, &args)?;
     let arg = args::one(args);
@@ -490,26 +490,26 @@ impl CallMagic for BooleanNotOperation {
 }
 
 impl CallMagic for ListOperation {
-  fn compile<'a>(&self,
-                 _call: FnCall,
-                 _compiler: &mut Compiler<'a>,
-                 _builder: &mut StmtBuilder,
-                 _table: &mut SymbolTable,
-                 args: Vec<StExpr>,
-                 pos: SourceOffset) -> Result<Expr, Error> {
+  fn compile(&self,
+             _call: FnCall,
+             _compiler: &mut Compiler,
+             _builder: &mut StmtBuilder,
+             _table: &mut SymbolTable,
+             args: Vec<StExpr>,
+             pos: SourceOffset) -> Result<Expr, Error> {
     let args = strip_st(args);
     Ok(library::construct_list(args, pos))
   }
 }
 
 impl CallMagic for VectorOperation {
-  fn compile<'a>(&self,
-                 call: FnCall,
-                 _compiler: &mut Compiler<'a>,
-                 _builder: &mut StmtBuilder,
-                 _table: &mut SymbolTable,
-                 args: Vec<StExpr>,
-                 pos: SourceOffset) -> Result<Expr, Error> {
+  fn compile(&self,
+             call: FnCall,
+             _compiler: &mut Compiler,
+             _builder: &mut StmtBuilder,
+             _table: &mut SymbolTable,
+             args: Vec<StExpr>,
+             pos: SourceOffset) -> Result<Expr, Error> {
     let args = strip_st(args);
     Expecting::between(2, 3).validate(&call.function, pos, &args)?;
     match args.len() {
@@ -529,13 +529,13 @@ impl CallMagic for VectorOperation {
 }
 
 impl CallMagic for ArraySubscript {
-  fn compile<'a>(&self,
-                 call: FnCall,
-                 _compiler: &mut Compiler<'a>,
-                 _builder: &mut StmtBuilder,
-                 _table: &mut SymbolTable,
-                 args: Vec<StExpr>,
-                 pos: SourceOffset) -> Result<Expr, Error> {
+  fn compile(&self,
+             call: FnCall,
+             _compiler: &mut Compiler,
+             _builder: &mut StmtBuilder,
+             _table: &mut SymbolTable,
+             args: Vec<StExpr>,
+             pos: SourceOffset) -> Result<Expr, Error> {
     let args = strip_st(args);
     Expecting::exactly(2).validate(&call.function, pos, &args)?;
     let (arr, n) = args::two(args);
@@ -544,13 +544,13 @@ impl CallMagic for ArraySubscript {
 }
 
 impl CallMagic for ArraySubscriptAssign {
-  fn compile<'a>(&self,
-                 call: FnCall,
-                 _compiler: &mut Compiler<'a>,
-                 builder: &mut StmtBuilder,
-                 _table: &mut SymbolTable,
-                 args: Vec<StExpr>,
-                 pos: SourceOffset) -> Result<Expr, Error> {
+  fn compile(&self,
+             call: FnCall,
+             _compiler: &mut Compiler,
+             builder: &mut StmtBuilder,
+             _table: &mut SymbolTable,
+             args: Vec<StExpr>,
+             pos: SourceOffset) -> Result<Expr, Error> {
     let args = strip_st(args);
     Expecting::exactly(3).validate(&call.function, pos, &args)?;
     let (x, arr, n) = args::three(args);
@@ -562,13 +562,13 @@ impl CallMagic for ArraySubscriptAssign {
 }
 
 impl CallMagic for ElementOf {
-  fn compile<'a>(&self,
-                 call: FnCall,
-                 _compiler: &mut Compiler<'a>,
-                 _builder: &mut StmtBuilder,
-                 _table: &mut SymbolTable,
-                 args: Vec<StExpr>,
-                 pos: SourceOffset) -> Result<Expr, Error> {
+  fn compile(&self,
+             call: FnCall,
+             _compiler: &mut Compiler,
+             _builder: &mut StmtBuilder,
+             _table: &mut SymbolTable,
+             args: Vec<StExpr>,
+             pos: SourceOffset) -> Result<Expr, Error> {
     let args = strip_st(args);
     Expecting::exactly(2).validate(&call.function, pos, &args)?;
     let (value, arr) = args::two(args);
@@ -578,13 +578,13 @@ impl CallMagic for ElementOf {
 }
 
 impl CallMagic for InstanceOf {
-  fn compile<'a>(&self,
-                 call: FnCall,
-                 _compiler: &mut Compiler<'a>,
-                 _builder: &mut StmtBuilder,
-                 _table: &mut SymbolTable,
-                 args: Vec<StExpr>,
-                 pos: SourceOffset) -> Result<Expr, Error> {
+  fn compile(&self,
+             call: FnCall,
+             _compiler: &mut Compiler,
+             _builder: &mut StmtBuilder,
+             _table: &mut SymbolTable,
+             args: Vec<StExpr>,
+             pos: SourceOffset) -> Result<Expr, Error> {
     let args = strip_st(args);
     Expecting::exactly(2).validate(&call.function, pos, &args)?;
     let (value, type_) = args::two(args);

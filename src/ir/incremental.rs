@@ -37,7 +37,7 @@ use std::collections::{HashMap, HashSet};
 // side.
 
 pub struct IncCompiler {
-  names: FreshNameGenerator<'static>,
+  names: FreshNameGenerator,
   table: DeclarationTable,
   macros: HashMap<String, MacroData>,
   imports: Vec<ImportDecl>,
@@ -58,7 +58,7 @@ impl IncCompiler {
   ];
 
   pub fn new(names: Vec<&str>) -> IncCompiler {
-    let names = FreshNameGenerator::new(names).to_owned_names();
+    let names = FreshNameGenerator::new(names);
     IncCompiler {
       names: names,
       table: DeclarationTable::new(),
@@ -768,7 +768,7 @@ impl IncCompiler {
     self.minimalist = true;
   }
 
-  pub fn name_generator(&mut self) -> &mut FreshNameGenerator<'static> {
+  pub fn name_generator(&mut self) -> &mut FreshNameGenerator {
     &mut self.names
   }
 

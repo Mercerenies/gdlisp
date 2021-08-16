@@ -26,12 +26,12 @@ type IRArgList = ir::arglist::ArgList;
 ///
 /// The variable will have a generated name produced by `gen`. The
 /// generated name is returned.
-pub fn declare_var<'a>(gen: &mut FreshNameGenerator<'a>,
-                       builder: &mut StmtBuilder,
-                       prefix: &str,
-                       value: Option<Expr>,
-                       pos: SourceOffset)
-                       -> String {
+pub fn declare_var(gen: &mut FreshNameGenerator,
+                   builder: &mut StmtBuilder,
+                   prefix: &str,
+                   value: Option<Expr>,
+                   pos: SourceOffset)
+                   -> String {
   let var_name = gen.generate_with(prefix);
   let value = value.unwrap_or(Expr::null(pos));
   builder.append(Stmt::var_decl(var_name.clone(), value, pos));
@@ -55,16 +55,16 @@ pub fn flatten_class_into_main(builder: &mut CodeBuilder, class: decl::ClassDecl
   }
 }
 
-pub fn declare_function<'a>(compiler: &mut Compiler<'a>,
-                            pipeline: &mut Pipeline,
-                            builder: &mut impl HasDecls,
-                            table: &mut SymbolTable,
-                            gd_name: String,
-                            args: IRArgList,
-                            body: &IRExpr,
-                            result_destination: &impl StmtWrapper)
-                            -> Result<decl::FnDecl, Error> {
-    let local_vars = body.get_locals();
+pub fn declare_function(compiler: &mut Compiler,
+                        pipeline: &mut Pipeline,
+                        builder: &mut impl HasDecls,
+                        table: &mut SymbolTable,
+                        gd_name: String,
+                        args: IRArgList,
+                        body: &IRExpr,
+                        result_destination: &impl StmtWrapper)
+                        -> Result<decl::FnDecl, Error> {
+  let local_vars = body.get_locals();
     let (arglist, gd_args) = args.into_gd_arglist(compiler.name_generator());
     let mut stmt_builder = StmtBuilder::new();
     for arg in &gd_args {
@@ -88,17 +88,17 @@ fn wrap_var_in_cell(stmt_builder: &mut StmtBuilder, arg: &str, pos: SourceOffset
   stmt_builder.append(Stmt::simple_assign(var.clone(), library::construct_cell(var), pos));
 }
 
-pub fn declare_class<'a>(compiler: &mut Compiler<'a>,
-                         pipeline: &mut Pipeline,
-                         builder: &mut impl HasDecls,
-                         table: &mut SymbolTable,
-                         gd_name: String,
-                         extends: ClassExtends,
-                         main_class: bool,
-                         constructor: &ir::decl::ConstructorDecl,
-                         decls: &[ir::decl::ClassInnerDecl],
-                         pos: SourceOffset)
-                         -> Result<decl::ClassDecl, Error> {
+pub fn declare_class(compiler: &mut Compiler,
+                     pipeline: &mut Pipeline,
+                     builder: &mut impl HasDecls,
+                     table: &mut SymbolTable,
+                     gd_name: String,
+                     extends: ClassExtends,
+                     main_class: bool,
+                     constructor: &ir::decl::ConstructorDecl,
+                     decls: &[ir::decl::ClassInnerDecl],
+                     pos: SourceOffset)
+                     -> Result<decl::ClassDecl, Error> {
 
   let self_var = LocalVar::self_var();
 
@@ -148,12 +148,12 @@ pub fn declare_class<'a>(compiler: &mut Compiler<'a>,
   Ok(decl)
 }
 
-pub fn declare_constructor<'a>(compiler: &mut Compiler<'a>,
-                               pipeline: &mut Pipeline,
-                               builder: &mut impl HasDecls,
-                               table: &mut SymbolTable,
-                               constructor: &ir::decl::ConstructorDecl)
-                               -> Result<decl::FnDecl, Error> {
+pub fn declare_constructor(compiler: &mut Compiler,
+                           pipeline: &mut Pipeline,
+                           builder: &mut impl HasDecls,
+                           table: &mut SymbolTable,
+                           constructor: &ir::decl::ConstructorDecl)
+                           -> Result<decl::FnDecl, Error> {
   declare_function(compiler,
                    pipeline,
                    builder,

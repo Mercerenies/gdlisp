@@ -17,13 +17,13 @@ use super::lambda;
 
 use std::convert::TryFrom;
 
-pub fn compile_lambda_class<'a>(compiler: &mut Compiler<'a>,
-                                pipeline: &mut Pipeline,
-                                builder: &mut StmtBuilder,
-                                table: &mut SymbolTable,
-                                class: &LambdaClass,
-                                pos: SourceOffset)
-                                -> Result<StExpr, Error> {
+pub fn compile_lambda_class(compiler: &mut Compiler,
+                            pipeline: &mut Pipeline,
+                            builder: &mut StmtBuilder,
+                            table: &mut SymbolTable,
+                            class: &LambdaClass,
+                            pos: SourceOffset)
+                            -> Result<StExpr, Error> {
   let LambdaClass { extends, args: constructor_args, constructor, decls } = class.clone();
 
   // Validate the extends declaration (must be a global variable)

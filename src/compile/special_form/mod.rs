@@ -25,14 +25,14 @@ use crate::util;
 
 type IRExpr = ir::expr::Expr;
 
-pub fn compile_cond_stmt<'a>(compiler: &mut Compiler<'a>,
-                             pipeline: &mut Pipeline,
-                             builder: &mut StmtBuilder,
-                             table: &mut SymbolTable,
-                             clauses: &[(IRExpr, Option<IRExpr>)],
-                             needs_result: NeedsResult,
-                             pos: SourceOffset)
-                             -> Result<StExpr, Error> {
+pub fn compile_cond_stmt(compiler: &mut Compiler,
+                         pipeline: &mut Pipeline,
+                         builder: &mut StmtBuilder,
+                         table: &mut SymbolTable,
+                         clauses: &[(IRExpr, Option<IRExpr>)],
+                         needs_result: NeedsResult,
+                         pos: SourceOffset)
+                         -> Result<StExpr, Error> {
   let (destination, result) = needs_result.into_destination(compiler, builder, "_cond", pos);
   let init: Vec<Stmt> = util::option_to_vec(destination.wrap_to_stmt(Compiler::nil_expr(pos)));
   let body = clauses.iter().rev().fold(Ok(init), |acc: Result<_, Error>, curr| {
@@ -65,15 +65,15 @@ pub fn compile_cond_stmt<'a>(compiler: &mut Compiler<'a>,
   Ok(StExpr { expr: result, side_effects: SideEffects::None })
 }
 
-pub fn compile_while_stmt<'a>(compiler: &mut Compiler<'a>,
-                              pipeline: &mut Pipeline,
-                              builder: &mut StmtBuilder,
-                              table: &mut SymbolTable,
-                              cond: &IRExpr,
-                              body: &IRExpr,
-                              _needs_result: NeedsResult,
-                              pos: SourceOffset)
-                              -> Result<StExpr, Error> {
+pub fn compile_while_stmt(compiler: &mut Compiler,
+                          pipeline: &mut Pipeline,
+                          builder: &mut StmtBuilder,
+                          table: &mut SymbolTable,
+                          cond: &IRExpr,
+                          body: &IRExpr,
+                          _needs_result: NeedsResult,
+                          pos: SourceOffset)
+                          -> Result<StExpr, Error> {
   // If the condition fits in a single GDScript expression, then we'll
   // just compile straight to a GDScript while loop. If not, then we
   // need to compile to "while True:" and have a break statement when
@@ -99,16 +99,16 @@ pub fn compile_while_stmt<'a>(compiler: &mut Compiler<'a>,
   Ok(Compiler::nil_expr(pos))
 }
 
-pub fn compile_for_stmt<'a>(compiler: &mut Compiler<'a>,
-                            pipeline: &mut Pipeline,
-                            builder: &mut StmtBuilder,
-                            table: &mut SymbolTable,
-                            name: &str,
-                            iter: &IRExpr,
-                            body: &IRExpr,
-                            _needs_result: NeedsResult,
-                            pos: SourceOffset)
-                            -> Result<StExpr, Error> {
+pub fn compile_for_stmt(compiler: &mut Compiler,
+                        pipeline: &mut Pipeline,
+                        builder: &mut StmtBuilder,
+                        table: &mut SymbolTable,
+                        name: &str,
+                        iter: &IRExpr,
+                        body: &IRExpr,
+                        _needs_result: NeedsResult,
+                        pos: SourceOffset)
+                        -> Result<StExpr, Error> {
   let closure_vars = body.get_locals();
   let citer = compiler.compile_expr(pipeline, builder, table, iter, NeedsResult::Yes)?.expr;
   let var_name = compiler.name_generator().generate_with(&names::lisp_to_gd(name));

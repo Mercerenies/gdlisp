@@ -22,15 +22,15 @@ use std::convert::AsRef;
 type IRExpr = ir::expr::Expr;
 type IRArgList = ir::arglist::ArgList;
 
-pub fn compile_flet<'a>(compiler: &mut Compiler<'a>,
-                        pipeline: &mut Pipeline,
-                        builder: &mut StmtBuilder,
-                        table: &mut SymbolTable,
-                        clauses: &[(String, IRArgList, IRExpr)],
-                        body: &IRExpr,
-                        needs_result: NeedsResult,
-                        pos: SourceOffset)
-                        -> Result<StExpr, Error> {
+pub fn compile_flet(compiler: &mut Compiler,
+                    pipeline: &mut Pipeline,
+                    builder: &mut StmtBuilder,
+                    table: &mut SymbolTable,
+                    clauses: &[(String, IRArgList, IRExpr)],
+                    body: &IRExpr,
+                    needs_result: NeedsResult,
+                    pos: SourceOffset)
+                    -> Result<StExpr, Error> {
   let local_fns = clauses.iter().map(|(name, args, fbody)| {
     let call = compile_flet_call(compiler, pipeline, builder, table, args.to_owned(), fbody, pos)?;
     Ok((name.to_owned(), call))
@@ -40,14 +40,14 @@ pub fn compile_flet<'a>(compiler: &mut Compiler<'a>,
   })
 }
 
-fn compile_flet_call<'a>(compiler: &mut Compiler<'a>,
-                         pipeline: &mut Pipeline,
-                         builder: &mut StmtBuilder,
-                         table: &mut SymbolTable,
-                         args: IRArgList,
-                         body: &IRExpr,
-                         pos: SourceOffset)
-                         -> Result<FnCall, Error> {
+fn compile_flet_call(compiler: &mut Compiler,
+                     pipeline: &mut Pipeline,
+                     builder: &mut StmtBuilder,
+                     table: &mut SymbolTable,
+                     args: IRArgList,
+                     body: &IRExpr,
+                     pos: SourceOffset)
+                     -> Result<FnCall, Error> {
   if is_declaration_semiglobal(&args, body, table) {
     // No closure vars and any closure fns (if there are any) are
     // free of closures, so we can compile to SemiGlobal.
@@ -77,15 +77,15 @@ fn compile_flet_call<'a>(compiler: &mut Compiler<'a>,
   }
 }
 
-pub fn compile_labels<'a>(compiler: &mut Compiler<'a>,
-                          pipeline: &mut Pipeline,
-                          builder: &mut StmtBuilder,
-                          table: &mut SymbolTable,
-                          clauses: &[(String, IRArgList, IRExpr)],
-                          body: &IRExpr,
-                          needs_result: NeedsResult,
-                          pos: SourceOffset)
-                          -> Result<StExpr, Error> {
+pub fn compile_labels(compiler: &mut Compiler,
+                      pipeline: &mut Pipeline,
+                      builder: &mut StmtBuilder,
+                      table: &mut SymbolTable,
+                      clauses: &[(String, IRArgList, IRExpr)],
+                      body: &IRExpr,
+                      needs_result: NeedsResult,
+                      pos: SourceOffset)
+                      -> Result<StExpr, Error> {
   // TODO This is rife with string cloning, because of the sloppy way
   // Graph is implemented. Once we fix Graph, we can eliminate some
   // clones here.
@@ -107,20 +107,20 @@ pub fn compile_labels<'a>(compiler: &mut Compiler<'a>,
 }
 
 // TODO Really...? A THIRTEEN argument recursive function? Really...? Do better.
-fn compile_labels_rec<'a, 'b>(compiler: &mut Compiler<'a>,
-                              pipeline: &mut Pipeline,
-                              builder: &mut StmtBuilder,
-                              table: &mut SymbolTable,
-                              body: &IRExpr,
-                              needs_result: NeedsResult,
-                              pos: SourceOffset,
-                              clauses: &[(String, IRArgList, IRExpr)],
-                              full_graph: &Graph<String>,
-                              sccs: &tarjan::SCCSummary<'b, String>,
-                              graph: &Graph<usize>,
-                              ordering: &[usize],
-                              ordering_idx: usize)
-                              -> Result<StExpr, Error> {
+fn compile_labels_rec<'b>(compiler: &mut Compiler,
+                          pipeline: &mut Pipeline,
+                          builder: &mut StmtBuilder,
+                          table: &mut SymbolTable,
+                          body: &IRExpr,
+                          needs_result: NeedsResult,
+                          pos: SourceOffset,
+                          clauses: &[(String, IRArgList, IRExpr)],
+                          full_graph: &Graph<String>,
+                          sccs: &tarjan::SCCSummary<'b, String>,
+                          graph: &Graph<usize>,
+                          ordering: &[usize],
+                          ordering_idx: usize)
+                          -> Result<StExpr, Error> {
   if ordering_idx < ordering.len() {
     let current_scc_idx = ordering[ordering_idx];
     let tarjan::SCC(current_scc) = sccs.get_scc_by_id(current_scc_idx).expect("SCC detection failed (invalid ID)");

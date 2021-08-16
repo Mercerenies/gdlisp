@@ -44,13 +44,13 @@ pub fn purge_globals(vars: &mut Locals, table: &SymbolTable) {
   });
 }
 
-pub fn compile_labels_scc<'a>(compiler: &mut Compiler<'a>,
-                              pipeline: &mut Pipeline,
-                              builder: &mut StmtBuilder,
-                              table: &mut SymbolTable,
-                              clauses: &[&(String, IRArgList, IRExpr)],
-                              pos: SourceOffset)
-                              -> Result<Vec<(String, FnCall)>, Error> {
+pub fn compile_labels_scc(compiler: &mut Compiler,
+                          pipeline: &mut Pipeline,
+                          builder: &mut StmtBuilder,
+                          table: &mut SymbolTable,
+                          clauses: &[&(String, IRArgList, IRExpr)],
+                          pos: SourceOffset)
+                          -> Result<Vec<(String, FnCall)>, Error> {
   let class_name = compiler.name_generator().generate_with("_Labels");
 
   let mut closure_vars = Locals::new();
@@ -195,12 +195,12 @@ pub fn compile_labels_scc<'a>(compiler: &mut Compiler<'a>,
   Ok(bound_calls)
 }
 
-pub fn locally_bind_vars<'a, 'b, I, U>(compiler: &mut Compiler<'b>,
-                                       table: &SymbolTable,
-                                       lambda_table: &mut SymbolTable,
-                                       closure_vars: I,
-                                       pos: SourceOffset)
-                                       -> Result<(), Error>
+pub fn locally_bind_vars<'a, I, U>(compiler: &mut Compiler,
+                                   table: &SymbolTable,
+                                   lambda_table: &mut SymbolTable,
+                                   closure_vars: I,
+                                   pos: SourceOffset)
+                                   -> Result<(), Error>
 where I : Iterator<Item=&'a U>,
       U : Borrow<str>,
       U : ?Sized,
@@ -222,15 +222,15 @@ where I : Iterator<Item=&'a U>,
   Ok(())
 }
 
-pub fn locally_bind_fns<'a, 'b, I, U, L>(compiler: &mut Compiler<'b>,
-                                         pipeline: &L,
-                                         table: &SymbolTable,
-                                         lambda_table: &mut SymbolTable,
-                                         closure_fns: I,
-                                         pos: SourceOffset,
-                                         static_binding: bool,
-                                         outer_reference_name: &str)
-                                         -> Result<(), Error>
+pub fn locally_bind_fns<'a, I, U, L>(compiler: &mut Compiler,
+                                     pipeline: &L,
+                                     table: &SymbolTable,
+                                     lambda_table: &mut SymbolTable,
+                                     closure_fns: I,
+                                     pos: SourceOffset,
+                                     static_binding: bool,
+                                     outer_reference_name: &str)
+                                     -> Result<(), Error>
 where I : Iterator<Item=&'a U>,
       U : Borrow<str>,
       U : ?Sized,
@@ -270,14 +270,14 @@ fn wrap_in_cell_if_needed(name: &str, gd_name: &str, all_vars: &Locals, lambda_b
   }
 }
 
-pub fn compile_lambda_stmt<'a>(compiler: &mut Compiler<'a>,
-                               pipeline: &mut Pipeline,
-                               builder: &mut StmtBuilder,
-                               table: &mut SymbolTable,
-                               args: &IRArgList,
-                               body: &IRExpr,
-                               pos: SourceOffset)
-                               -> Result<StExpr, Error> {
+pub fn compile_lambda_stmt(compiler: &mut Compiler,
+                           pipeline: &mut Pipeline,
+                           builder: &mut StmtBuilder,
+                           table: &mut SymbolTable,
+                           args: &IRArgList,
+                           body: &IRExpr,
+                           pos: SourceOffset)
+                           -> Result<StExpr, Error> {
   let (arglist, gd_args) = args.clone().into_gd_arglist(&mut compiler.name_generator());
 
   let mut lambda_builder = StmtBuilder::new();
@@ -353,13 +353,13 @@ pub fn compile_lambda_stmt<'a>(compiler: &mut Compiler<'a>,
   Ok(StExpr { expr, side_effects: SideEffects::None })
 }
 
-pub fn compile_function_ref<'a>(compiler: &mut Compiler<'a>,
-                                pipeline: &mut Pipeline,
-                                builder: &mut StmtBuilder,
-                                _table: &mut SymbolTable,
-                                func: FnCall,
-                                pos: SourceOffset)
-                                -> Result<StExpr, Error> {
+pub fn compile_function_ref(compiler: &mut Compiler,
+                            pipeline: &mut Pipeline,
+                            builder: &mut StmtBuilder,
+                            _table: &mut SymbolTable,
+                            func: FnCall,
+                            pos: SourceOffset)
+                            -> Result<StExpr, Error> {
   if let FnScope::Local(name) = func.scope {
     Ok(StExpr { expr: Expr::new(ExprF::Var(name), pos), side_effects: SideEffects::None })
   } else {

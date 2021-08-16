@@ -217,7 +217,7 @@ impl NamedFileServer {
 
   /// Issues a command to the server setting its global name generator
   /// to `gen`.
-  pub fn set_global_name_generator<'a>(&mut self, gen: &FreshNameGenerator<'a>) -> io::Result<()> {
+  pub fn set_global_name_generator(&mut self, gen: &FreshNameGenerator) -> io::Result<()> {
     let server = self.server.get_mut()?;
     let json = gen.to_json();
     let exec_str = format!("GDLisp.global_name_generator = GDLisp.FreshNameGenerator.from_json({})",
