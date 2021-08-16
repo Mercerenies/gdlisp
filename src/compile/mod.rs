@@ -11,6 +11,7 @@ pub mod resource_type;
 pub mod constant;
 pub mod args;
 pub mod factory;
+pub mod frame;
 
 use body::builder::{CodeBuilder, StmtBuilder, HasDecls};
 use names::fresh::FreshNameGenerator;
