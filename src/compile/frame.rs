@@ -6,7 +6,16 @@ use super::Compiler;
 use super::preload_resolver::PreloadResolver;
 use super::symbol_table::{SymbolTable, HasSymbolTable};
 use super::names::fresh::FreshNameGenerator;
+use super::error::Error;
+use super::stateful::{StExpr, NeedsResult};
+use super::body::builder::StmtBuilder;
+use super::stmt_wrapper::StmtWrapper;
 use crate::pipeline::Pipeline;
+use crate::pipeline::source::SourceOffset;
+use crate::ir;
+use crate::gdscript::expr::Expr;
+
+type IRExpr = ir::expr::Expr;
 
 /// A `CompilerFrame` contains references to all of the pertinent
 /// information about a particular frame (hence, scope) of a GDScript
@@ -44,6 +53,65 @@ impl<'a, 'b, 'c, 'd, B> CompilerFrame<'a, 'b, 'c, 'd, B> {
 
   pub fn preload_resolver(&self) -> &dyn PreloadResolver {
     self.compiler.preload_resolver()
+  }
+
+  pub fn compile_simple_expr(&mut self,
+                             src_name: &str,
+                             expr: &IRExpr,
+                             needs_result: NeedsResult)
+                             -> Result<Expr, Error> {
+    self.compiler.compile_simple_expr(
+      self.pipeline,
+      self.table,
+      src_name,
+      expr,
+      needs_result,
+    )
+  }
+
+}
+
+impl<'a, 'b, 'c, 'd> CompilerFrame<'a, 'b, 'c, 'd, StmtBuilder> {
+
+  pub fn compile_stmts(&mut self,
+                       stmts: &[&IRExpr],
+                       needs_result: NeedsResult,
+                       pos: SourceOffset)
+                       -> Result<StExpr, Error> {
+    self.compiler.compile_stmts(
+      self.pipeline,
+      self.builder,
+      self.table,
+      stmts,
+      needs_result,
+      pos,
+    )
+  }
+
+  pub fn compile_stmt(&mut self,
+                      destination: &dyn StmtWrapper,
+                      stmt: &IRExpr)
+                      -> Result<(), Error> {
+    self.compiler.compile_stmt(
+      self.pipeline,
+      self.builder,
+      self.table,
+      destination,
+      stmt,
+    )
+  }
+
+  pub fn compile_expr(&mut self,
+                      expr: &IRExpr,
+                      needs_result: NeedsResult)
+                      -> Result<StExpr, Error> {
+    self.compiler.compile_expr(
+      self.pipeline,
+      self.builder,
+      self.table,
+      expr,
+      needs_result,
+    )
   }
 
 }
