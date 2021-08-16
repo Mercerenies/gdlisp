@@ -393,7 +393,7 @@ impl Compiler {
       IRDeclF::ClassDecl(ir::decl::ClassDecl { visibility: _, name, extends, main_class, constructor, decls }) => {
         let gd_name = names::lisp_to_gd(&name);
         let extends = Compiler::resolve_extends(table, &extends, decl.pos)?;
-        let class = factory::declare_class(self, pipeline, builder, table, gd_name, extends, *main_class, constructor, decls, decl.pos)?;
+        let class = factory::declare_class(&mut self.frame(pipeline, builder, table), gd_name, extends, *main_class, constructor, decls, decl.pos)?;
         if *main_class {
           factory::flatten_class_into_main(builder, class);
           Ok(())
@@ -408,7 +408,7 @@ impl Compiler {
         // Construct a singleton class.
         let class_name = self.gen.generate_with(&format!("_{}_Singleton", gd_name));
         let extends = Compiler::resolve_extends(table, &extends, decl.pos)?;
-        let singleton_class = factory::declare_class(self, pipeline, builder, table, class_name.clone(), extends, false, constructor, decls, decl.pos)?;
+        let singleton_class = factory::declare_class(&mut self.frame(pipeline, builder, table), class_name.clone(), extends, false, constructor, decls, decl.pos)?;
 
         // We need a reference to the current file GDScript object.
         // (TODO This is part of inner_class; make it a function over

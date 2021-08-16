@@ -3,6 +3,7 @@
 //! about the current stack frame data.
 
 use super::Compiler;
+use super::preload_resolver::PreloadResolver;
 use super::symbol_table::{SymbolTable, HasSymbolTable};
 use super::names::fresh::FreshNameGenerator;
 use crate::pipeline::Pipeline;
@@ -39,6 +40,10 @@ impl<'a, 'b, 'c, 'd, B> CompilerFrame<'a, 'b, 'c, 'd, B> {
 
   pub fn name_generator(&mut self) -> &mut FreshNameGenerator {
     self.compiler.name_generator()
+  }
+
+  pub fn preload_resolver(&self) -> &dyn PreloadResolver {
+    self.compiler.preload_resolver()
   }
 
 }

@@ -2,12 +2,11 @@
 //! Factory functions for building and working with some common
 //! declaration types.
 
-use super::Compiler;
 use super::frame::CompilerFrame;
 use super::names::fresh::FreshNameGenerator;
 use super::body::builder::{StmtBuilder, CodeBuilder, HasDecls};
 use super::stmt_wrapper::{self, StmtWrapper};
-use super::symbol_table::{HasSymbolTable, SymbolTable, ClassTablePair};
+use super::symbol_table::{HasSymbolTable, ClassTablePair};
 use super::symbol_table::local_var::LocalVar;
 use super::error::Error;
 use crate::gdscript::expr::Expr;
@@ -15,7 +14,6 @@ use crate::gdscript::stmt::Stmt;
 use crate::gdscript::decl::{self, Decl, DeclF, ClassExtends};
 use crate::gdscript::library;
 use crate::gdscript::inner_class::{self, NeedsOuterClassRef};
-use crate::pipeline::Pipeline;
 use crate::pipeline::source::SourceOffset;
 use crate::ir;
 use crate::ir::access_type::AccessType;
@@ -87,10 +85,7 @@ fn wrap_var_in_cell(stmt_builder: &mut StmtBuilder, arg: &str, pos: SourceOffset
 }
 
 // TODO Use CompilerFrame
-pub fn declare_class(compiler: &mut Compiler,
-                     pipeline: &mut Pipeline,
-                     builder: &mut impl HasDecls,
-                     table: &mut SymbolTable,
+pub fn declare_class(frame: &mut CompilerFrame<impl HasDecls>,
                      gd_name: String,
                      extends: ClassExtends,
                      main_class: bool,
@@ -104,13 +99,13 @@ pub fn declare_class(compiler: &mut Compiler,
   let mut body = vec!();
   let mut outer_ref_name = String::new();
   let needs_outer_ref =
-    constructor.needs_outer_class_ref(table) || decls.iter().any(|x| x.needs_outer_class_ref(table));
+    constructor.needs_outer_class_ref(frame.table) || decls.iter().any(|x| x.needs_outer_class_ref(frame.table));
   if needs_outer_ref && !main_class {
-    outer_ref_name = compiler.name_generator().generate_with(inner_class::OUTER_REFERENCE_NAME);
+    outer_ref_name = frame.name_generator().generate_with(inner_class::OUTER_REFERENCE_NAME);
   }
 
-  let mut instance_table = table.clone();
-  let mut static_table = table.clone();
+  let mut instance_table = frame.table.clone();
+  let mut static_table = frame.table.clone();
   instance_table.with_local_var::<Result<(), Error>, _>(String::from("self"), self_var, |instance_table| {
 
     // Modify all of the names in the instance / static table. We run
@@ -119,18 +114,18 @@ pub fn declare_class(compiler: &mut Compiler,
     // will be harmlessly ignored in that case.
     if !main_class {
       for (_, call, _) in instance_table.fns_mut() {
-        call.object.update_for_inner_scope(false, compiler.preload_resolver(), pipeline, &outer_ref_name);
+        call.object.update_for_inner_scope(false, frame.preload_resolver(), frame.pipeline, &outer_ref_name);
       }
       for (_, call, _) in static_table.fns_mut() {
-        call.object.update_for_inner_scope(true, compiler.preload_resolver(), pipeline, &outer_ref_name);
+        call.object.update_for_inner_scope(true, frame.preload_resolver(), frame.pipeline, &outer_ref_name);
       }
     }
 
-    body.push(Decl::new(DeclF::FnDecl(decl::Static::NonStatic, declare_constructor(&mut compiler.frame(pipeline, builder, instance_table), constructor)?), pos));
+    body.push(Decl::new(DeclF::FnDecl(decl::Static::NonStatic, declare_constructor(&mut CompilerFrame::new(frame.compiler, frame.pipeline, frame.builder, instance_table), constructor)?), pos));
 
     for d in decls {
       let tables = ClassTablePair { instance_table, static_table: &mut static_table };
-      body.push(compiler.compile_class_inner_decl(pipeline, builder, tables, d)?);
+      body.push(frame.compiler.compile_class_inner_decl(frame.pipeline, frame.builder, tables, d)?);
     }
 
     Ok(())
@@ -142,7 +137,7 @@ pub fn declare_class(compiler: &mut Compiler,
     body: body,
   };
   if needs_outer_ref && !main_class {
-    inner_class::add_outer_class_ref_named(&mut decl, compiler.preload_resolver(), pipeline, outer_ref_name, pos);
+    inner_class::add_outer_class_ref_named(&mut decl, frame.preload_resolver(), frame.pipeline, outer_ref_name, pos);
   }
   Ok(decl)
 }
