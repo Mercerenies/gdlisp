@@ -140,13 +140,7 @@ impl SymbolTable {
 }
 
 /// Trait for objects which have a symbol table. Currently, there is
-/// only one implementor of this trait: [`SymbolTable`] itself. This
-/// is largely a holdover from an older version of the codebase, when
-/// [`Compiler`](super::Compiler) directly stored a `SymbolTable` and
-/// needed mutable access to it. Nowadays, it makes more sense to
-/// simply access the table directly. This trait may get removed at
-/// some point in the future and its methods merged into `impl
-/// SymbolTable` directly.
+/// only one implementor of this trait: [`SymbolTable`] itself.
 pub trait HasSymbolTable {
 
   /// Borrows the symbol table from `self`.

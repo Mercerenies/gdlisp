@@ -3,7 +3,7 @@
 //! about the current stack frame data.
 
 use super::Compiler;
-use super::symbol_table::SymbolTable;
+use super::symbol_table::{SymbolTable, HasSymbolTable};
 use crate::pipeline::Pipeline;
 
 /// A `CompilerFrame` contains references to all of the pertinent
@@ -34,6 +34,18 @@ impl<'a, 'b, 'c, 'd, B> CompilerFrame<'a, 'b, 'c, 'd, B> {
              table: &'d mut SymbolTable)
              -> Self {
     CompilerFrame { compiler, pipeline, builder, table }
+  }
+
+}
+
+impl<'a, 'b, 'c, 'd, B> HasSymbolTable for CompilerFrame<'a, 'b, 'c, 'd, B> {
+
+  fn get_symbol_table(&self) -> &SymbolTable {
+    self.table
+  }
+
+  fn get_symbol_table_mut(&mut self) -> &mut SymbolTable {
+    self.table
   }
 
 }
