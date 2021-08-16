@@ -32,7 +32,7 @@ pub fn declare_var(gen: &mut FreshNameGenerator,
                    pos: SourceOffset)
                    -> String {
   let var_name = gen.generate_with(prefix);
-  let value = value.unwrap_or(Expr::null(pos));
+  let value = value.unwrap_or_else(|| Expr::null(pos));
   builder.append(Stmt::var_decl(var_name.clone(), value, pos));
   var_name
 }
