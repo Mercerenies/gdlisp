@@ -77,27 +77,6 @@ impl Compiler {
   }
 
   #[deprecated(note="Call from CompilerFrame instead")]
-  pub fn compile_stmts(&mut self,
-                       pipeline: &mut Pipeline,
-                       builder: &mut StmtBuilder,
-                       table: &mut SymbolTable,
-                       stmts: &[&IRExpr],
-                       needs_result: NeedsResult,
-                       pos: SourceOffset)
-                       -> Result<StExpr, Error> {
-    if stmts.is_empty() {
-      Ok(Compiler::nil_expr(pos))
-    } else {
-      let prefix = &stmts[..stmts.len()-1];
-      let end = &stmts[stmts.len()-1];
-      for x in prefix {
-        self.compile_stmt(pipeline, builder, table, &stmt_wrapper::Vacuous, x)?;
-      }
-      self.compile_expr(pipeline, builder, table, end, needs_result)
-    }
-  }
-
-  #[deprecated(note="Call from CompilerFrame instead")]
   pub fn compile_stmt(&mut self,
                       pipeline: &mut Pipeline,
                       builder: &mut StmtBuilder,
@@ -143,7 +122,7 @@ impl Compiler {
       }
       IRExprF::Progn(body) => {
         let body: Vec<_> = body.iter().collect();
-        self.compile_stmts(pipeline, builder, table, &body[..], needs_result, expr.pos)
+        self.frame(pipeline, builder, table).compile_stmts(&body[..], needs_result, expr.pos)
       }
       IRExprF::CondStmt(clauses) => {
         special_form::compile_cond_stmt(self, pipeline, builder, table, clauses, needs_result, expr.pos)

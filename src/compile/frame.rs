@@ -11,7 +11,7 @@ use super::names::fresh::FreshNameGenerator;
 use super::error::Error;
 use super::stateful::{StExpr, NeedsResult};
 use super::body::builder::StmtBuilder;
-use super::stmt_wrapper::StmtWrapper;
+use super::stmt_wrapper::{self, StmtWrapper};
 use crate::pipeline::Pipeline;
 use crate::pipeline::source::SourceOffset;
 use crate::ir;
@@ -80,14 +80,16 @@ impl<'a, 'b, 'c, 'd> CompilerFrame<'a, 'b, 'c, 'd, StmtBuilder> {
                        needs_result: NeedsResult,
                        pos: SourceOffset)
                        -> Result<StExpr, Error> {
-    self.compiler.compile_stmts(
-      self.pipeline,
-      self.builder,
-      self.table,
-      stmts,
-      needs_result,
-      pos,
-    )
+    if stmts.is_empty() {
+      Ok(Compiler::nil_expr(pos))
+    } else {
+      let prefix = &stmts[..stmts.len()-1];
+      let end = &stmts[stmts.len()-1];
+      for x in prefix {
+        self.compile_stmt(&stmt_wrapper::Vacuous, x)?;
+      }
+      self.compile_expr(end, needs_result)
+    }
   }
 
   pub fn compile_stmt(&mut self,
