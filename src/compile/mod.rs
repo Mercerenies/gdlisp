@@ -19,12 +19,11 @@ use constant::MaybeConstant;
 use crate::sxp::reify::Reify;
 use crate::gdscript::literal::Literal;
 use crate::gdscript::expr::{Expr, ExprF};
-use crate::gdscript::stmt::{self, Stmt, StmtF};
+use crate::gdscript::stmt::{self, Stmt};
 use crate::gdscript::decl::{self, Decl, DeclF, ClassExtends};
 use crate::gdscript::op;
 use crate::gdscript::library;
 use crate::gdscript::arglist::ArgList;
-use crate::gdscript::inner_class::{self, NeedsOuterClassRef};
 use crate::gdscript::metadata::{self, MetadataCompiler};
 use error::{Error, ErrorF};
 use stmt_wrapper::StmtWrapper;
@@ -361,7 +360,7 @@ impl<'a> Compiler<'a> {
     match &decl.value {
       IRDeclF::FnDecl(ir::decl::FnDecl { visibility: _, call_magic: _, name, args, body }) => {
         let gd_name = names::lisp_to_gd(&name);
-        let function = self.declare_function(pipeline, builder, table, gd_name, args.clone(), body, &stmt_wrapper::Return)?;
+        let function = factory::declare_function(self, pipeline, builder, table, gd_name, args.clone(), body, &stmt_wrapper::Return)?;
         builder.add_decl(Decl::new(DeclF::FnDecl(decl::Static::IsStatic, function), decl.pos));
         Ok(())
       }
@@ -370,7 +369,7 @@ impl<'a> Compiler<'a> {
         // this stage of compilation is concerned. They'll be resolved
         // and then purged during the IR phase.
         let gd_name = names::lisp_to_gd(&name);
-        let function = self.declare_function(pipeline, builder, table, gd_name, args.clone(), body, &stmt_wrapper::Return)?;
+        let function = factory::declare_function(self, pipeline, builder, table, gd_name, args.clone(), body, &stmt_wrapper::Return)?;
         builder.add_decl(Decl::new(DeclF::FnDecl(decl::Static::IsStatic, function), decl.pos));
         Ok(())
       }
@@ -384,9 +383,9 @@ impl<'a> Compiler<'a> {
       IRDeclF::ClassDecl(ir::decl::ClassDecl { visibility: _, name, extends, main_class, constructor, decls }) => {
         let gd_name = names::lisp_to_gd(&name);
         let extends = Compiler::resolve_extends(table, &extends, decl.pos)?;
-        let class = self.declare_class(pipeline, builder, table, gd_name, extends, *main_class, constructor, decls, decl.pos)?;
+        let class = factory::declare_class(self, pipeline, builder, table, gd_name, extends, *main_class, constructor, decls, decl.pos)?;
         if *main_class {
-          self.flatten_class_into_main(builder, class);
+          factory::flatten_class_into_main(builder, class);
           Ok(())
         } else {
           builder.add_decl(Decl::new(DeclF::ClassDecl(class), decl.pos));
@@ -399,7 +398,7 @@ impl<'a> Compiler<'a> {
         // Construct a singleton class.
         let class_name = self.gen.generate_with(&format!("_{}_Singleton", gd_name));
         let extends = Compiler::resolve_extends(table, &extends, decl.pos)?;
-        let singleton_class = self.declare_class(pipeline, builder, table, class_name.clone(), extends, false, constructor, decls, decl.pos)?;
+        let singleton_class = factory::declare_class(self, pipeline, builder, table, class_name.clone(), extends, false, constructor, decls, decl.pos)?;
 
         // We need a reference to the current file GDScript object.
         // (TODO This is part of inner_class; make it a function over
@@ -460,124 +459,6 @@ impl<'a> Compiler<'a> {
     }
   }
 
-  fn flatten_class_into_main(&mut self,
-                             builder: &mut CodeBuilder,
-                             class: decl::ClassDecl) {
-    let decl::ClassDecl { name: _, extends, body } = class;
-    builder.extends(extends);
-    for decl in body {
-      builder.add_decl(decl);
-    }
-  }
-
-  pub fn declare_function(&mut self,
-                          pipeline: &mut Pipeline,
-                          builder: &mut impl HasDecls,
-                          table: &mut SymbolTable,
-                          gd_name: String,
-                          args: IRArgList,
-                          body: &IRExpr,
-                          result_destination: &impl StmtWrapper)
-                          -> Result<decl::FnDecl, Error> {
-    let local_vars = body.get_locals();
-    let (arglist, gd_args) = args.into_gd_arglist(&mut self.gen);
-    let mut stmt_builder = StmtBuilder::new();
-    for arg in &gd_args {
-      if local_vars.get(&arg.0).unwrap_or(&AccessType::None).requires_cell() {
-        // Special behavior to wrap the argument in a cell.
-        stmt_builder.append(Stmt::new(
-          StmtF::Assign(Box::new(Expr::var(&arg.1, body.pos)),
-                        op::AssignOp::Eq,
-                        Box::new(library::construct_cell(Expr::var(&arg.1, body.pos)))),
-          body.pos,
-        ));
-      }
-    }
-    table.with_local_vars(&mut gd_args.into_iter().map(|x| (x.0.to_owned(), LocalVar::local(x.1, *local_vars.get(&x.0).unwrap_or(&AccessType::None)))), |table| {
-      self.compile_stmt(pipeline, &mut stmt_builder, table, result_destination, body)
-    })?;
-    Ok(decl::FnDecl {
-      name: gd_name,
-      args: arglist,
-      body: stmt_builder.build_into(builder),
-    })
-  }
-
-  pub fn declare_class(&mut self,
-                       pipeline: &mut Pipeline,
-                       builder: &mut impl HasDecls,
-                       table: &mut SymbolTable,
-                       gd_name: String,
-                       extends: ClassExtends,
-                       main_class: bool,
-                       constructor: &ir::decl::ConstructorDecl,
-                       decls: &[ir::decl::ClassInnerDecl],
-                       pos: SourceOffset)
-                       -> Result<decl::ClassDecl, Error> {
-
-    let self_var = LocalVar::self_var();
-
-    let mut body = vec!();
-    let mut outer_ref_name = String::new();
-    let needs_outer_ref =
-      constructor.needs_outer_class_ref(table) || decls.iter().any(|x| x.needs_outer_class_ref(table));
-    if needs_outer_ref && !main_class {
-      outer_ref_name = self.gen.generate_with(inner_class::OUTER_REFERENCE_NAME);
-    }
-
-    let mut instance_table = table.clone();
-    let mut static_table = table.clone();
-    instance_table.with_local_var::<Result<(), Error>, _>(String::from("self"), self_var, |instance_table| {
-
-      // Modify all of the names in the instance / static table. We
-      // run this even if needs_outer_ref is false, because we might
-      // still need the static_table updates, and the instance_table
-      // updates will be harmlessly ignored in that case.
-      if !main_class {
-        for (_, call, _) in instance_table.fns_mut() {
-          call.object.update_for_inner_scope(false, self.preload_resolver(), pipeline, &outer_ref_name);
-        }
-        for (_, call, _) in static_table.fns_mut() {
-          call.object.update_for_inner_scope(true, self.preload_resolver(), pipeline, &outer_ref_name);
-        }
-      }
-
-      body.push(Decl::new(DeclF::FnDecl(decl::Static::NonStatic, self.compile_constructor(pipeline, builder, instance_table, constructor)?), pos));
-
-      for d in decls {
-        let tables = ClassTablePair { instance_table, static_table: &mut static_table };
-        body.push(self.compile_class_inner_decl(pipeline, builder, tables, d)?);
-      }
-
-      Ok(())
-    })?;
-
-    let mut decl = decl::ClassDecl {
-      name: gd_name,
-      extends: extends,
-      body: body,
-    };
-    if needs_outer_ref && !main_class {
-      inner_class::add_outer_class_ref_named(&mut decl, self.preload_resolver(), pipeline, outer_ref_name, pos);
-    }
-    Ok(decl)
-  }
-
-  pub fn compile_constructor(&mut self,
-                             pipeline: &mut Pipeline,
-                             builder: &mut impl HasDecls,
-                             table: &mut SymbolTable,
-                             constructor: &ir::decl::ConstructorDecl)
-                             -> Result<decl::FnDecl, Error> {
-    self.declare_function(pipeline,
-                          builder,
-                          table,
-                          String::from(library::CONSTRUCTOR_NAME),
-                          IRArgList::from(constructor.args.clone()),
-                          &constructor.body,
-                          &stmt_wrapper::Vacuous)
-  }
-
   fn compile_export(&mut self,
                     pipeline: &mut Pipeline,
                     table: &mut SymbolTable,
@@ -631,13 +512,14 @@ impl<'a> Compiler<'a> {
       }
       ir::decl::ClassInnerDeclF::ClassFnDecl(f) => {
         let gd_name = names::lisp_to_gd(&f.name);
-        let func = self.declare_function(pipeline,
-                                         builder,
-                                         table,
-                                         gd_name,
-                                         IRArgList::from(f.args.clone()),
-                                         &f.body,
-                                         &stmt_wrapper::Return)?;
+        let func = factory::declare_function(self,
+                                             pipeline,
+                                             builder,
+                                             table,
+                                             gd_name,
+                                             IRArgList::from(f.args.clone()),
+                                             &f.body,
+                                             &stmt_wrapper::Return)?;
         Ok(Decl::new(DeclF::FnDecl(f.is_static, func), decl.pos))
       }
     }
@@ -886,6 +768,7 @@ impl<'a> Compiler<'a> {
 mod tests {
   use super::*;
   use crate::gdscript::decl::Decl;
+  use crate::gdscript::stmt::StmtF;
   use crate::sxp::ast::{AST, ASTF};
   use crate::compile::symbol_table::function_call::{FnCall, FnScope, FnSpecs};
   use crate::pipeline::config::ProjectConfig;

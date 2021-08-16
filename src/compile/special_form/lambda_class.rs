@@ -2,6 +2,7 @@
 use crate::ir;
 use crate::ir::expr::LambdaClass;
 use crate::compile::error::{Error, ErrorF};
+use crate::compile::factory;
 use crate::compile::Compiler;
 use crate::compile::stateful::{SideEffects, StExpr, NeedsResult};
 use crate::compile::body::builder::StmtBuilder;
@@ -93,7 +94,7 @@ pub fn compile_lambda_class<'a>(compiler: &mut Compiler<'a>,
     }
   }
 
-  let mut constructor = compiler.compile_constructor(pipeline, builder, &mut lambda_table, &constructor)?;
+  let mut constructor = factory::declare_constructor(compiler, pipeline, builder, &mut lambda_table, &constructor)?;
   let original_args = constructor.args.args;
   constructor.args.args = gd_closure_vars.to_vec();
   constructor.args.args.extend(original_args);

@@ -24,7 +24,7 @@ impl ObjectMod {
   }
 }
 
-/// A parse rule for modifiers which apply to [`EnumDecl`].
+/// A parse rule for modifiers which apply to [`ObjectDecl`].
 pub fn parser() -> impl ParseRule<Modifier=ObjectMod> {
   visibility::parser().map(ObjectMod::Visibility)
 }
