@@ -304,26 +304,6 @@ impl Compiler {
     }
   }
 
-  // Compile an expression, but fail if a builder is required for
-  // helper stmts or decls.
-  #[deprecated(note="Call from CompilerFrame instead")]
-  pub fn compile_simple_expr(&mut self,
-                             pipeline: &mut Pipeline,
-                             table: &mut SymbolTable,
-                             src_name: &str,
-                             expr: &IRExpr,
-                             needs_result: NeedsResult)
-                             -> Result<Expr, Error> {
-    let mut tmp_builder = StmtBuilder::new();
-    let value = self.compile_expr(pipeline, &mut tmp_builder, table, expr, needs_result)?.expr;
-    let (stmts, decls) = tmp_builder.build();
-    if stmts.is_empty() && decls.is_empty() {
-      Ok(value)
-    } else {
-      Err(Error::new(ErrorF::NotConstantEnough(String::from(src_name)), expr.pos))
-    }
-  }
-
   pub fn nil_expr(pos: SourceOffset) -> StExpr {
     StExpr { expr: Expr::null(pos), side_effects: SideEffects::None }
   }
@@ -369,7 +349,7 @@ impl Compiler {
       }
       IRDeclF::ConstDecl(ir::decl::ConstDecl { visibility: _, name, value }) => {
         let gd_name = names::lisp_to_gd(&name);
-        let value = self.compile_simple_expr(pipeline, table, name, value, NeedsResult::Yes)?;
+        let value = self.frame(pipeline, &mut (), table).compile_simple_expr(name, value, NeedsResult::Yes)?;
         value.validate_const_expr(&name, table)?;
         builder.add_decl(Decl::new(DeclF::ConstDecl(gd_name, value), decl.pos));
         Ok(())
@@ -436,7 +416,7 @@ impl Compiler {
         let gd_name = names::lisp_to_gd(&name);
         let gd_clauses = clauses.iter().map(|(const_name, const_value)| {
           let gd_const_name = names::lisp_to_gd(const_name);
-          let gd_const_value = const_value.as_ref().map(|x| self.compile_simple_expr(pipeline, table, const_name, x, NeedsResult::Yes)).transpose()?;
+          let gd_const_value = const_value.as_ref().map(|x| self.frame(pipeline, &mut (), table).compile_simple_expr(const_name, x, NeedsResult::Yes)).transpose()?;
           if let Some(gd_const_value) = &gd_const_value {
             gd_const_value.validate_const_expr(const_name, table)?;
           }
@@ -464,7 +444,7 @@ impl Compiler {
     match &expr.value {
       IRExprF::LocalVar(s) => Ok(Expr::new(ExprF::Var(s.to_owned()), expr.pos)),
       _ => {
-        let expr = self.compile_simple_expr(pipeline, table, "export", expr, NeedsResult::Yes)?;
+        let expr = self.frame(pipeline, &mut (), table).compile_simple_expr("export", expr, NeedsResult::Yes)?;
         expr.validate_const_expr("export", table)?;
         Ok(expr)
       }
@@ -487,7 +467,7 @@ impl Compiler {
       ir::decl::ClassInnerDeclF::ClassConstDecl(c) => {
         // TODO Merge this with IRDecl::ConstDecl above
         let gd_name = names::lisp_to_gd(&c.name);
-        let value = self.compile_simple_expr(pipeline, table, &c.name, &c.value, NeedsResult::Yes)?;
+        let value = self.frame(pipeline, &mut (), table).compile_simple_expr(&c.name, &c.value, NeedsResult::Yes)?;
         value.validate_const_expr(&c.name, table)?;
         Ok(Decl::new(DeclF::ConstDecl(gd_name, value), decl.pos))
       }
@@ -498,7 +478,7 @@ impl Compiler {
         let exports = exports.map(|args| decl::Export { args });
         let name = names::lisp_to_gd(&v.name);
         let value = v.value.as_ref().map::<Result<_, Error>, _>(|expr| {
-          let value = self.compile_simple_expr(pipeline, table, &name, expr, NeedsResult::Yes)?;
+          let value = self.frame(pipeline, &mut (), table).compile_simple_expr(&name, expr, NeedsResult::Yes)?;
           value.validate_const_expr(&v.name, table)?;
           Ok(value)
         }).transpose()?;

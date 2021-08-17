@@ -8,7 +8,7 @@ use super::Compiler;
 use super::preload_resolver::PreloadResolver;
 use super::symbol_table::{SymbolTable, HasSymbolTable};
 use super::names::fresh::FreshNameGenerator;
-use super::error::Error;
+use super::error::{Error, ErrorF};
 use super::stateful::{StExpr, NeedsResult};
 use super::body::builder::StmtBuilder;
 use super::stmt_wrapper::{self, StmtWrapper};
@@ -57,18 +57,27 @@ impl<'a, 'b, 'c, 'd, B> CompilerFrame<'a, 'b, 'c, 'd, B> {
     self.compiler.preload_resolver()
   }
 
+  pub fn with_builder<B1, R, F>(&mut self, new_builder: &mut B1, block: F) -> R
+  where F : FnOnce(&mut CompilerFrame<B1>) -> R {
+    let mut new_frame = CompilerFrame::new(self.compiler, self.pipeline, new_builder, self.table);
+    block(&mut new_frame)
+  }
+
   pub fn compile_simple_expr(&mut self,
                              src_name: &str,
                              expr: &IRExpr,
                              needs_result: NeedsResult)
                              -> Result<Expr, Error> {
-    self.compiler.compile_simple_expr(
-      self.pipeline,
-      self.table,
-      src_name,
-      expr,
-      needs_result,
-    )
+    let mut tmp_builder = StmtBuilder::new();
+    let value = self.with_builder(&mut tmp_builder, |frame| {
+      frame.compile_expr(expr, needs_result).map(|x| x.expr)
+    })?;
+    let (stmts, decls) = tmp_builder.build();
+    if stmts.is_empty() && decls.is_empty() {
+      Ok(value)
+    } else {
+      Err(Error::new(ErrorF::NotConstantEnough(String::from(src_name)), expr.pos))
+    }
   }
 
 }
