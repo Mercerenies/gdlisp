@@ -26,6 +26,14 @@ const KNOWN_GDSCRIPT_KEYWORDS: &[&str] = &[
   "Color", "NodePath", "RID", "Object",
 ];
 
+/// A `NameTrans` is stored information about how a given GDLisp name
+/// translates into a GDScript name.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct NameTrans {
+  pub lisp_name: String,
+  pub gd_name: String,
+}
+
 /// Whether `ch` is a valid GDScript identifier character.
 ///
 /// Valid GDScript identifier characters are: uppercase and lowercase

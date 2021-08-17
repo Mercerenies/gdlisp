@@ -62,24 +62,24 @@ pub fn declare_function(frame: &mut CompilerFrame<impl HasDecls>,
                         result_destination: &impl StmtWrapper)
                         -> Result<decl::FnDecl, Error> {
   let local_vars = body.get_locals();
-    let (arglist, gd_args) = args.into_gd_arglist(frame.name_generator());
-    let mut stmt_builder = StmtBuilder::new();
-    for arg in &gd_args {
-      if local_vars.get(&arg.0).unwrap_or(&AccessType::None).requires_cell() {
-        // Special behavior to wrap the argument in a cell.
-        library::cell::wrap_var_in_cell(&mut stmt_builder, &arg.1, body.pos)
-      }
+  let (arglist, gd_args) = args.into_gd_arglist(frame.name_generator());
+  let mut stmt_builder = StmtBuilder::new();
+  for arg in &gd_args {
+    if local_vars.get(&arg.lisp_name).unwrap_or(&AccessType::None).requires_cell() {
+      // Special behavior to wrap the argument in a cell.
+      library::cell::wrap_var_in_cell(&mut stmt_builder, &arg.gd_name, body.pos)
     }
-    frame.with_local_vars(&mut gd_args.into_iter().map(|x| (x.0.to_owned(), LocalVar::local(x.1, *local_vars.get(&x.0).unwrap_or(&AccessType::None)))), |frame| {
-      frame.with_builder(&mut stmt_builder, |frame| {
-        frame.compile_stmt(result_destination, body)
-      })
-    })?;
-    Ok(decl::FnDecl {
-      name: gd_name,
-      args: arglist,
-      body: stmt_builder.build_into(frame.builder),
+  }
+  frame.with_local_vars(&mut gd_args.into_iter().map(|x| (x.lisp_name.to_owned(), LocalVar::local(x.gd_name, *local_vars.get(&x.lisp_name).unwrap_or(&AccessType::None)))), |frame| {
+    frame.with_builder(&mut stmt_builder, |frame| {
+      frame.compile_stmt(result_destination, body)
     })
+  })?;
+  Ok(decl::FnDecl {
+    name: gd_name,
+    args: arglist,
+    body: stmt_builder.build_into(frame.builder),
+  })
 }
 
 // TODO Use CompilerFrame

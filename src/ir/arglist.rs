@@ -1,6 +1,7 @@
 
 use crate::gdscript::arglist::ArgList as GDArgList;
 use crate::compile::names::fresh::FreshNameGenerator;
+use crate::compile::names::NameTrans;
 use crate::compile::symbol_table::function_call::FnSpecs;
 use crate::sxp::ast::{AST, ASTF};
 use crate::pipeline::source::{SourceOffset, Sourced};
@@ -191,23 +192,23 @@ impl ArgList {
     })
   }
 
-  pub fn into_gd_arglist(self, gen: &mut FreshNameGenerator) -> (GDArgList, Vec<(String, String)>) {
+  pub fn into_gd_arglist(self, gen: &mut FreshNameGenerator) -> (GDArgList, Vec<NameTrans>) {
     let cap = 1 + self.required_args.len() + self.optional_args.len();
     let mut name_translations = Vec::with_capacity(cap);
     let mut args = Vec::with_capacity(cap);
     for arg in self.required_args {
       let gd = gen.generate_with(&arg);
-      name_translations.push((arg, gd.clone()));
+      name_translations.push(NameTrans { lisp_name: arg, gd_name: gd.clone() });
       args.push(gd);
     }
     for arg in self.optional_args {
       let gd = gen.generate_with(&arg);
-      name_translations.push((arg, gd.clone()));
+      name_translations.push(NameTrans { lisp_name: arg, gd_name: gd.clone() });
       args.push(gd);
     }
     if let Some((arg, _)) = self.rest_arg {
       let gd = gen.generate_with(&arg);
-      name_translations.push((arg, gd.clone()));
+      name_translations.push(NameTrans { lisp_name: arg, gd_name: gd.clone() });
       args.push(gd);
     }
     (GDArgList::required(args), name_translations)
@@ -224,7 +225,7 @@ impl ArgList {
 
 impl SimpleArgList {
 
-  pub fn into_gd_arglist(self, gen: &mut FreshNameGenerator) -> (GDArgList, Vec<(String, String)>) {
+  pub fn into_gd_arglist(self, gen: &mut FreshNameGenerator) -> (GDArgList, Vec<NameTrans>) {
     ArgList::from(self).into_gd_arglist(gen)
   }
 
@@ -365,7 +366,7 @@ mod tests {
     GDArgList::required(req.into_iter().map(|x| x.to_owned()).collect())
   }
 
-  fn into_gd(args: ArgList) -> (GDArgList, Vec<(String, String)>) {
+  fn into_gd(args: ArgList) -> (GDArgList, Vec<NameTrans>) {
     let mut tmp = FreshNameGenerator::new(vec!());
     args.into_gd_arglist(&mut tmp)
   }

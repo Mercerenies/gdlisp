@@ -11,7 +11,7 @@ use crate::compile::symbol_table::call_magic::DefaultCall;
 use crate::compile::stmt_wrapper;
 use crate::compile::error::{Error, ErrorF};
 use crate::compile::stateful::SideEffects;
-use crate::compile::names;
+use crate::compile::names::{self, NameTrans};
 use crate::gdscript::stmt::{Stmt, StmtF};
 use crate::gdscript::expr::{Expr, ExprF};
 use crate::gdscript::decl::{self, Decl, DeclF};
@@ -121,7 +121,7 @@ pub fn compile_labels_scc(compiler: &mut Compiler,
     let mut lambda_table = lambda_table.clone(); // New table for this particular function
     let mut lambda_builder = StmtBuilder::new();
     let (arglist, gd_args) = args.clone().into_gd_arglist(&mut compiler.name_generator());
-    for (arg, gd_arg) in &gd_args {
+    for NameTrans { lisp_name: arg, gd_name: gd_arg } in &gd_args {
       let access_type = *all_vars.get(&arg).unwrap_or(&AccessType::None);
       lambda_table.set_var(arg.to_owned(), LocalVar::local(gd_arg.to_owned(), access_type));
       wrap_in_cell_if_needed(arg, gd_arg, &all_vars, &mut lambda_builder, pos);
@@ -275,8 +275,8 @@ pub fn compile_lambda_stmt(compiler: &mut Compiler,
 
   // Bind the arguments to the lambda in the new lambda table
   for arg in &gd_args {
-    let access_type = *closure.all_vars.get(&arg.0).unwrap_or(&AccessType::None);
-    lambda_table.set_var(arg.0.to_owned(), LocalVar::local(arg.1.to_owned(), access_type));
+    let access_type = *closure.all_vars.get(&arg.lisp_name).unwrap_or(&AccessType::None);
+    lambda_table.set_var(arg.lisp_name.to_owned(), LocalVar::local(arg.gd_name.to_owned(), access_type));
   }
 
   let mut outer_ref_name = String::new();
@@ -317,7 +317,7 @@ pub fn compile_lambda_stmt(compiler: &mut Compiler,
     }
   }
 
-  for (arg, gd_arg) in &gd_args {
+  for NameTrans { lisp_name: arg, gd_name: gd_arg } in &gd_args {
     wrap_in_cell_if_needed(arg, gd_arg, &closure.all_vars, &mut lambda_builder, pos);
   }
   compiler.frame(pipeline, &mut lambda_builder, &mut lambda_table).compile_stmt(&stmt_wrapper::Return, body)?;
