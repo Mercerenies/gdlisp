@@ -449,6 +449,15 @@ impl ClassInnerDecl {
     }
   }
 
+  pub fn name(&self) -> &str {
+    match &self.value {
+      ClassInnerDeclF::ClassSignalDecl(signal) => &signal.name,
+      ClassInnerDeclF::ClassConstDecl(constant) => &constant.name,
+      ClassInnerDeclF::ClassVarDecl(var) => &var.name,
+      ClassInnerDeclF::ClassFnDecl(func) => &func.name,
+    }
+  }
+
   pub fn get_names(&self) -> (Locals, Functions) {
     match &self.value {
       ClassInnerDeclF::ClassSignalDecl(_) | ClassInnerDeclF::ClassVarDecl(_) |

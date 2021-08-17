@@ -1,5 +1,4 @@
 
-use crate::ir;
 use crate::ir::expr::LambdaClass;
 use crate::compile::error::{Error, ErrorF};
 use crate::compile::factory;
@@ -41,8 +40,6 @@ pub fn compile_lambda_class(compiler: &mut Compiler,
   lambda::purge_globals(&mut closure_vars, table);
 
   let mut lambda_table = SymbolTable::new();
-
-  let mut lambda_static_table = lambda_table.clone();
   lambda_table.set_var(String::from("self"), LocalVar::self_var());
 
   let mut outer_ref_name = String::new();
@@ -54,10 +51,6 @@ pub fn compile_lambda_class(compiler: &mut Compiler,
   lambda::locally_bind_vars(compiler, table, &mut lambda_table, closure_vars.names(), pos)?;
   lambda::locally_bind_fns(compiler, pipeline, table, &mut lambda_table, closure_fns.names(), pos, false, &outer_ref_name)?;
   lambda::copy_global_vars(table, &mut lambda_table);
-
-  lambda::locally_bind_vars(compiler, table, &mut lambda_static_table, closure_vars.names(), pos)?;
-  lambda::locally_bind_fns(compiler, pipeline, table, &mut lambda_static_table, closure_fns.names(), pos, true, &outer_ref_name)?;
-  lambda::copy_global_vars(table, &mut lambda_static_table);
 
   let mut gd_src_closure_vars = Vec::new();
   let mut gd_closure_vars = Vec::new();
@@ -101,14 +94,17 @@ pub fn compile_lambda_class(compiler: &mut Compiler,
   }
   for d in &decls {
 
-    if let ir::decl::ClassInnerDeclF::ClassFnDecl(fndecl) = &d.value {
-      if fndecl.is_static.into() {
-        // Static methods are not allowed on lambda classes
-        return Err(Error::new(ErrorF::StaticOnLambdaClass(fndecl.name.clone()), d.pos));
-      }
+    if d.is_static().into() {
+      // Static methods are not allowed on lambda classes
+      return Err(Error::new(ErrorF::StaticOnLambdaClass(d.name().to_owned()), d.pos));
     }
 
-    let tables = ClassTablePair { instance_table: &mut lambda_table, static_table: &mut lambda_static_table };
+    // Nothing static is allowed in lambda classes (static methods or
+    // constants). The ClassTablePair simply gets a dummy static
+    // symbol table that will never be used, since we just checked in
+    // the above code that the declaration is non-static.
+    let mut dummy_table = SymbolTable::new();
+    let tables = ClassTablePair { instance_table: &mut lambda_table, static_table: &mut dummy_table };
     class_body.push(compiler.compile_class_inner_decl(pipeline, builder, tables, d)?);
 
   }

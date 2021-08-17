@@ -138,6 +138,12 @@ pub fn bad_static_in_lambda_class_test() {
     Err(PError::from(GDError::new(GDErrorF::StaticOnLambdaClass(String::from("example")), SourceOffset(13)))),
   );
 }
+
+#[test]
+pub fn bad_const_in_lambda_class_test() {
+  assert_eq!(
+    parse_compile_and_output_err("(new (Node) (defconst FOO 1))"),
+    Err(PError::from(GDError::new(GDErrorF::StaticOnLambdaClass(String::from("FOO")), SourceOffset(13)))),
   );
 }
 
