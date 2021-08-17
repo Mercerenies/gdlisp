@@ -93,6 +93,12 @@ impl<'a, 'b, 'c, 'd, B: HasDecls> CompilerFrame<'a, 'b, 'c, 'd, B> {
     (result, stmts)
   }
 
+  pub fn with_local_builder_result<R, F>(&mut self, block: F) -> Result<(R, Vec<Stmt>), Error>
+  where F : FnOnce(&mut CompilerFrame<StmtBuilder>) -> Result<R, Error> {
+    let (error_value, vec) = self.with_local_builder_value(block);
+    error_value.map(|r| (r, vec))
+  }
+
   pub fn with_local_builder<F>(&mut self, block: F) -> Result<Vec<Stmt>, Error>
   where F : FnOnce(&mut CompilerFrame<StmtBuilder>) -> Result<(), Error> {
     let (error_value, vec) = self.with_local_builder_value(block);

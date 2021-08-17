@@ -18,7 +18,6 @@ use crate::compile::factory;
 use crate::compile::frame::CompilerFrame;
 use crate::gdscript::stmt::{self, Stmt, StmtF};
 use crate::gdscript::expr::{Expr, ExprF};
-use crate::gdscript::literal::Literal;
 use crate::gdscript::op;
 use crate::pipeline::source::SourceOffset;
 use crate::util;
@@ -85,19 +84,20 @@ pub fn compile_while_stmt(frame: &mut CompilerFrame<StmtBuilder>,
   // fits in a single expression, we'll compile it with a temporary
   // builder and then ask that builder whether or not it received any
   // statements.
-  let mut cond_builder = StmtBuilder::new();
-  let mut body_builder = StmtBuilder::new();
-  let mut cond_expr = frame.compiler.compile_expr(frame.pipeline, &mut cond_builder, frame.table, cond, NeedsResult::Yes)?.expr;
-  let cond_body = cond_builder.build_into(frame.builder);
-  if !cond_body.is_empty() {
-    // Compound while form
-    body_builder.append_all(&mut cond_body.into_iter());
-    let inner_cond_expr = Expr::new(ExprF::Unary(op::UnaryOp::Not, Box::new(cond_expr)), pos);
-    body_builder.append(stmt::if_then(inner_cond_expr, vec!(Stmt::new(StmtF::BreakStmt, cond.pos)), cond.pos));
-    cond_expr = Expr::new(ExprF::Literal(Literal::Bool(true)), pos);
-  }
-  frame.compiler.frame(frame.pipeline, &mut body_builder, frame.table).compile_stmt(&stmt_wrapper::Vacuous, body)?;
-  let body = body_builder.build_into(frame.builder);
+  let (mut cond_expr, cond_body) = frame.with_local_builder_result(|frame| {
+    frame.compile_expr(cond, NeedsResult::Yes).map(|x| x.expr)
+  })?;
+  let body = frame.with_local_builder(|frame| {
+    if !cond_body.is_empty() {
+      // Compound while form
+      frame.builder.append_all(&mut cond_body.into_iter());
+      let inner_cond_expr = cond_expr.clone().unary(op::UnaryOp::Not, pos);
+      frame.builder.append(stmt::if_then(inner_cond_expr, vec!(Stmt::new(StmtF::BreakStmt, cond.pos)), cond.pos));
+      cond_expr = Expr::from_value(true, pos);
+    }
+    frame.compile_stmt(&stmt_wrapper::Vacuous, body)?;
+    Ok(())
+  })?;
   frame.builder.append(Stmt::new(StmtF::WhileLoop(stmt::WhileLoop { condition: cond_expr, body: body }), pos));
   Ok(Compiler::nil_expr(pos))
 }
@@ -112,12 +112,12 @@ pub fn compile_for_stmt(frame: &mut CompilerFrame<StmtBuilder>,
   let closure_vars = body.get_locals();
   let citer = frame.compile_expr(iter, NeedsResult::Yes)?.expr;
   let var_name = frame.name_generator().generate_with(&names::lisp_to_gd(name));
-  let mut inner_builder = StmtBuilder::new();
-  let local_var = LocalVar::local(var_name.to_owned(), *closure_vars.get(&name).unwrap_or(&AccessType::None));
-  frame.with_local_var(name.to_owned(), local_var, |frame| {
-    frame.compiler.frame(frame.pipeline, &mut inner_builder, frame.table).compile_stmt(&stmt_wrapper::Vacuous, body)
+  let body = frame.with_local_builder(|frame| {
+    let local_var = LocalVar::local(var_name.to_owned(), *closure_vars.get(&name).unwrap_or(&AccessType::None));
+    frame.with_local_var(name.to_owned(), local_var, |frame| {
+      frame.compile_stmt(&stmt_wrapper::Vacuous, body).map(|_| ())
+    })
   })?;
-  let body = inner_builder.build_into(frame.builder);
   frame.builder.append(Stmt::new(StmtF::ForLoop(stmt::ForLoop { iter_var: var_name, collection: citer, body: body }), pos));
   Ok(Compiler::nil_expr(pos))
 }
