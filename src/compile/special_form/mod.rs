@@ -31,31 +31,41 @@ pub fn compile_cond_stmt(frame: &mut CompilerFrame<StmtBuilder>,
                          needs_result: NeedsResult,
                          pos: SourceOffset)
                          -> Result<StExpr, Error> {
-  let (destination, result) = needs_result.into_destination(frame.compiler, frame.builder, "_cond", pos);
+  let (destination, result) = needs_result.into_destination(frame.compiler.name_generator(), frame.builder, "_cond", pos);
   let init: Vec<Stmt> = util::option_to_vec(destination.wrap_to_stmt(Compiler::nil_expr(pos)));
   let body = clauses.iter().rev().fold(Ok(init), |acc: Result<_, Error>, curr| {
     let acc = acc?;
     let (cond, body) = curr;
     match body {
       None => {
-        let mut outer_builder = StmtBuilder::new();
-        let mut inner_builder = StmtBuilder::new();
-        let cond = frame.compiler.compile_expr(frame.pipeline, &mut outer_builder, frame.table, cond, NeedsResult::Yes)?.expr;
-        let var_name = factory::declare_var(frame.name_generator(), &mut outer_builder, "_cond", Some(cond), pos);
-        let var_expr = StExpr { expr: Expr::new(ExprF::Var(var_name.clone()), pos), side_effects: SideEffects::None };
-        destination.wrap_to_builder(&mut inner_builder, var_expr);
-        let if_branch = inner_builder.build_into(frame.builder);
-        outer_builder.append(stmt::if_else(Expr::new(ExprF::Var(var_name), pos), if_branch, acc, pos));
-        Ok(outer_builder.build_into(frame.builder))
+        // Outer local builder (for constructing any values needed in
+        // the conditional).
+        frame.with_local_builder(|frame| {
+          let cond = frame.compile_expr(cond, NeedsResult::Yes)?.expr;
+          let var_name = factory::declare_var(frame.compiler.name_generator(), frame.builder, "_cond", Some(cond), pos);
+          let var_expr = StExpr { expr: Expr::new(ExprF::Var(var_name.clone()), pos), side_effects: SideEffects::None };
+          // Inner local builder (for the contents of the "true"
+          // block).
+          let if_branch = frame.with_local_builder_ok(|frame| {
+            destination.wrap_to_builder(frame.builder, var_expr);
+          });
+          frame.builder.append(stmt::if_else(Expr::new(ExprF::Var(var_name), pos), if_branch, acc, pos));
+          Ok(())
+        })
       }
       Some(body) => {
-        let mut outer_builder = StmtBuilder::new();
-        let mut inner_builder = StmtBuilder::new();
-        let cond = frame.compiler.compile_expr(frame.pipeline, &mut outer_builder, frame.table, cond, NeedsResult::Yes)?.expr;
-        frame.compiler.frame(frame.pipeline, &mut inner_builder, frame.table).compile_stmt(destination.as_ref(), body)?;
-        let if_branch = inner_builder.build_into(frame.builder);
-        outer_builder.append(stmt::if_else(cond, if_branch, acc, pos));
-        Ok(outer_builder.build_into(frame.builder))
+        // Outer local builder (for constructing any values needed in
+        // the conditional).
+        frame.with_local_builder(|frame| {
+          let cond = frame.compile_expr(cond, NeedsResult::Yes)?.expr;
+          // Inner local builder (for the contents of the "true"
+          // block).
+          let if_branch = frame.with_local_builder(|frame| {
+            frame.compile_stmt(destination.as_ref(), body)
+          })?;
+          frame.builder.append(stmt::if_else(cond, if_branch, acc, pos));
+          Ok(())
+        })
       }
     }
   })?;

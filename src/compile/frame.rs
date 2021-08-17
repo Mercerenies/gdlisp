@@ -10,12 +10,13 @@ use super::symbol_table::{SymbolTable, HasSymbolTable};
 use super::names::fresh::FreshNameGenerator;
 use super::error::{Error, ErrorF};
 use super::stateful::{StExpr, NeedsResult};
-use super::body::builder::StmtBuilder;
+use super::body::builder::{StmtBuilder, HasDecls};
 use super::stmt_wrapper::{self, StmtWrapper};
 use crate::pipeline::Pipeline;
 use crate::pipeline::source::SourceOffset;
 use crate::ir;
 use crate::gdscript::expr::Expr;
+use crate::gdscript::stmt::Stmt;
 
 type IRExpr = ir::expr::Expr;
 
@@ -78,6 +79,30 @@ impl<'a, 'b, 'c, 'd, B> CompilerFrame<'a, 'b, 'c, 'd, B> {
     } else {
       Err(Error::new(ErrorF::NotConstantEnough(String::from(src_name)), expr.pos))
     }
+  }
+
+}
+
+impl<'a, 'b, 'c, 'd, B: HasDecls> CompilerFrame<'a, 'b, 'c, 'd, B> {
+
+  pub fn with_local_builder_value<R, F>(&mut self, block: F) -> (R, Vec<Stmt>)
+  where F : FnOnce(&mut CompilerFrame<StmtBuilder>) -> R {
+    let mut local_builder = StmtBuilder::new();
+    let result = self.with_builder(&mut local_builder, block);
+    let stmts = local_builder.build_into(self.builder);
+    (result, stmts)
+  }
+
+  pub fn with_local_builder<F>(&mut self, block: F) -> Result<Vec<Stmt>, Error>
+  where F : FnOnce(&mut CompilerFrame<StmtBuilder>) -> Result<(), Error> {
+    let (error_value, vec) = self.with_local_builder_value(block);
+    error_value.map(|_| vec)
+  }
+
+  pub fn with_local_builder_ok<F>(&mut self, block: F) -> Vec<Stmt>
+  where F : FnOnce(&mut CompilerFrame<StmtBuilder>) -> () {
+    let ((), vec) = self.with_local_builder_value(block);
+    vec
   }
 
 }
