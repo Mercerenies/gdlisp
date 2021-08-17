@@ -235,6 +235,9 @@ where I : Iterator<Item=&'a U>,
   Ok(())
 }
 
+/// Copies all of the variables from `src_table` to `dest_table` whose
+/// [`VarScope`] is [`VarScope::GlobalVar`]. This function does not
+/// modify the function namespace in either table.
 pub fn copy_global_vars(src_table: &SymbolTable, dest_table: &mut SymbolTable) {
   for (name, var) in src_table.vars() {
     if var.scope == VarScope::GlobalVar {
@@ -266,10 +269,13 @@ pub fn compile_lambda_stmt(compiler: &mut Compiler,
   let (arglist, gd_args) = args.clone().into_gd_arglist(&mut compiler.name_generator());
 
   let mut lambda_builder = StmtBuilder::new();
-  let mut closure = ClosureData::from(Function::new(args, body));
-
-  // No need to close around global variables, as they're available everywhere
-  closure.purge_globals(table);
+  let closure = {
+    let mut closure = ClosureData::from(Function::new(args, body));
+    // No need to close around global variables, as they're available
+    // everywhere
+    closure.purge_globals(table);
+    closure
+  };
 
   let mut lambda_table = SymbolTable::new();
 
@@ -279,43 +285,21 @@ pub fn compile_lambda_stmt(compiler: &mut Compiler,
     lambda_table.set_var(arg.lisp_name.to_owned(), LocalVar::local(arg.gd_name.to_owned(), access_type));
   }
 
+  // Generate an outer class ref if we need access to the scope from
+  // within the lambda
   let mut outer_ref_name = String::new();
   let needs_outer_ref = closure.closure_fns.needs_outer_class_ref(table);
   if needs_outer_ref {
     outer_ref_name = compiler.name_generator().generate_with(inner_class::OUTER_REFERENCE_NAME);
   }
 
+  // Bind all of the closure variables, closure functions, and global variables inside
   locally_bind_vars(compiler, table, &mut lambda_table, closure.closure_vars.names(), pos)?;
   locally_bind_fns(compiler, pipeline, table, &mut lambda_table, closure.closure_fns.names(), pos, false, &outer_ref_name)?;
   copy_global_vars(table, &mut lambda_table);
 
-  let mut gd_src_closure_vars = Vec::new();
-  let mut gd_closure_vars = Vec::new();
-  for ast_name in closure.closure_vars.names() {
-    let var = lambda_table.get_var(&ast_name).unwrap_or_else(|| {
-      panic!("Internal error compiling lambda variable {}", ast_name)
-    }).to_owned();
-    if let Some(name) = var.simple_name() {
-      gd_closure_vars.push(name.to_owned());
-    }
-    let src_var = table.get_var(&ast_name).unwrap_or_else(|| {
-      panic!("Internal error compiling lambda variable {}", ast_name)
-    }).to_owned();
-    if let Some(name) = src_var.simple_name() {
-      gd_src_closure_vars.push(name.to_owned());
-    }
-  }
-  for func in closure.closure_fns.names() {
-    match table.get_fn(func) {
-      None => { return Err(Error::new(ErrorF::NoSuchFn(func.to_owned()), pos)) }
-      Some((call, _)) => {
-        if let Some(var) = closure_fn_to_gd_var(call) {
-          gd_closure_vars.push(var.to_owned());
-          gd_src_closure_vars.push(var);
-        }
-      }
-    }
-  }
+  let gd_closure_vars = closure.to_gd_closure_vars(&lambda_table);
+  let gd_src_closure_vars = closure.to_gd_closure_vars(table);
 
   for NameTrans { lisp_name: arg, gd_name: gd_arg } in &gd_args {
     wrap_in_cell_if_needed(arg, gd_arg, &closure.all_vars, &mut lambda_builder, pos);

@@ -5,6 +5,7 @@
 use crate::ir::expr::{Locals, Functions};
 use crate::compile::symbol_table::local_var::VarScope;
 use crate::compile::symbol_table::SymbolTable;
+use super::lambda::closure_fn_to_gd_var; // TODO Move this function over to this module
 
 type IRArgList = crate::ir::arglist::ArgList;
 type IRExpr = crate::ir::expr::Expr;
@@ -48,6 +49,56 @@ impl ClosureData {
   /// Equivalent to `purge_globals(&mut self.closure_vars, table)`.
   pub fn purge_globals(&mut self, table: &SymbolTable) {
     purge_globals(&mut self.closure_vars, table)
+  }
+
+  /// Assuming `self` contains all of the relevant closure information
+  /// on the GDLisp side, this function constructs a list of the
+  /// necessary variables which need to be looked up on the GDScript
+  /// side to construct or utilize the closure.
+  ///
+  /// Every variable in `self.closure_vars` and every function in
+  /// `self.closure_fns` will be considered for inclusion in the
+  /// result. Specifically, each variable will be looked up in `table`
+  /// and, if the result has a [`LocalVar::simple_name`], then it will
+  /// be included in the returned translation vector. Likewise, each
+  /// function is looked up in `table` and, if
+  /// [`closure_fn_to_gd_var`] returns a name, then that name is added
+  /// to the translation vector.
+  ///
+  /// `self.all_vars` is not considered during this calculation.
+  ///
+  /// # Panics
+  ///
+  /// It is a precondition of this function that every name in
+  /// `self.closure_vars` and in `self.closure_fns` appears in `table`
+  /// under the appropriate namespace. If any names are missing, then
+  /// this function will panic.
+  pub fn to_gd_closure_vars(&self, table: &SymbolTable) -> Vec<String> {
+    let mut gd_closure_vars = Vec::new();
+
+    // Get closure variables
+    for lisp_name in self.closure_vars.names() {
+      let var = table.get_var(&lisp_name).unwrap_or_else(|| {
+        panic!("Internal error compiling lambda variable {}", lisp_name);
+      });
+      if let Some(name) = var.simple_name() {
+        gd_closure_vars.push(name.to_owned());
+      }
+    }
+
+    // Get closure functions (functions also get moved to the variable
+    // namespace when closed around, since GDScript doesn't treat
+    // function names as first-class objects)
+    for lisp_name in self.closure_fns.names() {
+      let (call, _) = table.get_fn(&lisp_name).unwrap_or_else(|| {
+        panic!("Internal error compiling lambda variable {}", lisp_name);
+      });
+      if let Some(var) = closure_fn_to_gd_var(call) {
+        gd_closure_vars.push(var);
+      }
+    }
+
+    gd_closure_vars
   }
 
 }
