@@ -63,12 +63,13 @@ pub enum SideEffects {
 /// A Boolean-isomorphic type indicating whether a result is required.
 ///
 /// An argument of type `NeedsResult` is used in functions such as
-/// [`Compiler::compile_expr`] to indicate whether or not the result
-/// is going to be used for anything. There are some expressions that
-/// can compile to a more efficient form if we know the result is
-/// unneeded. For instance, `if` expressions in general need to create
-/// a local variable to store the result in, but if we know the result
-/// is going to be discarded, then we can safely skip that step.
+/// [`CompilerFrame::compile_expr`](super::frame::CompilerFrame::compile_expr)
+/// to indicate whether or not the result is going to be used for
+/// anything. There are some expressions that can compile to a more
+/// efficient form if we know the result is unneeded. For instance,
+/// `if` expressions in general need to create a local variable to
+/// store the result in, but if we know the result is going to be
+/// discarded, then we can safely skip that step.
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub enum NeedsResult { No, Yes }
 
