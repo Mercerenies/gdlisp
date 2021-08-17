@@ -135,7 +135,9 @@ pub fn constructor_uses_outer_ref_lambda_class_test_run() {
 pub fn bad_static_in_lambda_class_test() {
   assert_eq!(
     parse_compile_and_output_err("(new (Node) (defn example () static 1))"),
-    Err(PError::from(GDError::new(GDErrorF::StaticMethodOnLambdaClass(String::from("example")), SourceOffset(13)))),
+    Err(PError::from(GDError::new(GDErrorF::StaticOnLambdaClass(String::from("example")), SourceOffset(13)))),
+  );
+}
   );
 }
 

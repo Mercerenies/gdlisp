@@ -51,7 +51,7 @@ pub enum ErrorF {
   InvalidImportOnResource(String),
   GodotServerError(response::Failure),
   StaticConstructor,
-  StaticMethodOnLambdaClass(String),
+  StaticOnLambdaClass(String),
   ModifierParseError(ModifierParseError),
   MacroInMinimalistError(String),
   MacroBeforeDefinitionError(String),
@@ -159,8 +159,8 @@ impl fmt::Display for Error {
       ErrorF::StaticConstructor => {
         write!(f, "Class constructors cannot be static")
       }
-      ErrorF::StaticMethodOnLambdaClass(s) => {
-        write!(f, "Static method {} is not allowed on anonymous class instance", s)
+      ErrorF::StaticOnLambdaClass(s) => {
+        write!(f, "Static name {} is not allowed on anonymous class instance", s)
       }
       ErrorF::ModifierParseError(m) => {
         write!(f, "Modifier error: {}", m)
