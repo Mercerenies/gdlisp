@@ -102,10 +102,10 @@ impl Compiler {
         special_form::compile_cond_stmt(&mut self.frame(pipeline, builder, table), clauses, needs_result, expr.pos)
       }
       IRExprF::WhileStmt(cond, body) => {
-        special_form::compile_while_stmt(self, pipeline, builder, table, cond, body, needs_result, expr.pos)
+        special_form::compile_while_stmt(&mut self.frame(pipeline, builder, table), cond, body, needs_result, expr.pos)
       }
       IRExprF::ForStmt(name, iter, body) => {
-        special_form::compile_for_stmt(self, pipeline, builder, table, &*name, iter, body, needs_result, expr.pos)
+        special_form::compile_for_stmt(&mut self.frame(pipeline, builder, table), &*name, iter, body, needs_result, expr.pos)
       }
       IRExprF::Call(f, args) => {
         let (fcall, call_magic) = match table.get_fn(f) {
