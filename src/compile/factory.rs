@@ -70,7 +70,9 @@ pub fn declare_function(frame: &mut CompilerFrame<impl HasDecls>,
       }
     }
     frame.with_local_vars(&mut gd_args.into_iter().map(|x| (x.0.to_owned(), LocalVar::local(x.1, *local_vars.get(&x.0).unwrap_or(&AccessType::None)))), |frame| {
-      frame.compiler.compile_stmt(frame.pipeline, &mut stmt_builder, frame.table, result_destination, body)
+      frame.with_builder(&mut stmt_builder, |frame| {
+        frame.compile_stmt(result_destination, body)
+      })
     })?;
     Ok(decl::FnDecl {
       name: gd_name,
