@@ -85,7 +85,7 @@ impl Compiler {
                       stmt: &IRExpr)
                       -> Result<(), Error> {
     let needs_result = NeedsResult::from(!destination.is_vacuous());
-    let expr = self.compile_expr(pipeline, builder, table, stmt, needs_result)?;
+    let expr = self.frame(pipeline, builder, table).compile_expr(stmt, needs_result)?;
     destination.wrap_to_builder(builder, expr);
     Ok(())
   }
@@ -145,7 +145,7 @@ impl Compiler {
         // Call magic is used to implement some commonly used wrappers
         // for simple GDScript operations.
         let args = args.iter()
-                       .map(|x| self.compile_expr(pipeline, builder, table, x, NeedsResult::Yes))
+                       .map(|x| self.frame(pipeline, builder, table).compile_expr(x, NeedsResult::Yes))
                        .collect::<Result<Vec<_>, _>>()?;
         Ok(StExpr {
           expr: fcall.into_expr_with_magic(&*call_magic, self, builder, table, args, expr.pos)?,
@@ -157,7 +157,7 @@ impl Compiler {
         let var_names = clauses.iter().map::<Result<(String, String), Error>, _>(|clause| {
           let (ast_name, expr) = clause;
           let ast_name = ast_name.to_owned();
-          let result_value = self.compile_expr(pipeline, builder, table, &expr, NeedsResult::Yes)?.expr;
+          let result_value = self.frame(pipeline, builder, table).compile_expr(&expr, NeedsResult::Yes)?.expr;
           let result_value =
             if closure_vars.get(&ast_name).unwrap_or(&AccessType::None).requires_cell() {
               library::construct_cell(result_value)
@@ -168,7 +168,7 @@ impl Compiler {
           Ok((ast_name, gd_name))
         }).collect::<Result<Vec<_>, _>>()?;
         table.with_local_vars(&mut var_names.into_iter().map(|x| (x.0.clone(), LocalVar::local(x.1, *closure_vars.get(&x.0).unwrap_or(&AccessType::None)))), |table| {
-          self.compile_expr(pipeline, builder, table, body, needs_result)
+          self.frame(pipeline, builder, table).compile_expr(body, needs_result)
         })
       }
       IRExprF::FLet(clauses, body) => {
@@ -193,21 +193,21 @@ impl Compiler {
         if !var.assignable {
           return Err(Error::new(ErrorF::CannotAssignTo(var.name.to_gd(*pos)), expr.pos));
         }
-        self.compile_stmt(pipeline, builder, table, &stmt_wrapper::AssignToExpr(var.expr(*pos)), expr)?;
+        self.frame(pipeline, builder, table).compile_stmt(&stmt_wrapper::AssignToExpr(var.expr(*pos)), expr)?;
         Ok(StExpr { expr: var.expr(*pos), side_effects: SideEffects::from(var.access_type) })
       }
       IRExprF::Assign(AssignTarget::InstanceField(pos, lhs, name), expr) => {
         // TODO Weirdness with setget makes this stateful flag not
         // always right? I mean, foo:bar can have side effects if bar
         // is protected by a setget.
-        let StExpr { expr: mut lhs, side_effects } = self.compile_expr(pipeline, builder, table, lhs, NeedsResult::Yes)?;
+        let StExpr { expr: mut lhs, side_effects } = self.frame(pipeline, builder, table).compile_expr(lhs, NeedsResult::Yes)?;
         // Assign to a temp if it's stateful
         if needs_result == NeedsResult::Yes && side_effects.modifies_state() {
           let var = factory::declare_var(&mut self.gen, builder, "_assign", Some(lhs), expr.pos);
           lhs = Expr::new(ExprF::Var(var), *pos);
         }
         let lhs = Expr::new(ExprF::Attribute(Box::new(lhs), names::lisp_to_gd(name)), expr.pos);
-        self.compile_stmt(pipeline, builder, table, &stmt_wrapper::AssignToExpr(lhs.clone()), expr)?;
+        self.frame(pipeline, builder, table).compile_stmt(&stmt_wrapper::AssignToExpr(lhs.clone()), expr)?;
         if needs_result == NeedsResult::Yes {
           Ok(StExpr { expr: lhs, side_effects: SideEffects::None })
         } else {
@@ -217,7 +217,7 @@ impl Compiler {
       IRExprF::Array(vec) => {
         let mut side_effects = SideEffects::None;
         let vec = vec.iter().map(|expr| {
-          let StExpr { expr: cexpr, side_effects: state } = self.compile_expr(pipeline, builder, table, expr, NeedsResult::Yes)?;
+          let StExpr { expr: cexpr, side_effects: state } = self.frame(pipeline, builder, table).compile_expr(expr, NeedsResult::Yes)?;
           side_effects = max(side_effects, state);
           Ok(cexpr)
         }).collect::<Result<Vec<_>, Error>>()?;
@@ -227,10 +227,10 @@ impl Compiler {
         let mut side_effects = SideEffects::None;
         let vec = vec.iter().map(|(k, v)| {
 
-          let StExpr { expr: kexpr, side_effects: kstate } = self.compile_expr(pipeline, builder, table, k, NeedsResult::Yes)?;
+          let StExpr { expr: kexpr, side_effects: kstate } = self.frame(pipeline, builder, table).compile_expr(k, NeedsResult::Yes)?;
           side_effects = max(side_effects, kstate);
 
-          let StExpr { expr: vexpr, side_effects: vstate } = self.compile_expr(pipeline, builder, table, v, NeedsResult::Yes)?;
+          let StExpr { expr: vexpr, side_effects: vstate } = self.frame(pipeline, builder, table).compile_expr(v, NeedsResult::Yes)?;
           side_effects = max(side_effects, vstate);
 
           Ok((kexpr, vexpr))
@@ -254,7 +254,7 @@ impl Compiler {
           }
         }
 
-        let StExpr { expr: lhs, side_effects: state } = self.compile_expr(pipeline, builder, table, lhs, NeedsResult::Yes)?;
+        let StExpr { expr: lhs, side_effects: state } = self.frame(pipeline, builder, table).compile_expr(lhs, NeedsResult::Yes)?;
         let side_effects = max(SideEffects::ReadsState, state);
         Ok(StExpr { expr: Expr::new(ExprF::Attribute(Box::new(lhs), names::lisp_to_gd(sym)), expr.pos), side_effects })
 
@@ -264,9 +264,9 @@ impl Compiler {
         // calling a method, we assume all arguments are required, we
         // perform no optimization, we do not check arity, and we
         // simply blindly forward the call on the GDScript side.
-        let lhs = self.compile_expr(pipeline, builder, table, lhs, NeedsResult::Yes)?.expr;
+        let lhs = self.frame(pipeline, builder, table).compile_expr(lhs, NeedsResult::Yes)?.expr;
         let args = args.iter()
-          .map(|arg| self.compile_expr(pipeline, builder, table, arg, NeedsResult::Yes).map(|x| x.expr))
+          .map(|arg| self.frame(pipeline, builder, table).compile_expr(arg, NeedsResult::Yes).map(|x| x.expr))
           .collect::<Result<Vec<_>, _>>()?;
         Ok(StExpr {
           expr: Expr::call(Some(lhs), &names::lisp_to_gd(sym), args, expr.pos),
@@ -280,14 +280,14 @@ impl Compiler {
         match arg {
           None => Ok(StExpr { expr: Expr::yield_expr(None, expr.pos), side_effects: SideEffects::ModifiesState }),
           Some((x, y)) => {
-            let x = self.compile_expr(pipeline, builder, table, x, NeedsResult::Yes)?.expr;
-            let y = self.compile_expr(pipeline, builder, table, y, NeedsResult::Yes)?.expr;
+            let x = self.frame(pipeline, builder, table).compile_expr(x, NeedsResult::Yes)?.expr;
+            let y = self.frame(pipeline, builder, table).compile_expr(y, NeedsResult::Yes)?.expr;
             Ok(StExpr { expr: Expr::yield_expr(Some((x, y)), expr.pos), side_effects: SideEffects::ModifiesState })
           }
         }
       }
       IRExprF::Return(expr) => {
-        self.compile_stmt(pipeline, builder, table, &stmt_wrapper::Return, expr)?;
+        self.frame(pipeline, builder, table).compile_stmt(&stmt_wrapper::Return, expr)?;
         Ok(Compiler::nil_expr(expr.pos))
       }
       /* // This will eventually be an optimization.
