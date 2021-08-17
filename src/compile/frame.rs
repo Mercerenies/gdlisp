@@ -105,13 +105,10 @@ impl<'a, 'b, 'c, 'd> CompilerFrame<'a, 'b, 'c, 'd, StmtBuilder> {
                       destination: &dyn StmtWrapper,
                       stmt: &IRExpr)
                       -> Result<(), Error> {
-    self.compiler.compile_stmt(
-      self.pipeline,
-      self.builder,
-      self.table,
-      destination,
-      stmt,
-    )
+    let needs_result = NeedsResult::from(!destination.is_vacuous());
+    let expr = self.compile_expr(stmt, needs_result)?;
+    destination.wrap_to_builder(self.builder, expr);
+    Ok(())
   }
 
   pub fn compile_expr(&mut self,

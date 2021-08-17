@@ -141,7 +141,7 @@ pub fn compile_labels_scc(compiler: &mut Compiler,
       lambda_table.set_var(arg.to_owned(), LocalVar::local(gd_arg.to_owned(), access_type));
       wrap_in_cell_if_needed(arg, gd_arg, &all_vars, &mut lambda_builder, pos);
     }
-    compiler.compile_stmt(pipeline, &mut lambda_builder, &mut lambda_table, &stmt_wrapper::Return, body)?;
+    compiler.frame(pipeline, &mut lambda_builder, &mut lambda_table).compile_stmt(&stmt_wrapper::Return, body)?;
     let lambda_body = lambda_builder.build_into(builder);
     let func_name = function_names[idx].to_owned();
     let func = decl::FnDecl {
@@ -337,7 +337,7 @@ pub fn compile_lambda_stmt(compiler: &mut Compiler,
   for (arg, gd_arg) in &gd_args {
     wrap_in_cell_if_needed(arg, gd_arg, &all_vars, &mut lambda_builder, pos);
   }
-  compiler.compile_stmt(pipeline, &mut lambda_builder, &mut lambda_table, &stmt_wrapper::Return, body)?;
+  compiler.frame(pipeline, &mut lambda_builder, &mut lambda_table).compile_stmt(&stmt_wrapper::Return, body)?;
   let lambda_body = lambda_builder.build_into(builder);
 
   let class_name = compiler.name_generator().generate_with("_LambdaBlock");

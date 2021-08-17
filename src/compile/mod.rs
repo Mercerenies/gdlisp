@@ -28,7 +28,6 @@ use crate::gdscript::library;
 use crate::gdscript::arglist::ArgList;
 use crate::gdscript::metadata::{self, MetadataCompiler};
 use error::{Error, ErrorF};
-use stmt_wrapper::StmtWrapper;
 use symbol_table::{HasSymbolTable, SymbolTable, ClassTablePair};
 use symbol_table::local_var::{LocalVar, ValueHint, VarName};
 use symbol_table::function_call;
@@ -74,20 +73,6 @@ impl Compiler {
   pub fn new(gen: FreshNameGenerator, resolver: Box<dyn PreloadResolver>) -> Compiler {
     let magic_table = library::magic::standard_magic_table();
     Compiler { gen, resolver, magic_table }
-  }
-
-  #[deprecated(note="Call from CompilerFrame instead")]
-  pub fn compile_stmt(&mut self,
-                      pipeline: &mut Pipeline,
-                      builder: &mut StmtBuilder,
-                      table: &mut SymbolTable,
-                      destination: &dyn StmtWrapper,
-                      stmt: &IRExpr)
-                      -> Result<(), Error> {
-    let needs_result = NeedsResult::from(!destination.is_vacuous());
-    let expr = self.frame(pipeline, builder, table).compile_expr(stmt, needs_result)?;
-    destination.wrap_to_builder(builder, expr);
-    Ok(())
   }
 
   #[deprecated(note="Call from CompilerFrame instead")]
@@ -800,7 +785,10 @@ mod tests {
       icompiler.bind_builtin_macros(&mut pipeline);
       icompiler.compile_expr(&mut pipeline, ast)
     }?;
-    let () = compiler.compile_stmt(&mut pipeline, &mut builder, &mut table, &mut stmt_wrapper::Return, &expr)?;
+    {
+      let mut frame = compiler.frame(&mut pipeline, &mut builder, &mut table);
+      let () = frame.compile_stmt(&mut stmt_wrapper::Return, &expr)?;
+    }
     Ok(builder.build())
   }
 

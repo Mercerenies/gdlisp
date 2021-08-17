@@ -54,7 +54,7 @@ pub fn compile_cond_stmt(compiler: &mut Compiler,
         let mut outer_builder = StmtBuilder::new();
         let mut inner_builder = StmtBuilder::new();
         let cond = compiler.compile_expr(pipeline, &mut outer_builder, table, cond, NeedsResult::Yes)?.expr;
-        compiler.compile_stmt(pipeline, &mut inner_builder, table, destination.as_ref(), body)?;
+        compiler.frame(pipeline, &mut inner_builder, table).compile_stmt(destination.as_ref(), body)?;
         let if_branch = inner_builder.build_into(builder);
         outer_builder.append(stmt::if_else(cond, if_branch, acc, pos));
         Ok(outer_builder.build_into(builder))
@@ -93,7 +93,7 @@ pub fn compile_while_stmt(compiler: &mut Compiler,
     body_builder.append(stmt::if_then(inner_cond_expr, vec!(Stmt::new(StmtF::BreakStmt, cond_expr_pos)), cond_expr_pos));
     cond_expr = Expr::new(ExprF::Literal(Literal::Bool(true)), pos);
   }
-  compiler.compile_stmt(pipeline, &mut body_builder, table, &stmt_wrapper::Vacuous, body)?;
+  compiler.frame(pipeline, &mut body_builder, table).compile_stmt(&stmt_wrapper::Vacuous, body)?;
   let body = body_builder.build_into(builder);
   builder.append(Stmt::new(StmtF::WhileLoop(stmt::WhileLoop { condition: cond_expr, body: body }), pos));
   Ok(Compiler::nil_expr(pos))
@@ -115,7 +115,7 @@ pub fn compile_for_stmt(compiler: &mut Compiler,
   let mut inner_builder = StmtBuilder::new();
   let local_var = LocalVar::local(var_name.to_owned(), *closure_vars.get(&name).unwrap_or(&AccessType::None));
   table.with_local_var(name.to_owned(), local_var, |table| {
-    compiler.compile_stmt(pipeline, &mut inner_builder, table, &stmt_wrapper::Vacuous, body)
+    compiler.frame(pipeline, &mut inner_builder, table).compile_stmt(&stmt_wrapper::Vacuous, body)
   })?;
   let body = inner_builder.build_into(builder);
   builder.append(Stmt::new(StmtF::ForLoop(stmt::ForLoop { iter_var: var_name, collection: citer, body: body }), pos));

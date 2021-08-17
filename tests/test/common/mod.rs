@@ -202,7 +202,10 @@ pub fn parse_compile_and_output_err_h(input: &str) -> Result<(String, String), P
     icompiler.bind_builtin_macros(&mut pipeline);
     icompiler.compile_expr(&mut pipeline, &value)
   }?;
-  let () = compiler.compile_stmt(&mut pipeline, &mut builder, &mut table, &mut stmt_wrapper::Return, &value)?;
+  {
+    let mut frame = compiler.frame(&mut pipeline, &mut builder, &mut table);
+    let () = frame.compile_stmt(&mut stmt_wrapper::Return, &value)?;
+  }
   let (stmts, helpers) = builder.build();
   let a = stmts.into_iter().map(|stmt| stmt.to_gd(0)).collect::<String>();
   let b = helpers.into_iter().map(|decl| decl.to_gd(0)).collect::<String>();
