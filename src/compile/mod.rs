@@ -270,9 +270,10 @@ impl Compiler {
   /// returned.
   ///
   /// Additionally, if the scope of the [`LocalVar`] is *not*
-  /// [`VarScope::Global`], then [`ErrorF::CannotExtend`] is returned.
-  /// This situation should never happen for top-level class or object
-  /// declarations, but it can occur in lambda classes.
+  /// [`VarScope::GlobalVar`](crate::compile::symbol_table::local_var::VarScope::GlobalVar),
+  /// then [`ErrorF::CannotExtend`] is returned. This situation should
+  /// never happen for top-level class or object declarations, but it
+  /// can occur in lambda classes.
   pub fn resolve_extends(table: &SymbolTable, extends: &str, pos: SourceOffset) -> Result<ClassExtends, Error> {
     let var = table.get_var(extends).ok_or_else(|| Error::new(ErrorF::NoSuchVar(extends.to_owned()), pos))?;
     if var.scope != VarScope::GlobalVar {

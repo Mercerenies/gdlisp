@@ -7,8 +7,8 @@
 //!
 //! Any local variable (including function parameters) may need to be
 //! wrapped in a cell. A variable needs to be wrapped in a cell if its
-//! [access type](gdlisp::ir::access_type::AccessType) is
-//! [`ClosedRW`](gdlisp::ir::access_type::AccessType::ClosedRW). That
+//! [access type](crate::ir::access_type::AccessType) is
+//! [`ClosedRW`](crate::ir::access_type::AccessType::ClosedRW). That
 //! is, a variable needs to be wrapped in a cell if either of the
 //! following is true.
 //!
@@ -21,7 +21,7 @@
 //!
 //! For details on the motivation for these rules and specifics on how
 //! their calculated, see the documentation for
-//! [`AccessType`](gdlisp::ir::access_type::AccessType).
+//! [`AccessType`](crate::ir::access_type::AccessType).
 //!
 //! If we decide that a cell is warranted, then the variable will be
 //! wrapped in a cell at construction time. For local variables, this
