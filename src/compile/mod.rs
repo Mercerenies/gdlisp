@@ -99,7 +99,7 @@ impl Compiler {
         self.frame(pipeline, builder, table).compile_stmts(&body[..], needs_result, expr.pos)
       }
       IRExprF::CondStmt(clauses) => {
-        special_form::compile_cond_stmt(self, pipeline, builder, table, clauses, needs_result, expr.pos)
+        special_form::compile_cond_stmt(&mut self.frame(pipeline, builder, table), clauses, needs_result, expr.pos)
       }
       IRExprF::WhileStmt(cond, body) => {
         special_form::compile_while_stmt(self, pipeline, builder, table, cond, body, needs_result, expr.pos)

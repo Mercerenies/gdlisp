@@ -15,6 +15,7 @@ use crate::compile::error::Error;
 use crate::compile::stateful::SideEffects;
 use crate::compile::names;
 use crate::compile::factory;
+use crate::compile::frame::CompilerFrame;
 use crate::gdscript::stmt::{self, Stmt, StmtF};
 use crate::gdscript::expr::{Expr, ExprF};
 use crate::gdscript::literal::Literal;
@@ -25,15 +26,12 @@ use crate::util;
 
 type IRExpr = ir::expr::Expr;
 
-pub fn compile_cond_stmt(compiler: &mut Compiler,
-                         pipeline: &mut Pipeline,
-                         builder: &mut StmtBuilder,
-                         table: &mut SymbolTable,
+pub fn compile_cond_stmt(frame: &mut CompilerFrame<StmtBuilder>,
                          clauses: &[(IRExpr, Option<IRExpr>)],
                          needs_result: NeedsResult,
                          pos: SourceOffset)
                          -> Result<StExpr, Error> {
-  let (destination, result) = needs_result.into_destination(compiler, builder, "_cond", pos);
+  let (destination, result) = needs_result.into_destination(frame.compiler, frame.builder, "_cond", pos);
   let init: Vec<Stmt> = util::option_to_vec(destination.wrap_to_stmt(Compiler::nil_expr(pos)));
   let body = clauses.iter().rev().fold(Ok(init), |acc: Result<_, Error>, curr| {
     let acc = acc?;
@@ -42,26 +40,26 @@ pub fn compile_cond_stmt(compiler: &mut Compiler,
       None => {
         let mut outer_builder = StmtBuilder::new();
         let mut inner_builder = StmtBuilder::new();
-        let cond = compiler.compile_expr(pipeline, &mut outer_builder, table, cond, NeedsResult::Yes)?.expr;
-        let var_name = factory::declare_var(compiler.name_generator(), &mut outer_builder, "_cond", Some(cond), pos);
+        let cond = frame.compiler.compile_expr(frame.pipeline, &mut outer_builder, frame.table, cond, NeedsResult::Yes)?.expr;
+        let var_name = factory::declare_var(frame.name_generator(), &mut outer_builder, "_cond", Some(cond), pos);
         let var_expr = StExpr { expr: Expr::new(ExprF::Var(var_name.clone()), pos), side_effects: SideEffects::None };
         destination.wrap_to_builder(&mut inner_builder, var_expr);
-        let if_branch = inner_builder.build_into(builder);
+        let if_branch = inner_builder.build_into(frame.builder);
         outer_builder.append(stmt::if_else(Expr::new(ExprF::Var(var_name), pos), if_branch, acc, pos));
-        Ok(outer_builder.build_into(builder))
+        Ok(outer_builder.build_into(frame.builder))
       }
       Some(body) => {
         let mut outer_builder = StmtBuilder::new();
         let mut inner_builder = StmtBuilder::new();
-        let cond = compiler.compile_expr(pipeline, &mut outer_builder, table, cond, NeedsResult::Yes)?.expr;
-        compiler.frame(pipeline, &mut inner_builder, table).compile_stmt(destination.as_ref(), body)?;
-        let if_branch = inner_builder.build_into(builder);
+        let cond = frame.compiler.compile_expr(frame.pipeline, &mut outer_builder, frame.table, cond, NeedsResult::Yes)?.expr;
+        frame.compiler.frame(frame.pipeline, &mut inner_builder, frame.table).compile_stmt(destination.as_ref(), body)?;
+        let if_branch = inner_builder.build_into(frame.builder);
         outer_builder.append(stmt::if_else(cond, if_branch, acc, pos));
-        Ok(outer_builder.build_into(builder))
+        Ok(outer_builder.build_into(frame.builder))
       }
     }
   })?;
-  builder.append_all(&mut body.into_iter());
+  frame.builder.append_all(&mut body.into_iter());
   Ok(StExpr { expr: result, side_effects: SideEffects::None })
 }
 
