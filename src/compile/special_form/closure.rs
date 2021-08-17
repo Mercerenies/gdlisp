@@ -59,13 +59,25 @@ impl ClosureData {
   /// Every variable in `self.closure_vars` and every function in
   /// `self.closure_fns` will be considered for inclusion in the
   /// result. Specifically, each variable will be looked up in `table`
-  /// and, if the result has a [`LocalVar::simple_name`], then it will
-  /// be included in the returned translation vector. Likewise, each
-  /// function is looked up in `table` and, if
+  /// and, if the result has a
+  /// [`LocalVar::simple_name`](crate::compile::symbol_table::local_var::LocalVar::simple_name),
+  /// then it will be included in the returned translation vector.
+  /// Likewise, each function is looked up in `table` and, if
   /// [`closure_fn_to_gd_var`] returns a name, then that name is added
   /// to the translation vector.
   ///
   /// `self.all_vars` is not considered during this calculation.
+  ///
+  /// This function can be used in two similar ways. By passing the
+  /// lambda symbol table as `table` to this function, the resulting
+  /// vector will contain the GDScript names used to refer to the
+  /// closure variables from *within* the closure. This is useful for
+  /// building the lambda's constructor function. By passing the
+  /// enclosing outer table as `table`, on the other hand, the
+  /// resulting vector will contain the names used to refer to the
+  /// closure variables from the scope *surrounding* the closure. This
+  /// is useful for building the expression that will *call* the
+  /// lambda's constructor function.
   ///
   /// # Panics
   ///
@@ -129,7 +141,8 @@ impl<'a, 'b> From<Function<'a, 'b>> for ClosureData {
 }
 
 /// Removes all of the variables from `vars` whose scope (according to
-/// the corresponding entry in `table`) is [`VarScope::GlobalVar`].
+/// the corresponding entry in `table`) is
+/// [`VarScope::GlobalVar`](crate::compile::symbol_table::local_var::VarScope::GlobalVar).
 ///
 /// Lambdas are lifted to the file-level scope. A variable with scope
 /// `VarScope::GlobalVar` is defined either at the file-level scope or
