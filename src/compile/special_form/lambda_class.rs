@@ -13,6 +13,7 @@ use crate::gdscript::inner_class::{self, NeedsOuterClassRef};
 use crate::pipeline::Pipeline;
 use crate::pipeline::source::SourceOffset;
 use super::lambda;
+use super::closure;
 
 pub fn compile_lambda_class(compiler: &mut Compiler,
                             pipeline: &mut Pipeline,
@@ -37,7 +38,7 @@ pub fn compile_lambda_class(compiler: &mut Compiler,
   }
   closure_vars.remove("self"); // Don't close around self; we get a new self.
 
-  lambda::purge_globals(&mut closure_vars, table);
+  closure::purge_globals(&mut closure_vars, table);
 
   let mut lambda_table = SymbolTable::new();
   lambda_table.set_var(String::from("self"), LocalVar::self_var());

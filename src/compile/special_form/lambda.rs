@@ -22,27 +22,12 @@ use crate::pipeline::Pipeline;
 use crate::pipeline::can_load::CanLoad;
 use crate::pipeline::source::SourceOffset;
 use super::lambda_vararg::generate_lambda_class;
+use super::closure::{purge_globals, ClosureData, Function};
 
 use std::borrow::Borrow;
 
 type IRExpr = ir::expr::Expr;
 type IRArgList = ir::arglist::ArgList;
-
-/// Removes all of the variables from `vars` whose scope (according to
-/// the corresponding entry in `table`) is [`VarScope::GlobalVar`].
-///
-/// Lambdas are lifted to the file-level scope. A variable with scope
-/// `VarScope::GlobalVar` is defined either at the file-level scope or
-/// as a superglobal. In either case, the lambda will still have a
-/// reference to the variable without any help, so we don't need to
-/// close around those variables. This function removes from `vars`
-/// the variables which it is unnecessary to explicitly create
-/// closures around.
-pub fn purge_globals(vars: &mut Locals, table: &SymbolTable) {
-  vars.retain(|var, _| {
-    table.get_var(var).map_or(true, |v| v.scope != VarScope::GlobalVar)
-  });
-}
 
 pub fn compile_labels_scc(compiler: &mut Compiler,
                           pipeline: &mut Pipeline,
@@ -281,34 +266,32 @@ pub fn compile_lambda_stmt(compiler: &mut Compiler,
   let (arglist, gd_args) = args.clone().into_gd_arglist(&mut compiler.name_generator());
 
   let mut lambda_builder = StmtBuilder::new();
-  let (all_vars, closure_fns) = body.get_names();
-  let mut closure_vars = all_vars.clone();
-  for arg in &gd_args {
-    closure_vars.remove(&arg.0);
-  }
+  let mut closure = ClosureData::from(Function::new(args, body));
+
+  // No need to close around global variables, as they're available everywhere
+  closure.purge_globals(table);
 
   let mut lambda_table = SymbolTable::new();
+
+  // Bind the arguments to the lambda in the new lambda table
   for arg in &gd_args {
-    let access_type = *all_vars.get(&arg.0).unwrap_or(&AccessType::None);
+    let access_type = *closure.all_vars.get(&arg.0).unwrap_or(&AccessType::None);
     lambda_table.set_var(arg.0.to_owned(), LocalVar::local(arg.1.to_owned(), access_type));
   }
 
   let mut outer_ref_name = String::new();
-  let needs_outer_ref = closure_fns.needs_outer_class_ref(table);
+  let needs_outer_ref = closure.closure_fns.needs_outer_class_ref(table);
   if needs_outer_ref {
     outer_ref_name = compiler.name_generator().generate_with(inner_class::OUTER_REFERENCE_NAME);
   }
 
-  // No need to close around global variables, as they're available everywhere
-  purge_globals(&mut closure_vars, table);
-
-  locally_bind_vars(compiler, table, &mut lambda_table, closure_vars.names(), pos)?;
-  locally_bind_fns(compiler, pipeline, table, &mut lambda_table, closure_fns.names(), pos, false, &outer_ref_name)?;
+  locally_bind_vars(compiler, table, &mut lambda_table, closure.closure_vars.names(), pos)?;
+  locally_bind_fns(compiler, pipeline, table, &mut lambda_table, closure.closure_fns.names(), pos, false, &outer_ref_name)?;
   copy_global_vars(table, &mut lambda_table);
 
   let mut gd_src_closure_vars = Vec::new();
   let mut gd_closure_vars = Vec::new();
-  for ast_name in closure_vars.names() {
+  for ast_name in closure.closure_vars.names() {
     let var = lambda_table.get_var(&ast_name).unwrap_or_else(|| {
       panic!("Internal error compiling lambda variable {}", ast_name)
     }).to_owned();
@@ -322,7 +305,7 @@ pub fn compile_lambda_stmt(compiler: &mut Compiler,
       gd_src_closure_vars.push(name.to_owned());
     }
   }
-  for func in closure_fns.names() {
+  for func in closure.closure_fns.names() {
     match table.get_fn(func) {
       None => { return Err(Error::new(ErrorF::NoSuchFn(func.to_owned()), pos)) }
       Some((call, _)) => {
@@ -335,7 +318,7 @@ pub fn compile_lambda_stmt(compiler: &mut Compiler,
   }
 
   for (arg, gd_arg) in &gd_args {
-    wrap_in_cell_if_needed(arg, gd_arg, &all_vars, &mut lambda_builder, pos);
+    wrap_in_cell_if_needed(arg, gd_arg, &closure.all_vars, &mut lambda_builder, pos);
   }
   compiler.frame(pipeline, &mut lambda_builder, &mut lambda_table).compile_stmt(&stmt_wrapper::Return, body)?;
   let lambda_body = lambda_builder.build_into(builder);
