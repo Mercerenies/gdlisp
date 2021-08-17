@@ -28,7 +28,7 @@ type IRExpr = ir::expr::Expr;
 /// always mutably borrows every field. The type parameter `B` is the
 /// type of the builder. This structure can be used in declaration
 /// context
-/// ([`CodeBuilder`](crate::compile::body::builder::CodeBuilder) or in
+/// ([`CodeBuilder`](crate::compile::body::builder::CodeBuilder)) or in
 /// statement context
 /// ([`StmtBuilder`](crate::compile::body::builder::StmtBuilder)), and
 /// the type of the builder determines which functionality is
