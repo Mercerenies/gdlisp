@@ -7,15 +7,13 @@ use crate::compile::Compiler;
 use crate::compile::stateful::{SideEffects, StExpr, NeedsResult};
 use crate::compile::body::builder::StmtBuilder;
 use crate::compile::symbol_table::{SymbolTable, ClassTablePair};
-use crate::compile::symbol_table::local_var::{VarScope, LocalVar};
+use crate::compile::symbol_table::local_var::LocalVar;
 use crate::gdscript::expr::{Expr, ExprF};
 use crate::gdscript::decl::{self, Decl, DeclF};
 use crate::gdscript::inner_class::{self, NeedsOuterClassRef};
 use crate::pipeline::Pipeline;
 use crate::pipeline::source::SourceOffset;
 use super::lambda;
-
-use std::convert::TryFrom;
 
 pub fn compile_lambda_class(compiler: &mut Compiler,
                             pipeline: &mut Pipeline,
@@ -27,12 +25,7 @@ pub fn compile_lambda_class(compiler: &mut Compiler,
   let LambdaClass { extends, args: constructor_args, constructor, decls } = class.clone();
 
   // Validate the extends declaration (must be a global variable)
-  let extends_var = table.get_var(&extends).ok_or_else(|| Error::new(ErrorF::NoSuchVar(extends.clone()), pos))?;
-  if extends_var.scope != VarScope::GlobalVar {
-    return Err(Error::new(ErrorF::CannotExtend(extends.clone()), pos));
-  }
-  let extends = extends_var.name.clone();
-  let extends = decl::ClassExtends::try_from(extends).map_err(|x| Error::from_value(x, pos))?;
+  let extends = Compiler::resolve_extends(table, &extends, pos)?;
 
   // New GD name
   let gd_class_name = compiler.name_generator().generate_with("_AnonymousClass");
@@ -45,6 +38,8 @@ pub fn compile_lambda_class(compiler: &mut Compiler,
   }
   closure_vars.remove("self"); // Don't close around self; we get a new self.
 
+  lambda::purge_globals(&mut closure_vars, table);
+
   let mut lambda_table = SymbolTable::new();
 
   let mut lambda_static_table = lambda_table.clone();
@@ -55,8 +50,6 @@ pub fn compile_lambda_class(compiler: &mut Compiler,
   if needs_outer_ref {
     outer_ref_name = compiler.name_generator().generate_with(inner_class::OUTER_REFERENCE_NAME);
   }
-
-  lambda::purge_globals(&mut closure_vars, table);
 
   lambda::locally_bind_vars(compiler, table, &mut lambda_table, closure_vars.names(), pos)?;
   lambda::locally_bind_fns(compiler, pipeline, table, &mut lambda_table, closure_fns.names(), pos, false, &outer_ref_name)?;

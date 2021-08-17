@@ -28,7 +28,7 @@ use crate::gdscript::arglist::ArgList;
 use crate::gdscript::metadata::{self, MetadataCompiler};
 use error::{Error, ErrorF};
 use symbol_table::{SymbolTable, ClassTablePair};
-use symbol_table::local_var::{LocalVar, ValueHint, VarName};
+use symbol_table::local_var::{LocalVar, ValueHint, VarName, VarScope};
 use symbol_table::function_call;
 use symbol_table::call_magic::{CallMagic, DefaultCall};
 use symbol_table::call_magic::table::MagicTable;
@@ -259,8 +259,25 @@ impl Compiler {
     }
   }
 
-  fn resolve_extends(table: &SymbolTable, extends: &str, pos: SourceOffset) -> Result<ClassExtends, Error> {
+  /// Given the (simple) name of an `extends` clause for a class or
+  /// singleton object, resolve that name (using the symbol table)
+  /// into a [`ClassExtends`].
+  ///
+  /// The name `extends` is looked up in the symbol table `table`.
+  /// Then the resulting variable's GDScript [`LocalVar`] is converted
+  /// into a [`ClassExtends`] via [`TryFrom::try_from`]. If either the
+  /// lookup or the conversion fails, then the appropriate error is
+  /// returned.
+  ///
+  /// Additionally, if the scope of the [`LocalVar`] is *not*
+  /// [`VarScope::Global`], then [`ErrorF::CannotExtend`] is returned.
+  /// This situation should never happen for top-level class or object
+  /// declarations, but it can occur in lambda classes.
+  pub fn resolve_extends(table: &SymbolTable, extends: &str, pos: SourceOffset) -> Result<ClassExtends, Error> {
     let var = table.get_var(extends).ok_or_else(|| Error::new(ErrorF::NoSuchVar(extends.to_owned()), pos))?;
+    if var.scope != VarScope::GlobalVar {
+      return Err(Error::new(ErrorF::CannotExtend(extends.to_owned()), pos));
+    }
     let var_name = var.name.clone();
     ClassExtends::try_from(var_name).map_err(|x| Error::from_value(x, pos))
   }
