@@ -131,7 +131,7 @@ pub fn compile_lambda_class(compiler: &mut Compiler,
 
   builder.add_helper(Decl::new(DeclF::ClassDecl(class), pos));
 
-  let constructor_args = constructor_args.iter().map(|expr| compiler.compile_expr(pipeline, builder, table, expr, NeedsResult::Yes).map(|x| x.expr)).collect::<Result<Vec<_>, _>>()?;
+  let constructor_args = constructor_args.iter().map(|expr| compiler.frame(pipeline, builder, table).compile_expr(expr, NeedsResult::Yes).map(|x| x.expr)).collect::<Result<Vec<_>, _>>()?;
   let constructor_args: Vec<_> = gd_src_closure_vars.into_iter().map(|x| Expr::new(ExprF::Var(x), pos)).chain(constructor_args.into_iter()).collect();
   let expr = Expr::call(Some(Expr::new(ExprF::Var(gd_class_name), pos)), "new", constructor_args, pos);
   Ok(StExpr { expr, side_effects: SideEffects::None })

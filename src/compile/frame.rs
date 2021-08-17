@@ -2,11 +2,16 @@
 //! A compiler frame contains a [`Compiler`], as well as information
 //! about the current stack frame data.
 
-#![allow(deprecated)]
-
 use super::Compiler;
+use super::factory;
+use super::special_form;
+use super::names;
+use super::special_form::lambda;
+use super::special_form::flet;
+use super::special_form::lambda_class;
 use super::preload_resolver::PreloadResolver;
 use super::symbol_table::{SymbolTable, HasSymbolTable};
+use super::symbol_table::local_var::{LocalVar, ValueHint};
 use super::names::fresh::FreshNameGenerator;
 use super::error::{Error, ErrorF};
 use super::stateful::{StExpr, NeedsResult, SideEffects};
@@ -15,10 +20,17 @@ use super::stmt_wrapper::{self, StmtWrapper};
 use crate::pipeline::Pipeline;
 use crate::pipeline::source::SourceOffset;
 use crate::ir;
-use crate::gdscript::expr::Expr;
+use crate::ir::access_type::AccessType;
+use crate::ir::expr::{FuncRefTarget, AssignTarget};
+use crate::gdscript::expr::{Expr, ExprF};
 use crate::gdscript::stmt::Stmt;
+use crate::gdscript::library;
+use crate::sxp::reify::Reify;
+
+use std::cmp::max;
 
 type IRExpr = ir::expr::Expr;
+type IRExprF = ir::expr::ExprF;
 
 /// A `CompilerFrame` contains references to all of the pertinent
 /// information about a particular frame (hence, scope) of a GDScript
@@ -242,13 +254,184 @@ impl<'a, 'b, 'c, 'd> CompilerFrame<'a, 'b, 'c, 'd, StmtBuilder> {
                       expr: &IRExpr,
                       needs_result: NeedsResult)
                       -> Result<StExpr, Error> {
-    self.compiler.compile_expr(
-      self.pipeline,
-      self.builder,
-      self.table,
-      expr,
-      needs_result,
-    )
+    // TODO I made a mess of this when converting to IR. Separate this
+    // into many helper functions, probably over multiple files.
+    match &expr.value {
+      IRExprF::LocalVar(s) => {
+        self.table.get_var(s).ok_or_else(|| Error::new(ErrorF::NoSuchVar(s.clone()), expr.pos)).map(|var| {
+          StExpr { expr: var.expr(expr.pos), side_effects: SideEffects::from(var.access_type) }
+        })
+      }
+      IRExprF::Literal(lit) => {
+        let lit = factory::compile_literal(lit, expr.pos);
+        Ok(StExpr { expr: lit, side_effects: SideEffects::None })
+      }
+      IRExprF::Progn(body) => {
+        let body: Vec<_> = body.iter().collect();
+        self.compile_stmts(&body[..], needs_result, expr.pos)
+      }
+      IRExprF::CondStmt(clauses) => {
+        special_form::compile_cond_stmt(self, clauses, needs_result, expr.pos)
+      }
+      IRExprF::WhileStmt(cond, body) => {
+        special_form::compile_while_stmt(self, cond, body, needs_result, expr.pos)
+      }
+      IRExprF::ForStmt(name, iter, body) => {
+        special_form::compile_for_stmt(self, &*name, iter, body, needs_result, expr.pos)
+      }
+      IRExprF::Call(f, args) => {
+        self.compile_function_call(f, args, expr.pos)
+      }
+      IRExprF::Let(clauses, body) => {
+        let closure_vars = body.get_locals();
+        let var_names = clauses.iter().map::<Result<(String, String), Error>, _>(|clause| {
+          let (ast_name, expr) = clause;
+          let ast_name = ast_name.to_owned();
+          let result_value = self.compile_expr(&expr, NeedsResult::Yes)?.expr;
+          let result_value =
+            if closure_vars.get(&ast_name).unwrap_or(&AccessType::None).requires_cell() {
+              library::cell::construct_cell(result_value)
+            } else {
+              result_value
+            };
+          let gd_name = factory::declare_var(&mut self.compiler.name_generator(), self.builder, &names::lisp_to_gd(&ast_name), Some(result_value), clause.1.pos);
+          Ok((ast_name, gd_name))
+        }).collect::<Result<Vec<_>, _>>()?;
+        self.with_local_vars(&mut var_names.into_iter().map(|x| (x.0.clone(), LocalVar::local(x.1, *closure_vars.get(&x.0).unwrap_or(&AccessType::None)))), |frame| {
+          frame.compile_expr(body, needs_result)
+        })
+      }
+      IRExprF::FLet(clauses, body) => {
+        flet::compile_flet(self.compiler, self.pipeline, self.builder, self.table, clauses, body, needs_result, expr.pos)
+      }
+      IRExprF::Labels(clauses, body) => {
+        flet::compile_labels(self.compiler, self.pipeline, self.builder, self.table, clauses, body, needs_result, expr.pos)
+      }
+      IRExprF::Lambda(args, body) => {
+        lambda::compile_lambda_stmt(self.compiler, self.pipeline, self.builder, self.table, args, body, expr.pos)
+      }
+      IRExprF::FuncRef(name) => {
+        match name {
+          FuncRefTarget::SimpleName(name) => {
+            let func = self.table.get_fn(name).ok_or_else(|| Error::new(ErrorF::NoSuchFn(name.clone()), expr.pos))?.0.clone();
+            lambda::compile_function_ref(self.compiler, self.pipeline, self.builder, self.table, func, expr.pos)
+          }
+        }
+      }
+      IRExprF::Assign(AssignTarget::Variable(pos, name), expr) => {
+        let var = self.table.get_var(name).ok_or_else(|| Error::new(ErrorF::NoSuchVar(name.clone()), *pos))?.to_owned();
+        if !var.assignable {
+          return Err(Error::new(ErrorF::CannotAssignTo(var.name.to_gd(*pos)), expr.pos));
+        }
+        self.compile_stmt(&stmt_wrapper::AssignToExpr(var.expr(*pos)), expr)?;
+        Ok(StExpr { expr: var.expr(*pos), side_effects: SideEffects::from(var.access_type) })
+      }
+      IRExprF::Assign(AssignTarget::InstanceField(pos, lhs, name), expr) => {
+        // TODO Weirdness with setget makes this stateful flag not
+        // always right? I mean, foo:bar can have side effects if bar
+        // is protected by a setget.
+        let StExpr { expr: mut lhs, side_effects } = self.compile_expr(lhs, NeedsResult::Yes)?;
+        // Assign to a temp if it's stateful
+        if needs_result == NeedsResult::Yes && side_effects.modifies_state() {
+          let var = factory::declare_var(self.compiler.name_generator(), self.builder, "_assign", Some(lhs), expr.pos);
+          lhs = Expr::new(ExprF::Var(var), *pos);
+        }
+        let lhs = Expr::new(ExprF::Attribute(Box::new(lhs), names::lisp_to_gd(name)), expr.pos);
+        self.compile_stmt(&stmt_wrapper::AssignToExpr(lhs.clone()), expr)?;
+        if needs_result == NeedsResult::Yes {
+          Ok(StExpr { expr: lhs, side_effects: SideEffects::None })
+        } else {
+          Ok(Compiler::nil_expr(expr.pos))
+        }
+      }
+      IRExprF::Array(vec) => {
+        let mut side_effects = SideEffects::None;
+        let vec = vec.iter().map(|expr| {
+          let StExpr { expr: cexpr, side_effects: state } = self.compile_expr(expr, NeedsResult::Yes)?;
+          side_effects = max(side_effects, state);
+          Ok(cexpr)
+        }).collect::<Result<Vec<_>, Error>>()?;
+        Ok(StExpr { expr: Expr::new(ExprF::ArrayLit(vec), expr.pos), side_effects })
+      }
+      IRExprF::Dictionary(vec) => {
+        let mut side_effects = SideEffects::None;
+        let vec = vec.iter().map(|(k, v)| {
+
+          let StExpr { expr: kexpr, side_effects: kstate } = self.compile_expr(k, NeedsResult::Yes)?;
+          side_effects = max(side_effects, kstate);
+
+          let StExpr { expr: vexpr, side_effects: vstate } = self.compile_expr(v, NeedsResult::Yes)?;
+          side_effects = max(side_effects, vstate);
+
+          Ok((kexpr, vexpr))
+        }).collect::<Result<Vec<_>, Error>>()?;
+        Ok(StExpr { expr: Expr::new(ExprF::DictionaryLit(vec), expr.pos), side_effects })
+      }
+      IRExprF::Quote(ast) => {
+        Ok(StExpr { expr: ast.reify(), side_effects: SideEffects::None })
+      }
+      IRExprF::FieldAccess(lhs, sym) => {
+
+        // This is a special case to validate enum names, as an extra sanity check.
+        if let IRExprF::LocalVar(lhs) = &lhs.value {
+          if let Some(LocalVar { value_hint, .. }) = self.table.get_var(lhs) {
+            if let Some(ValueHint::Enum(vs)) = value_hint {
+              // It's an enum and we know its values; validate
+              if !vs.contains(&names::lisp_to_gd(sym)) {
+                return Err(Error::new(ErrorF::NoSuchEnumValue(lhs.clone(), sym.clone()), expr.pos));
+              }
+            }
+          }
+        }
+
+        let StExpr { expr: lhs, side_effects: state } = self.compile_expr(lhs, NeedsResult::Yes)?;
+        let side_effects = max(SideEffects::ReadsState, state);
+        Ok(StExpr { expr: Expr::new(ExprF::Attribute(Box::new(lhs), names::lisp_to_gd(sym)), expr.pos), side_effects })
+
+      }
+      IRExprF::MethodCall(lhs, sym, args) => {
+        // Note: No call magic, no optional/rest arguments. When
+        // calling a method, we assume all arguments are required, we
+        // perform no optimization, we do not check arity, and we
+        // simply blindly forward the call on the GDScript side.
+        let lhs = self.compile_expr(lhs, NeedsResult::Yes)?.expr;
+        let args = args.iter()
+          .map(|arg| self.compile_expr(arg, NeedsResult::Yes).map(|x| x.expr))
+          .collect::<Result<Vec<_>, _>>()?;
+        Ok(StExpr {
+          expr: Expr::call(Some(lhs), &names::lisp_to_gd(sym), args, expr.pos),
+          side_effects: SideEffects::ModifiesState
+        })
+      }
+      IRExprF::LambdaClass(cls) => {
+        lambda_class::compile_lambda_class(self.compiler, self.pipeline, self.builder, self.table, cls, expr.pos)
+      }
+      IRExprF::Yield(arg) => {
+        match arg {
+          None => Ok(StExpr { expr: Expr::yield_expr(None, expr.pos), side_effects: SideEffects::ModifiesState }),
+          Some((x, y)) => {
+            let x = self.compile_expr(x, NeedsResult::Yes)?.expr;
+            let y = self.compile_expr(y, NeedsResult::Yes)?.expr;
+            Ok(StExpr { expr: Expr::yield_expr(Some((x, y)), expr.pos), side_effects: SideEffects::ModifiesState })
+          }
+        }
+      }
+      IRExprF::Return(expr) => {
+        self.compile_stmt(&stmt_wrapper::Return, expr)?;
+        Ok(Compiler::nil_expr(expr.pos))
+      }
+      /* // This will eventually be an optimization.
+      IRExprF::Funcall(f, args) => {
+        let func_expr = self.compile_expr(builder, table, f, NeedsResult::Yes)?.0;
+        let args_expr = args.iter().map(|arg| {
+        self.compile_expr(builder, table, arg, NeedsResult::Yes).map(|x| x.0)
+      }).collect::<Result<Vec<_>, _>>()?;
+        let fn_name = String::from("call_func");
+        let expr = Expr::Call(Some(Box::new(func_expr)), fn_name, args_expr);
+        Ok(StExpr(expr, true))
+      }
+       */
+    }
   }
 
   /// Compiles a function call, given the name of the function and its

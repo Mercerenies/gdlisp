@@ -36,7 +36,7 @@ pub fn compile_flet(compiler: &mut Compiler,
     Ok((name.to_owned(), call))
   }).collect::<Result<Vec<_>, Error>>()?;
   table.with_local_fns(&mut local_fns.into_iter(), |table| {
-    compiler.compile_expr(pipeline, builder, table, body, needs_result)
+    compiler.frame(pipeline, builder, table).compile_expr(body, needs_result)
   })
 }
 
@@ -153,7 +153,7 @@ fn compile_labels_rec<'b>(compiler: &mut Compiler,
       }
     }
   } else {
-    compiler.compile_expr(pipeline, builder, table, body, needs_result)
+    compiler.frame(pipeline, builder, table).compile_expr(body, needs_result)
   }
 }
 
