@@ -58,7 +58,6 @@ type IRDeclF = ir::decl::DeclF;
 type IRExpr = ir::expr::Expr;
 type IRExprF = ir::expr::ExprF;
 type IRArgList = ir::arglist::ArgList;
-type IRLiteral = ir::literal::Literal;
 
 pub struct Compiler {
   gen: FreshNameGenerator,
@@ -92,18 +91,8 @@ impl Compiler {
         })
       }
       IRExprF::Literal(lit) => {
-        match lit {
-          IRLiteral::Nil => Ok(Compiler::nil_expr(expr.pos)),
-          IRLiteral::Int(n) => Ok(StExpr { expr: Expr::from_value(*n, expr.pos), side_effects: SideEffects::None }),
-          IRLiteral::Float(f) => Ok(StExpr { expr: Expr::from_value(*f, expr.pos), side_effects: SideEffects::None }),
-          IRLiteral::Bool(b) => Ok(StExpr { expr: Expr::from_value(*b, expr.pos), side_effects: SideEffects::None }),
-          IRLiteral::String(s) => Ok(StExpr { expr: Expr::from_value(s.to_owned(), expr.pos), side_effects: SideEffects::None }),
-          IRLiteral::Symbol(s) =>
-            Ok(StExpr {
-              expr: Expr::call(Some(library::gdlisp_root(expr.pos)), "intern", vec!(Expr::from_value(s.to_owned(), expr.pos)), expr.pos),
-              side_effects: SideEffects::None,
-            }),
-        }
+        let lit = factory::compile_literal(lit, expr.pos);
+        Ok(StExpr { expr: lit, side_effects: SideEffects::None })
       }
       IRExprF::Progn(body) => {
         let body: Vec<_> = body.iter().collect();

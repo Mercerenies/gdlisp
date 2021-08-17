@@ -18,6 +18,7 @@ use crate::pipeline::source::SourceOffset;
 use crate::ir;
 use crate::ir::access_type::AccessType;
 
+type IRLiteral = ir::literal::Literal;
 type IRExpr = ir::expr::Expr;
 type IRArgList = ir::arglist::ArgList;
 
@@ -152,4 +153,15 @@ pub fn declare_constructor(frame: &mut CompilerFrame<impl HasDecls>,
                    IRArgList::from(constructor.args.clone()),
                    &constructor.body,
                    &stmt_wrapper::Vacuous)
+}
+
+pub fn compile_literal(literal: &IRLiteral, pos: SourceOffset) -> Expr {
+  match literal {
+    IRLiteral::Nil => Expr::null(pos),
+    IRLiteral::Int(n) => Expr::from_value(*n, pos),
+    IRLiteral::Float(f) => Expr::from_value(*f, pos),
+    IRLiteral::Bool(b) => Expr::from_value(*b, pos),
+    IRLiteral::String(s) => Expr::from_value(s.to_owned(), pos),
+    IRLiteral::Symbol(s) => Expr::call(Some(library::gdlisp_root(pos)), "intern", vec!(Expr::from_value(s.to_owned(), pos)), pos),
+  }
 }
