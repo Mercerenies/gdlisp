@@ -118,7 +118,7 @@ impl Compiler {
           let result_value = self.frame(pipeline, builder, table).compile_expr(&expr, NeedsResult::Yes)?.expr;
           let result_value =
             if closure_vars.get(&ast_name).unwrap_or(&AccessType::None).requires_cell() {
-              library::construct_cell(result_value)
+              library::cell::construct_cell(result_value)
             } else {
               result_value
             };

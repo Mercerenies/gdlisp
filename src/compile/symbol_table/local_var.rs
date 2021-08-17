@@ -6,7 +6,7 @@ use crate::ir::access_type::AccessType;
 use crate::gdscript::expr::{Expr, ExprF};
 use crate::gdscript::decl;
 use crate::gdscript::literal::Literal;
-use crate::gdscript::library::CELL_CONTENTS;
+use crate::gdscript::library::cell::CELL_CONTENTS;
 use crate::pipeline::source::SourceOffset;
 
 use std::borrow::ToOwned;

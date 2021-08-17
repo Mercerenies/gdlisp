@@ -67,7 +67,7 @@ pub fn declare_function(frame: &mut CompilerFrame<impl HasDecls>,
     for arg in &gd_args {
       if local_vars.get(&arg.0).unwrap_or(&AccessType::None).requires_cell() {
         // Special behavior to wrap the argument in a cell.
-        wrap_var_in_cell(&mut stmt_builder, &arg.1, body.pos)
+        library::cell::wrap_var_in_cell(&mut stmt_builder, &arg.1, body.pos)
       }
     }
     frame.with_local_vars(&mut gd_args.into_iter().map(|x| (x.0.to_owned(), LocalVar::local(x.1, *local_vars.get(&x.0).unwrap_or(&AccessType::None)))), |frame| {
@@ -80,11 +80,6 @@ pub fn declare_function(frame: &mut CompilerFrame<impl HasDecls>,
       args: arglist,
       body: stmt_builder.build_into(frame.builder),
     })
-}
-
-fn wrap_var_in_cell(stmt_builder: &mut StmtBuilder, arg: &str, pos: SourceOffset) {
-  let var = Expr::var(arg, pos);
-  stmt_builder.append(Stmt::simple_assign(var.clone(), library::construct_cell(var), pos));
 }
 
 // TODO Use CompilerFrame

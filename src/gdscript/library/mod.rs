@@ -9,6 +9,7 @@
 pub mod classes;
 pub mod keys;
 pub mod magic;
+pub mod cell;
 
 use super::expr::{Expr, ExprF};
 use crate::compile::Compiler;
@@ -31,9 +32,6 @@ use std::sync::Once;
 
 /// The name of the top-level GDLisp singleton object.
 pub const GDLISP_NAME: &str = "GDLisp";
-
-/// The name of the sole field in the `Cell` class.
-pub const CELL_CONTENTS: &str = "contents";
 
 /// The name of a GDScript constructor.
 pub const CONSTRUCTOR_NAME: &str = "_init";
@@ -58,24 +56,12 @@ pub fn symbol_class(pos: SourceOffset) -> Expr {
   on_gdlisp_root(String::from("Symbol"), pos)
 }
 
-/// An expression representing the GDLisp `Cell` class.
-pub fn cell_class(pos: SourceOffset) -> Expr {
-  on_gdlisp_root(String::from("Cell"), pos)
-}
-
 /// Given a vector of expressions `vec`, produce an expression which
 /// produces a GDLisp list containing those expressions in order.
 pub fn construct_list(vec: Vec<Expr>, pos: SourceOffset) -> Expr {
   vec.into_iter().rev().fold(Expr::null(pos), |rest, first| {
     Expr::call(Some(cons_class(pos)), "new", vec!(first, rest), pos)
   })
-}
-
-/// Given a GDLisp expression, produce an expression which constructs
-/// a cell containing it.
-pub fn construct_cell(expr: Expr) -> Expr {
-  let pos = expr.pos;
-  Expr::call(Some(cell_class(pos)), "new", vec!(expr), pos)
 }
 
 /// An appropriate [`ProjectConfig`] for the `GDLisp.gd` source file.
