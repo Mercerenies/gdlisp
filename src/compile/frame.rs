@@ -9,7 +9,7 @@ use super::preload_resolver::PreloadResolver;
 use super::symbol_table::{SymbolTable, HasSymbolTable};
 use super::names::fresh::FreshNameGenerator;
 use super::error::{Error, ErrorF};
-use super::stateful::{StExpr, NeedsResult};
+use super::stateful::{StExpr, NeedsResult, SideEffects};
 use super::body::builder::{StmtBuilder, HasDecls};
 use super::stmt_wrapper::{self, StmtWrapper};
 use crate::pipeline::Pipeline;
@@ -249,6 +249,32 @@ impl<'a, 'b, 'c, 'd> CompilerFrame<'a, 'b, 'c, 'd, StmtBuilder> {
       expr,
       needs_result,
     )
+  }
+
+  /// Compiles a function call, given the name of the function and its
+  /// argument list.
+  pub fn compile_function_call(&mut self,
+                               name: &str,
+                               args: &[IRExpr],
+                               pos: SourceOffset)
+                               -> Result<StExpr, Error> {
+    let (fcall, call_magic) = match self.table.get_fn(name) {
+      None => return Err(Error::new(ErrorF::NoSuchFn(name.to_owned()), pos)),
+      Some((p, m)) => (p.clone(), dyn_clone::clone_box(m))
+    };
+    // Macro calls should not occur at this stage in compilation.
+    if fcall.is_macro {
+      return Err(Error::new(ErrorF::MacroBeforeDefinitionError(name.to_owned()), pos));
+    }
+    // Call magic is used to implement some commonly used wrappers
+    // for simple GDScript operations.
+    let args = args.iter()
+      .map(|x| self.compile_expr(x, NeedsResult::Yes))
+      .collect::<Result<Vec<_>, _>>()?;
+    Ok(StExpr {
+      expr: fcall.into_expr_with_magic(&*call_magic, self.compiler, self.builder, self.table, args, pos)?,
+      side_effects: SideEffects::ModifiesState,
+    })
   }
 
 }

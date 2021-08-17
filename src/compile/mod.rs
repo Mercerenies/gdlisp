@@ -108,23 +108,7 @@ impl Compiler {
         special_form::compile_for_stmt(&mut self.frame(pipeline, builder, table), &*name, iter, body, needs_result, expr.pos)
       }
       IRExprF::Call(f, args) => {
-        let (fcall, call_magic) = match table.get_fn(f) {
-          None => return Err(Error::new(ErrorF::NoSuchFn(f.clone()), expr.pos)),
-          Some((p, m)) => (p.clone(), dyn_clone::clone_box(m))
-        };
-        // Macro calls should not occur at this stage in compilation.
-        if fcall.is_macro {
-          return Err(Error::new(ErrorF::MacroBeforeDefinitionError(f.clone()), expr.pos));
-        }
-        // Call magic is used to implement some commonly used wrappers
-        // for simple GDScript operations.
-        let args = args.iter()
-                       .map(|x| self.frame(pipeline, builder, table).compile_expr(x, NeedsResult::Yes))
-                       .collect::<Result<Vec<_>, _>>()?;
-        Ok(StExpr {
-          expr: fcall.into_expr_with_magic(&*call_magic, self, builder, table, args, expr.pos)?,
-          side_effects: SideEffects::ModifiesState
-        })
+        self.frame(pipeline, builder, table).compile_function_call(f, args, expr.pos)
       }
       IRExprF::Let(clauses, body) => {
         let closure_vars = body.get_locals();
