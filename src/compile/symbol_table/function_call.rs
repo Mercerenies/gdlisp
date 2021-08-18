@@ -385,6 +385,18 @@ impl FnName {
     }
   }
 
+  /// As [`update_for_inner_scope`](FnName::update_for_inner_scope),
+  /// but takes ownership of `self` and returns the modified `FnName`.
+  pub fn into_inner_scope(mut self,
+                          static_binding: bool,
+                          resolver: &(impl PreloadResolver + ?Sized),
+                          loader: &impl CanLoad,
+                          outer_ref_name: &str)
+                          -> Self {
+    self.update_for_inner_scope(static_binding, resolver, loader, outer_ref_name);
+    self
+  }
+
   /// **Note:** An `Option` here does NOT denote failure to convert.
   /// `FnName` can be converted to an `Option<Expr>`, in the sense
   /// that "there is no expression here" is a completely valid result
