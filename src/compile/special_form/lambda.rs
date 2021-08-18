@@ -246,6 +246,23 @@ pub fn copy_global_vars(src_table: &SymbolTable, dest_table: &mut SymbolTable) {
   }
 }
 
+/// Compiles a call to a lambda class constructor, where the lambda
+/// class has name `class_name`. The closure variables are givne by
+/// `gd_src_closure_vars`, and the resulting expression will be given
+/// source offset `pos`.
+///
+/// Despite technically being a method call, lambda constructors are
+/// never stateful, so `side_effects` on the result will always be
+/// [`SideEffects::None`].
+pub fn make_constructor_call(class_name: String,
+                             gd_src_closure_vars: impl IntoIterator<Item=String>,
+                             pos: SourceOffset)
+                             -> StExpr {
+  let constructor_args = gd_src_closure_vars.into_iter().map(|x| Expr::new(ExprF::Var(x), pos)).collect();
+  let expr = Expr::call(Some(Expr::new(ExprF::Var(class_name), pos)), "new", constructor_args, pos);
+  StExpr { expr, side_effects: SideEffects::None }
+}
+
 pub fn closure_fn_to_gd_var(call: &FnCall) -> Option<String> {
   call.scope.local_name().map(str::to_owned)
 }
@@ -268,56 +285,65 @@ pub fn compile_lambda_stmt(compiler: &mut Compiler,
                            -> Result<StExpr, Error> {
   let (arglist, gd_args) = args.clone().into_gd_arglist(&mut compiler.name_generator());
 
-  let mut lambda_builder = StmtBuilder::new();
   let closure = {
     let mut closure = ClosureData::from(Function::new(args, body));
     // No need to close around global variables, as they're available
-    // everywhere
+    // everywhere.
     closure.purge_globals(table);
     closure
   };
 
   let mut lambda_table = SymbolTable::new();
 
-  // Bind the arguments to the lambda in the new lambda table
+  // Bind the arguments to the lambda in the new lambda table.
   for arg in &gd_args {
     let access_type = *closure.all_vars.get(&arg.lisp_name).unwrap_or(&AccessType::None);
     lambda_table.set_var(arg.lisp_name.to_owned(), LocalVar::local(arg.gd_name.to_owned(), access_type));
   }
 
   // Generate an outer class ref if we need access to the scope from
-  // within the lambda
+  // within the lambda.
   let mut outer_ref_name = String::new();
   let needs_outer_ref = closure.closure_fns.needs_outer_class_ref(table);
   if needs_outer_ref {
     outer_ref_name = compiler.name_generator().generate_with(inner_class::OUTER_REFERENCE_NAME);
   }
 
-  // Bind all of the closure variables, closure functions, and global variables inside
+  // Bind all of the closure variables, closure functions, and global
+  // variables inside.
   locally_bind_vars(compiler, table, &mut lambda_table, closure.closure_vars.names(), pos)?;
   locally_bind_fns(compiler, pipeline, table, &mut lambda_table, closure.closure_fns.names(), pos, false, &outer_ref_name)?;
   copy_global_vars(table, &mut lambda_table);
 
+  // Convert the closures to GDScript names.
   let gd_closure_vars = closure.to_gd_closure_vars(&lambda_table);
   let gd_src_closure_vars = closure.to_gd_closure_vars(table);
 
-  for NameTrans { lisp_name: arg, gd_name: gd_arg } in &gd_args {
-    wrap_in_cell_if_needed(arg, gd_arg, &closure.all_vars, &mut lambda_builder, pos);
-  }
-  compiler.frame(pipeline, &mut lambda_builder, &mut lambda_table).compile_stmt(&stmt_wrapper::Return, body)?;
-  let lambda_body = lambda_builder.build_into(builder);
+  let lambda_body = {
+    let mut lambda_builder = StmtBuilder::new();
 
+    // Wrap arguments in cells, as needed.
+    for NameTrans { lisp_name: arg, gd_name: gd_arg } in &gd_args {
+      wrap_in_cell_if_needed(arg, gd_arg, &closure.all_vars, &mut lambda_builder, pos);
+    }
+
+    // Compile the lambda body.
+    compiler.frame(pipeline, &mut lambda_builder, &mut lambda_table).compile_stmt(&stmt_wrapper::Return, body)?;
+    lambda_builder.build_into(builder)
+  };
+
+  // Generate the enclosing class.
   let class_name = compiler.name_generator().generate_with("_LambdaBlock");
   let mut class = generate_lambda_class(class_name.clone(), args.clone().into(), arglist, &gd_closure_vars, lambda_body, pos);
 
+  // Add outer class reference.
   if needs_outer_ref {
     inner_class::add_outer_class_ref_named(&mut class, compiler.preload_resolver(), pipeline, outer_ref_name, pos);
   }
 
+  // Place the resulting values in the builder.
   builder.add_helper(Decl::new(DeclF::ClassDecl(class), pos));
-  let constructor_args = gd_src_closure_vars.into_iter().map(|x| Expr::new(ExprF::Var(x), pos)).collect();
-  let expr = Expr::call(Some(Expr::new(ExprF::Var(class_name), pos)), "new", constructor_args, pos);
-  Ok(StExpr { expr, side_effects: SideEffects::None })
+  Ok(make_constructor_call(class_name, gd_src_closure_vars, pos))
 }
 
 pub fn compile_function_ref(compiler: &mut Compiler,
