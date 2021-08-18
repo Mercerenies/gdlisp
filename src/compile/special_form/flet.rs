@@ -157,7 +157,20 @@ fn compile_labels_rec<'b>(compiler: &mut Compiler,
   }
 }
 
-fn is_declaration_semiglobal(args: &IRArgList, body: &IRExpr, table: &SymbolTable) -> bool {
+/// A function declaration is eligible to be semiglobal if all of the
+/// following are true.
+///
+/// * All functions referenced in the body of the function are
+///   non-local (i.e. [`FnScope::is_local`] returns false on their
+///   scope).
+///
+/// * All variables referenced in the body of the function are
+///   arguments to the function.
+///
+/// Semiglobal functions do not need to have explicit closure objects
+/// constructed for them and can instead be hoisted on the GDScript
+/// side into top-level global functions.
+pub fn is_declaration_semiglobal(args: &IRArgList, body: &IRExpr, table: &SymbolTable) -> bool {
   let (closure_vars, closure_fns) = body.get_names();
   let arg_var_names: Vec<_> = args.iter_vars().collect();
   // All referenced functions should be Global or SemiGlobal and all
