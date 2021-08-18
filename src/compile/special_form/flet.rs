@@ -9,6 +9,7 @@ use crate::compile::error::Error;
 use crate::compile::stateful::{StExpr, NeedsResult};
 use crate::compile::stmt_wrapper;
 use crate::compile::factory;
+use crate::compile::frame::CompilerFrame;
 use crate::gdscript::decl::{self, Decl, DeclF};
 use crate::graph::Graph;
 use crate::graph::top_sort::top_sort;
@@ -22,38 +23,32 @@ use std::convert::AsRef;
 type IRExpr = ir::expr::Expr;
 type IRArgList = ir::arglist::ArgList;
 
-pub fn compile_flet(compiler: &mut Compiler,
-                    pipeline: &mut Pipeline,
-                    builder: &mut StmtBuilder,
-                    table: &mut SymbolTable,
+pub fn compile_flet(frame: &mut CompilerFrame<StmtBuilder>,
                     clauses: &[(String, IRArgList, IRExpr)],
                     body: &IRExpr,
                     needs_result: NeedsResult,
                     pos: SourceOffset)
                     -> Result<StExpr, Error> {
   let local_fns = clauses.iter().map(|(name, args, fbody)| {
-    let call = compile_flet_call(compiler, pipeline, builder, table, args.to_owned(), fbody, pos)?;
+    let call = compile_flet_call(frame, args.to_owned(), fbody, pos)?;
     Ok((name.to_owned(), call))
   }).collect::<Result<Vec<_>, Error>>()?;
-  table.with_local_fns(&mut local_fns.into_iter(), |table| {
-    compiler.frame(pipeline, builder, table).compile_expr(body, needs_result)
+  frame.with_local_fns(&mut local_fns.into_iter(), |frame| {
+    frame.compile_expr(body, needs_result)
   })
 }
 
-fn compile_flet_call(compiler: &mut Compiler,
-                     pipeline: &mut Pipeline,
-                     builder: &mut StmtBuilder,
-                     table: &mut SymbolTable,
+fn compile_flet_call(frame: &mut CompilerFrame<StmtBuilder>,
                      args: IRArgList,
                      body: &IRExpr,
                      pos: SourceOffset)
                      -> Result<FnCall, Error> {
-  if is_declaration_semiglobal(&args, body, table) {
+  if is_declaration_semiglobal(&args, body, frame.table) {
     // No closure vars and any closure fns (if there are any) are
     // free of closures, so we can compile to SemiGlobal.
-    let gd_name = compiler.name_generator().generate_with("_flet");
-    let func = factory::declare_function(&mut compiler.frame(pipeline, builder, table), gd_name.clone(), args.clone(), body, &stmt_wrapper::Return)?;
-    builder.add_helper(Decl::new(DeclF::FnDecl(decl::Static::IsStatic, func), pos));
+    let gd_name = frame.name_generator().generate_with("_flet");
+    let func = factory::declare_function(frame, gd_name.clone(), args.clone(), body, &stmt_wrapper::Return)?;
+    frame.builder.add_helper(Decl::new(DeclF::FnDecl(decl::Static::IsStatic, func), pos));
     let specs = FnSpecs::from(args);
     Ok(FnCall {
       scope: FnScope::SemiGlobal,
@@ -64,8 +59,8 @@ fn compile_flet_call(compiler: &mut Compiler,
     })
   } else {
     // Have to make a full closure object.
-    let stmt = lambda::compile_lambda_stmt(compiler, pipeline, builder, table, &args, body, pos)?.expr;
-    let local_name = factory::declare_var(compiler.name_generator(), builder, "_flet", Some(stmt), pos);
+    let stmt = lambda::compile_lambda_stmt(frame, &args, body, pos)?.expr;
+    let local_name = factory::declare_var(frame.compiler.name_generator(), frame.builder, "_flet", Some(stmt), pos);
     let specs = FnSpecs::from(args);
     Ok(FnCall {
       scope: FnScope::Local(local_name.clone()),
@@ -133,7 +128,7 @@ fn compile_labels_rec<'b>(compiler: &mut Compiler,
         // Simple FLet-like case.
         let name = current_scc.iter().next().expect("Internal error in SCC detection (no first element?)");
         let (_, args, expr) = clauses.iter().find(|(n, _, _)| &n == name).expect("Internal error in SCC detection (no function found?)");
-        let call = compile_flet_call(compiler, pipeline, builder, table, args.to_owned(), expr, pos)?;
+        let call = compile_flet_call(&mut compiler.frame(pipeline, builder, table), args.to_owned(), expr, pos)?;
         table.with_local_fn((*name).to_owned(), call, |table| {
           compile_labels_rec(compiler, pipeline, builder, table, body, needs_result, pos, clauses, full_graph, sccs, graph, ordering, ordering_idx + 1)
         })

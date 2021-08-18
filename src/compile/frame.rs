@@ -302,13 +302,13 @@ impl<'a, 'b, 'c, 'd> CompilerFrame<'a, 'b, 'c, 'd, StmtBuilder> {
         })
       }
       IRExprF::FLet(clauses, body) => {
-        flet::compile_flet(self.compiler, self.pipeline, self.builder, self.table, clauses, body, needs_result, expr.pos)
+        flet::compile_flet(self, clauses, body, needs_result, expr.pos)
       }
       IRExprF::Labels(clauses, body) => {
         flet::compile_labels(self.compiler, self.pipeline, self.builder, self.table, clauses, body, needs_result, expr.pos)
       }
       IRExprF::Lambda(args, body) => {
-        lambda::compile_lambda_stmt(self.compiler, self.pipeline, self.builder, self.table, args, body, expr.pos)
+        lambda::compile_lambda_stmt(self, args, body, expr.pos)
       }
       IRExprF::FuncRef(name) => {
         match name {

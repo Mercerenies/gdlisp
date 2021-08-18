@@ -3,6 +3,7 @@ use crate::ir;
 use crate::ir::expr::{Locals, Functions};
 use crate::ir::access_type::AccessType;
 use crate::compile::{Compiler, StExpr};
+use crate::compile::frame::CompilerFrame;
 use crate::compile::body::builder::StmtBuilder;
 use crate::compile::symbol_table::SymbolTable;
 use crate::compile::symbol_table::local_var::{LocalVar, VarScope, VarName};
@@ -275,14 +276,18 @@ fn wrap_in_cell_if_needed(name: &str, gd_name: &str, all_vars: &Locals, lambda_b
   }
 }
 
-pub fn compile_lambda_stmt(compiler: &mut Compiler,
-                           pipeline: &mut Pipeline,
-                           builder: &mut StmtBuilder,
-                           table: &mut SymbolTable,
+pub fn compile_lambda_stmt(frame: &mut CompilerFrame<StmtBuilder>,
                            args: &IRArgList,
                            body: &IRExpr,
                            pos: SourceOffset)
                            -> Result<StExpr, Error> {
+  // In the perfect world, we would do all of our operations *on*
+  // frame rather than destructuring that variable here. But, the way
+  // this function is currently written, we need access to both
+  // frame.table and lambda_table throughout most of the computation.
+  // Perhaps there's a way to refactor it, but it won't be easy.
+  let CompilerFrame { compiler, pipeline, table, builder } = frame;
+
   let (arglist, gd_args) = args.clone().into_gd_arglist(&mut compiler.name_generator());
 
   let closure = {
@@ -312,7 +317,7 @@ pub fn compile_lambda_stmt(compiler: &mut Compiler,
   // Bind all of the closure variables, closure functions, and global
   // variables inside.
   locally_bind_vars(compiler, table, &mut lambda_table, closure.closure_vars.names(), pos)?;
-  locally_bind_fns(compiler, pipeline, table, &mut lambda_table, closure.closure_fns.names(), pos, false, &outer_ref_name)?;
+  locally_bind_fns(compiler, *pipeline, table, &mut lambda_table, closure.closure_fns.names(), pos, false, &outer_ref_name)?;
   copy_global_vars(table, &mut lambda_table);
 
   // Convert the closures to GDScript names.
@@ -329,7 +334,7 @@ pub fn compile_lambda_stmt(compiler: &mut Compiler,
 
     // Compile the lambda body.
     compiler.frame(pipeline, &mut lambda_builder, &mut lambda_table).compile_stmt(&stmt_wrapper::Return, body)?;
-    lambda_builder.build_into(builder)
+    lambda_builder.build_into(*builder)
   };
 
   // Generate the enclosing class.
@@ -338,7 +343,7 @@ pub fn compile_lambda_stmt(compiler: &mut Compiler,
 
   // Add outer class reference.
   if needs_outer_ref {
-    inner_class::add_outer_class_ref_named(&mut class, compiler.preload_resolver(), pipeline, outer_ref_name, pos);
+    inner_class::add_outer_class_ref_named(&mut class, compiler.preload_resolver(), *pipeline, outer_ref_name, pos);
   }
 
   // Place the resulting values in the builder.
