@@ -96,7 +96,7 @@ pub fn compile_labels(frame: &mut CompilerFrame<StmtBuilder>,
   compile_labels_rec(frame, body, needs_result, pos, clauses, &dependencies, &sccs, &collated_graph, &ordering[..], 0)
 }
 
-// TODO Really...? A THIRTEEN argument recursive function? Really...? Do better.
+// TODO Really...? A TEN argument recursive function? Really...? Do better.
 fn compile_labels_rec<'b>(frame: &mut CompilerFrame<StmtBuilder>,
                           body: &IRExpr,
                           needs_result: NeedsResult,

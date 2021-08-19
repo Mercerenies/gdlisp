@@ -189,7 +189,7 @@ impl<'a, 'b, 'c, 'd, B: HasDecls> CompilerFrame<'a, 'b, 'c, 'd, B> {
   /// the builder is returned. Equivalent to
   /// `self.with_local_builder_value(block).1`.
   pub fn with_local_builder_ok<F>(&mut self, block: F) -> Vec<Stmt>
-  where F : FnOnce(&mut CompilerFrame<StmtBuilder>) -> () {
+  where F : FnOnce(&mut CompilerFrame<StmtBuilder>) {
     let ((), vec) = self.with_local_builder_value(block);
     vec
   }

@@ -95,8 +95,8 @@ pub fn compile_lambda_class(compiler: &mut Compiler,
   }
   for d in &decls {
 
-    if d.is_static().into() {
-      // Static methods are not allowed on lambda classes
+    if d.is_static() {
+      // Static methods / constants are not allowed on lambda classes
       return Err(Error::new(ErrorF::StaticOnLambdaClass(d.name().to_owned()), d.pos));
     }
 
