@@ -2,7 +2,7 @@
 //! Helpers for generating closures, for use in constructs such as
 //! lambdas and lambda classes.
 
-use crate::ir::expr::{Locals, Functions};
+use crate::ir::expr::{Locals, Functions, LambdaClass};
 use crate::compile::symbol_table::local_var::VarScope;
 use crate::compile::symbol_table::SymbolTable;
 use super::lambda::closure_fn_to_gd_var; // TODO Move this function over to this module
@@ -31,6 +31,10 @@ pub struct ClosureData {
   /// closed over.
   pub closure_fns: Functions,
 }
+
+// TODO Can we get rid of all_vars? lambda_class does without it by
+// leveraging factory::declare_function, so lambda should be able to
+// as well, I think.
 
 /// A function consists of an argument list and a body expression.
 /// This simple wrapper couples the two, so that we can pass them as a
@@ -136,6 +140,26 @@ impl<'a, 'b> From<Function<'a, 'b>> for ClosureData {
       closure_vars.remove(arg);
     }
     ClosureData { closure_vars, all_vars, closure_fns }
+  }
+
+}
+
+impl<'a> From<&'a LambdaClass> for ClosureData {
+
+  /// A lambda class involves closing around any variables inside of
+  /// it, similar to a lambda function. The lambda class case is
+  /// somewhat more complex, as it consists of multiple functions and,
+  /// in general, a `self` variable that gets implicitly overwritten
+  /// by the class' `self`.
+  fn from(class: &'a LambdaClass) -> ClosureData {
+    let (mut closure_vars, mut closure_fns) = class.constructor.get_names();
+    for d in &class.decls {
+      let (decl_vars, decl_fns) = d.get_names();
+      closure_vars.merge_with(decl_vars);
+      closure_fns.merge_with(decl_fns);
+    }
+    closure_vars.remove("self"); // Don't close around self; we get a new self
+    ClosureData { closure_vars: closure_vars.clone(), all_vars: closure_vars, closure_fns }
   }
 
 }

@@ -404,7 +404,7 @@ impl<'a, 'b, 'c, 'd> CompilerFrame<'a, 'b, 'c, 'd, StmtBuilder> {
         })
       }
       IRExprF::LambdaClass(cls) => {
-        lambda_class::compile_lambda_class(self.compiler, self.pipeline, self.builder, self.table, cls, expr.pos)
+        lambda_class::compile_lambda_class(self, cls, expr.pos)
       }
       IRExprF::Yield(arg) => {
         match arg {
