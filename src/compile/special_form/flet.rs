@@ -1,6 +1,5 @@
 
 use crate::ir;
-use crate::compile::Compiler;
 use crate::compile::body::builder::StmtBuilder;
 use crate::compile::symbol_table::{HasSymbolTable, SymbolTable};
 use crate::compile::symbol_table::function_call::{FnCall, FnSpecs, FnScope, FnName};
@@ -14,7 +13,6 @@ use crate::gdscript::decl::{self, Decl, DeclF};
 use crate::graph::Graph;
 use crate::graph::top_sort::top_sort;
 use crate::graph::tarjan;
-use crate::pipeline::Pipeline;
 use crate::pipeline::source::SourceOffset;
 use super::lambda;
 
@@ -72,10 +70,7 @@ fn compile_flet_call(frame: &mut CompilerFrame<StmtBuilder>,
   }
 }
 
-pub fn compile_labels(compiler: &mut Compiler,
-                      pipeline: &mut Pipeline,
-                      builder: &mut StmtBuilder,
-                      table: &mut SymbolTable,
+pub fn compile_labels(frame: &mut CompilerFrame<StmtBuilder>,
                       clauses: &[(String, IRArgList, IRExpr)],
                       body: &IRExpr,
                       needs_result: NeedsResult,
@@ -98,14 +93,11 @@ pub fn compile_labels(compiler: &mut Compiler,
   let ordering: Vec<_> = top_sort(&collated_graph)
     .expect("SCC detection failed (cycle in resulting graph)")
     .into_iter().copied().collect();
-  compile_labels_rec(compiler, pipeline, builder, table, body, needs_result, pos, clauses, &dependencies, &sccs, &collated_graph, &ordering[..], 0)
+  compile_labels_rec(frame, body, needs_result, pos, clauses, &dependencies, &sccs, &collated_graph, &ordering[..], 0)
 }
 
 // TODO Really...? A THIRTEEN argument recursive function? Really...? Do better.
-fn compile_labels_rec<'b>(compiler: &mut Compiler,
-                          pipeline: &mut Pipeline,
-                          builder: &mut StmtBuilder,
-                          table: &mut SymbolTable,
+fn compile_labels_rec<'b>(frame: &mut CompilerFrame<StmtBuilder>,
                           body: &IRExpr,
                           needs_result: NeedsResult,
                           pos: SourceOffset,
@@ -121,16 +113,16 @@ fn compile_labels_rec<'b>(compiler: &mut Compiler,
     let tarjan::SCC(current_scc) = sccs.get_scc_by_id(current_scc_idx).expect("SCC detection failed (invalid ID)");
     if current_scc.is_empty() {
       // That's weird. But whatever. No action needed.
-      compile_labels_rec(compiler, pipeline, builder, table, body, needs_result, pos, clauses, full_graph, sccs, graph, ordering, ordering_idx + 1)
+      compile_labels_rec(frame, body, needs_result, pos, clauses, full_graph, sccs, graph, ordering, ordering_idx + 1)
     } else {
       let name = current_scc.iter().next().expect("Internal error in SCC detection (no first element?)");
       if current_scc.len() == 1 && !full_graph.has_edge(name, name) {
         // Simple FLet-like case.
         let name = current_scc.iter().next().expect("Internal error in SCC detection (no first element?)");
         let (_, args, expr) = clauses.iter().find(|(n, _, _)| &n == name).expect("Internal error in SCC detection (no function found?)");
-        let call = compile_flet_call(&mut compiler.frame(pipeline, builder, table), args.to_owned(), expr, pos)?;
-        table.with_local_fn((*name).to_owned(), call, |table| {
-          compile_labels_rec(compiler, pipeline, builder, table, body, needs_result, pos, clauses, full_graph, sccs, graph, ordering, ordering_idx + 1)
+        let call = compile_flet_call(frame, args.to_owned(), expr, pos)?;
+        frame.with_local_fn((*name).to_owned(), call, |frame| {
+          compile_labels_rec(frame, body, needs_result, pos, clauses, full_graph, sccs, graph, ordering, ordering_idx + 1)
         })
       } else {
         // Complicated mutual recursion case.
@@ -141,14 +133,14 @@ fn compile_labels_rec<'b>(compiler: &mut Compiler,
         }
         // Go ahead and sort them just so we guarantee a consistent order for testing purposes.
         relevant_clauses.sort_by_key(|(name, _, _)| name);
-        let calls = lambda::compile_labels_scc(compiler, pipeline, builder, table, &relevant_clauses[..], pos)?;
-        table.with_local_fns(&mut calls.into_iter(), |table| {
-          compile_labels_rec(compiler, pipeline, builder, table, body, needs_result, pos, clauses, full_graph, sccs, graph, ordering, ordering_idx + 1)
+        let calls = lambda::compile_labels_scc(frame, &relevant_clauses[..], pos)?;
+        frame.with_local_fns(&mut calls.into_iter(), |frame| {
+          compile_labels_rec(frame, body, needs_result, pos, clauses, full_graph, sccs, graph, ordering, ordering_idx + 1)
         })
       }
     }
   } else {
-    compiler.frame(pipeline, builder, table).compile_expr(body, needs_result)
+    frame.compile_expr(body, needs_result)
   }
 }
 

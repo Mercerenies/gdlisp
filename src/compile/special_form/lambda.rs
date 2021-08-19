@@ -30,13 +30,17 @@ use std::borrow::Borrow;
 type IRExpr = ir::expr::Expr;
 type IRArgList = ir::arglist::ArgList;
 
-pub fn compile_labels_scc(compiler: &mut Compiler,
-                          pipeline: &mut Pipeline,
-                          builder: &mut StmtBuilder,
-                          table: &mut SymbolTable,
+pub fn compile_labels_scc(frame: &mut CompilerFrame<StmtBuilder>,
                           clauses: &[&(String, IRArgList, IRExpr)],
                           pos: SourceOffset)
                           -> Result<Vec<(String, FnCall)>, Error> {
+  // In the perfect world, we would do all of our operations *on*
+  // frame rather than destructuring that variable here. But, the way
+  // this function is currently written, we need access to both
+  // frame.table and lambda_table throughout most of the computation.
+  // Perhaps there's a way to refactor it, but it won't be easy.
+  let CompilerFrame { compiler, pipeline, table, builder } = frame;
+
   let class_name = compiler.name_generator().generate_with("_Labels");
 
   let mut closure_vars = Locals::new();
@@ -69,7 +73,7 @@ pub fn compile_labels_scc(compiler: &mut Compiler,
 
   let mut lambda_table = SymbolTable::new();
   locally_bind_vars(compiler, table, &mut lambda_table, closure_vars.names(), pos)?;
-  locally_bind_fns(compiler, pipeline, table, &mut lambda_table, closure_fns.names(), pos, false, &outer_ref_name)?;
+  locally_bind_fns(compiler, *pipeline, table, &mut lambda_table, closure_fns.names(), pos, false, &outer_ref_name)?;
   copy_global_vars(table, &mut lambda_table);
 
   let mut gd_src_closure_vars = Vec::new();
@@ -128,7 +132,7 @@ pub fn compile_labels_scc(compiler: &mut Compiler,
       wrap_in_cell_if_needed(arg, gd_arg, &all_vars, &mut lambda_builder, pos);
     }
     compiler.frame(pipeline, &mut lambda_builder, &mut lambda_table).compile_stmt(&stmt_wrapper::Return, body)?;
-    let lambda_body = lambda_builder.build_into(builder);
+    let lambda_body = lambda_builder.build_into(*builder);
     let func_name = function_names[idx].to_owned();
     let func = decl::FnDecl {
       name: func_name.clone(),
@@ -170,7 +174,7 @@ pub fn compile_labels_scc(compiler: &mut Compiler,
   };
 
   if needs_outer_ref {
-    inner_class::add_outer_class_ref_named(&mut class, compiler.preload_resolver(), pipeline, outer_ref_name, pos);
+    inner_class::add_outer_class_ref_named(&mut class, compiler.preload_resolver(), *pipeline, outer_ref_name, pos);
   }
 
   builder.add_helper(Decl::new(DeclF::ClassDecl(class), pos));

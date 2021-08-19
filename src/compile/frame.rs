@@ -305,7 +305,7 @@ impl<'a, 'b, 'c, 'd> CompilerFrame<'a, 'b, 'c, 'd, StmtBuilder> {
         flet::compile_flet(self, clauses, body, needs_result, expr.pos)
       }
       IRExprF::Labels(clauses, body) => {
-        flet::compile_labels(self.compiler, self.pipeline, self.builder, self.table, clauses, body, needs_result, expr.pos)
+        flet::compile_labels(self, clauses, body, needs_result, expr.pos)
       }
       IRExprF::Lambda(args, body) => {
         lambda::compile_lambda_stmt(self, args, body, expr.pos)
