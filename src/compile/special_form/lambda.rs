@@ -252,7 +252,7 @@ pub fn copy_global_vars(src_table: &SymbolTable, dest_table: &mut SymbolTable) {
 }
 
 /// Compiles a call to a lambda class constructor, where the lambda
-/// class has name `class_name`. The closure variables are givne by
+/// class has name `class_name`. The closure variables are given by
 /// `gd_src_closure_vars`, and the resulting expression will be given
 /// source offset `pos`.
 ///

@@ -1,11 +1,12 @@
 
+use crate::ir;
 use crate::ir::expr::LambdaClass;
 use crate::compile::error::{Error, ErrorF};
 use crate::compile::factory;
 use crate::compile::CompilerFrame;
 use crate::compile::Compiler;
 use crate::compile::stateful::{SideEffects, StExpr, NeedsResult};
-use crate::compile::body::builder::StmtBuilder;
+use crate::compile::body::builder::{StmtBuilder, HasDecls};
 use crate::compile::symbol_table::{SymbolTable, ClassTablePair};
 use crate::compile::symbol_table::local_var::LocalVar;
 use crate::gdscript::expr::{Expr, ExprF};
@@ -66,13 +67,9 @@ pub fn compile_lambda_class(frame: &mut CompilerFrame<StmtBuilder>,
   let gd_src_closure_vars = closure.to_gd_closure_vars(table);
 
   // Build the constructor for the lambda class.
-  let mut constructor = factory::declare_constructor(&mut compiler.frame(pipeline, *builder, &mut lambda_table), &constructor)?;
-  let original_args = constructor.args.args;
-  constructor.args.args = gd_closure_vars.to_vec();
-  constructor.args.args.extend(original_args);
-  for name in gd_closure_vars.iter().rev() {
-    constructor.body.insert(0, super::assign_to_compiler(name.to_string(), name.to_string(), pos));
-  }
+  let constructor = compile_lambda_class_constructor(&mut compiler.frame(pipeline, *builder, &mut lambda_table), &constructor, &gd_closure_vars, pos)?;
+
+  // Build the class body for the lambda class.
   let mut class_body = vec!();
   class_body.push(Decl::new(DeclF::FnDecl(decl::Static::NonStatic, constructor), pos));
   for name in gd_closure_vars.iter() {
@@ -110,4 +107,19 @@ pub fn compile_lambda_class(frame: &mut CompilerFrame<StmtBuilder>,
   let constructor_args: Vec<_> = gd_src_closure_vars.into_iter().map(|x| Expr::new(ExprF::Var(x), pos)).chain(constructor_args.into_iter()).collect();
   let expr = Expr::call(Some(Expr::new(ExprF::Var(gd_class_name), pos)), "new", constructor_args, pos);
   Ok(StExpr { expr, side_effects: SideEffects::None })
+}
+
+fn compile_lambda_class_constructor(frame: &mut CompilerFrame<impl HasDecls>,
+                                    constructor: &ir::decl::ConstructorDecl,
+                                    gd_closure_vars: &[String],
+                                    pos: SourceOffset)
+                                    -> Result<decl::FnDecl, Error> {
+  let mut constructor = factory::declare_constructor(frame, constructor)?;
+  let original_args = constructor.args.args;
+  constructor.args.args = gd_closure_vars.to_vec();
+  constructor.args.args.extend(original_args);
+  for name in gd_closure_vars.iter().rev() {
+    constructor.body.insert(0, super::assign_to_compiler(name.to_string(), name.to_string(), pos));
+  }
+  Ok(constructor)
 }
