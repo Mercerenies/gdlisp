@@ -1,5 +1,6 @@
 
 use crate::ir;
+use crate::ir::expr::LocalFnClause;
 use crate::compile::body::builder::StmtBuilder;
 use crate::compile::symbol_table::{HasSymbolTable, SymbolTable};
 use crate::compile::symbol_table::function_call::{FnCall, FnSpecs, FnScope, FnName};
@@ -22,14 +23,14 @@ type IRExpr = ir::expr::Expr;
 type IRArgList = ir::arglist::ArgList;
 
 pub fn compile_flet(frame: &mut CompilerFrame<StmtBuilder>,
-                    clauses: &[(String, IRArgList, IRExpr)],
+                    clauses: &[LocalFnClause],
                     body: &IRExpr,
                     needs_result: NeedsResult,
                     pos: SourceOffset)
                     -> Result<StExpr, Error> {
-  let local_fns = clauses.iter().map(|(name, args, fbody)| {
-    let call = compile_flet_call(frame, args.to_owned(), fbody, pos)?;
-    Ok((name.to_owned(), call))
+  let local_fns = clauses.iter().map(|clause| {
+    let call = compile_flet_call(frame, clause.args.to_owned(), &clause.body, pos)?;
+    Ok((clause.name.to_owned(), call))
   }).collect::<Result<Vec<_>, Error>>()?;
   frame.with_local_fns(&mut local_fns.into_iter(), |frame| {
     frame.compile_expr(body, needs_result)
@@ -71,7 +72,7 @@ fn compile_flet_call(frame: &mut CompilerFrame<StmtBuilder>,
 }
 
 pub fn compile_labels(frame: &mut CompilerFrame<StmtBuilder>,
-                      clauses: &[(String, IRArgList, IRExpr)],
+                      clauses: &[LocalFnClause],
                       body: &IRExpr,
                       needs_result: NeedsResult,
                       pos: SourceOffset)
@@ -79,11 +80,11 @@ pub fn compile_labels(frame: &mut CompilerFrame<StmtBuilder>,
   // TODO This is rife with string cloning, because of the sloppy way
   // Graph is implemented. Once we fix Graph, we can eliminate some
   // clones here.
-  let mut dependencies = Graph::from_nodes(clauses.iter().map(|(name, _, _)| name.clone()));
-  for (name, _, fbody) in clauses {
-    for ref_name in fbody.get_functions().into_names() {
+  let mut dependencies = Graph::from_nodes(clauses.iter().map(|clause| clause.name.clone()));
+  for clause in clauses {
+    for ref_name in clause.body.get_functions().into_names() {
       if dependencies.has_node(&ref_name) {
-        dependencies.add_edge_no_dup(name.clone(), ref_name);
+        dependencies.add_edge_no_dup(clause.name.clone(), ref_name);
       }
     }
   }
@@ -101,7 +102,7 @@ fn compile_labels_rec<'b>(frame: &mut CompilerFrame<StmtBuilder>,
                           body: &IRExpr,
                           needs_result: NeedsResult,
                           pos: SourceOffset,
-                          clauses: &[(String, IRArgList, IRExpr)],
+                          clauses: &[LocalFnClause],
                           full_graph: &Graph<String>,
                           sccs: &tarjan::SCCSummary<'b, String>,
                           graph: &Graph<usize>,
@@ -119,8 +120,8 @@ fn compile_labels_rec<'b>(frame: &mut CompilerFrame<StmtBuilder>,
       if current_scc.len() == 1 && !full_graph.has_edge(name, name) {
         // Simple FLet-like case.
         let name = current_scc.iter().next().expect("Internal error in SCC detection (no first element?)");
-        let (_, args, expr) = clauses.iter().find(|(n, _, _)| &n == name).expect("Internal error in SCC detection (no function found?)");
-        let call = compile_flet_call(frame, args.to_owned(), expr, pos)?;
+        let clause = clauses.iter().find(|clause| clause.name == **name).expect("Internal error in SCC detection (no function found?)");
+        let call = compile_flet_call(frame, clause.args.to_owned(), &clause.body, pos)?;
         frame.with_local_fn((*name).to_owned(), call, |frame| {
           compile_labels_rec(frame, body, needs_result, pos, clauses, full_graph, sccs, graph, ordering, ordering_idx + 1)
         })
@@ -128,11 +129,11 @@ fn compile_labels_rec<'b>(frame: &mut CompilerFrame<StmtBuilder>,
         // Complicated mutual recursion case.
         let mut relevant_clauses = Vec::new();
         for name in current_scc {
-          let clause = clauses.iter().find(|(n, _, _)| &n == name).expect("Internal error in SCC detection (no function found?)");
+          let clause = clauses.iter().find(|clause| clause.name == **name).expect("Internal error in SCC detection (no function found?)");
           relevant_clauses.push(clause);
         }
         // Go ahead and sort them just so we guarantee a consistent order for testing purposes.
-        relevant_clauses.sort_by_key(|(name, _, _)| name);
+        relevant_clauses.sort_by_key(|clause| &clause.name);
         let calls = lambda::compile_labels_scc(frame, &relevant_clauses[..], pos)?;
         frame.with_local_fns(&mut calls.into_iter(), |frame| {
           compile_labels_rec(frame, body, needs_result, pos, clauses, full_graph, sccs, graph, ordering, ordering_idx + 1)

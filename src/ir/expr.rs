@@ -21,8 +21,8 @@ pub enum ExprF {
   ForStmt(String, Box<Expr>, Box<Expr>),
   Call(String, Vec<Expr>),
   Let(Vec<(String, Expr)>, Box<Expr>),
-  FLet(Vec<(String, ArgList, Expr)>, Box<Expr>),
-  Labels(Vec<(String, ArgList, Expr)>, Box<Expr>),
+  FLet(Vec<LocalFnClause>, Box<Expr>),
+  Labels(Vec<LocalFnClause>, Box<Expr>),
   Lambda(ArgList, Box<Expr>),
   FuncRef(FuncRefTarget),
   Assign(AssignTarget, Box<Expr>),
@@ -59,6 +59,13 @@ pub struct LambdaClass {
   pub args: Vec<Expr>,
   pub constructor: decl::ConstructorDecl,
   pub decls: Vec<decl::ClassInnerDecl>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct LocalFnClause {
+  pub name: String,
+  pub args: ArgList,
+  pub body: Expr,
 }
 
 /// A collection of local variables, as well as the broadest
@@ -168,7 +175,7 @@ impl Expr {
       ExprF::FLet(clauses, body) => {
         let mut fns = HashSet::new();
         for clause in clauses {
-          let (name, args, fbody) = clause;
+          let LocalFnClause { name, args, body: fbody } = clause;
           fns.insert(name.to_owned());
           let lambda_body = ExprF::Lambda(args.to_owned(), Box::new(fbody.to_owned()));
           Expr::new(lambda_body, self.pos).walk_locals(acc_vars, acc_fns);
@@ -184,8 +191,7 @@ impl Expr {
       ExprF::Labels(clauses, body) => {
         let mut fns = HashSet::new();
         for clause in clauses {
-          let (name, _, _) = clause;
-          fns.insert(name.to_owned());
+          fns.insert(clause.name.to_owned());
         }
         // Note that we consider the bodies of the local functions to
         // be part of the local scope. This is in contrast to the
@@ -193,7 +199,7 @@ impl Expr {
         // is localized.
         let mut local_scope = Functions::new();
         for clause in clauses {
-          let (_, args, fbody) = clause;
+          let LocalFnClause { name: _, args, body: fbody } = clause;
           let lambda_body = ExprF::Lambda(args.to_owned(), Box::new(fbody.to_owned()));
           Expr::new(lambda_body, self.pos).walk_locals(acc_vars, acc_fns);
         }

@@ -32,10 +32,6 @@ pub struct ClosureData {
   pub closure_fns: Functions,
 }
 
-// TODO Can we get rid of all_vars? lambda_class does without it by
-// leveraging factory::declare_function, so lambda should be able to
-// as well, I think.
-
 /// A function consists of an argument list and a body expression.
 /// This simple wrapper couples the two, so that we can pass them as a
 /// pair to [`ClosureData`] methods.

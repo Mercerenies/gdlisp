@@ -1,6 +1,6 @@
 
 use crate::ir;
-use crate::ir::expr::{Locals, Functions};
+use crate::ir::expr::{Locals, Functions, LocalFnClause};
 use crate::ir::access_type::AccessType;
 use crate::compile::{Compiler, StExpr};
 use crate::compile::frame::CompilerFrame;
@@ -32,7 +32,7 @@ type IRExpr = ir::expr::Expr;
 type IRArgList = ir::arglist::ArgList;
 
 pub fn compile_labels_scc(frame: &mut CompilerFrame<StmtBuilder>,
-                          clauses: &[&(String, IRArgList, IRExpr)],
+                          clauses: &[&LocalFnClause],
                           pos: SourceOffset)
                           -> Result<Vec<(String, FnCall)>, Error> {
   // In the perfect world, we would do all of our operations *on*
@@ -46,10 +46,10 @@ pub fn compile_labels_scc(frame: &mut CompilerFrame<StmtBuilder>,
   let mut closure_fns = Functions::new();
   let mut all_vars = Locals::new();
 
-  for (_, args, body) in clauses {
-    let (mut inner_vars, inner_fns) = body.get_names();
+  for clause in clauses {
+    let (mut inner_vars, inner_fns) = clause.body.get_names();
     all_vars.merge_with(inner_vars.clone());
-    for arg in args.iter_vars() {
+    for arg in clause.args.iter_vars() {
       inner_vars.remove(arg);
     }
     closure_vars.merge_with(inner_vars);
@@ -57,8 +57,8 @@ pub fn compile_labels_scc(frame: &mut CompilerFrame<StmtBuilder>,
   }
 
   // Function names are in scope for the duration of their own bodies
-  for (name, _, _) in clauses {
-    closure_fns.remove(&name);
+  for clause in clauses {
+    closure_fns.remove(&clause.name);
   }
 
   let mut outer_ref_name = String::new();
@@ -106,14 +106,14 @@ pub fn compile_labels_scc(frame: &mut CompilerFrame<StmtBuilder>,
   let local_var_name = compiler.name_generator().generate_with("_locals");
 
   // Bind the functions themselves
-  let function_names: Vec<String> = clauses.iter().map(|(name, args, _)| {
-    let name_prefix = format!("_fn_{}", names::lisp_to_gd(name));
+  let function_names: Vec<String> = clauses.iter().map(|clause| {
+    let name_prefix = format!("_fn_{}", names::lisp_to_gd(&clause.name));
     let func_name = compiler.name_generator().generate_with(&name_prefix);
-    lambda_table.set_fn(name.to_owned(), FnCall {
+    lambda_table.set_fn(clause.name.to_owned(), FnCall {
       scope: FnScope::SpecialLocal(local_var_name.clone()),
       object: FnName::OnLocalScope,
       function: func_name.clone(),
-      specs: FnSpecs::from(args.to_owned()),
+      specs: FnSpecs::from(clause.args.to_owned()),
       is_macro: false,
     }, Box::new(DefaultCall));
     func_name
@@ -121,16 +121,16 @@ pub fn compile_labels_scc(frame: &mut CompilerFrame<StmtBuilder>,
 
   let mut functions: Vec<decl::FnDecl> = Vec::new();
 
-  let bound_calls: Vec<(String, FnCall)> = clauses.iter().enumerate().map(|(idx, (name, args, body))| {
+  let bound_calls: Vec<(String, FnCall)> = clauses.iter().enumerate().map(|(idx, clause)| {
     let mut lambda_table = lambda_table.clone(); // New table for this particular function
     let mut lambda_builder = StmtBuilder::new();
-    let (arglist, gd_args) = args.clone().into_gd_arglist(&mut compiler.name_generator());
+    let (arglist, gd_args) = clause.args.clone().into_gd_arglist(&mut compiler.name_generator());
     for NameTrans { lisp_name: arg, gd_name: gd_arg } in &gd_args {
       let access_type = *all_vars.get(&arg).unwrap_or(&AccessType::None);
       lambda_table.set_var(arg.to_owned(), LocalVar::local(gd_arg.to_owned(), access_type));
       wrap_in_cell_if_needed(arg, gd_arg, &all_vars, &mut lambda_builder, pos);
     }
-    compiler.frame(pipeline, &mut lambda_builder, &mut lambda_table).compile_stmt(&stmt_wrapper::Return, body)?;
+    compiler.frame(pipeline, &mut lambda_builder, &mut lambda_table).compile_stmt(&stmt_wrapper::Return, &clause.body)?;
     let lambda_body = lambda_builder.build_into(*builder);
     let func_name = function_names[idx].to_owned();
     let func = decl::FnDecl {
@@ -142,11 +142,11 @@ pub fn compile_labels_scc(frame: &mut CompilerFrame<StmtBuilder>,
       scope: FnScope::SpecialLocal(local_var_name.clone()),
       object: FnName::on_local_var(VarName::local(&local_var_name)),
       function: func_name,
-      specs: FnSpecs::from(args.to_owned()),
+      specs: FnSpecs::from(clause.args.to_owned()),
       is_macro: false,
     };
     functions.push(func);
-    Ok((name.to_owned(), call))
+    Ok((clause.name.to_owned(), call))
   }).collect::<Result<_, Error>>()?;
 
   let mut constructor_body = Vec::new();

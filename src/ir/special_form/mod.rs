@@ -4,7 +4,7 @@ pub mod assignment;
 
 use crate::sxp::ast::{AST, ASTF};
 use crate::sxp::dotted::DottedExpr;
-use super::expr::{ExprF, Expr, FuncRefTarget, AssignTarget, LambdaClass};
+use super::expr::{ExprF, Expr, FuncRefTarget, AssignTarget, LambdaClass, LocalFnClause};
 use super::decl::{self, Decl, DeclF};
 use super::arglist::ArgList;
 use super::quasiquote::quasiquote;
@@ -241,7 +241,7 @@ pub fn flet_form(icompiler: &mut IncCompiler,
       let args: Vec<_> = DottedExpr::new(func[1]).try_into()?;
       let args = ArgList::parse(args)?;
       let body = func[2..].iter().map(|expr| icompiler.compile_expr(pipeline, expr)).collect::<Result<Vec<_>, _>>()?;
-      Ok((name, args, Expr::progn(body, clause.pos)))
+      Ok(LocalFnClause { name, args, body: Expr::progn(body, clause.pos) })
     }).collect::<Result<Vec<_>, _>>()?;
     macrolet_unbind_macros(icompiler, pipeline, &mut post_names.iter().map(|x| &**x), |icompiler, pipeline| {
       let body = tail[1..].iter().map(|expr| icompiler.compile_expr(pipeline, expr)).collect::<Result<Vec<_>, _>>()?;
