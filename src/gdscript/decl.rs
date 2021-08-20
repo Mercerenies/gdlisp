@@ -161,7 +161,11 @@ impl Decl {
       }
       DeclF::InitFnDecl(InitFnDecl { args, super_call, body }) => {
         let super_args: Vec<_> = super_call.iter().map(Expr::to_gd).collect();
-        writeln!(w, "func _init({}).({}):", args.to_gd(), super_args.join(", "))?;
+        if super_args.is_empty() {
+          writeln!(w, "func _init({}):", args.to_gd())?;
+        } else {
+          writeln!(w, "func _init({}).({}):", args.to_gd(), super_args.join(", "))?;
+        }
         Stmt::write_gd_stmts(body, w, ind + 4)
       }
       DeclF::SignalDecl(name, args) => {
@@ -373,7 +377,7 @@ mod tests {
       super_call: vec!(),
       body: vec!()
     }));
-    assert_eq!(decl1.to_gd(0), "func _init().():\n    pass\n");
+    assert_eq!(decl1.to_gd(0), "func _init():\n    pass\n");
 
     let decl2 = d(DeclF::InitFnDecl(InitFnDecl {
       args: ArgList::required(vec!(String::from("arg1"))),

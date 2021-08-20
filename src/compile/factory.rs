@@ -82,7 +82,6 @@ pub fn declare_function(frame: &mut CompilerFrame<impl HasDecls>,
   })
 }
 
-// TODO Use CompilerFrame
 pub fn declare_class(frame: &mut CompilerFrame<impl HasDecls>,
                      gd_name: String,
                      extends: ClassExtends,
@@ -119,7 +118,11 @@ pub fn declare_class(frame: &mut CompilerFrame<impl HasDecls>,
       }
     }
 
-    body.push(Decl::new(DeclF::FnDecl(decl::Static::NonStatic, declare_constructor(&mut CompilerFrame::new(frame.compiler, frame.pipeline, frame.builder, instance_table), constructor)?), pos));
+    let (constructor, constructor_helpers) = declare_constructor(&mut CompilerFrame::new(frame.compiler, frame.pipeline, frame.builder, instance_table), constructor)?;
+    body.push(Decl::new(DeclF::InitFnDecl(constructor), pos));
+    for helper in constructor_helpers {
+      body.push(Decl::new(DeclF::FnDecl(decl::Static::NonStatic, helper), pos));
+    }
 
     for d in decls {
       let tables = ClassTablePair { instance_table, static_table: &mut static_table };
@@ -142,12 +145,18 @@ pub fn declare_class(frame: &mut CompilerFrame<impl HasDecls>,
 
 pub fn declare_constructor(frame: &mut CompilerFrame<impl HasDecls>,
                            constructor: &ir::decl::ConstructorDecl)
-                           -> Result<decl::FnDecl, Error> {
-  declare_function(frame,
-                   String::from(library::CONSTRUCTOR_NAME),
-                   IRArgList::from(constructor.args.clone()),
-                   &constructor.body,
-                   &stmt_wrapper::Vacuous)
+                           -> Result<(decl::InitFnDecl, Vec<decl::FnDecl>), Error> {
+  /////
+  let constructor = declare_function(frame,
+                                     String::from(library::CONSTRUCTOR_NAME),
+                                     IRArgList::from(constructor.args.clone()),
+                                     &constructor.body,
+                                     &stmt_wrapper::Vacuous)?;
+  let decl::FnDecl { name: _, args, body } = constructor;
+
+  let constructor = decl::InitFnDecl { args, super_call: vec!(), body };
+
+  Ok((constructor, vec!()))
 }
 
 pub fn compile_literal(literal: &IRLiteral, pos: SourceOffset) -> Expr {

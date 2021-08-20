@@ -85,8 +85,9 @@ pub struct ObjectDecl {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub struct ConstructorDecl { // TODO Super
+pub struct ConstructorDecl {
   pub args: SimpleArgList,
+  pub super_call: Vec<Expr>,
   pub body: Expr,
 }
 
@@ -403,12 +404,18 @@ impl ConstructorDecl {
   pub fn empty(pos: SourceOffset) -> ConstructorDecl {
     ConstructorDecl {
       args: SimpleArgList { args: vec!() },
+      super_call: vec!(),
       body: Expr::literal(Literal::Nil, pos),
     }
   }
 
   pub fn dependencies(&self) -> HashSet<Id> {
     let mut ids: HashSet<Id> = self.body.get_ids().collect();
+    for expr in &self.super_call {
+      for id in expr.get_ids() {
+        ids.insert(id);
+      }
+    }
     for name in self.args.iter_vars() {
       ids.remove(&*Id::build(Namespace::Value, name));
     }

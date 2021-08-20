@@ -65,11 +65,14 @@ pub fn compile_lambda_class(frame: &mut CompilerFrame<StmtBuilder>,
   let gd_src_closure_vars = closure.to_gd_closure_vars(table);
 
   // Build the constructor for the lambda class.
-  let constructor = compile_lambda_class_constructor(&mut compiler.frame(pipeline, *builder, &mut lambda_table), &constructor, &gd_closure_vars, pos)?;
+  let (constructor, constructor_helpers) = compile_lambda_class_constructor(&mut compiler.frame(pipeline, *builder, &mut lambda_table), &constructor, &gd_closure_vars, pos)?;
 
   // Build the class body for the lambda class.
   let mut class_body = vec!();
-  class_body.push(Decl::new(DeclF::FnDecl(decl::Static::NonStatic, constructor), pos));
+  class_body.push(Decl::new(DeclF::InitFnDecl(constructor), pos));
+  for helper in constructor_helpers {
+    class_body.push(Decl::new(DeclF::FnDecl(decl::Static::NonStatic, helper), pos));
+  }
   for name in gd_closure_vars.iter() {
     class_body.push(Decl::new(DeclF::VarDecl(None, name.clone(), None), pos));
   }
@@ -110,13 +113,13 @@ fn compile_lambda_class_constructor(frame: &mut CompilerFrame<impl HasDecls>,
                                     constructor: &ir::decl::ConstructorDecl,
                                     gd_closure_vars: &[String],
                                     pos: SourceOffset)
-                                    -> Result<decl::FnDecl, Error> {
-  let mut constructor = factory::declare_constructor(frame, constructor)?;
+                                    -> Result<(decl::InitFnDecl, Vec<decl::FnDecl>), Error> {
+  let (mut constructor, constructor_helpers) = factory::declare_constructor(frame, constructor)?;
   let original_args = constructor.args.args;
   constructor.args.args = gd_closure_vars.to_vec();
   constructor.args.args.extend(original_args);
   for name in gd_closure_vars.iter().rev() {
     constructor.body.insert(0, super::assign_to_compiler(name.to_string(), name.to_string(), pos));
   }
-  Ok(constructor)
+  Ok((constructor, constructor_helpers))
 }
