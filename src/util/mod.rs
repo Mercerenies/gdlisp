@@ -3,6 +3,7 @@
 
 pub mod debug_wrapper;
 pub mod lattice;
+pub mod one;
 
 use std::collections::HashMap;
 use std::hash::Hash;
