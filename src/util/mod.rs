@@ -112,7 +112,7 @@ pub fn extract_err<T>(value: Result<T, Infallible>) -> T {
 /// [`Iterator::unzip`] and the
 /// [`FromIterator`](std::iter::FromIterator) implementation on
 /// [`Result`].
-pub fn unzip_err<I, A, B, E, FromA, FromB>(iter: I) -> Result<(FromA, FromB), E>
+pub fn unzip_err<E, FromA, FromB, I, A, B>(iter: I) -> Result<(FromA, FromB), E>
 where I : Iterator<Item=Result<(A, B), E>>,
       FromA : Default + Extend<A>,
       FromB : Default + Extend<B> {

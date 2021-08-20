@@ -1,4 +1,5 @@
 
+use crate::util::unzip_err;
 use crate::ir;
 use crate::ir::expr::{Locals, LocalFnClause};
 use crate::ir::access_type::AccessType;
@@ -79,9 +80,7 @@ pub fn compile_labels_scc(frame: &mut CompilerFrame<StmtBuilder>,
     lambda_table.set_fn(clause.name.to_owned(), fn_call, Box::new(DefaultCall));
   }
 
-  let mut functions: Vec<decl::FnDecl> = Vec::new();
-
-  let bound_calls: Vec<(String, FnCall)> = named_clauses.iter().map(|(func_name, clause)| {
+  let (bound_calls, functions) = unzip_err::<Error, Vec<_>, Vec<_>, _, _, _>(named_clauses.iter().map(|(func_name, clause)| {
     let mut lambda_table = lambda_table.clone(); // New table for this particular function
     let mut lambda_builder = StmtBuilder::new();
     let (arglist, gd_args) = clause.args.clone().into_gd_arglist(&mut compiler.name_generator());
@@ -106,9 +105,8 @@ pub fn compile_labels_scc(frame: &mut CompilerFrame<StmtBuilder>,
       specs: FnSpecs::from(clause.args.to_owned()),
       is_macro: false,
     };
-    functions.push(func);
-    Ok((clause.name.to_owned(), call))
-  }).collect::<Result<_, Error>>()?;
+    Ok(((clause.name.to_owned(), call), func))
+  }))?;
 
   let mut constructor_body = Vec::new();
   for var in &gd_closure_vars {
