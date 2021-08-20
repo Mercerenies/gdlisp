@@ -3,6 +3,7 @@
 //! declaration types.
 
 use super::frame::CompilerFrame;
+use super::stateful::NeedsResult;
 use super::names::fresh::FreshNameGenerator;
 use super::body::builder::{StmtBuilder, CodeBuilder, HasDecls};
 use super::stmt_wrapper::{self, StmtWrapper};
@@ -21,6 +22,12 @@ use crate::ir::access_type::AccessType;
 type IRLiteral = ir::literal::Literal;
 type IRExpr = ir::expr::Expr;
 type IRArgList = ir::arglist::ArgList;
+
+/// This is the structure returned by [`declare_function_with_init`].
+struct DeclaredFnWithInit {
+  function: decl::FnDecl,
+  inits: Vec<Expr>,
+}
 
 /// Appends (to the builder) a variable declaration statement.
 ///
@@ -61,6 +68,18 @@ pub fn declare_function(frame: &mut CompilerFrame<impl HasDecls>,
                         body: &IRExpr,
                         result_destination: &impl StmtWrapper)
                         -> Result<decl::FnDecl, Error> {
+  let result = declare_function_with_init(frame, gd_name, args, &[], body, result_destination)?;
+  assert!(result.inits.is_empty(), "declare_function got nonempty initializers: {:?}", result.inits);
+  Ok(result.function)
+}
+
+fn declare_function_with_init(frame: &mut CompilerFrame<impl HasDecls>,
+                              gd_name: String,
+                              args: IRArgList,
+                              inits: &[IRExpr],
+                              body: &IRExpr,
+                              result_destination: &impl StmtWrapper)
+                              -> Result<DeclaredFnWithInit, Error> {
   let local_vars = body.get_locals();
   let (arglist, gd_args) = args.into_gd_arglist(frame.name_generator());
   let mut stmt_builder = StmtBuilder::new();
@@ -73,12 +92,14 @@ pub fn declare_function(frame: &mut CompilerFrame<impl HasDecls>,
   frame.with_local_vars(&mut gd_args.into_iter().map(|x| (x.lisp_name.to_owned(), LocalVar::local(x.gd_name, *local_vars.get(&x.lisp_name).unwrap_or(&AccessType::None)))), |frame| {
     frame.with_builder(&mut stmt_builder, |frame| {
       frame.compile_stmt(result_destination, body)
-    })
-  })?;
-  Ok(decl::FnDecl {
-    name: gd_name,
-    args: arglist,
-    body: stmt_builder.build_into(frame.builder),
+    })?;
+    let function = decl::FnDecl {
+      name: gd_name,
+      args: arglist,
+      body: stmt_builder.build_into(frame.builder),
+    };
+    let inits = inits.iter().map(|expr| frame.compile_simple_expr("super", expr, NeedsResult::Yes)).collect::<Result<Vec<_>, _>>()?; /////
+    Ok(DeclaredFnWithInit { function, inits })
   })
 }
 
@@ -146,15 +167,16 @@ pub fn declare_class(frame: &mut CompilerFrame<impl HasDecls>,
 pub fn declare_constructor(frame: &mut CompilerFrame<impl HasDecls>,
                            constructor: &ir::decl::ConstructorDecl)
                            -> Result<(decl::InitFnDecl, Vec<decl::FnDecl>), Error> {
-  /////
-  let constructor = declare_function(frame,
-                                     String::from(library::CONSTRUCTOR_NAME),
-                                     IRArgList::from(constructor.args.clone()),
-                                     &constructor.body,
-                                     &stmt_wrapper::Vacuous)?;
+  let constructor_with_init = declare_function_with_init(frame,
+                                                         String::from(library::CONSTRUCTOR_NAME),
+                                                         IRArgList::from(constructor.args.clone()),
+                                                         &constructor.super_call,
+                                                         &constructor.body,
+                                                         &stmt_wrapper::Vacuous)?;
+  let DeclaredFnWithInit { function: constructor, inits } = constructor_with_init;
   let decl::FnDecl { name: _, args, body } = constructor;
 
-  let constructor = decl::InitFnDecl { args, super_call: vec!(), body };
+  let constructor = decl::InitFnDecl { args, super_call: inits, body };
 
   Ok((constructor, vec!()))
 }

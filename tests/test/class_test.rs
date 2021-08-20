@@ -19,6 +19,11 @@ pub fn simple_class_test() {
 }
 
 #[test]
+pub fn parent_constructor_class_test() {
+  assert_eq!(parse_compile_decl("((defclass ClassName (Node) (defvar x) (defn _init (y) (super y y)) (defn foo () 2)))"), "extends Reference\nclass ClassName extends Node:\n    func _init(y_0).(y_0, y_0):\n        pass\n    var x\n    func foo():\n        return 2\nstatic func run():\n    return null\n");
+}
+
+#[test]
 pub fn member_var_class_test_1() {
   assert_eq!(parse_compile_decl("((defclass ClassName (Node) (defvar x) (defn get-x () self:x)))"),
              r#"extends Reference
@@ -577,6 +582,16 @@ pub fn reference_to_outer_in_class_test_4() {
      (print ((Foo:new):foo))
      (print (Foo:foo)))"#);
   assert_eq!(output, "\n100\n100\n");
+}
+
+#[test]
+#[ignore]
+pub fn constructor_with_parent_class_test() {
+  let output = parse_and_run(r#"
+    ((defclass Foo (Reference) (defn _init (x) (print x)))
+     (defclass Bar (Foo) (defn _init (x) (super (+ x 1))))
+     (Bar:new 10))"#);
+  assert_eq!(output, "\n11\n");
 }
 
 #[test]
