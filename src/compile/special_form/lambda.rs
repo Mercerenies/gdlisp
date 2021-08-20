@@ -72,28 +72,20 @@ pub fn compile_labels_scc(frame: &mut CompilerFrame<StmtBuilder>,
   let local_var_name = compiler.name_generator().generate_with("_locals");
 
   // Bind the functions themselves
-  let named_clauses = {
-    let mut named_clauses = Vec::new();
-    for clause in clauses {
-      let func_name = generate_scc_name(&clause.name, compiler.name_generator());
-      lambda_table.set_fn(clause.name.to_owned(), FnCall {
-        scope: FnScope::SpecialLocal(local_var_name.clone()),
-        object: FnName::OnLocalScope,
-        function: func_name.clone(),
-        specs: FnSpecs::from(clause.args.to_owned()),
-        is_macro: false,
-      }, Box::new(DefaultCall));
-      named_clauses.push((func_name, clause));
-    }
-    named_clauses
-  };
+  let named_clauses = generate_names_for_scc_clauses(clauses.iter().copied(), compiler.name_generator());
+  for (func_name, clause) in &named_clauses {
+    let specs = FnSpecs::from(clause.args.to_owned());
+    let fn_call = special_local_fn_call(local_var_name.clone(), func_name.clone(), specs);
+    lambda_table.set_fn(clause.name.to_owned(), fn_call, Box::new(DefaultCall));
+  }
 
   let mut functions: Vec<decl::FnDecl> = Vec::new();
 
-  let bound_calls: Vec<(String, FnCall)> = named_clauses.iter().map(|(fn_name, clause)| {
+  let bound_calls: Vec<(String, FnCall)> = named_clauses.iter().map(|(func_name, clause)| {
     let mut lambda_table = lambda_table.clone(); // New table for this particular function
     let mut lambda_builder = StmtBuilder::new();
     let (arglist, gd_args) = clause.args.clone().into_gd_arglist(&mut compiler.name_generator());
+    // Bind the function arguments
     for NameTrans { lisp_name: arg, gd_name: gd_arg } in &gd_args {
       let access_type = *closure.all_vars.get(&arg).unwrap_or(&AccessType::None);
       lambda_table.set_var(arg.to_owned(), LocalVar::local(gd_arg.to_owned(), access_type));
@@ -101,7 +93,7 @@ pub fn compile_labels_scc(frame: &mut CompilerFrame<StmtBuilder>,
     }
     compiler.frame(pipeline, &mut lambda_builder, &mut lambda_table).compile_stmt(&stmt_wrapper::Return, &clause.body)?;
     let lambda_body = lambda_builder.build_into(*builder);
-    let func_name = fn_name.to_owned();
+    let func_name = func_name.to_owned();
     let func = decl::FnDecl {
       name: func_name.clone(),
       args: arglist,
@@ -159,6 +151,26 @@ pub fn compile_labels_scc(frame: &mut CompilerFrame<StmtBuilder>,
 fn generate_scc_name(original_name: &str, gen: &mut FreshNameGenerator) -> String {
   let name_prefix = format!("_fn_{}", names::lisp_to_gd(original_name));
   gen.generate_with(&name_prefix)
+}
+
+fn generate_names_for_scc_clauses<'a>(clauses: impl Iterator<Item=&'a LocalFnClause>, gen: &mut FreshNameGenerator)
+                                      -> Vec<(String, &'a LocalFnClause)> {
+  clauses.map(|clause| {
+    let func_name = generate_scc_name(&clause.name, gen);
+    (func_name, clause)
+  }).collect()
+}
+
+/// Compiles an [`FnCall`] for a `labels`-style function with the
+/// given name and specs, on the given labels object.
+pub fn special_local_fn_call(labels_var: String, function: String, specs: FnSpecs) -> FnCall {
+  FnCall {
+    scope: FnScope::SpecialLocal(labels_var),
+    object: FnName::OnLocalScope,
+    function,
+    specs,
+    is_macro: false,
+  }
 }
 
 pub fn locally_bind_vars<'a, I, U>(compiler: &mut Compiler,
