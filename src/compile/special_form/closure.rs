@@ -2,7 +2,7 @@
 //! Helpers for generating closures, for use in constructs such as
 //! lambdas and lambda classes.
 
-use crate::ir::expr::{Locals, Functions, LambdaClass};
+use crate::ir::expr::{Locals, Functions, LambdaClass, LocalFnClause};
 use crate::compile::symbol_table::local_var::VarScope;
 use crate::compile::symbol_table::SymbolTable;
 use super::lambda::closure_fn_to_gd_var; // TODO Move this function over to this module
@@ -40,6 +40,15 @@ pub struct Function<'a, 'b> {
   pub args: &'a IRArgList,
   pub body: &'b IRExpr,
 }
+
+/// A simple wrapper around a collection of [`LocalFnClause`]. A
+/// `labels` SCC is a collection of interconnected local function
+/// clauses, which reference each other in a circular fashion. More
+/// generally, this structure can be used for any collection of local
+/// function clauses, regardless of referencing requirements.
+#[repr(transparent)]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct LabelsComponent<'a, 'b>(pub &'a [&'b LocalFnClause]);
 
 impl ClosureData {
 
@@ -156,6 +165,43 @@ impl<'a> From<&'a LambdaClass> for ClosureData {
     }
     closure_vars.remove("self"); // Don't close around self; we get a new self
     ClosureData { closure_vars: closure_vars.clone(), all_vars: closure_vars, closure_fns }
+  }
+
+}
+
+impl<'a, 'b> From<LabelsComponent<'a, 'b>> for ClosureData {
+
+  /// A strongly-connected component (SCC) of a `labels` clause is a
+  /// collection of interconnected local function clauses. Those
+  /// function clauses each have their own closure, and together they
+  /// have a common closure for the object which encapsulates them.
+  ///
+  /// Note that all of the function names in the SCC are in scope for
+  /// the duration of all of the function bodies, so the function
+  /// names themselves will never appear in the resulting
+  /// `closure_fns`.
+  fn from(comp: LabelsComponent<'a, 'b>) -> ClosureData {
+    let LabelsComponent(clauses) = comp;
+    let mut closure_vars = Locals::new();
+    let mut closure_fns = Functions::new();
+    let mut all_vars = Locals::new();
+
+    for clause in clauses {
+      let (mut inner_vars, inner_fns) = clause.body.get_names();
+      all_vars.merge_with(inner_vars.clone());
+      for arg in clause.args.iter_vars() {
+        inner_vars.remove(arg);
+      }
+      closure_vars.merge_with(inner_vars);
+      closure_fns.merge_with(inner_fns);
+    }
+
+    // Function names are in scope for the duration of their own bodies
+    for clause in clauses {
+      closure_fns.remove(&clause.name);
+    }
+
+    ClosureData { closure_vars, all_vars, closure_fns }
   }
 
 }

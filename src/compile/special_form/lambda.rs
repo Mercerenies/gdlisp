@@ -1,6 +1,6 @@
 
 use crate::ir;
-use crate::ir::expr::{Locals, Functions, LocalFnClause};
+use crate::ir::expr::{Locals, LocalFnClause};
 use crate::ir::access_type::AccessType;
 use crate::compile::{Compiler, StExpr};
 use crate::compile::frame::CompilerFrame;
@@ -23,7 +23,7 @@ use crate::pipeline::Pipeline;
 use crate::pipeline::can_load::CanLoad;
 use crate::pipeline::source::SourceOffset;
 use super::lambda_vararg::generate_lambda_class;
-use super::closure::{purge_globals, ClosureData, Function};
+use super::closure::{ClosureData, Function, LabelsComponent};
 
 use std::borrow::Borrow;
 use std::cmp::max;
@@ -42,66 +42,31 @@ pub fn compile_labels_scc(frame: &mut CompilerFrame<StmtBuilder>,
   // Perhaps there's a way to refactor it, but it won't be easy.
   let CompilerFrame { compiler, pipeline, table, builder } = frame;
 
-  let mut closure_vars = Locals::new();
-  let mut closure_fns = Functions::new();
-  let mut all_vars = Locals::new();
+  let closure = {
+    let mut closure = ClosureData::from(LabelsComponent(clauses));
+    // No need to close around global variables, as they're available everywhere
+    closure.purge_globals(table);
+    closure
+  };
 
-  for clause in clauses {
-    let (mut inner_vars, inner_fns) = clause.body.get_names();
-    all_vars.merge_with(inner_vars.clone());
-    for arg in clause.args.iter_vars() {
-      inner_vars.remove(arg);
-    }
-    closure_vars.merge_with(inner_vars);
-    closure_fns.merge_with(inner_fns);
-  }
-
-  // Function names are in scope for the duration of their own bodies
-  for clause in clauses {
-    closure_fns.remove(&clause.name);
-  }
-
+  // Generate an outer class ref if we need access to the scope from
+  // within the lambda class.
   let mut outer_ref_name = String::new();
-  let needs_outer_ref = closure_fns.needs_outer_class_ref(table);
+  let needs_outer_ref = closure.closure_fns.needs_outer_class_ref(table);
   if needs_outer_ref {
     outer_ref_name = compiler.name_generator().generate_with(inner_class::OUTER_REFERENCE_NAME);
   }
 
-  // No need to close around global variables, as they're available everywhere
-  purge_globals(&mut closure_vars, table);
-
+  // Bind all of the closure variables, closure functions, and global
+  // variables inside.
   let mut lambda_table = SymbolTable::new();
-  locally_bind_vars(compiler, table, &mut lambda_table, closure_vars.names(), pos)?;
-  locally_bind_fns(compiler, *pipeline, table, &mut lambda_table, closure_fns.names(), pos, false, &outer_ref_name)?;
+  locally_bind_vars(compiler, table, &mut lambda_table, closure.closure_vars.names(), pos)?;
+  locally_bind_fns(compiler, *pipeline, table, &mut lambda_table, closure.closure_fns.names(), pos, false, &outer_ref_name)?;
   copy_global_vars(table, &mut lambda_table);
 
-  let mut gd_src_closure_vars = Vec::new();
-  let mut gd_closure_vars = Vec::new();
-  for ast_name in closure_vars.names() {
-    let var = lambda_table.get_var(&ast_name).unwrap_or_else(|| {
-      panic!("Internal error compiling lambda variable {}", ast_name)
-    }).to_owned();
-    if let Some(name) = var.simple_name() {
-      gd_closure_vars.push(name.to_owned());
-    }
-    let src_var = table.get_var(&ast_name).unwrap_or_else(|| {
-      panic!("Internal error compiling lambda variable {}", ast_name)
-    }).to_owned();
-    if let Some(name) = src_var.simple_name() {
-      gd_src_closure_vars.push(name.to_owned());
-    }
-  }
-  for func in closure_fns.names() {
-    match table.get_fn(func) {
-      None => { return Err(Error::new(ErrorF::NoSuchFn(func.to_owned()), pos)) }
-      Some((call, _)) => {
-        if let Some(var) = closure_fn_to_gd_var(call) {
-          gd_closure_vars.push(var.to_owned());
-          gd_src_closure_vars.push(var);
-        }
-      }
-    }
-  }
+  // Convert the closures to GDScript names.
+  let gd_closure_vars = closure.to_gd_closure_vars(&lambda_table);
+  let gd_src_closure_vars = closure.to_gd_closure_vars(table);
 
   let local_var_name = compiler.name_generator().generate_with("_locals");
 
@@ -126,9 +91,9 @@ pub fn compile_labels_scc(frame: &mut CompilerFrame<StmtBuilder>,
     let mut lambda_builder = StmtBuilder::new();
     let (arglist, gd_args) = clause.args.clone().into_gd_arglist(&mut compiler.name_generator());
     for NameTrans { lisp_name: arg, gd_name: gd_arg } in &gd_args {
-      let access_type = *all_vars.get(&arg).unwrap_or(&AccessType::None);
+      let access_type = *closure.all_vars.get(&arg).unwrap_or(&AccessType::None);
       lambda_table.set_var(arg.to_owned(), LocalVar::local(gd_arg.to_owned(), access_type));
-      wrap_in_cell_if_needed(arg, gd_arg, &all_vars, &mut lambda_builder, pos);
+      wrap_in_cell_if_needed(arg, gd_arg, &closure.all_vars, &mut lambda_builder, pos);
     }
     compiler.frame(pipeline, &mut lambda_builder, &mut lambda_table).compile_stmt(&stmt_wrapper::Return, &clause.body)?;
     let lambda_body = lambda_builder.build_into(*builder);
