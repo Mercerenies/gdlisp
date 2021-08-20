@@ -91,62 +91,62 @@ class _FunctionRefBlock_2 extends GDLisp.Function:
 #[test]
 pub fn recursive_single_labels_test() {
   let result0 = parse_compile_and_output_h("(labels ((f (x) (f x))) (f 1))");
-  assert_eq!(result0.0, "var _locals_1 = _Labels_0.new()\nreturn _locals_1._fn_f_2(1)\n");
-  assert_eq!(result0.1, r#"class _Labels_0 extends Reference:
+  assert_eq!(result0.0, "var _locals_0 = _Labels_3.new()\nreturn _locals_0._fn_f_1(1)\n");
+  assert_eq!(result0.1, r#"class _Labels_3 extends Reference:
     func _init():
         pass
-    func _fn_f_2(x_3):
-        return _fn_f_2(x_3)
+    func _fn_f_1(x_2):
+        return _fn_f_1(x_2)
 "#);
 }
 
 #[test]
 pub fn recursive_double_labels_test() {
   let result0 = parse_compile_and_output_h("(labels ((f (x) (g x)) (g (x) (f x))) (g (f 1)))");
-  assert_eq!(result0.0, "var _locals_1 = _Labels_0.new()\nreturn _locals_1._fn_g_3(_locals_1._fn_f_2(1))\n");
-  assert_eq!(result0.1, r#"class _Labels_0 extends Reference:
+  assert_eq!(result0.0, "var _locals_0 = _Labels_5.new()\nreturn _locals_0._fn_g_2(_locals_0._fn_f_1(1))\n");
+  assert_eq!(result0.1, r#"class _Labels_5 extends Reference:
     func _init():
         pass
-    func _fn_f_2(x_4):
-        return _fn_g_3(x_4)
-    func _fn_g_3(x_5):
-        return _fn_f_2(x_5)
+    func _fn_f_1(x_3):
+        return _fn_g_2(x_3)
+    func _fn_g_2(x_4):
+        return _fn_f_1(x_4)
 "#);
 }
 
 #[test]
 pub fn recursive_single_with_extra_beginning_labels_test() {
   let result0 = parse_compile_and_output_h("(labels ((f (x) (f (g x))) (g (x) 10)) (f 1))");
-  assert_eq!(result0.0, "var _locals_4 = _Labels_2.new()\nreturn _locals_4._fn_f_5(1)\n");
+  assert_eq!(result0.0, "var _locals_3 = _Labels_6.new()\nreturn _locals_3._fn_f_4(1)\n");
   assert_eq!(result0.1, r#"static func _flet_0(x_1):
     return 10
-class _Labels_2 extends Reference:
+class _Labels_6 extends Reference:
     func _init():
         pass
-    func _fn_f_5(x_6):
-        return _fn_f_5(__gdlisp_outer_class_3._flet_0(x_6))
-    var __gdlisp_outer_class_3 = load("res://TEST.gd")
+    func _fn_f_4(x_5):
+        return _fn_f_4(__gdlisp_outer_class_2._flet_0(x_5))
+    var __gdlisp_outer_class_2 = load("res://TEST.gd")
 "#);
 }
 
 #[test]
 pub fn recursive_single_with_extra_end_labels_test() {
   let result0 = parse_compile_and_output_h("(labels ((f (x) (f x)) (g (x) (f x))) (g 1))");
-  assert_eq!(result0.0, "var _locals_1 = _Labels_0.new()\nvar _flet_6 = _LambdaBlock_5.new(_locals_1)\nreturn _flet_6.call_func(1)\n");
-  assert_eq!(result0.1, r#"class _Labels_0 extends Reference:
+  assert_eq!(result0.0, "var _locals_0 = _Labels_3.new()\nvar _flet_6 = _LambdaBlock_5.new(_locals_0)\nreturn _flet_6.call_func(1)\n");
+  assert_eq!(result0.1, r#"class _Labels_3 extends Reference:
     func _init():
         pass
-    func _fn_f_2(x_3):
-        return _fn_f_2(x_3)
+    func _fn_f_1(x_2):
+        return _fn_f_1(x_2)
 class _LambdaBlock_5 extends GDLisp.Function:
-    var _locals_1
-    func _init(_locals_1):
-        self._locals_1 = _locals_1
+    var _locals_0
+    func _init(_locals_0):
+        self._locals_0 = _locals_0
         self.__gdlisp_required = 1
         self.__gdlisp_optional = 0
         self.__gdlisp_rest = 0
     func call_func(x_4):
-        return _locals_1._fn_f_2(x_4)
+        return _locals_0._fn_f_1(x_4)
     func call_funcv(args):
         var required_0 = null
         if args == null:
@@ -164,21 +164,21 @@ class _LambdaBlock_5 extends GDLisp.Function:
 #[test]
 pub fn recursive_single_indirect_labels_test() {
   let result0 = parse_compile_and_output_h("(labels ((f (x) (f x))) (funcall (function f) 1))");
-  assert_eq!(result0.0, "var _locals_1 = _Labels_0.new()\nreturn GDLisp.funcall(_FunctionRefBlock_4.new(_locals_1), GDLisp.Cons.new(1, null))\n");
-  assert_eq!(result0.1, r#"class _Labels_0 extends Reference:
+  assert_eq!(result0.0, "var _locals_0 = _Labels_3.new()\nreturn GDLisp.funcall(_FunctionRefBlock_4.new(_locals_0), GDLisp.Cons.new(1, null))\n");
+  assert_eq!(result0.1, r#"class _Labels_3 extends Reference:
     func _init():
         pass
-    func _fn_f_2(x_3):
-        return _fn_f_2(x_3)
+    func _fn_f_1(x_2):
+        return _fn_f_1(x_2)
 class _FunctionRefBlock_4 extends GDLisp.Function:
-    var _locals_1
-    func _init(_locals_1):
-        self._locals_1 = _locals_1
+    var _locals_0
+    func _init(_locals_0):
+        self._locals_0 = _locals_0
         self.__gdlisp_required = 1
         self.__gdlisp_optional = 0
         self.__gdlisp_rest = 0
     func call_func(arg0):
-        return _locals_1._fn_f_2(arg0)
+        return _locals_0._fn_f_1(arg0)
     func call_funcv(args):
         var required_0 = null
         if args == null:

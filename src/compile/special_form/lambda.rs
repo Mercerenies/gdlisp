@@ -42,8 +42,6 @@ pub fn compile_labels_scc(frame: &mut CompilerFrame<StmtBuilder>,
   // Perhaps there's a way to refactor it, but it won't be easy.
   let CompilerFrame { compiler, pipeline, table, builder } = frame;
 
-  let class_name = compiler.name_generator().generate_with("_Labels");
-
   let mut closure_vars = Locals::new();
   let mut closure_fns = Functions::new();
   let mut all_vars = Locals::new();
@@ -168,6 +166,7 @@ pub fn compile_labels_scc(frame: &mut CompilerFrame<StmtBuilder>,
   for func in functions {
     class_body.push(Decl::new(DeclF::FnDecl(decl::Static::NonStatic, func), pos));
   }
+  let class_name = compiler.name_generator().generate_with("_Labels");
   let mut class = decl::ClassDecl {
     name: class_name.clone(),
     extends: decl::ClassExtends::named(String::from("Reference")),

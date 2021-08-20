@@ -216,18 +216,18 @@ static func run():
 pub fn labels_self_closure_object_test() {
   assert_eq!(parse_compile_decl("((defobject Foo (Node) (defn test () (labels ((foo (x) (foo self))) (foo 76)))))"),
              r#"extends Reference
-class _Labels_1 extends Reference:
-    var _self_2
-    func _init(_self_2):
-        self._self_2 = _self_2
-    func _fn_foo_4(x_5):
-        return _fn_foo_4(_self_2)
+class _Labels_5 extends Reference:
+    var _self_1
+    func _init(_self_1):
+        self._self_1 = _self_1
+    func _fn_foo_3(x_4):
+        return _fn_foo_3(_self_1)
 class _Foo_Singleton_0 extends Node:
     func _init():
         pass
     func test():
-        var _locals_3 = _Labels_1.new(self)
-        return _locals_3._fn_foo_4(76)
+        var _locals_2 = _Labels_5.new(self)
+        return _locals_2._fn_foo_3(76)
 static func Foo():
     var this_file = load("res://TEST.gd")
     if !this_file.has_meta("__gdlisp_Singleton_Foo"):
