@@ -22,6 +22,7 @@ pub enum DeclF {
   VarDecl(Option<Export>, String, Option<Expr>),
   ConstDecl(String, Expr),
   ClassDecl(ClassDecl),
+  InitFnDecl(InitFnDecl),
   FnDecl(Static, FnDecl),
   EnumDecl(EnumDecl),
   SignalDecl(String, ArgList),
@@ -66,6 +67,13 @@ pub enum ClassExtends {
 pub struct FnDecl {
   pub name: String,
   pub args: ArgList,
+  pub body: Vec<Stmt>,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct InitFnDecl {
+  pub args: ArgList,
+  pub super_call: Vec<Expr>,
   pub body: Vec<Stmt>,
 }
 
@@ -149,6 +157,11 @@ impl Decl {
           write!(w, "static ")?;
         }
         writeln!(w, "func {}({}):", name, args.to_gd())?;
+        Stmt::write_gd_stmts(body, w, ind + 4)
+      }
+      DeclF::InitFnDecl(InitFnDecl { args, super_call, body }) => {
+        let super_args: Vec<_> = super_call.iter().map(Expr::to_gd).collect();
+        writeln!(w, "func _init({}).({}):", args.to_gd(), super_args.join(", "))?;
         Stmt::write_gd_stmts(body, w, ind + 4)
       }
       DeclF::SignalDecl(name, args) => {
@@ -349,6 +362,39 @@ mod tests {
       body: vec!(Stmt::expr(e(ExprF::Var(String::from("function_body")))))
     }));
     assert_eq!(decl5.to_gd(0), "func foobar(arg1, arg2):\n    function_body\n");
+
+  }
+
+  #[test]
+  fn init_functions() {
+
+    let decl1 = d(DeclF::InitFnDecl(InitFnDecl {
+      args: ArgList::required(vec!()),
+      super_call: vec!(),
+      body: vec!()
+    }));
+    assert_eq!(decl1.to_gd(0), "func _init().():\n    pass\n");
+
+    let decl2 = d(DeclF::InitFnDecl(InitFnDecl {
+      args: ArgList::required(vec!(String::from("arg1"))),
+      super_call: vec!(e(ExprF::Var(String::from("arg1"))), e(ExprF::from(8))),
+      body: vec!()
+    }));
+    assert_eq!(decl2.to_gd(0), "func _init(arg1).(arg1, 8):\n    pass\n");
+
+    let decl3 = d(DeclF::InitFnDecl(InitFnDecl {
+      args: ArgList::required(vec!(String::from("arg1"), String::from("arg2"))),
+      super_call: vec!(e(ExprF::Var(String::from("arg1"))), e(ExprF::from(8))),
+      body: vec!()
+    }));
+    assert_eq!(decl3.to_gd(0), "func _init(arg1, arg2).(arg1, 8):\n    pass\n");
+
+    let decl4 = d(DeclF::InitFnDecl(InitFnDecl {
+      args: ArgList::required(vec!(String::from("arg1"), String::from("arg2"))),
+      super_call: vec!(e(ExprF::Var(String::from("arg1"))), e(ExprF::from(8))),
+      body: vec!(Stmt::expr(e(ExprF::Var(String::from("function_body")))))
+    }));
+    assert_eq!(decl4.to_gd(0), "func _init(arg1, arg2).(arg1, 8):\n    function_body\n");
 
   }
 

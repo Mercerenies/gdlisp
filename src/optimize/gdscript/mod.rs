@@ -34,6 +34,7 @@ pub trait StatementLevelPass {
 
 pub trait FunctionOptimization {
   fn run_on_function(&self, function: &mut decl::FnDecl) -> Result<(), Error>;
+  fn run_on_init_function(&self, function: &mut decl::InitFnDecl) -> Result<(), Error>;
 }
 
 pub trait FileOptimization {
@@ -41,11 +42,15 @@ pub trait FileOptimization {
 }
 
 // TODO Note that expression-level optimizations won't run on
-// ConstDecl, VarDecl, or EnumDecl expressions right now.
+// ConstDecl, VarDecl, or EnumDecl expressions right now. Also on
+// super args in InitFnDecl.
 fn on_decl(opt: &impl FunctionOptimization, decl: &mut Decl) -> Result<(), Error> {
   match &mut decl.value {
     DeclF::FnDecl(_, fndecl) => {
       opt.run_on_function(fndecl)
+    }
+    DeclF::InitFnDecl(fndecl) => {
+      opt.run_on_init_function(fndecl)
     }
     DeclF::ClassDecl(cdecl) => {
       for d in &mut cdecl.body {
@@ -73,6 +78,10 @@ impl<T> FileOptimization for T where T : FunctionOptimization {
 // A StatementLevelPass is just a local FunctionOptimization
 impl<T> FunctionOptimization for T where T : StatementLevelPass {
   fn run_on_function(&self, function: &mut decl::FnDecl) -> Result<(), Error> {
+    function.body = stmt_walker::walk_stmts(&function.body, stmt_walker::on_each_stmt(|x| self.run_on_stmt(x)))?;
+    Ok(())
+  }
+  fn run_on_init_function(&self, function: &mut decl::InitFnDecl) -> Result<(), Error> {
     function.body = stmt_walker::walk_stmts(&function.body, stmt_walker::on_each_stmt(|x| self.run_on_stmt(x)))?;
     Ok(())
   }

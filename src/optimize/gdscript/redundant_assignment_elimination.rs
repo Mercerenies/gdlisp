@@ -84,6 +84,10 @@ impl FunctionOptimization for RedundantAssignmentElimination {
     function.body = stmt_walker::walk_stmts(&function.body, |x| self.run_on_stmts(x))?;
     Ok(())
   }
+  fn run_on_init_function(&self, function: &mut decl::InitFnDecl) -> Result<(), Error> {
+    function.body = stmt_walker::walk_stmts(&function.body, |x| self.run_on_stmts(x))?;
+    Ok(())
+  }
 }
 
 #[cfg(test)]

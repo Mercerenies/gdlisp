@@ -1,5 +1,6 @@
 
 use crate::gdscript::expr::ExprF;
+use crate::gdscript::stmt::Stmt;
 use crate::gdscript::decl;
 use crate::compile::error::Error;
 use super::FunctionOptimization;
@@ -15,15 +16,10 @@ pub struct DirectVarSubstitute;
 // names in local variables. If we ever stop doing so, we need to
 // alter this a bit.
 
-/*
- * If a variable is declared and assigned a constant value, and if the
- * variable is never written to again, then we can simply use the
- * constant value anywhere we would use the variable.
- */
-impl FunctionOptimization for DirectVarSubstitute {
-  fn run_on_function(&self, function: &mut decl::FnDecl) -> Result<(), Error> {
-    let vars = get_variable_info(&function.body);
-    function.body = expr_walker::walk_exprs(&function.body, |var_expr| {
+impl DirectVarSubstitute {
+  fn run_on_body(&self, stmts: &mut Vec<Stmt>) -> Result<(), Error> {
+    let vars = get_variable_info(stmts);
+    *stmts = expr_walker::walk_exprs(stmts, |var_expr| {
       if let ExprF::Var(var_name) = &var_expr.value {
         if let Some(info) = vars.get(var_name) {
           if info.is_read_only() && constant::expr_is_constant(&info.value) {
@@ -34,5 +30,19 @@ impl FunctionOptimization for DirectVarSubstitute {
       Ok(var_expr.clone())
     })?;
     Ok(())
+  }
+}
+
+/*
+ * If a variable is declared and assigned a constant value, and if the
+ * variable is never written to again, then we can simply use the
+ * constant value anywhere we would use the variable.
+ */
+impl FunctionOptimization for DirectVarSubstitute {
+  fn run_on_function(&self, function: &mut decl::FnDecl) -> Result<(), Error> {
+    self.run_on_body(&mut function.body)
+  }
+  fn run_on_init_function(&self, function: &mut decl::InitFnDecl) -> Result<(), Error> {
+    self.run_on_body(&mut function.body)
   }
 }
