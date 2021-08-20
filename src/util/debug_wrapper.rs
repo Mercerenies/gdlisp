@@ -1,9 +1,14 @@
 
-// Wrapper for non-Debug types that prints a trivial Debug
-// representation.
+//! Wrapper for non-[`Debug`] types that prints a trivial `Debug`
+//! representation.
 
 use std::fmt::{self, Debug};
 
+/// A `DebugWrapper` is a very thin wrapper around a `T`.
+/// `DebugWrapper` is mostly uninteresting, except that it
+/// unconditionally implements [`Debug`] for all types. The debug
+/// representation for every instance of `DebugWrapper` is always an
+/// ellipsis `"..."`.
 #[derive(Clone, Eq, PartialEq, Ord, PartialOrd)]
 #[repr(transparent)]
 pub struct DebugWrapper<T>(pub T);
