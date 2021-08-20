@@ -107,9 +107,31 @@ pub fn extract_err<T>(value: Result<T, Infallible>) -> T {
   }
 }
 
+/// Unzip an iterator into two collections, taking error values into
+/// consideration. This is the spiritual composition of
+/// [`Iterator::unzip`] and the
+/// [`FromIterator`](std::iter::FromIterator) implementation on
+/// [`Result`].
+pub fn unzip_err<I, A, B, E, FromA, FromB>(iter: I) -> Result<(FromA, FromB), E>
+where I : Iterator<Item=Result<(A, B), E>>,
+      FromA : Default + Extend<A>,
+      FromB : Default + Extend<B> {
+  let mut from_a = FromA::default();
+  let mut from_b = FromB::default();
+  for term in iter {
+    let (a, b) = term?;
+    from_a.extend(one::One(a));
+    from_b.extend(one::One(b));
+  }
+  Ok((from_a, from_b))
+}
+
 #[cfg(test)]
 mod tests {
   use super::*;
+
+  #[derive(Eq, PartialEq, Copy, Clone, Debug)]
+  struct FakeError;
 
   #[test]
   fn test_fold1() {
@@ -126,6 +148,40 @@ mod tests {
   #[test]
   fn test_extract_err() {
     assert_eq!(extract_err(Ok(1)), 1);
+  }
+
+  #[test]
+  fn test_unzip_err_1() {
+    let vec1: Vec<Result<(i32, i32), FakeError>> = vec!(Ok((1, 10)), Ok((2, 20)), Ok((3, 30)));
+    assert_eq!(unzip_err(vec1.into_iter()), Ok((vec!(1, 2, 3), vec!(10, 20, 30))));
+
+    let vec2: Vec<Result<(i32, i32), FakeError>> = vec!(Ok((1, 10)), Err(FakeError), Ok((3, 30)));
+    let unzip_result2: Result<(Vec<_>, Vec<_>), _> = unzip_err(vec2.into_iter());
+    assert_eq!(unzip_result2, Err(FakeError));
+
+    let vec3: Vec<Result<(i32, i32), FakeError>> = vec!();
+    assert_eq!(unzip_err(vec3.into_iter()), Ok((vec!(), vec!())));
+  }
+
+  #[test]
+  fn test_unzip_err_2() {
+    // Make sure errors actually abort the process and the iterator is
+    // lazy.
+    let mut count = 0;
+    let vec = vec!(1, 2, 3, 4, 5);
+    let iter = vec.into_iter().map(|x| {
+      match x {
+        1 => { count += 1; }
+        3 => { return Err(FakeError) }
+        5 => { count += 100; }
+        _ => {}
+      };
+      Ok((x, 0))
+    });
+    let unzip_result: Result<(Vec<_>, Vec<_>), _> = unzip_err(iter);
+    assert_eq!(unzip_result, Err(FakeError));
+    // Only the count += 1 should have run, not the count += 100
+    assert_eq!(count, 1);
   }
 
 }
