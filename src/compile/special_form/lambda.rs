@@ -26,6 +26,7 @@ use super::lambda_vararg::generate_lambda_class;
 use super::closure::{purge_globals, ClosureData, Function};
 
 use std::borrow::Borrow;
+use std::cmp::max;
 
 type IRExpr = ir::expr::Expr;
 type IRArgList = ir::arglist::ArgList;
@@ -256,16 +257,25 @@ pub fn copy_global_vars(src_table: &SymbolTable, dest_table: &mut SymbolTable) {
 /// `gd_src_closure_vars`, and the resulting expression will be given
 /// source offset `pos`.
 ///
+/// Any expression in `suffix_args` will be suffixed onto the end of
+/// the closure variable constructor arguments verbatim and can be
+/// used to pass custom arguments to the constructor.
+///
 /// Despite technically being a method call, lambda constructors are
 /// never stateful, so `side_effects` on the result will always be
 /// [`SideEffects::None`].
 pub fn make_constructor_call(class_name: String,
                              gd_src_closure_vars: impl IntoIterator<Item=String>,
+                             suffix_args: Vec<StExpr>,
                              pos: SourceOffset)
                              -> StExpr {
-  let constructor_args = gd_src_closure_vars.into_iter().map(|x| Expr::new(ExprF::Var(x), pos)).collect();
+  let side_effects = suffix_args.iter().map(|x| x.side_effects).fold(SideEffects::None, max);
+
+  let mut constructor_args: Vec<_> = gd_src_closure_vars.into_iter().map(|x| Expr::new(ExprF::Var(x), pos)).collect();
+  constructor_args.extend(suffix_args.into_iter().map(|x| x.expr));
+
   let expr = Expr::call(Some(Expr::new(ExprF::Var(class_name), pos)), "new", constructor_args, pos);
-  StExpr { expr, side_effects: SideEffects::None }
+  StExpr { expr, side_effects }
 }
 
 pub fn closure_fn_to_gd_var(call: &FnCall) -> Option<String> {
@@ -352,7 +362,7 @@ pub fn compile_lambda_stmt(frame: &mut CompilerFrame<StmtBuilder>,
 
   // Place the resulting values in the builder.
   builder.add_helper(Decl::new(DeclF::ClassDecl(class), pos));
-  Ok(make_constructor_call(class_name, gd_src_closure_vars, pos))
+  Ok(make_constructor_call(class_name, gd_src_closure_vars, vec!(), pos))
 }
 
 /// This function compiles a GDLisp function reference, as constructed
@@ -410,7 +420,7 @@ pub fn compile_function_ref(compiler: &mut Compiler,
     let class_name = compiler.name_generator().generate_with("_FunctionRefBlock");
     let class = generate_lambda_class(class_name.clone(), func.specs, arglist, &gd_src_closure_vars, vec!(body), pos);
     builder.add_helper(Decl::new(DeclF::ClassDecl(class), pos));
-    Ok(make_constructor_call(class_name, gd_src_closure_vars, pos))
+    Ok(make_constructor_call(class_name, gd_src_closure_vars, vec!(), pos))
   }
 }
 

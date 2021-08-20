@@ -5,18 +5,15 @@ use crate::compile::error::{Error, ErrorF};
 use crate::compile::factory;
 use crate::compile::CompilerFrame;
 use crate::compile::Compiler;
-use crate::compile::stateful::{SideEffects, StExpr, NeedsResult};
+use crate::compile::stateful::{StExpr, NeedsResult};
 use crate::compile::body::builder::{StmtBuilder, HasDecls};
 use crate::compile::symbol_table::{SymbolTable, ClassTablePair};
 use crate::compile::symbol_table::local_var::LocalVar;
-use crate::gdscript::expr::{Expr, ExprF};
 use crate::gdscript::decl::{self, Decl, DeclF};
 use crate::gdscript::inner_class::{self, NeedsOuterClassRef};
 use crate::pipeline::source::SourceOffset;
 use super::lambda;
 use super::closure::ClosureData;
-
-use std::cmp::max;
 
 pub fn compile_lambda_class(frame: &mut CompilerFrame<StmtBuilder>,
                             class: &LambdaClass,
@@ -28,8 +25,7 @@ pub fn compile_lambda_class(frame: &mut CompilerFrame<StmtBuilder>,
   // frame.table and lambda_table throughout most of the computation.
   // Perhaps there's a way to refactor it, but it won't be easy.
   let CompilerFrame { compiler, pipeline, table, builder } = frame;
-
-  let LambdaClass { extends, args: constructor_args, constructor, decls } = class.clone();
+  let LambdaClass { extends, args: constructor_args, constructor, decls } = class;
 
   // Validate the extends declaration (must be a global variable)
   let extends = Compiler::resolve_extends(table, &extends, pos)?;
@@ -77,7 +73,7 @@ pub fn compile_lambda_class(frame: &mut CompilerFrame<StmtBuilder>,
   for name in gd_closure_vars.iter() {
     class_body.push(Decl::new(DeclF::VarDecl(None, name.clone(), None), pos));
   }
-  for d in &decls {
+  for d in decls {
 
     if d.is_static() {
       // Static methods / constants are not allowed on lambda classes
@@ -106,12 +102,8 @@ pub fn compile_lambda_class(frame: &mut CompilerFrame<StmtBuilder>,
   builder.add_helper(Decl::new(DeclF::ClassDecl(class), pos));
 
   let constructor_args = constructor_args.iter().map(|expr| compiler.frame(pipeline, *builder, table).compile_expr(expr, NeedsResult::Yes)).collect::<Result<Vec<_>, _>>()?;
-  let final_effect = constructor_args.iter().map(|x| x.side_effects).fold(SideEffects::None, max);
-
-  let constructor_args: Vec<_> = constructor_args.into_iter().map(|x| x.expr).collect();
-  let constructor_args: Vec<_> = gd_src_closure_vars.into_iter().map(|x| Expr::new(ExprF::Var(x), pos)).chain(constructor_args.into_iter()).collect();
-  let expr = Expr::call(Some(Expr::new(ExprF::Var(gd_class_name), pos)), "new", constructor_args, pos);
-  Ok(StExpr { expr, side_effects: final_effect })
+  let expr = lambda::make_constructor_call(gd_class_name, gd_src_closure_vars, constructor_args, pos);
+  Ok(expr)
 }
 
 fn compile_lambda_class_constructor(frame: &mut CompilerFrame<impl HasDecls>,
