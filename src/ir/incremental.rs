@@ -225,15 +225,13 @@ impl IncCompiler {
   /// of the rest of the body, is returned. Otherwise, the whole slice
   /// is returned untouched.
   pub fn detect_super<'a, 'b>(body: &'a [&'b AST]) -> (Option<Vec<&'b AST>>, &'a [&'b AST]) {
-    if body.len() >= 1 {
+    if !body.is_empty() {
       let first: Result<Vec<_>, _> = DottedExpr::new(&body[0]).try_into();
       if let Ok(mut first) = first {
-        if first.len() >= 1 {
-          if first[0].value == ASTF::Symbol(String::from("super")) {
-            first.remove(0);
-            let super_args = first;
-            return (Some(super_args), &body[1..]);
-          }
+        if !first.is_empty() && first[0].value == ASTF::Symbol(String::from("super")) {
+          first.remove(0);
+          let super_args = first;
+          return (Some(super_args), &body[1..]);
         }
       }
     }
@@ -580,7 +578,7 @@ impl IncCompiler {
             let body = body.iter().map(|expr| self.compile_expr(pipeline, expr)).collect::<Result<Vec<_>, _>>()?;
             if fname == "_init" {
               // Constructor
-              let super_call = super_call.unwrap_or(vec!());
+              let super_call = super_call.unwrap_or_default();
               *acc.get_constructor_mut() = decl::ConstructorDecl { args, super_call, body: Expr::progn(body, vec[0].pos) };
               for m in mods {
                 m.apply_to_constructor(acc.get_constructor_mut())?;
