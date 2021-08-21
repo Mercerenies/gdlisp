@@ -11,14 +11,10 @@ stdin input to GDScript.
 
 GDLisp is early in development and is very clearly not ready for actual use.
 
-The current version of GDLisp is tested against [Godot 3.3 RC
-6](https://godotengine.org/article/release-candidate-godot-3-3-rc-6)
+The current version of GDLisp is tested against [Godot
+3.3.3](https://godotengine.org/article/maintenance-release-godot-3-3-3)
 (non-Mono) and expects a command called `godot` to be on your system's
-path which points to the Godot executable. It should run fine against
-against the current release version 3.2.3, except that the
-`--no-window` flag is not supported on some platforms, which results
-in awkward blank windows appearing at some points during the
-compilation process.
+path which points to the Godot executable.
 
 ## Planned Features
 
