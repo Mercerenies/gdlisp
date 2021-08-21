@@ -25,11 +25,15 @@ jobs:
         ln -s Godot_v3.3.3-stable_x11.64 godot
         ls -l
         cd ..
-        PATH="$PWD/godot-build/:$PATH"
-        echo "$PATH"
     - name: Build
       run: cargo build --verbose
     - name: Run Standard Test Suite
-      run: cargo test --verbose
+      run: |
+        PATH="$PWD/godot-build/:$PATH"
+        echo "$PATH"
+        cargo test --verbose
     - name: Run Full Test Suite
-      run: cargo test --verbose -- --ignored
+      run: |
+        PATH="$PWD/godot-build/:$PATH"
+        echo "$PATH"
+        cargo test --verbose -- --ignored
