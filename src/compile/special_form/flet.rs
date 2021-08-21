@@ -94,11 +94,11 @@ pub fn compile_labels(frame: &mut CompilerFrame<StmtBuilder>,
   let ordering: Vec<_> = top_sort(&collated_graph)
     .expect("SCC detection failed (cycle in resulting graph)")
     .into_iter().copied().collect();
-  let mut alg = CompileLabelsRecAlgorithm { frame, body, needs_result, pos, clauses, full_graph: &dependencies, sccs: &sccs, graph: &collated_graph, ordering: &ordering[..] };
+  let mut alg = CompileLabelsRecAlgorithm { frame, body, needs_result, pos, clauses, full_graph: &dependencies, sccs: &sccs, ordering: &ordering[..] };
   alg.compile_labels_rec(0)
 }
 
-struct CompileLabelsRecAlgorithm<'a, 'b, 'c, 'd, 'e, 'f, 'g, 'h, 'i, 'j, 'k, 'l> {
+struct CompileLabelsRecAlgorithm<'a, 'b, 'c, 'd, 'e, 'f, 'g, 'h, 'i, 'j, 'k> {
   frame: &'a mut CompilerFrame<'b, 'c, 'd, 'e, StmtBuilder>,
   body: &'f IRExpr,
   needs_result: NeedsResult,
@@ -106,11 +106,10 @@ struct CompileLabelsRecAlgorithm<'a, 'b, 'c, 'd, 'e, 'f, 'g, 'h, 'i, 'j, 'k, 'l>
   clauses: &'g [LocalFnClause],
   full_graph: &'h Graph<String>,
   sccs: &'i tarjan::SCCSummary<'j, String>,
-  graph: &'k Graph<usize>,
-  ordering: &'l [usize],
+  ordering: &'k [usize],
 }
 
-impl<'a, 'b, 'c, 'd, 'e, 'f, 'g, 'h, 'i, 'j, 'k, 'l> CompileLabelsRecAlgorithm<'a, 'b, 'c, 'd, 'e, 'f, 'g, 'h, 'i, 'j, 'k, 'l> {
+impl<'a, 'b, 'c, 'd, 'e, 'f, 'g, 'h, 'i, 'j, 'k> CompileLabelsRecAlgorithm<'a, 'b, 'c, 'd, 'e, 'f, 'g, 'h, 'i, 'j, 'k> {
 
   fn compile_labels_rec(&mut self, ordering_idx: usize) -> Result<StExpr, Error> {
     if ordering_idx < self.ordering.len() {
@@ -151,7 +150,7 @@ impl<'a, 'b, 'c, 'd, 'e, 'f, 'g, 'h, 'i, 'j, 'k, 'l> CompileLabelsRecAlgorithm<'
 
 }
 
-impl<'a, 'b, 'c, 'd, 'e, 'f, 'g, 'h, 'i, 'j, 'k, 'l> HasSymbolTable for CompileLabelsRecAlgorithm<'a, 'b, 'c, 'd, 'e, 'f, 'g, 'h, 'i, 'j, 'k, 'l> {
+impl<'a, 'b, 'c, 'd, 'e, 'f, 'g, 'h, 'i, 'j, 'k> HasSymbolTable for CompileLabelsRecAlgorithm<'a, 'b, 'c, 'd, 'e, 'f, 'g, 'h, 'i, 'j, 'k> {
 
   fn get_symbol_table(&self) -> &SymbolTable {
     self.frame.get_symbol_table()
