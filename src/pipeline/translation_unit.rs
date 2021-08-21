@@ -1,4 +1,6 @@
 
+//! Provides the [`TranslationUnit`] structure.
+
 use crate::compile::symbol_table::SymbolTable;
 use crate::ir::decl::TopLevel;
 use crate::ir::identifier::Id;
@@ -8,17 +10,47 @@ use crate::gdscript::decl::TopLevelClass;
 use std::path::PathBuf;
 use std::collections::HashMap;
 
+/// A translation unit is the result of compiling a single file of
+/// GDLisp code. As we compile a Godot project, the
+/// [`Pipeline`](super::Pipeline) keeps an index of loaded files in
+/// the form of translation units. If the same file is required
+/// multiple times, the latter loads can simply query the cached file.
+/// As such, this structure necessarily keeps all of the information
+/// needed to reconstruct the entire relevant compilation process for
+/// import purposes.
 pub struct TranslationUnit {
+  /// The path to the file this translation unit references.
   pub filename: PathBuf,
+  /// The compiler symbol table for the top-level of this translation
+  /// unit. This includes all top-level declarations which are
+  /// available at runtime.
+  ///
+  /// Note that, at present, this symbol table includes the names of
+  /// macros defined in the file. This may change in the future, if
+  /// macros become unavailable at runtime.
   pub table: SymbolTable,
+  /// The intermediate representation used during compilation of the
+  /// translation unit.
   pub ir: TopLevel,
+  /// The compiled GDScript code, the final result of compilation.
   pub gdscript: TopLevelClass,
+  /// A vector of exported identifiers. This includes any names which
+  /// should be available from imports and explicitly *excludes* those
+  /// names marked private or those generated for local use, such as
+  /// lambda closure classes.
   pub exports: Vec<Id>,
+  /// A map of all of the macros defined in the translation unit.
+  ///
+  /// This map should exclude macros which were imported into the
+  /// unit's scope but were not defined there, so
+  /// [`MacroData::imported`] should be false for every value in this
+  /// map.
   pub macros: HashMap<String, MacroData>,
 }
 
 impl TranslationUnit {
 
+  /// Convenience function for constructing translation units.
   pub fn new(filename: PathBuf,
              table: SymbolTable,
              ir: TopLevel,
