@@ -91,14 +91,14 @@ pub fn compile_labels(frame: &mut CompilerFrame<StmtBuilder>,
   let sccs = tarjan::find_scc(&dependencies);
   let collated_graph = tarjan::build_scc_graph(&dependencies, &sccs);
   let collated_graph = collated_graph.transpose(); // We need the arrows pointing in load order, not dependency order
-  let ordering: Vec<_> = top_sort(&collated_graph)
+  let ordering = top_sort(&collated_graph)
     .expect("SCC detection failed (cycle in resulting graph)")
-    .into_iter().copied().collect();
-  let mut alg = CompileLabelsRecAlgorithm { frame, body, needs_result, pos, clauses, full_graph: &dependencies, sccs: &sccs, ordering: &ordering[..] };
-  alg.compile_labels_rec(0)
+    .into_iter().copied();
+  let mut alg = CompileLabelsRecAlgorithm { frame, body, needs_result, pos, clauses, full_graph: &dependencies, sccs: &sccs, ordering: ordering };
+  alg.compile_labels_rec()
 }
 
-struct CompileLabelsRecAlgorithm<'a, 'b, 'c, 'd, 'e, 'f, 'g, 'h, 'i, 'j, 'k> {
+struct CompileLabelsRecAlgorithm<'a, 'b, 'c, 'd, 'e, 'f, 'g, 'h, 'i, 'j, I> {
   frame: &'a mut CompilerFrame<'b, 'c, 'd, 'e, StmtBuilder>,
   body: &'f IRExpr,
   needs_result: NeedsResult,
@@ -106,18 +106,17 @@ struct CompileLabelsRecAlgorithm<'a, 'b, 'c, 'd, 'e, 'f, 'g, 'h, 'i, 'j, 'k> {
   clauses: &'g [LocalFnClause],
   full_graph: &'h Graph<String>,
   sccs: &'i tarjan::SCCSummary<'j, String>,
-  ordering: &'k [usize],
+  ordering: I,
 }
 
-impl<'a, 'b, 'c, 'd, 'e, 'f, 'g, 'h, 'i, 'j, 'k> CompileLabelsRecAlgorithm<'a, 'b, 'c, 'd, 'e, 'f, 'g, 'h, 'i, 'j, 'k> {
+impl<'a, 'b, 'c, 'd, 'e, 'f, 'g, 'h, 'i, 'j, I : Iterator<Item=usize>> CompileLabelsRecAlgorithm<'a, 'b, 'c, 'd, 'e, 'f, 'g, 'h, 'i, 'j, I> {
 
-  fn compile_labels_rec(&mut self, ordering_idx: usize) -> Result<StExpr, Error> {
-    if ordering_idx < self.ordering.len() {
-      let current_scc_idx = self.ordering[ordering_idx];
+  fn compile_labels_rec(&mut self) -> Result<StExpr, Error> {
+    if let Some(current_scc_idx) = self.ordering.next() {
       let tarjan::SCC(current_scc) = self.sccs.get_scc_by_id(current_scc_idx).expect("SCC detection failed (invalid ID)");
       if current_scc.is_empty() {
         // That's weird. But whatever. No action needed.
-        self.compile_labels_rec(ordering_idx + 1)
+        self.compile_labels_rec()
       } else {
         let name = current_scc.iter().next().expect("Internal error in SCC detection (no first element?)");
         if current_scc.len() == 1 && !self.full_graph.has_edge(name, name) {
@@ -126,7 +125,7 @@ impl<'a, 'b, 'c, 'd, 'e, 'f, 'g, 'h, 'i, 'j, 'k> CompileLabelsRecAlgorithm<'a, '
           let clause = self.clauses.iter().find(|clause| clause.name == **name).expect("Internal error in SCC detection (no function found?)");
           let call = compile_flet_call(self.frame, clause.args.to_owned(), &clause.body, self.pos)?;
           self.with_local_fn((*name).to_owned(), call, |alg| {
-            alg.compile_labels_rec(ordering_idx + 1)
+            alg.compile_labels_rec()
           })
         } else {
           // Complicated mutual recursion case.
@@ -139,7 +138,7 @@ impl<'a, 'b, 'c, 'd, 'e, 'f, 'g, 'h, 'i, 'j, 'k> CompileLabelsRecAlgorithm<'a, '
           relevant_clauses.sort_by_key(|clause| &clause.name);
           let calls = lambda::compile_labels_scc(self.frame, &relevant_clauses[..], self.pos)?;
           self.with_local_fns(&mut calls.into_iter(), |alg| {
-            alg.compile_labels_rec(ordering_idx + 1)
+            alg.compile_labels_rec()
           })
         }
       }
@@ -150,7 +149,7 @@ impl<'a, 'b, 'c, 'd, 'e, 'f, 'g, 'h, 'i, 'j, 'k> CompileLabelsRecAlgorithm<'a, '
 
 }
 
-impl<'a, 'b, 'c, 'd, 'e, 'f, 'g, 'h, 'i, 'j, 'k> HasSymbolTable for CompileLabelsRecAlgorithm<'a, 'b, 'c, 'd, 'e, 'f, 'g, 'h, 'i, 'j, 'k> {
+impl<'a, 'b, 'c, 'd, 'e, 'f, 'g, 'h, 'i, 'j, I> HasSymbolTable for CompileLabelsRecAlgorithm<'a, 'b, 'c, 'd, 'e, 'f, 'g, 'h, 'i, 'j, I> {
 
   fn get_symbol_table(&self) -> &SymbolTable {
     self.frame.get_symbol_table()
