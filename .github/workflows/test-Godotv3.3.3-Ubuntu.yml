@@ -1,0 +1,35 @@
+name: Test against Godot v3.3.3 on Ubuntu 20.04
+
+on:
+  push:
+    branches: [ $default-branch, ci-cd ]
+  pull_request:
+    branches: [ $default-branch, ci-cd ]
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build:
+
+    runs-on: "ubuntu-20.04"
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Install Godot
+      run: |
+        mkdir godot-build
+        cd godot-build
+        wget https://downloads.tuxfamily.org/godotengine/3.3.3/Godot_v3.3.3-stable_x11.64.zip
+        unzip Godot_v3.3.3-stable_x11.64.zip
+        ln -s Godot_v3.3.3-stable_x11.64 godot
+        ls -l
+        cd ..
+        PATH="$PWD/godot-build/:$PATH"
+        echo "$PATH"
+    - name: Build
+      run: cargo build --verbose
+    - name: Run Standard Test Suite
+      run: cargo test --verbose
+    - name: Run Full Test Suite
+      run: cargo test --verbose -- --ignored
