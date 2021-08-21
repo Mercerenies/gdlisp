@@ -1,0 +1,26 @@
+name: Rust
+
+on:
+  push:
+    branches: [ $default-branch, ci-cd ]
+  pull_request:
+    branches: [ $default-branch, ci-cd ]
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Install Clippy
+      run: |
+        rustup update
+        rustup component add clippy
+    - name: Build
+      run: cargo build --verbose
+    - name: Run Clippy
+      run: cargo clippy --verbose
