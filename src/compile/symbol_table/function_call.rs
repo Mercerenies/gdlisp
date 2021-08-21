@@ -123,6 +123,31 @@ pub struct FnSpecs {
   pub rest: Option<VarArg>,
 }
 
+/// When referencing enclosing static data from an inner class scope,
+/// there are two possible types of inner class scopes we could be
+/// within.
+///
+/// If we're in a static inner scope and need to reference a static
+/// outer scope, then the inner scope will need to load the current
+/// file, using [`FnName::inner_static_load`]. On the other hand, if
+/// we're in a non-static inner scope and need to reference a static
+/// outer scope, then we're expected to do a single `load` call and
+/// store the result in an instance variable.
+///
+/// This enum encapsulates these two behaviors. An outer static
+/// reference is either referred to by a live static load or by an
+/// instance variable with a given name.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum OuterStaticRef<'a> {
+  /// An outer static reference from an inner static scope uses a live
+  /// `load` call on-site.
+  InnerStatic,
+  /// An outer static reference from an inner non-static scope
+  /// references an instance variable on the current (inner) class
+  /// with the given name.
+  InnerInstanceVar(&'a str),
+}
+
 impl FnCall {
 
   /// A top-level macro. A macro always has `object` of
@@ -372,15 +397,17 @@ impl FnName {
   /// See [Issue #30](https://github.com/Mercerenies/gdlisp/issues/30)
   /// for a further discussion.
   pub fn update_for_inner_scope(&mut self,
-                                static_binding: bool,
+                                binding_type: &OuterStaticRef<'_>,
                                 resolver: &(impl PreloadResolver + ?Sized),
-                                loader: &impl CanLoad,
-                                outer_ref_name: &str) {
+                                loader: &impl CanLoad) {
     if *self == FnName::FileConstant {
-      if static_binding {
-        *self = FnName::inner_static_load(resolver, loader);
-      } else {
-        *self = FnName::OnLocalVar(Box::new(VarName::local(outer_ref_name)));
+      match binding_type {
+        OuterStaticRef::InnerStatic => {
+          *self = FnName::inner_static_load(resolver, loader);
+        }
+        OuterStaticRef::InnerInstanceVar(outer_ref_name) => {
+          *self = FnName::OnLocalVar(Box::new(VarName::local(outer_ref_name)));
+        }
       }
     }
   }
@@ -388,12 +415,11 @@ impl FnName {
   /// As [`update_for_inner_scope`](FnName::update_for_inner_scope),
   /// but takes ownership of `self` and returns the modified `FnName`.
   pub fn into_inner_scope(mut self,
-                          static_binding: bool,
+                          binding_type: &OuterStaticRef<'_>,
                           resolver: &(impl PreloadResolver + ?Sized),
-                          loader: &impl CanLoad,
-                          outer_ref_name: &str)
+                          loader: &impl CanLoad)
                           -> Self {
-    self.update_for_inner_scope(static_binding, resolver, loader, outer_ref_name);
+    self.update_for_inner_scope(binding_type, resolver, loader);
     self
   }
 
@@ -410,6 +436,33 @@ impl FnName {
       FnName::OnLocalVar(var_name) => Some(var_name.into_expr(pos)),
       FnName::OnLocalScope => None,
       FnName::MacroCall(m) => Some(*m),
+    }
+  }
+
+}
+
+impl<'a> OuterStaticRef<'a> {
+
+  /// If `static_binding` is true, then this method returns
+  /// [`OuterStaticRef::InnerStatic`]. Otherwise, this method returns
+  /// [`OuterStaticRef::InnerInstanceVar`] with `outer_ref_name` as
+  /// the reference name. This is useful in situations where we
+  /// already have an outer reference name and simply need to know
+  /// whether we can use it from the given scope.
+  pub fn from_ref_type(static_binding: bool, outer_ref_name: &'a str) -> Self {
+    if static_binding {
+      OuterStaticRef::InnerStatic
+    } else {
+      OuterStaticRef::InnerInstanceVar(outer_ref_name)
+    }
+  }
+
+  /// Converts `None` to [`OuterStaticRef::InnerStatic`] and `Some` to
+  /// [`OuterStaticRef::InnerInstanceVar`].
+  pub fn from_option_ref(outer_ref_name: Option<&'a str>) -> Self {
+    match outer_ref_name {
+      None => OuterStaticRef::InnerStatic,
+      Some(ref_name) => OuterStaticRef::InnerInstanceVar(ref_name),
     }
   }
 

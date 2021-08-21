@@ -9,6 +9,7 @@ use super::body::builder::{StmtBuilder, CodeBuilder, HasDecls};
 use super::stmt_wrapper::{self, StmtWrapper};
 use super::symbol_table::{HasSymbolTable, ClassTablePair};
 use super::symbol_table::local_var::LocalVar;
+use super::symbol_table::function_call::OuterStaticRef;
 use super::error::Error;
 use crate::gdscript::expr::Expr;
 use crate::gdscript::stmt::Stmt;
@@ -155,10 +156,10 @@ pub fn declare_class(frame: &mut CompilerFrame<impl HasDecls>,
     // will be harmlessly ignored in that case.
     if !main_class {
       for (_, call, _) in instance_table.fns_mut() {
-        call.object.update_for_inner_scope(false, frame.preload_resolver(), frame.pipeline, &outer_ref_name);
+        call.object.update_for_inner_scope(&OuterStaticRef::InnerInstanceVar(&outer_ref_name), frame.preload_resolver(), frame.pipeline);
       }
       for (_, call, _) in static_table.fns_mut() {
-        call.object.update_for_inner_scope(true, frame.preload_resolver(), frame.pipeline, &outer_ref_name);
+        call.object.update_for_inner_scope(&OuterStaticRef::InnerStatic, frame.preload_resolver(), frame.pipeline);
       }
     }
 

@@ -9,6 +9,7 @@ use crate::compile::stateful::{StExpr, NeedsResult};
 use crate::compile::body::builder::{StmtBuilder, HasDecls};
 use crate::compile::symbol_table::{SymbolTable, ClassTablePair};
 use crate::compile::symbol_table::local_var::LocalVar;
+use crate::compile::symbol_table::function_call::OuterStaticRef;
 use crate::gdscript::decl::{self, Decl, DeclF};
 use crate::gdscript::inner_class::{self, NeedsOuterClassRef};
 use crate::pipeline::source::SourceOffset;
@@ -57,7 +58,7 @@ pub fn compile_lambda_class(frame: &mut CompilerFrame<StmtBuilder>,
   // Bind all of the closure variables, closure functions, and global
   // variables inside.
   lambda::locally_bind_vars(compiler, table, &mut lambda_table, closure.closure_vars.names(), pos)?;
-  lambda::locally_bind_fns(compiler, *pipeline, table, &mut lambda_table, closure.closure_fns.names(), pos, false, &outer_ref_name)?;
+  lambda::locally_bind_fns(compiler, *pipeline, table, &mut lambda_table, closure.closure_fns.names(), pos, &OuterStaticRef::InnerInstanceVar(&outer_ref_name))?;
   lambda::copy_global_vars(table, &mut lambda_table);
 
   // Convert the closures to GDScript names.

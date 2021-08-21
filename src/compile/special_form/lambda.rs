@@ -8,7 +8,7 @@ use crate::compile::frame::CompilerFrame;
 use crate::compile::body::builder::StmtBuilder;
 use crate::compile::symbol_table::SymbolTable;
 use crate::compile::symbol_table::local_var::{LocalVar, VarScope, VarName};
-use crate::compile::symbol_table::function_call::{FnCall, FnSpecs, FnScope, FnName};
+use crate::compile::symbol_table::function_call::{FnCall, FnSpecs, FnScope, FnName, OuterStaticRef};
 use crate::compile::symbol_table::call_magic::DefaultCall;
 use crate::compile::stmt_wrapper;
 use crate::compile::error::{Error, ErrorF};
@@ -63,7 +63,7 @@ pub fn compile_labels_scc(frame: &mut CompilerFrame<StmtBuilder>,
   // variables inside.
   let mut lambda_table = SymbolTable::new();
   locally_bind_vars(compiler, table, &mut lambda_table, closure.closure_vars.names(), pos)?;
-  locally_bind_fns(compiler, *pipeline, table, &mut lambda_table, closure.closure_fns.names(), pos, false, &outer_ref_name)?;
+  locally_bind_fns(compiler, *pipeline, table, &mut lambda_table, closure.closure_fns.names(), pos, &OuterStaticRef::InnerInstanceVar(&outer_ref_name))?;
   copy_global_vars(table, &mut lambda_table);
 
   // Convert the closures to GDScript names.
@@ -204,8 +204,7 @@ pub fn locally_bind_fns<'a, I, U, L>(compiler: &mut Compiler,
                                      lambda_table: &mut SymbolTable,
                                      closure_fns: I,
                                      pos: SourceOffset,
-                                     static_binding: bool,
-                                     outer_reference_name: &str)
+                                     outer_static_ref: &OuterStaticRef<'_>)
                                      -> Result<(), Error>
 where I : Iterator<Item=&'a U>,
       U : Borrow<str>,
@@ -218,7 +217,7 @@ where I : Iterator<Item=&'a U>,
       None => { return Err(Error::new(ErrorF::NoSuchFn(func.borrow().to_owned()), pos)) }
       Some((call, magic)) => {
         let mut call = call.clone();
-        call.object.update_for_inner_scope(static_binding, compiler.preload_resolver(), pipeline, &outer_reference_name);
+        call.object.update_for_inner_scope(outer_static_ref, compiler.preload_resolver(), pipeline);
         lambda_table.set_fn(func.borrow().to_owned(), call, dyn_clone::clone_box(magic));
       }
     };
@@ -316,7 +315,7 @@ pub fn compile_lambda_stmt(frame: &mut CompilerFrame<StmtBuilder>,
   // Bind all of the closure variables, closure functions, and global
   // variables inside.
   locally_bind_vars(compiler, table, &mut lambda_table, closure.closure_vars.names(), pos)?;
-  locally_bind_fns(compiler, *pipeline, table, &mut lambda_table, closure.closure_fns.names(), pos, false, &outer_ref_name)?;
+  locally_bind_fns(compiler, *pipeline, table, &mut lambda_table, closure.closure_fns.names(), pos, &OuterStaticRef::InnerInstanceVar(&outer_ref_name))?;
   copy_global_vars(table, &mut lambda_table);
 
   // Convert the closures to GDScript names.
@@ -391,9 +390,7 @@ pub fn compile_function_ref(compiler: &mut Compiler,
         vec!()
       };
 
-    // The string "LAMBDA_COMPILE_ERROR" should not be used since we
-    // told the FnName to compile statically.
-    let object = func.object.clone().into_inner_scope(true, compiler.preload_resolver(), pipeline, "LAMBDA_COMPILE_ERROR").into_expr(pos);
+    let object = func.object.clone().into_inner_scope(&OuterStaticRef::InnerStatic, compiler.preload_resolver(), pipeline).into_expr(pos);
     let body = Stmt::new(
       StmtF::ReturnStmt(
         Expr::call(object, &func.function, arglist.args.iter().map(|x| Expr::var(x, pos)).collect(), pos)
