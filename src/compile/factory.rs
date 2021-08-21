@@ -98,7 +98,30 @@ fn declare_function_with_init(frame: &mut CompilerFrame<impl HasDecls>,
       args: arglist,
       body: stmt_builder.build_into(frame.builder),
     };
-    let inits = inits.iter().map(|expr| frame.compile_simple_expr("super", expr, NeedsResult::Yes)).collect::<Result<Vec<_>, _>>()?; /////
+    let inits = inits.iter().map::<Result<Expr, Error>, _>(|expr| {
+      let mut inner_builder = StmtBuilder::new();
+      let cexpr = frame.with_builder(&mut inner_builder, |frame| {
+        frame.compile_expr(expr, NeedsResult::Yes).map(|x| x.expr)
+      })?;
+      let (stmts, decls) = inner_builder.build();
+      if stmts.is_empty() {
+        // If we never used the stmts, then it's a simple enough
+        // expression to compile directly.
+        frame.builder.add_decls(decls);
+        Ok(cexpr)
+      } else {
+        // We used accessory statements, so we need an IIFE to get
+        // to a place where we can compile statements.
+        let mut new_inner_builder = StmtBuilder::new();
+        let cexpr = frame.with_builder(&mut new_inner_builder, |frame| {
+          frame.compile_expr(&expr.clone().self_evaluating_lambda(), NeedsResult::Yes).map(|x| x.expr)
+        })?;
+        let (stmts, decls) = new_inner_builder.build();
+        assert!(stmts.is_empty(), "Non-empty statements in self-evaluating lambda at declare_function_with_init: got {:?}", stmts);
+        frame.builder.add_decls(decls);
+        Ok(cexpr)
+      }
+    }).collect::<Result<Vec<_>, _>>()?;
     Ok(DeclaredFnWithInit { function, inits })
   })
 }

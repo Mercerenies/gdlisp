@@ -116,6 +116,24 @@ impl Expr {
     Expr::new(ExprF::Yield(Some((Box::new(lhs), Box::new(rhs)))), pos)
   }
 
+  /// Wraps the expression in a 0-ary lambda which is immediately
+  /// invoked.
+  ///
+  /// If `expr` is the starting expression, then the result is
+  /// conceptually `(funcall (lambda () expr))`. This is used in
+  /// certain contexts in compilation, such as in a parent constructor
+  /// invocation, where we have expression context but have nowhere to
+  /// place helper statements produced by a
+  /// [`StmtBuilder`](crate::compile::body::builder::StmtBuilder).
+  pub fn self_evaluating_lambda(self) -> Expr {
+    let pos = self.pos;
+    Expr::call(
+      String::from("funcall"), // TODO a sys/ version of funcall that can't be shadowed by the user
+      vec!(Expr::new(ExprF::Lambda(ArgList::empty(), Box::new(self)), pos)),
+      pos,
+    )
+  }
+
   fn walk_locals(&self, acc_vars: &mut Locals, acc_fns: &mut Functions) {
     match &self.value {
       ExprF::LocalVar(s) => {

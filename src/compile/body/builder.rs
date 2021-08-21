@@ -31,8 +31,17 @@ pub struct StmtBuilder {
 /// another [`StmtBuilder`] or into any other kind of builder (such as
 /// [`CodeBuilder`]) in a nice, uniform way.
 pub trait HasDecls {
+
   /// Adds a declaration to the builder.
   fn add_decl(&mut self, decl: Decl);
+
+  /// Adds several declarations to the builder.
+  fn add_decls(&mut self, decls: impl IntoIterator<Item=Decl>) {
+    for decl in decls {
+      self.add_decl(decl);
+    }
+  }
+
 }
 
 impl CodeBuilder {

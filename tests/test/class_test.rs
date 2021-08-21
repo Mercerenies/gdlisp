@@ -19,8 +19,49 @@ pub fn simple_class_test() {
 }
 
 #[test]
-pub fn parent_constructor_class_test() {
+pub fn parent_constructor_class_test_1() {
   assert_eq!(parse_compile_decl("((defclass ClassName (Node) (defvar x) (defn _init (y) (super y y)) (defn foo () 2)))"), "extends Reference\nclass ClassName extends Node:\n    func _init(y_0).(y_0, y_0):\n        pass\n    var x\n    func foo():\n        return 2\nstatic func run():\n    return null\n");
+}
+
+#[test]
+pub fn parent_constructor_class_test_2() {
+  assert_eq!(parse_compile_decl("((defclass ClassName (Node) (defvar x) (defn _init (y) (super (progn y))) (defn foo () 2)))"), "extends Reference\nclass ClassName extends Node:\n    func _init(y_0).(y_0):\n        pass\n    var x\n    func foo():\n        return 2\nstatic func run():\n    return null\n");
+}
+
+#[test]
+pub fn parent_constructor_class_test_3() {
+  assert_eq!(parse_compile_decl("((defclass ClassName (Node) (defvar x) (defn _init (y) (super (if y 1 2))) (defn foo () 2)))"), r#"extends Reference
+class _LambdaBlock_3 extends GDLisp.Function:
+    var y_0
+    func _init(y_0):
+        self.y_0 = y_0
+        self.__gdlisp_required = 0
+        self.__gdlisp_optional = 0
+        self.__gdlisp_rest = 0
+    func call_func():
+        var _cond_2 = null
+        if y_0:
+            _cond_2 = 1
+        else:
+            if true:
+                _cond_2 = 2
+            else:
+                _cond_2 = null
+        return _cond_2
+    func call_funcv(args):
+        if args == null:
+            return call_func()
+        else:
+            push_error("Too many arguments")
+class ClassName extends Node:
+    func _init(y_0).(GDLisp.funcall(_LambdaBlock_3.new(y_0), null)):
+        pass
+    var x
+    func foo():
+        return 2
+static func run():
+    return null
+"#);
 }
 
 #[test]
@@ -595,12 +636,59 @@ pub fn reference_to_outer_in_class_test_4() {
 
 #[test]
 #[ignore]
-pub fn constructor_with_parent_class_test() {
+pub fn constructor_with_parent_class_test_1() {
   let output = parse_and_run(r#"
     ((defclass Foo (Reference) (defn _init (x) (print x)))
      (defclass Bar (Foo) (defn _init (x) (super (+ x 1))))
      (Bar:new 10))"#);
   assert_eq!(output, "\n11\n");
+}
+
+#[test]
+#[ignore]
+pub fn constructor_with_parent_class_test_2() {
+  let output = parse_and_run(r#"
+    ((defclass Foo (Reference) (defn _init (x) (print x)))
+     (defclass Bar (Foo) (defn _init (x) (super (if (> x 10) (+ x 1) (- x 1)))))
+     (Bar:new 20)
+     (Bar:new 3))"#);
+  assert_eq!(output, "\n21\n2\n");
+}
+
+#[test]
+#[ignore]
+pub fn constructor_with_parent_class_test_3() {
+  let output = parse_and_run(r#"
+    ((defclass Foo (Reference) (defvar z) (defn _init (z) (set self:z z)))
+     (defclass Bar (Foo) (defn _init () (super self)))
+     (let ((bar (Bar:new)))
+       (print (= bar bar:z))
+       (set bar:z nil)))"#);
+  assert_eq!(output, "\nTrue\n");
+}
+
+#[test]
+#[ignore]
+pub fn constructor_with_parent_class_test_4() {
+  let output = parse_and_run(r#"
+    ((defclass Foo (Reference) (defvar z) (defn _init (z) (set self:z z)))
+     (defclass Bar (Foo) (defn _init (x) (super (lambda (y) (+ x y)))))
+     (let ((bar (Bar:new 64)))
+       (print (funcall bar:z 1))
+       (print (funcall bar:z -1))))"#);
+  assert_eq!(output, "\n65\n63\n");
+}
+
+#[test]
+#[ignore]
+pub fn constructor_with_parent_class_test_5() {
+  let output = parse_and_run(r#"
+    ((defclass Foo (Reference) (defvar z) (defn _init (z) (set self:z z)))
+     (defclass Bar (Foo) (defn _init (x) (super (flet ((f (y) (+ x y))) #'f))))
+     (let ((bar (Bar:new 64)))
+       (print (funcall bar:z 1))
+       (print (funcall bar:z -1))))"#);
+  assert_eq!(output, "\n65\n63\n");
 }
 
 #[test]
