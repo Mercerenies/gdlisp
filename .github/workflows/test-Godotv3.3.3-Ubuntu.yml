@@ -20,9 +20,9 @@ jobs:
       run: |
         mkdir godot-build
         cd godot-build
-        wget https://downloads.tuxfamily.org/godotengine/3.3.3/Godot_v3.3.3-stable_x11.64.zip
-        unzip Godot_v3.3.3-stable_x11.64.zip
-        ln -s Godot_v3.3.3-stable_x11.64 godot
+        wget https://downloads.tuxfamily.org/godotengine/3.3.3/Godot_v3.3.3-stable_linux_headless.64.zip
+        unzip Godot_v3.3.3-stable_linux_headless.64.zip
+        ln -s Godot_v3.3.3-stable_linux_headless.64 godot
         ls -l
         cd ..
     - name: Build
