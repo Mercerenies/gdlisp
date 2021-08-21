@@ -94,55 +94,73 @@ pub fn compile_labels(frame: &mut CompilerFrame<StmtBuilder>,
   let ordering: Vec<_> = top_sort(&collated_graph)
     .expect("SCC detection failed (cycle in resulting graph)")
     .into_iter().copied().collect();
-  compile_labels_rec(frame, body, needs_result, pos, clauses, &dependencies, &sccs, &collated_graph, &ordering[..], 0)
+  let mut alg = CompileLabelsRecAlgorithm { frame, body, needs_result, pos, clauses, full_graph: &dependencies, sccs: &sccs, graph: &collated_graph, ordering: &ordering[..] };
+  alg.compile_labels_rec(0)
 }
 
-// TODO Really...? A TEN argument recursive function? Really...? Do better.
-fn compile_labels_rec<'b>(frame: &mut CompilerFrame<StmtBuilder>,
-                          body: &IRExpr,
-                          needs_result: NeedsResult,
-                          pos: SourceOffset,
-                          clauses: &[LocalFnClause],
-                          full_graph: &Graph<String>,
-                          sccs: &tarjan::SCCSummary<'b, String>,
-                          graph: &Graph<usize>,
-                          ordering: &[usize],
-                          ordering_idx: usize)
-                          -> Result<StExpr, Error> {
-  if ordering_idx < ordering.len() {
-    let current_scc_idx = ordering[ordering_idx];
-    let tarjan::SCC(current_scc) = sccs.get_scc_by_id(current_scc_idx).expect("SCC detection failed (invalid ID)");
-    if current_scc.is_empty() {
-      // That's weird. But whatever. No action needed.
-      compile_labels_rec(frame, body, needs_result, pos, clauses, full_graph, sccs, graph, ordering, ordering_idx + 1)
-    } else {
-      let name = current_scc.iter().next().expect("Internal error in SCC detection (no first element?)");
-      if current_scc.len() == 1 && !full_graph.has_edge(name, name) {
-        // Simple FLet-like case.
-        let name = current_scc.iter().next().expect("Internal error in SCC detection (no first element?)");
-        let clause = clauses.iter().find(|clause| clause.name == **name).expect("Internal error in SCC detection (no function found?)");
-        let call = compile_flet_call(frame, clause.args.to_owned(), &clause.body, pos)?;
-        frame.with_local_fn((*name).to_owned(), call, |frame| {
-          compile_labels_rec(frame, body, needs_result, pos, clauses, full_graph, sccs, graph, ordering, ordering_idx + 1)
-        })
+struct CompileLabelsRecAlgorithm<'a, 'b, 'c, 'd, 'e, 'f, 'g, 'h, 'i, 'j, 'k, 'l> {
+  frame: &'a mut CompilerFrame<'b, 'c, 'd, 'e, StmtBuilder>,
+  body: &'f IRExpr,
+  needs_result: NeedsResult,
+  pos: SourceOffset,
+  clauses: &'g [LocalFnClause],
+  full_graph: &'h Graph<String>,
+  sccs: &'i tarjan::SCCSummary<'j, String>,
+  graph: &'k Graph<usize>,
+  ordering: &'l [usize],
+}
+
+impl<'a, 'b, 'c, 'd, 'e, 'f, 'g, 'h, 'i, 'j, 'k, 'l> CompileLabelsRecAlgorithm<'a, 'b, 'c, 'd, 'e, 'f, 'g, 'h, 'i, 'j, 'k, 'l> {
+
+  fn compile_labels_rec(&mut self, ordering_idx: usize) -> Result<StExpr, Error> {
+    if ordering_idx < self.ordering.len() {
+      let current_scc_idx = self.ordering[ordering_idx];
+      let tarjan::SCC(current_scc) = self.sccs.get_scc_by_id(current_scc_idx).expect("SCC detection failed (invalid ID)");
+      if current_scc.is_empty() {
+        // That's weird. But whatever. No action needed.
+        self.compile_labels_rec(ordering_idx + 1)
       } else {
-        // Complicated mutual recursion case.
-        let mut relevant_clauses = Vec::new();
-        for name in current_scc {
-          let clause = clauses.iter().find(|clause| clause.name == **name).expect("Internal error in SCC detection (no function found?)");
-          relevant_clauses.push(clause);
+        let name = current_scc.iter().next().expect("Internal error in SCC detection (no first element?)");
+        if current_scc.len() == 1 && !self.full_graph.has_edge(name, name) {
+          // Simple FLet-like case.
+          let name = current_scc.iter().next().expect("Internal error in SCC detection (no first element?)");
+          let clause = self.clauses.iter().find(|clause| clause.name == **name).expect("Internal error in SCC detection (no function found?)");
+          let call = compile_flet_call(self.frame, clause.args.to_owned(), &clause.body, self.pos)?;
+          self.with_local_fn((*name).to_owned(), call, |alg| {
+            alg.compile_labels_rec(ordering_idx + 1)
+          })
+        } else {
+          // Complicated mutual recursion case.
+          let mut relevant_clauses = Vec::new();
+          for name in current_scc {
+            let clause = self.clauses.iter().find(|clause| clause.name == **name).expect("Internal error in SCC detection (no function found?)");
+            relevant_clauses.push(clause);
+          }
+          // Go ahead and sort them just so we guarantee a consistent order for testing purposes.
+          relevant_clauses.sort_by_key(|clause| &clause.name);
+          let calls = lambda::compile_labels_scc(self.frame, &relevant_clauses[..], self.pos)?;
+          self.with_local_fns(&mut calls.into_iter(), |alg| {
+            alg.compile_labels_rec(ordering_idx + 1)
+          })
         }
-        // Go ahead and sort them just so we guarantee a consistent order for testing purposes.
-        relevant_clauses.sort_by_key(|clause| &clause.name);
-        let calls = lambda::compile_labels_scc(frame, &relevant_clauses[..], pos)?;
-        frame.with_local_fns(&mut calls.into_iter(), |frame| {
-          compile_labels_rec(frame, body, needs_result, pos, clauses, full_graph, sccs, graph, ordering, ordering_idx + 1)
-        })
       }
+    } else {
+      self.frame.compile_expr(self.body, self.needs_result)
     }
-  } else {
-    frame.compile_expr(body, needs_result)
   }
+
+}
+
+impl<'a, 'b, 'c, 'd, 'e, 'f, 'g, 'h, 'i, 'j, 'k, 'l> HasSymbolTable for CompileLabelsRecAlgorithm<'a, 'b, 'c, 'd, 'e, 'f, 'g, 'h, 'i, 'j, 'k, 'l> {
+
+  fn get_symbol_table(&self) -> &SymbolTable {
+    self.frame.get_symbol_table()
+  }
+
+  fn get_symbol_table_mut(&mut self) -> &mut SymbolTable {
+    self.frame.get_symbol_table_mut()
+  }
+
 }
 
 /// A function declaration is eligible to be semiglobal if all of the
