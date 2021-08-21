@@ -1,4 +1,4 @@
-name: Test against Godot v3.3.3 on Ubuntu 20.04
+name: "Ubuntu 20.04 (Godot v3.3.3)"
 
 on:
   push:
