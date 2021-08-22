@@ -98,6 +98,12 @@ pub fn symbol_macro_run_test() {
 
 #[test]
 #[ignore]
+pub fn symbol_macro_shadowing_test() {
+  assert_eq!(parse_and_run(r#"((define-symbol-macro foo (progn 2)) (print foo) (print (let ((foo 3)) foo)) (print foo))"#), "\n2\n3\n2\n");
+}
+
+#[test]
+#[ignore]
 pub fn macrolet_basic_test() {
   let result = parse_compile_and_output("(macrolet ((foo () 100)) (foo))");
   assert_eq!(result, "return 100\n");

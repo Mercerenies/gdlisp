@@ -11,7 +11,7 @@ use super::quasiquote::quasiquote;
 use crate::compile::error::{Error as GDError, ErrorF as GDErrorF};
 use crate::compile::args::Expecting;
 use crate::ir::incremental::IncCompiler;
-use crate::ir::identifier::{Id, Namespace};
+use crate::ir::identifier::{Id, IdLike, Namespace};
 use crate::ir::export::Visibility;
 use crate::pipeline::Pipeline;
 use crate::pipeline::source::SourceOffset;
@@ -132,8 +132,11 @@ pub fn let_form(icompiler: &mut IncCompiler,
     }?;
     Ok((name, Expr::progn(result_value, clause.pos)))
   }).collect::<Result<Vec<_>, _>>()?;
-  let body = tail[1..].iter().map(|expr| icompiler.compile_expr(pipeline, expr)).collect::<Result<Vec<_>, _>>()?;
-  Ok(Expr::new(ExprF::Let(var_clauses, Box::new(Expr::progn(body, pos))), pos))
+  let var_names: Vec<_> = var_clauses.iter().map(|x| x.0.clone()).collect();
+  macrolet_unbind_macros(icompiler, pipeline, &mut var_names.iter().map(|x| (Namespace::Value, &**x)), |icompiler, pipeline| {
+    let body = tail[1..].iter().map(|expr| icompiler.compile_expr(pipeline, expr)).collect::<Result<Vec<_>, _>>()?;
+    Ok(Expr::new(ExprF::Let(var_clauses, Box::new(Expr::progn(body, pos))), pos))
+  })
 }
 
 pub fn lambda_form(icompiler: &mut IncCompiler,
@@ -228,7 +231,7 @@ pub fn flet_form(icompiler: &mut IncCompiler,
     (vec!(), fn_names)
   };
 
-  macrolet_unbind_macros(icompiler, pipeline, &mut pre_names.iter().map(|x| &**x), |icompiler, pipeline| {
+  macrolet_unbind_macros(icompiler, pipeline, &mut pre_names.iter().map(|x| (Namespace::Function, &**x)), |icompiler, pipeline| {
     let fn_clauses = fns.into_iter().map(|clause| {
       let func: Vec<_> = DottedExpr::new(clause).try_into()?;
       if func.len() < 2 {
@@ -243,7 +246,7 @@ pub fn flet_form(icompiler: &mut IncCompiler,
       let body = func[2..].iter().map(|expr| icompiler.compile_expr(pipeline, expr)).collect::<Result<Vec<_>, _>>()?;
       Ok(LocalFnClause { name, args, body: Expr::progn(body, clause.pos) })
     }).collect::<Result<Vec<_>, _>>()?;
-    macrolet_unbind_macros(icompiler, pipeline, &mut post_names.iter().map(|x| &**x), |icompiler, pipeline| {
+    macrolet_unbind_macros(icompiler, pipeline, &mut post_names.iter().map(|x| (Namespace::Function, &**x)), |icompiler, pipeline| {
       let body = tail[1..].iter().map(|expr| icompiler.compile_expr(pipeline, expr)).collect::<Result<Vec<_>, _>>()?;
       Ok(binding_rule.wrap_in_expr(fn_clauses, Box::new(Expr::progn(body, pos)), pos))
     })
@@ -422,24 +425,25 @@ fn macrolet_unbind_macros<'a, B, E, F, I>(icompiler: &mut IncCompiler,
                                           -> Result<B, E>
 where E : From<Error>,
       F : FnOnce(&mut IncCompiler, &mut Pipeline) -> Result<B, E>,
-      I : Iterator<Item=&'a str> {
+      I : Iterator<Item=(Namespace, &'a str)> {
   match macros.next() {
     None => func(icompiler, pipeline),
     Some(name) => {
-      if icompiler.has_macro(&*Id::build(Namespace::Function, name)) {
-        icompiler.locally_save_macro(&*Id::build(Namespace::Function, name), |icompiler| {
+      let name: &(dyn IdLike + 'a) = &name;
+      if icompiler.has_macro(name) {
+        icompiler.locally_save_macro(name, |icompiler| {
           let old_symbol_value = {
             let table = icompiler.declaration_table();
-            table.get(&*Id::build(Namespace::Function, &name)).cloned()
+            table.get(name).cloned()
           };
-          icompiler.unbind_macro(&*Id::build(Namespace::Function, name));
+          icompiler.unbind_macro(name);
           let result = macrolet_unbind_macros(icompiler, pipeline, macros, func);
           if let Some(old_symbol_value) = old_symbol_value {
             let table = icompiler.declaration_table();
             table.add(old_symbol_value);
           } else {
             let table = icompiler.declaration_table();
-            table.del(&*Id::build(Namespace::Function, &name));
+            table.del(name);
           }
           result
         })
