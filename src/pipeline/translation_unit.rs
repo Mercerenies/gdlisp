@@ -45,7 +45,7 @@ pub struct TranslationUnit {
   /// unit's scope but were not defined there, so
   /// [`MacroData::imported`] should be false for every value in this
   /// map.
-  pub macros: HashMap<String, MacroData>,
+  pub macros: HashMap<Id, MacroData>,
 }
 
 impl TranslationUnit {
@@ -56,7 +56,7 @@ impl TranslationUnit {
              ir: TopLevel,
              gdscript: TopLevelClass,
              exports: Vec<Id>,
-             macros: HashMap<String, MacroData>)
+             macros: HashMap<Id, MacroData>)
              -> TranslationUnit {
     TranslationUnit { filename, table, ir, gdscript, exports, macros }
   }

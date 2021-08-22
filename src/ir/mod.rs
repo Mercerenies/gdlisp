@@ -26,10 +26,11 @@ pub mod access_type;
 pub mod closure_names;
 
 use decl::Decl;
+use macros::MacroData;
+use identifier::Id;
 use crate::sxp::ast::AST;
 use crate::pipeline::error::{Error as PError};
 use crate::pipeline::Pipeline;
-use crate::ir::macros::MacroData;
 
 use std::collections::HashMap;
 
@@ -38,7 +39,7 @@ use std::collections::HashMap;
 pub const MAIN_BODY_NAME: &str = "run";
 
 pub fn compile_toplevel(pipeline: &mut Pipeline, body: &AST)
-                        -> Result<(decl::TopLevel, HashMap<String, MacroData>), PError> {
+                        -> Result<(decl::TopLevel, HashMap<Id, MacroData>), PError> {
   let compiler = incremental::IncCompiler::new(body.all_symbols());
   compiler.compile_toplevel(pipeline, body)
 }

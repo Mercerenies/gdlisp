@@ -30,6 +30,7 @@ use crate::pipeline::source::SourceOffset;
 
 use std::convert::{TryFrom, TryInto};
 use std::borrow::{Cow, Borrow};
+use std::hash::Hash;
 use std::collections::{HashMap, HashSet};
 
 // TODO If a macro (from GDLisp) needs to use a GDScript resource,
@@ -39,7 +40,7 @@ use std::collections::{HashMap, HashSet};
 pub struct IncCompiler {
   names: FreshNameGenerator,
   table: DeclarationTable,
-  macros: HashMap<String, MacroData>,
+  macros: HashMap<Id, MacroData>,
   imports: Vec<ImportDecl>,
   minimalist: bool, // A minimalist compiler doesn't use stdlib and doesn't do macro expansion
 }
@@ -70,7 +71,7 @@ impl IncCompiler {
 
   fn resolve_macro_call(&mut self, pipeline: &mut Pipeline, head: &str, tail: &[&AST], pos: SourceOffset)
                         -> Result<AST, PError> {
-    match self.macros.get(head) {
+    match self.macros.get(&*Id::build(Namespace::Function, head)) {
       Some(MacroData { id, .. }) => {
         // If we're in a minimalist file, then macro expansion is automatically an error
         if self.minimalist {
@@ -111,7 +112,7 @@ impl IncCompiler {
       let head = self.resolve_call_name(pipeline, vec[0])?;
       if let CallName::SimpleName(head) = head {
         let tail = &vec[1..];
-        if self.macros.get(&head).is_some() {
+        if self.macros.get(&*Id::build(Namespace::Function, &head)).is_some() {
           return self.resolve_macro_call(pipeline, &head, tail, ast.pos).map(Some);
         }
       }
@@ -135,7 +136,7 @@ impl IncCompiler {
                              -> Result<Expr, PError> {
     if let Some(sf) = special_form::dispatch_form(self, pipeline, head, tail, pos)? {
       Ok(sf)
-    } else if self.macros.get(head).is_some() {
+    } else if self.macros.get(&*Id::build(Namespace::Function, head)).is_some() {
       let result = self.resolve_macro_call(pipeline, head, tail, pos)?;
       self.compile_expr(pipeline, &result)
     } else {
@@ -641,11 +642,9 @@ impl IncCompiler {
   fn import_macros_from(&mut self, unit: &TranslationUnit, import: &ImportDecl) {
     for imp in import.names(&unit.exports) {
       let ImportName { namespace: namespace, in_name: import_name, out_name: export_name } = imp;
-      if namespace == Namespace::Function { // Macros are always in the function namespace
-        if let Some(data) = unit.macros.get(&export_name) {
-          self.macros.insert(import_name, data.to_imported());
-        }
-      }
+      if let Some(data) = unit.macros.get(&*Id::build(namespace, &export_name)) {
+        self.macros.insert(Id::new(namespace, import_name), data.to_imported());
+      };
     }
   }
 
@@ -686,7 +685,7 @@ impl IncCompiler {
   }
 
   pub fn compile_toplevel(mut self, pipeline: &mut Pipeline, body: &AST)
-                          -> Result<(decl::TopLevel, HashMap<String, MacroData>), PError> {
+                          -> Result<(decl::TopLevel, HashMap<Id, MacroData>), PError> {
     let pos = body.pos;
     let body: Result<Vec<_>, TryFromDottedExprError> = DottedExpr::new(body).try_into();
     let body: Vec<_> = body?; // *sigh* Sometimes the type checker just doesn't get it ...
@@ -762,25 +761,31 @@ impl IncCompiler {
     let names = deps.try_into_knowns().map_err(|x| Error::from_value(x, pos))?;
     let tmpfile = macros::create_macro_file(pipeline, self.imports.clone(), table.borrow(), names, pos, self.minimalist)?;
     let m_id = pipeline.get_server_mut().stand_up_macro(tmp_name, decl.args, tmpfile).map_err(|err| IOError::new(err, pos))?;
-    self.macros.insert(orig_name, MacroData { id: m_id, imported: false });
+    self.macros.insert(Id::new(Namespace::Function, orig_name), MacroData { id: m_id, imported: false });
 
     Ok(())
   }
 
-  pub fn locally_save_macro<B>(&mut self, name: &str, func: impl FnOnce(&mut Self) -> B) -> B {
+  pub fn locally_save_macro<B, K>(&mut self, name: &K, func: impl FnOnce(&mut Self) -> B) -> B
+  where Id : Borrow<K>,
+        K : Hash + Eq + ToOwned<Owned=Id> + ?Sized {
     let saved_value = self.macros.remove(name);
     let result = func(self);
     if let Some(saved_value) = saved_value {
-      self.macros.insert(name.to_string(), saved_value);
+      self.macros.insert(name.to_owned(), saved_value);
     }
     result
   }
 
-  pub fn has_macro(&self, name: &str) -> bool {
+  pub fn has_macro<K>(&self, name: &K) -> bool
+  where Id : Borrow<K>,
+    K : Hash + Eq + ToOwned<Owned=Id> + ?Sized {
     self.macros.contains_key(name)
   }
 
-  pub fn unbind_macro(&mut self, name: &str) {
+  pub fn unbind_macro<K>(&mut self, name: &K)
+  where Id : Borrow<K>,
+        K : Hash + Eq + ToOwned<Owned=Id> + ?Sized {
     self.macros.remove(name);
   }
 
@@ -804,9 +809,9 @@ impl IncCompiler {
 
 }
 
-impl From<IncCompiler> for (decl::TopLevel, HashMap<String, MacroData>) {
+impl From<IncCompiler> for (decl::TopLevel, HashMap<Id, MacroData>) {
 
-  fn from(compiler: IncCompiler) -> (decl::TopLevel, HashMap<String, MacroData>) {
+  fn from(compiler: IncCompiler) -> (decl::TopLevel, HashMap<Id, MacroData>) {
     let toplevel = decl::TopLevel {
       imports: compiler.imports,
       decls: compiler.table.into(),

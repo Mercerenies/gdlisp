@@ -393,7 +393,7 @@ where E : From<Error>,
     #[allow(clippy::redundant_clone)] // Clippy thinks this clone is
                                       // redundant but it doesn't
                                       // compile without it.
-    Some(m) => icompiler.locally_save_macro(&m.name.to_string(), |icompiler| {
+    Some(m) => icompiler.locally_save_macro(&*Id::build(Namespace::Function, &m.name), |icompiler| {
       let name = m.name.to_string();
       icompiler.bind_macro(pipeline, m.to_owned(), pos, true)?;
       let old_symbol_value = {
@@ -409,7 +409,7 @@ where E : From<Error>,
         let table = icompiler.declaration_table();
         table.del(&*Id::build(Namespace::Function, &name));
       }
-      icompiler.unbind_macro(&name);
+      icompiler.unbind_macro(&*Id::build(Namespace::Function, &name));
       result
     }),
   }
@@ -426,13 +426,13 @@ where E : From<Error>,
   match macros.next() {
     None => func(icompiler, pipeline),
     Some(name) => {
-      if icompiler.has_macro(name) {
-        icompiler.locally_save_macro(name, |icompiler| {
+      if icompiler.has_macro(&*Id::build(Namespace::Function, name)) {
+        icompiler.locally_save_macro(&*Id::build(Namespace::Function, name), |icompiler| {
           let old_symbol_value = {
             let table = icompiler.declaration_table();
             table.get(&*Id::build(Namespace::Function, &name)).cloned()
           };
-          icompiler.unbind_macro(name);
+          icompiler.unbind_macro(&*Id::build(Namespace::Function, name));
           let result = macrolet_unbind_macros(icompiler, pipeline, macros, func);
           if let Some(old_symbol_value) = old_symbol_value {
             let table = icompiler.declaration_table();

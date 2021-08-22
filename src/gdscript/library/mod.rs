@@ -200,7 +200,7 @@ pub fn all_builtin_names(minimalist: bool) -> HashSet<Id> {
 /// the standard library. As such, this function should not be called
 /// in the process of loading the standard library, as that will
 /// result in a double lock on the stdlib mutex.
-pub fn bind_builtin_macros(macros: &mut HashMap<String, MacroData>,
+pub fn bind_builtin_macros(macros: &mut HashMap<Id, MacroData>,
                            pipeline: &mut Pipeline) {
 
   let unit = get_stdlib();
@@ -211,7 +211,7 @@ pub fn bind_builtin_macros(macros: &mut HashMap<String, MacroData>,
         id,
         imported: true,
       };
-      macros.insert(name.to_owned(), data);
+      macros.insert(Id::new(Namespace::Function, name.to_owned()), data);
     }
   }
 
