@@ -158,8 +158,21 @@ pub fn macro_uses_symbol_macro_test() {
 
 #[test]
 #[ignore]
+pub fn symbol_macrolet_out_of_scope_test() {
+  assert_eq!(parse_and_run(r#"((defconst foo 3) (defn bar () foo) (symbol-macrolet ((foo 2)) (print foo) (print (bar))))"#), "\n2\n3\n");
+}
+
+#[test]
+#[ignore]
 pub fn macrolet_basic_test() {
   let result = parse_compile_and_output("(macrolet ((foo () 100)) (foo))");
+  assert_eq!(result, "return 100\n");
+}
+
+#[test]
+#[ignore]
+pub fn symbol_macrolet_basic_test() {
+  let result = parse_compile_and_output("(symbol-macrolet ((foo 100)) foo)");
   assert_eq!(result, "return 100\n");
 }
 
@@ -172,6 +185,13 @@ pub fn macrolet_shadowing_test() {
 
 #[test]
 #[ignore]
+pub fn symbol_macrolet_shadowing_test() {
+  let result = parse_compile_and_output("(symbol-macrolet ((foo 100)) [foo (symbol-macrolet ((foo 99)) foo) foo])");
+  assert_eq!(result, "return [100, 99, 100]\n");
+}
+
+#[test]
+#[ignore]
 pub fn macrolet_global_shadowing_test() {
   let result = parse_compile_decl("((defmacro foo () 100) [(foo) (macrolet ((foo () 99)) (foo)) (foo)])");
   assert_eq!(result, r#"extends Reference
@@ -179,6 +199,17 @@ static func foo():
     return 100
 static func run():
     return [100, 99, 100]
+"#);
+}
+
+#[test]
+#[ignore]
+pub fn symbol_macrolet_global_shadowing_test() {
+  let result = parse_compile_decl("((defconst foo 100) [foo (symbol-macrolet ((foo 99)) foo) foo])");
+  assert_eq!(result, r#"extends Reference
+const foo = 100
+static func run():
+    return [foo, 99, foo]
 "#);
 }
 
@@ -203,6 +234,52 @@ static func foo():
     return 100
 static func run():
     return [foo(), 100, foo()]
+"#);
+}
+
+#[test]
+#[ignore]
+pub fn symbol_macrolet_global_function_shadowing_test_1() {
+  let result = parse_compile_decl("((defconst foo 100) [foo (symbol-macrolet ((foo 99)) foo) foo])");
+  assert_eq!(result, r#"extends Reference
+const foo = 100
+static func run():
+    return [foo, 99, foo]
+"#);
+}
+
+#[test]
+#[ignore]
+pub fn symbol_macrolet_global_function_shadowing_test_2() {
+  let result = parse_compile_decl("((defconst foo 100) [foo (symbol-macrolet ((foo foo)) foo) foo])");
+  assert_eq!(result, r#"extends Reference
+const foo = 100
+static func run():
+    return [foo, 100, foo]
+"#);
+}
+
+#[test]
+#[ignore]
+pub fn symbol_macrolet_global_function_shadowing_test_3() {
+  let result = parse_compile_decl("((define-symbol-macro foo 100) [foo (symbol-macrolet ((foo foo)) foo) foo])");
+  assert_eq!(result, r#"extends Reference
+static func foo():
+    return 100
+static func run():
+    return [100, 100, 100]
+"#);
+}
+
+#[test]
+#[ignore]
+pub fn symbol_macrolet_global_function_shadowing_test_4() {
+  let result = parse_compile_decl("((define-symbol-macro foo 100) [foo (symbol-macrolet ((foo 99)) foo) foo])");
+  assert_eq!(result, r#"extends Reference
+static func foo():
+    return 100
+static func run():
+    return [100, 99, 100]
 "#);
 }
 

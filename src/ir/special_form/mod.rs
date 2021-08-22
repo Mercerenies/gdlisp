@@ -47,6 +47,7 @@ pub fn dispatch_form(icompiler: &mut IncCompiler,
     "yield" => yield_form(icompiler, pipeline, tail, pos).map(Some),
     "return" => return_form(icompiler, pipeline, tail, pos).map(Some),
     "macrolet" => macrolet_form(icompiler, pipeline, tail, pos).map(Some),
+    "symbol-macrolet" => symbol_macrolet_form(icompiler, pipeline, tail, pos).map(Some),
     _ => Ok(None),
   }
 }
@@ -375,7 +376,36 @@ pub fn macrolet_form(icompiler: &mut IncCompiler,
     Ok(decl::MacroDecl { visibility: Visibility::MACRO, name, args, body: Expr::progn(body, clause.pos) })
   }).collect::<Result<Vec<_>, _>>()?;
 
-  macrolet_bind_locals(icompiler, pipeline, &mut fn_clauses.into_iter(), pos, |icompiler, pipeline| {
+  let mut fn_clauses = fn_clauses.into_iter().map(|x| (Namespace::Function, x));
+  macrolet_bind_locals(icompiler, pipeline, &mut fn_clauses, pos, |icompiler, pipeline| {
+    let body = tail[1..].iter().map(|expr| icompiler.compile_expr(pipeline, expr)).collect::<Result<Vec<_>, _>>()?;
+    Ok(Expr::progn(body, pos))
+  })
+
+}
+
+pub fn symbol_macrolet_form(icompiler: &mut IncCompiler,
+                            pipeline: &mut Pipeline,
+                            tail: &[&AST],
+                            pos: SourceOffset)
+                            -> Result<Expr, Error> {
+  Expecting::at_least(1).validate("symbol-macrolet", pos, tail)?;
+  let vars: Vec<_> = DottedExpr::new(tail[0]).try_into()?;
+  let var_clauses = vars.into_iter().map(|clause| {
+    let var: Vec<_> = DottedExpr::new(clause).try_into()?;
+    if var.len() != 2 {
+      return Err(Error::from(GDError::new(GDErrorF::InvalidArg(String::from("symbol-macrolet"), clause.clone(), String::from("macro declaration")), pos)));
+    }
+    let name = match &var[0].value {
+      ASTF::Symbol(s) => Ok(s.clone()),
+      _ => Err(Error::from(GDError::new(GDErrorF::InvalidArg(String::from("symbol-macrolet"), (*clause).clone(), String::from("macro declaration")), pos))),
+    }?;
+    let body = icompiler.compile_expr(pipeline, var[1])?;
+    Ok(decl::MacroDecl { visibility: Visibility::MACRO, name, args: ArgList::empty(), body: body })
+  }).collect::<Result<Vec<_>, _>>()?;
+
+  let mut var_clauses = var_clauses.into_iter().map(|x| (Namespace::Value, x));
+  macrolet_bind_locals(icompiler, pipeline, &mut var_clauses, pos, |icompiler, pipeline| {
     let body = tail[1..].iter().map(|expr| icompiler.compile_expr(pipeline, expr)).collect::<Result<Vec<_>, _>>()?;
     Ok(Expr::progn(body, pos))
   })
@@ -390,29 +420,37 @@ fn macrolet_bind_locals<B, E, F, I>(icompiler: &mut IncCompiler,
                                     -> Result<B, E>
 where E : From<Error>,
       F : FnOnce(&mut IncCompiler, &mut Pipeline) -> Result<B, E>,
-      I : Iterator<Item=decl::MacroDecl> {
+      I : Iterator<Item=(Namespace, decl::MacroDecl)> {
   match macros.next() {
     None => func(icompiler, pipeline),
     #[allow(clippy::redundant_clone)] // Clippy thinks this clone is
                                       // redundant but it doesn't
                                       // compile without it.
-    Some(m) => icompiler.locally_save_macro(&*Id::build(Namespace::Function, &m.name), |icompiler| {
+    Some((namespace, m)) => icompiler.locally_save_macro(&*Id::build(namespace, &m.name), |icompiler| {
       let name = m.name.to_string();
-      icompiler.bind_macro(pipeline, m.to_owned(), pos, true, Namespace::Function)?;
+      icompiler.bind_macro(pipeline, m.to_owned(), pos, true, namespace)?;
       let old_symbol_value = {
         let table = icompiler.declaration_table();
-        table.get(&*Id::build(Namespace::Function, &name)).cloned()
+        table.get(&*Id::build(namespace, &name)).cloned()
       };
-      icompiler.declaration_table().add(Decl::new(DeclF::MacroDecl(m.clone()), pos));
+      match namespace {
+        Namespace::Function => {
+          icompiler.declaration_table().add(Decl::new(DeclF::MacroDecl(m.clone()), pos));
+        }
+        Namespace::Value => {
+          let symbol_macro = decl::SymbolMacroDecl { visibility: m.visibility, name: m.name.to_owned(), body: m.body.clone() };
+          icompiler.declaration_table().add(Decl::new(DeclF::SymbolMacroDecl(symbol_macro), pos));
+        }
+      };
       let result = macrolet_bind_locals(icompiler, pipeline, macros, pos, func);
       if let Some(old_symbol_value) = old_symbol_value {
         let table = icompiler.declaration_table();
         table.add(old_symbol_value);
       } else {
         let table = icompiler.declaration_table();
-        table.del(&*Id::build(Namespace::Function, &name));
+        table.del(&*Id::build(namespace, &name));
       }
-      icompiler.unbind_macro(&*Id::build(Namespace::Function, &name));
+      icompiler.unbind_macro(&*Id::build(namespace, &name));
       result
     }),
   }
