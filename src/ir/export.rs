@@ -19,6 +19,9 @@ impl Visibility {
   /// Default visibility for macro declarations.
   pub const MACRO: Visibility = Visibility::Public;
 
+  /// Default visibility for symbol macro declarations.
+  pub const SYMBOL_MACRO: Visibility = Visibility::Public;
+
   /// Default visibility for constant declarations.
   pub const CONST: Visibility = Visibility::Public;
 

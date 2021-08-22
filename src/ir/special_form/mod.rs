@@ -395,7 +395,7 @@ where E : From<Error>,
                                       // compile without it.
     Some(m) => icompiler.locally_save_macro(&*Id::build(Namespace::Function, &m.name), |icompiler| {
       let name = m.name.to_string();
-      icompiler.bind_macro(pipeline, m.to_owned(), pos, true)?;
+      icompiler.bind_macro(pipeline, m.to_owned(), pos, true, Namespace::Function)?;
       let old_symbol_value = {
         let table = icompiler.declaration_table();
         table.get(&*Id::build(Namespace::Function, &name)).cloned()

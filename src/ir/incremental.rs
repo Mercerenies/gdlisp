@@ -54,8 +54,9 @@ impl IncCompiler {
   /// construct treated in a special way by the compiler during
   /// parsing. It is *not* a declaration, even though it can look like
   /// one syntactically.
-  pub const DECL_HEADS: [&'static str; 7] = [
-    "defn", "defmacro", "defconst", "defclass", "defobject", "defenum", "sys/declare"
+  pub const DECL_HEADS: [&'static str; 8] = [
+    "defn", "defmacro", "defconst", "defclass", "defobject", "defenum", "sys/declare",
+    "define-symbol-macro",
   ];
 
   pub fn new(names: Vec<&str>) -> IncCompiler {
@@ -69,13 +70,16 @@ impl IncCompiler {
     }
   }
 
-  fn resolve_macro_call(&mut self, pipeline: &mut Pipeline, head: &str, tail: &[&AST], pos: SourceOffset)
-                        -> Result<AST, PError> {
-    match self.macros.get(&*Id::build(Namespace::Function, head)) {
+  fn resolve_macro_call<K: IdLike>(&mut self, pipeline: &mut Pipeline, head: &K, tail: &[&AST], pos: SourceOffset)
+                           -> Result<AST, PError>
+  where Id : Borrow<K>,
+        K : Hash + Eq + ToOwned<Owned=Id> + ?Sized {
+    match self.macros.get(head) {
       Some(MacroData { id, .. }) => {
         // If we're in a minimalist file, then macro expansion is automatically an error
         if self.minimalist {
-          return Err(PError::from(Error::new(ErrorF::MacroInMinimalistError(head.to_owned()), pos)));
+          let head = head.to_owned().name;
+          return Err(PError::from(Error::new(ErrorF::MacroInMinimalistError(head), pos)));
         }
 
         let args: Vec<_> = tail.iter().map(|x| x.reify()).collect();
@@ -98,7 +102,11 @@ impl IncCompiler {
         Ok(ast)
       }
       _ => {
-        Err(PError::from(Error::new(ErrorF::NoSuchFn(head.to_owned()), pos)))
+        let head = head.to_owned();
+        match head.namespace {
+          Namespace::Function => Err(PError::from(Error::new(ErrorF::NoSuchFn(head.name), pos))),
+          Namespace::Value => Err(PError::from(Error::new(ErrorF::NoSuchVar(head.name), pos))),
+        }
       }
     }
   }
@@ -113,7 +121,7 @@ impl IncCompiler {
       if let CallName::SimpleName(head) = head {
         let tail = &vec[1..];
         if self.macros.get(&*Id::build(Namespace::Function, &head)).is_some() {
-          return self.resolve_macro_call(pipeline, &head, tail, ast.pos).map(Some);
+          return self.resolve_macro_call(pipeline, &*Id::build(Namespace::Function, &head), tail, ast.pos).map(Some);
         }
       }
     }
@@ -137,7 +145,7 @@ impl IncCompiler {
     if let Some(sf) = special_form::dispatch_form(self, pipeline, head, tail, pos)? {
       Ok(sf)
     } else if self.macros.get(&*Id::build(Namespace::Function, head)).is_some() {
-      let result = self.resolve_macro_call(pipeline, head, tail, pos)?;
+      let result = self.resolve_macro_call(pipeline, &*Id::build(Namespace::Function, head), tail, pos)?;
       self.compile_expr(pipeline, &result)
     } else {
       let args = tail.iter().map(|x| self.compile_expr(pipeline, x)).collect::<Result<Vec<_>, _>>()?;
@@ -186,6 +194,7 @@ impl IncCompiler {
         Ok(Expr::new(ExprF::Literal(Literal::String(s.to_owned())), expr.pos))
       }
       ASTF::Symbol(s) => {
+        /////
         Ok(Expr::new(ExprF::LocalVar(s.to_string()), expr.pos))
       }
     }
@@ -294,6 +303,29 @@ impl IncCompiler {
               m.apply(&mut decl);
             }
             Ok(Decl::new(DeclF::MacroDecl(decl), vec[0].pos))
+          }
+          "define-symbol-macro" => {
+            if vec.len() < 3 {
+              return Err(PError::from(Error::new(ErrorF::InvalidDecl(decl.clone()), decl.pos)));
+            }
+            let name = match &vec[1].value {
+              ASTF::Symbol(s) => s,
+              _ => return Err(PError::from(Error::new(ErrorF::InvalidDecl(decl.clone()), decl.pos))),
+            };
+            let value = self.compile_expr(pipeline, vec[1])?;
+            let (mods, body) = modifier::macros::parser().parse(&vec[2..])?;
+            if !body.is_empty() {
+              return Err(PError::from(Error::new(ErrorF::InvalidDecl(decl.clone()), decl.pos)));
+            }
+            let mut decl = decl::SymbolMacroDecl {
+              visibility: Visibility::SYMBOL_MACRO,
+              name: name.to_owned(),
+              body: value,
+            };
+            for m in mods {
+              m.apply_to_symbol_macro(&mut decl);
+            }
+            Ok(Decl::new(DeclF::SymbolMacroDecl(decl), vec[0].pos))
           }
           "defconst" => {
             if vec.len() < 3 {
@@ -676,7 +708,10 @@ impl IncCompiler {
       let d = self.compile_decl(pipeline, curr)?;
       self.table.add(d.clone());
       if let DeclF::MacroDecl(mdecl) = d.value {
-        self.bind_macro(pipeline, mdecl, d.pos, false)?;
+        self.bind_macro(pipeline, mdecl, d.pos, false, Namespace::Function)?;
+      } else if let DeclF::SymbolMacroDecl(mdecl) = d.value {
+        let mdecl = decl::MacroDecl::from(mdecl);
+        self.bind_macro(pipeline, mdecl, d.pos, true, Namespace::Value)?;
       }
     } else {
       main.push(self.compile_expr(pipeline, curr)?);
@@ -719,7 +754,7 @@ impl IncCompiler {
     Ok(self.into())
   }
 
-  pub fn bind_macro(&mut self, pipeline: &mut Pipeline, mut decl: decl::MacroDecl, pos: SourceOffset, generate_name: bool) -> Result<(), PError> {
+  pub fn bind_macro(&mut self, pipeline: &mut Pipeline, mut decl: decl::MacroDecl, pos: SourceOffset, generate_name: bool, namespace: Namespace) -> Result<(), PError> {
     let orig_name = decl.name.to_owned();
 
     let tmp_name = if generate_name {
@@ -753,7 +788,7 @@ impl IncCompiler {
 
     // Now we need to find the dependencies and spawn up the
     // server for the macro itself.
-    let mut deps = Dependencies::identify(table.borrow(), &imported_names, &*Id::build(Namespace::Function, &tmp_name));
+    let mut deps = Dependencies::identify(table.borrow(), &imported_names, &*Id::build(namespace, &tmp_name));
     deps.purge_unknowns(library::all_builtin_names(self.minimalist).iter().map(|x| x as &dyn IdLike));
 
     // Aside from built-in functions, it must be the case that
@@ -761,7 +796,7 @@ impl IncCompiler {
     let names = deps.try_into_knowns().map_err(|x| Error::from_value(x, pos))?;
     let tmpfile = macros::create_macro_file(pipeline, self.imports.clone(), table.borrow(), names, pos, self.minimalist)?;
     let m_id = pipeline.get_server_mut().stand_up_macro(tmp_name, decl.args, tmpfile).map_err(|err| IOError::new(err, pos))?;
-    self.macros.insert(Id::new(Namespace::Function, orig_name), MacroData { id: m_id, imported: false });
+    self.macros.insert(Id::new(namespace, orig_name), MacroData { id: m_id, imported: false });
 
     Ok(())
   }
@@ -843,6 +878,7 @@ mod tests {
     assert!(IncCompiler::is_decl(&parse_ast("(defmacro foo ())")));
     assert!(IncCompiler::is_decl(&parse_ast("(defconst MY_CONST 3)")));
     assert!(IncCompiler::is_decl(&parse_ast("(defenum MyEnum A B C)")));
+    assert!(IncCompiler::is_decl(&parse_ast("(define-symbol-macro my-macro 3)")));
     assert!(IncCompiler::is_decl(&parse_ast("(sys/declare value xyz)")));
   }
 

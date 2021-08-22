@@ -110,6 +110,15 @@ impl Compiler {
         builder.add_decl(Decl::new(DeclF::FnDecl(decl::Static::IsStatic, function), decl.pos));
         Ok(())
       }
+      IRDeclF::SymbolMacroDecl(ir::decl::SymbolMacroDecl { visibility: _, name, body }) => {
+        // Note: Macros compile identically to functions, as far as
+        // this stage of compilation is concerned. They'll be resolved
+        // and then purged during the IR phase.
+        let gd_name = format!("__gdlisp_symbolmacro_{}", names::lisp_to_gd(&name));
+        let function = factory::declare_function(&mut self.frame(pipeline, builder, table), gd_name, IRArgList::empty(), body, &stmt_wrapper::Return)?;
+        builder.add_decl(Decl::new(DeclF::FnDecl(decl::Static::IsStatic, function), decl.pos));
+        Ok(())
+      }
       IRDeclF::ConstDecl(ir::decl::ConstDecl { visibility: _, name, value }) => {
         let gd_name = names::lisp_to_gd(&name);
         let value = self.frame(pipeline, &mut (), table).compile_simple_expr(name, value, NeedsResult::Yes)?;
@@ -318,6 +327,9 @@ impl Compiler {
           names::lisp_to_gd(name),
         );
         table.set_fn(name.clone(), func, Box::new(DefaultCall));
+      }
+      IRDeclF::SymbolMacroDecl(_) => {
+        // No action; symbol macros have no runtime binding presence.
       }
       IRDeclF::ConstDecl(ir::decl::ConstDecl { visibility: _, name, value }) => {
         let mut var = LocalVar::file_constant(names::lisp_to_gd(name)); // Can't assign to constants

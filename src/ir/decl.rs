@@ -21,6 +21,7 @@ pub struct TopLevel {
 pub enum DeclF {
   FnDecl(FnDecl),
   MacroDecl(MacroDecl),
+  SymbolMacroDecl(SymbolMacroDecl),
   ConstDecl(ConstDecl),
   ClassDecl(ClassDecl),
   EnumDecl(EnumDecl),
@@ -48,6 +49,13 @@ pub struct MacroDecl {
   pub visibility: Visibility,
   pub name: String,
   pub args: ArgList,
+  pub body: Expr,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct SymbolMacroDecl {
+  pub visibility: Visibility,
+  pub name: String,
   pub body: Expr,
 }
 
@@ -223,6 +231,7 @@ impl Decl {
     match &self.value {
       DeclF::FnDecl(decl) => &decl.name,
       DeclF::MacroDecl(decl) => &decl.name,
+      DeclF::SymbolMacroDecl(decl) => &decl.name,
       DeclF::ConstDecl(decl) => &decl.name,
       DeclF::ClassDecl(decl) => &decl.name,
       DeclF::ObjectDecl(decl) => &decl.name,
@@ -247,6 +256,9 @@ impl Decl {
           ids.remove(&*Id::build(Namespace::Value, name));
         }
         ids
+      }
+      DeclF::SymbolMacroDecl(m) => {
+        m.body.get_ids().collect()
       }
       DeclF::ConstDecl(c) => {
         c.value.get_ids().collect()
@@ -287,7 +299,7 @@ impl Decl {
   }
 
   pub fn is_macro(&self) -> bool {
-    matches!(&self.value, DeclF::MacroDecl(_))
+    matches!(&self.value, DeclF::MacroDecl(_) | DeclF::SymbolMacroDecl(_))
   }
 
   #[deprecated(note="Use visibility() or export::Visibility constants instead")]
@@ -301,6 +313,7 @@ impl Decl {
     match &self.value {
       DeclF::FnDecl(_) => Namespace::Function,
       DeclF::MacroDecl(_) => Namespace::Function,
+      DeclF::SymbolMacroDecl(_) => Namespace::Value,
       DeclF::ConstDecl(_) => Namespace::Value,
       DeclF::ClassDecl(_) => Namespace::Value,
       DeclF::ObjectDecl(_) => Namespace::Value,
@@ -313,6 +326,7 @@ impl Decl {
     match &self.value {
       DeclF::FnDecl(d) => d.visibility,
       DeclF::MacroDecl(d) => d.visibility,
+      DeclF::SymbolMacroDecl(d) => d.visibility,
       DeclF::ConstDecl(d) => d.visibility,
       DeclF::ClassDecl(d) => d.visibility,
       DeclF::ObjectDecl(d) => d.visibility,
@@ -325,6 +339,7 @@ impl Decl {
     match &mut self.value {
       DeclF::FnDecl(d) => &mut d.visibility,
       DeclF::MacroDecl(d) => &mut d.visibility,
+      DeclF::SymbolMacroDecl(d) => &mut d.visibility,
       DeclF::ConstDecl(d) => &mut d.visibility,
       DeclF::ClassDecl(d) => &mut d.visibility,
       DeclF::ObjectDecl(d) => &mut d.visibility,
@@ -532,6 +547,17 @@ impl Sourced for ClassInnerDecl {
 impl From<DeclareType> for Namespace {
   fn from(d: DeclareType) -> Namespace {
     d.namespace()
+  }
+}
+
+impl From<SymbolMacroDecl> for MacroDecl {
+  fn from(decl: SymbolMacroDecl) -> MacroDecl {
+    MacroDecl {
+      visibility: decl.visibility,
+      name: decl.name,
+      args: ArgList::empty(),
+      body: decl.body,
+    }
   }
 }
 
