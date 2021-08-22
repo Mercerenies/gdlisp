@@ -128,6 +128,13 @@ impl IncCompiler {
     Ok(None)
   }
 
+  fn try_resolve_symbol_macro_call(&mut self, pipeline: &mut Pipeline, head: &str, pos: SourceOffset) -> Result<Option<AST>, PError> {
+    if self.macros.get(&*Id::build(Namespace::Value, &head)).is_some() {
+      return self.resolve_macro_call(pipeline, &*Id::build(Namespace::Value, &head), &[], pos).map(Some);
+    }
+    Ok(None)
+  }
+
   fn resolve_call_name(&mut self, pipeline: &mut Pipeline, ast: &AST) -> Result<CallName, PError> {
     if let Some((lhs, name)) = CallName::try_resolve_method_name(ast) {
       let lhs = self.compile_expr(pipeline, lhs)?;
@@ -194,8 +201,13 @@ impl IncCompiler {
         Ok(Expr::new(ExprF::Literal(Literal::String(s.to_owned())), expr.pos))
       }
       ASTF::Symbol(s) => {
-        /////
-        Ok(Expr::new(ExprF::LocalVar(s.to_string()), expr.pos))
+        // Symbol macro resolution
+        let macro_result = self.try_resolve_symbol_macro_call(pipeline, &s, expr.pos)?;
+        if let Some(macro_result) = macro_result {
+          self.compile_expr(pipeline, &macro_result)
+        } else {
+          Ok(Expr::new(ExprF::LocalVar(s.to_string()), expr.pos))
+        }
       }
     }
   }
@@ -312,8 +324,8 @@ impl IncCompiler {
               ASTF::Symbol(s) => s,
               _ => return Err(PError::from(Error::new(ErrorF::InvalidDecl(decl.clone()), decl.pos))),
             };
-            let value = self.compile_expr(pipeline, vec[1])?;
-            let (mods, body) = modifier::macros::parser().parse(&vec[2..])?;
+            let value = self.compile_expr(pipeline, vec[2])?;
+            let (mods, body) = modifier::macros::parser().parse(&vec[3..])?;
             if !body.is_empty() {
               return Err(PError::from(Error::new(ErrorF::InvalidDecl(decl.clone()), decl.pos)));
             }
@@ -780,7 +792,15 @@ impl IncCompiler {
     decl.name = tmp_name.to_owned();
     let table = if generate_name {
       let mut table = self.table.clone();
-      table.add(Decl::new(DeclF::MacroDecl(decl.to_owned()), pos));
+      match namespace {
+        Namespace::Function => {
+          table.add(Decl::new(DeclF::MacroDecl(decl.to_owned()), pos))
+        }
+        Namespace::Value => {
+          let symdecl = decl::SymbolMacroDecl { visibility: decl.visibility, name: decl.name.to_owned(), body: decl.body.clone() };
+          table.add(Decl::new(DeclF::SymbolMacroDecl(symdecl), pos))
+        }
+      }
       Cow::Owned(table)
     } else {
       Cow::Borrowed(&self.table)

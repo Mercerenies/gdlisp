@@ -114,7 +114,7 @@ impl Compiler {
         // Note: Macros compile identically to functions, as far as
         // this stage of compilation is concerned. They'll be resolved
         // and then purged during the IR phase.
-        let gd_name = format!("__gdlisp_symbolmacro_{}", names::lisp_to_gd(&name));
+        let gd_name = names::lisp_to_gd(&name);
         let function = factory::declare_function(&mut self.frame(pipeline, builder, table), gd_name, IRArgList::empty(), body, &stmt_wrapper::Return)?;
         builder.add_decl(Decl::new(DeclF::FnDecl(decl::Static::IsStatic, function), decl.pos));
         Ok(())

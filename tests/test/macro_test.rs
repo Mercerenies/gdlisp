@@ -23,6 +23,12 @@ pub fn constant_macro_test() {
 
 #[test]
 #[ignore]
+pub fn symbol_macro_test() {
+  assert_eq!(parse_compile_decl("((define-symbol-macro foo 10) foo)"), "extends Reference\nstatic func foo():\n    return 10\nstatic func run():\n    return 10\n");
+}
+
+#[test]
+#[ignore]
 pub fn arithmetic_macro_test() {
   assert_eq!(parse_compile_decl("((defmacro foo (x) (+ x 100)) (foo 9))"), "extends Reference\nstatic func foo(x_0):\n    return x_0 + 100\nstatic func run():\n    return 109\n");
 }
@@ -82,6 +88,12 @@ pub fn to_decl_macro_test() {
 #[ignore]
 pub fn to_progn_macro_test() {
   assert_eq!(parse_and_run(r#"((defmacro foo () '(progn (defmacro bar (x) x) (print (bar 3)))) (foo))"#), "\n3\n");
+}
+
+#[test]
+#[ignore]
+pub fn symbol_macro_run_test() {
+  assert_eq!(parse_and_run(r#"((define-symbol-macro foo (progn 2)) (print foo))"#), "\n2\n");
 }
 
 #[test]
