@@ -35,6 +35,7 @@ use symbol_table::call_magic::table::MagicTable;
 use crate::ir;
 use crate::ir::import::{ImportName, ImportDecl, ImportDetails};
 use crate::ir::identifier::Namespace;
+use crate::ir::access_type::AccessType;
 use crate::runner::path::RPathBuf;
 use crate::pipeline::error::{Error as PError};
 use crate::pipeline::Pipeline;
@@ -328,8 +329,15 @@ impl Compiler {
         );
         table.set_fn(name.clone(), func, Box::new(DefaultCall));
       }
-      IRDeclF::SymbolMacroDecl(_) => {
+      IRDeclF::SymbolMacroDecl(ir::decl::SymbolMacroDecl { name, .. }) => {
         // No action; symbol macros have no runtime binding presence.
+        table.set_var(name.clone(), LocalVar {
+          name: VarName::Null,
+          access_type: AccessType::Read,
+          scope: VarScope::GlobalVar,
+          assignable: false,
+          value_hint: Some(ValueHint::SymbolMacro),
+        });
       }
       IRDeclF::ConstDecl(ir::decl::ConstDecl { visibility: _, name, value }) => {
         let mut var = LocalVar::file_constant(names::lisp_to_gd(name)); // Can't assign to constants

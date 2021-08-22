@@ -62,6 +62,10 @@ pub enum VarName {
   /// A lazy evaluated value, implemented as a 0-ary function call on
   /// an imported file constant.
   ImportedLazyValue(Box<VarName>, String),
+  /// A null value. This is used as a placeholder for things in the
+  /// value namespace that don't have runtime presence, such as symbol
+  /// macros.
+  Null,
 }
 
 /// [`VarName`] can always be converted (without loss of information)
@@ -82,6 +86,11 @@ pub enum VarNameIntoExtendsError {
   /// calls cannot be made in the "extends" clause of a class
   /// declaration.
   CannotExtendLazyValue(String),
+  /// The null [`VarName`] is used in some places as a placeholder for
+  /// values that don't exist at runtime (i.e. those fully handled
+  /// during the IR macro expansion phase). Needless to say, we can't
+  /// extend from a name that doesn't exist at runtime.
+  CannotExtendNull,
 }
 
 /// The scope of a variable.
@@ -122,6 +131,9 @@ pub enum ValueHint {
   /// Currently, this is only available if explicitly requested via
   /// `sys/declare`.
   Superglobal,
+  /// A symbol macro name. If we end up using one of these at runtime
+  /// somehow, then it should be a hard error wherever possible.
+  SymbolMacro,
 }
 
 /// A `ValueHintsTable` provides a means to look up a variable and get
@@ -327,6 +339,7 @@ impl VarName {
       VarName::CurrentFile(_) => None,
       VarName::LazyValue(_) => None,
       VarName::ImportedLazyValue(_, _) => None,
+      VarName::Null => None,
     }
   }
 
@@ -370,6 +383,10 @@ impl VarName {
         let lhs = Box::new(lhs.into_imported(import_name));
         VarName::ImportedLazyValue(lhs, s)
       }
+      VarName::Null => {
+        // Null is already available everywhere.
+        VarName::Null
+      }
     }
   }
 
@@ -385,6 +402,7 @@ impl VarName {
       VarName::CurrentFile(filename) => VarName::load_expr(filename, pos),
       VarName::LazyValue(s) => Expr::call(None, &s, vec!(), pos),
       VarName::ImportedLazyValue(lhs, s) => Expr::call(Some(lhs.into_expr(pos)), &s, vec!(), pos),
+      VarName::Null => Expr::null(pos),
     }
   }
 
@@ -420,6 +438,9 @@ impl TryFrom<VarName> for decl::ClassExtends {
       }
       VarName::ImportedLazyValue(_, s) => {
         Err(VarNameIntoExtendsError::CannotExtendLazyValue(s))
+      }
+      VarName::Null => {
+        Err(VarNameIntoExtendsError::CannotExtendNull)
       }
     }
   }

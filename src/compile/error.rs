@@ -250,6 +250,9 @@ impl From<VarNameIntoExtendsError> for ErrorF {
       VarNameIntoExtendsError::CannotExtendLazyValue(s) => {
         ErrorF::CannotExtend(s)
       }
+      VarNameIntoExtendsError::CannotExtendNull => {
+        ErrorF::CannotExtend(String::from("null"))
+      }
     }
   }
 }
