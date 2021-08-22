@@ -104,6 +104,60 @@ pub fn symbol_macro_shadowing_test() {
 
 #[test]
 #[ignore]
+pub fn symbol_macro_to_macro_test_1() {
+  assert_eq!(parse_and_run(r#"((define-symbol-macro foo '(bar)) (defmacro bar () 9) (print foo))"#), "\n9\n");
+}
+
+#[test]
+#[ignore]
+pub fn symbol_macro_to_macro_test_2() {
+  assert_eq!(parse_and_run(r#"((define-symbol-macro foo '(bar)) (defmacro bar () 9) (print (flet ((bar () 10)) foo)))"#), "\n10\n");
+}
+
+#[test]
+#[ignore]
+pub fn symbol_macro_to_macro_test_3() {
+  assert_eq!(parse_and_run(r#"((define-symbol-macro foo '(bar)) (defmacro bar () 9) (print (macrolet ((bar () 10)) foo)))"#), "\n10\n");
+}
+
+#[test]
+#[ignore]
+pub fn symbol_macro_to_symbol_macro_test_1() {
+  assert_eq!(parse_and_run(r#"((define-symbol-macro foo 'bar) (define-symbol-macro bar 9) (print foo))"#), "\n9\n");
+}
+
+#[test]
+#[ignore]
+pub fn symbol_macro_to_symbol_macro_test_2() {
+  assert_eq!(parse_and_run(r#"((define-symbol-macro foo 'bar) (define-symbol-macro bar 9) (print (let ((bar 10)) foo)))"#), "\n10\n");
+}
+
+#[test]
+#[ignore]
+pub fn symbol_macro_to_symbol_macro_test_3() {
+  assert_eq!(parse_and_run(r#"((define-symbol-macro foo 'bar) (define-symbol-macro bar 9) (print (flet ((bar () 10)) foo)))"#), "\n9\n");
+}
+
+#[test]
+#[ignore]
+pub fn macro_to_symbol_macro_test_1() {
+  assert_eq!(parse_and_run(r#"((defmacro foo () 'bar) (define-symbol-macro bar 9) (print (foo)))"#), "\n9\n");
+}
+
+#[test]
+#[ignore]
+pub fn macro_to_symbol_macro_test_2() {
+  assert_eq!(parse_and_run(r#"((defmacro foo () 'bar) (define-symbol-macro bar 9) (print (let ((bar 10)) (foo))))"#), "\n10\n");
+}
+
+#[test]
+#[ignore]
+pub fn macro_uses_symbol_macro_test() {
+  assert_eq!(parse_and_run(r#"((define-symbol-macro bar 9) (defmacro foo () bar) (print (let ((bar 10)) (foo))))"#), "\n9\n");
+}
+
+#[test]
+#[ignore]
 pub fn macrolet_basic_test() {
   let result = parse_compile_and_output("(macrolet ((foo () 100)) (foo))");
   assert_eq!(result, "return 100\n");
