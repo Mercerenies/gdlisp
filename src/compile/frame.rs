@@ -11,7 +11,7 @@ use super::special_form::flet;
 use super::special_form::lambda_class;
 use super::preload_resolver::PreloadResolver;
 use super::symbol_table::{SymbolTable, HasSymbolTable};
-use super::symbol_table::local_var::{LocalVar, ValueHint};
+use super::symbol_table::local_var::{LocalVar, ValueHint, VarName};
 use super::names::fresh::FreshNameGenerator;
 use super::error::{Error, ErrorF};
 use super::stateful::{StExpr, NeedsResult, SideEffects};
@@ -22,9 +22,11 @@ use crate::pipeline::source::SourceOffset;
 use crate::ir;
 use crate::ir::access_type::AccessType;
 use crate::ir::expr::{FuncRefTarget, AssignTarget};
+use crate::ir::special_ref::SpecialRef;
 use crate::gdscript::expr::{Expr, ExprF};
 use crate::gdscript::stmt::Stmt;
 use crate::gdscript::library;
+use crate::gdscript::inner_class;
 use crate::sxp::reify::Reify;
 
 use std::cmp::max;
@@ -420,6 +422,9 @@ impl<'a, 'b, 'c, 'd> CompilerFrame<'a, 'b, 'c, 'd, StmtBuilder> {
         self.compile_stmt(&stmt_wrapper::Return, expr)?;
         Ok(Compiler::nil_expr(expr.pos))
       }
+      IRExprF::SpecialRef(special_ref) => {
+        Ok(self.compile_special_ref(*special_ref, expr.pos))
+      }
       /* // This will eventually be an optimization.
       IRExprF::Funcall(f, args) => {
         let func_expr = self.compile_expr(builder, table, f, NeedsResult::Yes)?.0;
@@ -458,6 +463,18 @@ impl<'a, 'b, 'c, 'd> CompilerFrame<'a, 'b, 'c, 'd, StmtBuilder> {
       expr: fcall.into_expr_with_magic(&*call_magic, self.compiler, self.builder, self.table, args, pos)?,
       side_effects: SideEffects::ModifiesState,
     })
+  }
+
+  pub fn compile_special_ref(&mut self, special_ref: SpecialRef, pos: SourceOffset) -> StExpr {
+    match special_ref {
+      SpecialRef::ThisFile => {
+        let current_filename =
+          inner_class::get_current_filename(self.pipeline, self.compiler.preload_resolver())
+          .expect("Error identifying current file"); // TODO Expect
+        let expr = VarName::load_expr(current_filename, pos);
+        StExpr { expr, side_effects: SideEffects::None }
+      }
+    }
   }
 
 }

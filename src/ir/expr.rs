@@ -5,6 +5,7 @@ use super::arglist::ArgList;
 use super::closure_names::ClosureNames;
 use super::access_type::AccessType;
 use super::identifier::{Namespace, Id};
+use super::special_ref::SpecialRef;
 use crate::sxp::ast::AST;
 use crate::pipeline::source::{SourceOffset, Sourced};
 
@@ -34,6 +35,7 @@ pub enum ExprF {
   LambdaClass(Box<LambdaClass>),
   Yield(Option<(Box<Expr>, Box<Expr>)>),
   Return(Box<Expr>),
+  SpecialRef(SpecialRef),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -314,6 +316,7 @@ impl Expr {
       ExprF::Return(expr) => {
         expr.walk_locals(acc_vars, acc_fns);
       }
+      ExprF::SpecialRef(_) => {}
     };
   }
 

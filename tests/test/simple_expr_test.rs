@@ -121,3 +121,29 @@ pub fn assign_to_cons_test() {
   assert_eq!(parse_and_run("((let ((x (cons nil nil))) (set (car x) 10) (set (cdr x) 20) (print (car x)) (print (cdr x))))"),
              "\n10\n20\n");
 }
+
+#[test]
+pub fn sys_this_file_test() {
+  assert_eq!(parse_compile_and_output("(sys/special-ref this-file)"),
+             "return load(\"res://TEST.gd\")\n");
+}
+
+#[test]
+#[ignore]
+pub fn sys_this_file_run_test() {
+  let output = parse_and_run(r#"
+    ((defn foo (x) (* x 2))
+     (print (foo 124))
+     (print ((sys/special-ref this-file):foo 124)))"#);
+  assert_eq!(output, "\n248\n248\n");
+}
+
+#[test]
+#[ignore]
+pub fn sys_this_file_run_in_macro_test() {
+  let output = parse_and_run(r#"
+    ((defn foo (x) (* x 2))
+     (defmacro baz () '((sys/special-ref this-file):foo 124))
+     (print (baz)))"#);
+  assert_eq!(output, "\n248\n");
+}

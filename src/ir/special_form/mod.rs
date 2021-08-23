@@ -5,6 +5,7 @@ pub mod assignment;
 use crate::sxp::ast::{AST, ASTF};
 use crate::sxp::dotted::DottedExpr;
 use super::expr::{ExprF, Expr, FuncRefTarget, AssignTarget, LambdaClass, LocalFnClause};
+use super::special_ref::SpecialRef;
 use super::decl::{self, Decl, DeclF};
 use super::arglist::ArgList;
 use super::quasiquote::quasiquote;
@@ -20,6 +21,7 @@ use local_binding::{FLetLocalBinding, LabelsLocalBinding, LocalBinding};
 use assignment::AssignmentForm;
 
 use std::convert::{TryFrom, TryInto};
+use std::borrow::Borrow;
 
 pub fn dispatch_form(icompiler: &mut IncCompiler,
                      pipeline: &mut Pipeline,
@@ -48,6 +50,7 @@ pub fn dispatch_form(icompiler: &mut IncCompiler,
     "return" => return_form(icompiler, pipeline, tail, pos).map(Some),
     "macrolet" => macrolet_form(icompiler, pipeline, tail, pos).map(Some),
     "symbol-macrolet" => symbol_macrolet_form(icompiler, pipeline, tail, pos).map(Some),
+    "sys/special-ref" => special_ref_form(icompiler, pipeline, tail, pos).map(Some),
     _ => Ok(None),
   }
 }
@@ -410,6 +413,22 @@ pub fn symbol_macrolet_form(icompiler: &mut IncCompiler,
     Ok(Expr::progn(body, pos))
   })
 
+}
+
+pub fn special_ref_form(_icompiler: &mut IncCompiler,
+                        _pipeline: &mut Pipeline,
+                        tail: &[&AST],
+                        pos: SourceOffset)
+                        -> Result<Expr, Error> {
+  Expecting::exactly(1).validate("sys/special-ref", pos, tail)?;
+  if let ASTF::Symbol(sym) = &tail[0].value {
+    match sym.borrow() {
+      "this-file" => Ok(Expr::from_value(SpecialRef::ThisFile, pos)),
+      _ => Err(Error::from(GDError::new(GDErrorF::InvalidArg(String::from("sys/special-ref"), tail[0].clone(), String::from("special reference value")), pos))),
+    }
+  } else {
+    Err(Error::from(GDError::new(GDErrorF::InvalidArg(String::from("sys/special-ref"), tail[0].clone(), String::from("special reference value")), pos)))
+  }
 }
 
 fn macrolet_bind_locals<B, E, F, I>(icompiler: &mut IncCompiler,
