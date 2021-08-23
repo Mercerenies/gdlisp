@@ -205,6 +205,9 @@ pub fn declare_constructor(frame: &mut CompilerFrame<impl HasDecls>,
   Ok((constructor, vec!()))
 }
 
+/// Compiles a GDLisp literal to a GDScript expression, using `pos` as
+/// the source offset of the resulting expression. Literals are simple
+/// expressions and, as such, this transformation cannot fail.
 pub fn compile_literal(literal: &IRLiteral, pos: SourceOffset) -> Expr {
   match literal {
     IRLiteral::Nil => Expr::null(pos),
