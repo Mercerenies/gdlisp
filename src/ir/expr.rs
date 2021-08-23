@@ -134,6 +134,11 @@ impl Expr {
     )
   }
 
+  pub fn from_value<T>(value: T, pos: SourceOffset) -> Expr
+  where ExprF : From<T> {
+    Expr::new(ExprF::from(value), pos)
+  }
+
   fn walk_locals(&self, acc_vars: &mut Locals, acc_fns: &mut Functions) {
     match &self.value {
       ExprF::LocalVar(s) => {
