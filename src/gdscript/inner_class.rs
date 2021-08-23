@@ -41,12 +41,21 @@ pub const OUTER_REFERENCE_NAME: &str = "__gdlisp_outer_class";
 /// to be equal to the enclosing class resource. This resource will be
 /// loaded using `load`. The path to load is determined by `resolver`.
 pub fn add_outer_class_ref_named(inner_class: &mut decl::ClassDecl, resolver: &dyn PreloadResolver, current_file: &impl CanLoad, var_name: String, pos: SourceOffset) {
-  let current_filename = current_file.current_filename()
-    .and_then(|fname| resolver.resolve_preload(&fname))
+  let current_filename = get_current_filename(current_file, resolver)
     .expect("Error identifying current file"); // TODO Expect
   let load_expr = VarName::load_expr(current_filename, pos);
   let var_decl = Decl::new(DeclF::VarDecl(None, var_name, Some(load_expr)), pos);
   inner_class.body.push(var_decl);
+}
+
+/// Gets the filename of the currently loading object from the
+/// pipeline, as per [`CanLoad::current_filename`], and then resolves
+/// that filename using `resolver`. Returns `None` if either step
+/// fails.
+pub fn get_current_filename<L, R>(current_file: &L, resolver: &R) -> Option<String>
+where L : CanLoad + ?Sized,
+      R : PreloadResolver + ?Sized{
+  current_file.current_filename().and_then(|fname| resolver.resolve_preload(&fname))
 }
 
 /// Trait for objects, such as declarations, which may need an outer

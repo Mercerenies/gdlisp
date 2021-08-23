@@ -26,6 +26,7 @@ use crate::gdscript::op;
 use crate::gdscript::library;
 use crate::gdscript::arglist::ArgList;
 use crate::gdscript::metadata::{self, MetadataCompiler};
+use crate::gdscript::inner_class;
 use error::{Error, ErrorF};
 use symbol_table::{SymbolTable, ClassTablePair};
 use symbol_table::local_var::{LocalVar, ValueHint, VarName, VarScope};
@@ -148,10 +149,7 @@ impl Compiler {
         let singleton_class = factory::declare_class(&mut self.frame(pipeline, builder, table), class_name.clone(), extends, false, constructor, decls, decl.pos)?;
 
         // We need a reference to the current file GDScript object.
-        // (TODO This is part of inner_class; make it a function over
-        // there)
-        let current_filename = pipeline.current_filename()
-          .and_then(|fname| self.resolver.resolve_preload(&fname))
+        let current_filename = inner_class::get_current_filename(pipeline, &*self.resolver)
           .expect("Error identifying current file"); // TODO Expect
         let load_expr = VarName::load_expr(current_filename, decl.pos);
 
