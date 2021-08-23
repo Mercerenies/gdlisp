@@ -153,6 +153,20 @@ static func run():
 }
 
 #[test]
+pub fn member_var_class_test_7() {
+  assert_eq!(parse_compile_decl(r#"((defclass ClassName (Node) main (defvar x "foo" (export String "foo" "bar")) (defn _init (x) (set @x x)) (defn get-x () @x)))"#),
+             r#"extends Node
+func _init(x_0):
+    self.x = x_0
+export(String, "foo", "bar") var x = "foo"
+func get_x():
+    return self.x
+static func run():
+    return null
+"#);
+}
+
+#[test]
 pub fn bad_member_var_class_test_1() {
   assert_eq!(
     parse_compile_decl_err("((defclass ClassName (Node) (defvar x (if 1 2 3)) (defn _init (x) (set self:x x)) (defn get-x () self:x)))"),
@@ -352,12 +366,47 @@ static func run():
 
 #[test]
 #[ignore]
-pub fn simple_self_run_class_test() {
+pub fn simple_self_run_class_test_1() {
   assert_eq!(parse_and_run(r#"
     ((defclass Foo (Reference)
        (defvar x)
        (defn _init (x)
          (set self:x x))
+       (defn double ()
+         (* self:x 2)))
+     (let ((foo (Foo:new 100)))
+       (print (foo:double))
+       (set foo:x 101)
+       (print (foo:double))))
+  "#), "\n200\n202\n");
+}
+
+#[test]
+#[ignore]
+pub fn simple_self_run_class_test_2() {
+  assert_eq!(parse_and_run(r#"
+    ((defclass Foo (Reference)
+       (defvar x)
+       (defn _init (x)
+         (set @x x))
+       (defn double ()
+         (* @x 2)))
+     (let ((foo (Foo:new 100)))
+       (print (foo:double))
+       (set foo:x 101)
+       (print (foo:double))))
+  "#), "\n200\n202\n");
+}
+
+#[test]
+#[ignore]
+pub fn simple_self_run_class_test_3() {
+  // Mixing self and @
+  assert_eq!(parse_and_run(r#"
+    ((defclass Foo (Reference)
+       (defvar x)
+       (defn _init (x)
+         (set @x x))
        (defn double ()
          (* self:x 2)))
      (let ((foo (Foo:new 100)))
@@ -758,5 +807,13 @@ pub fn duplicate_main_class_test() {
   assert_eq!(
     parse_compile_decl_err("((defclass Foo (Node) main) (defclass Bar (Node) main))"),
     Err(PError::from(GDError::new(GDErrorF::DuplicateMainClass, SourceOffset(29)))),
+  );
+}
+
+#[test]
+pub fn no_self_in_scope_test() {
+  assert_eq!(
+    parse_compile_and_output_err("@test"),
+    Err(PError::from(GDError::new(GDErrorF::NoSuchVar(String::from("self")), SourceOffset(0)))),
   );
 }

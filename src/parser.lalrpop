@@ -25,10 +25,10 @@ match {
   r"[+-]?[0-9]+" => INT,
   r"[+-]?[0-9]+((\.[0-9]+)([eE][+-]?[0-9]+)?|(\.[0-9]+)?([eE][+-]?[0-9]+))" => FLOAT,
   r#""([^\\"]|\\[\\"])*""# => STRING,
-  r"\$[A-Za-z0-9_~+=\-\\!@$%^&*<>/?]+" => PATH,
-  "(", ")", ".", "[", "]", "'", "#'", "`", ",", ":", "V{", "{", "}", ",.",
+  r"\$[A-Za-z0-9_~+=\-\\!$%^&*<>/?]+" => PATH,
+  "(", ")", ".", "[", "]", "'", "#'", "`", ",", ":", "V{", "{", "}", ",.", "@",
 } else {
-  r"[A-Za-z_~+=\-\\!@%^&*<>/?][A-Za-z0-9_~+=\-\\!@$%^&*<>/?]*(\.[A-Za-z0-9_~+=\-\\!@$%^&*<>/?]+)*" => SYMBOL,
+  r"[A-Za-z_~+=\-\\!%^&*<>/?][A-Za-z0-9_~+=\-\\!$%^&*<>/?]*(\.[A-Za-z0-9_~+=\-\\!$%^&*<>/?]+)*" => SYMBOL,
 }
 
 pub AST: AST = {
@@ -68,6 +68,7 @@ pub LiteralOrNestedAST: AST = {
   <pos:@L> <body: LiteralOrNestedAST> ":" <rpos:@L> <name: Symbol> => AST::dotted_list(vec!(AST::symbol("access-slot", SourceOffset(pos)), body, AST::new(ASTF::Symbol(name), SourceOffset(rpos))), AST::nil(SourceOffset(pos))),
   <pos:@L> <body: LiteralOrNestedAST> ":" <rpos:@L> <path: NodePath> => AST::dotted_list(vec!(AST::dotted_list(vec!(AST::symbol("access-slot", SourceOffset(pos)), body, AST::symbol("get-node", SourceOffset(pos))), AST::nil(SourceOffset(pos))), AST::new(ASTF::String(path), SourceOffset(rpos))), AST::nil(SourceOffset(pos))),
   <pos:@L> <path: NodePath> => AST::dotted_list(vec!(AST::dotted_list(vec!(AST::symbol("access-slot", SourceOffset(pos)), AST::symbol("self", SourceOffset(pos)), AST::symbol("get-node", SourceOffset(pos))), AST::nil(SourceOffset(pos))), AST::new(ASTF::String(path), SourceOffset(pos))), AST::nil(SourceOffset(pos))),
+  <pos:@L> "@" <rpos:@L> <name: Symbol> => AST::dotted_list(vec!(AST::symbol("access-slot", SourceOffset(pos)), AST::symbol("self", SourceOffset(pos)), AST::new(ASTF::Symbol(name), SourceOffset(rpos))), AST::nil(SourceOffset(pos))),
 }
 
 Cdr: AST = {

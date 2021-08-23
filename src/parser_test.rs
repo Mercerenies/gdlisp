@@ -57,6 +57,13 @@ mod tests {
   }
 
   #[test]
+  fn parser_at_self() {
+    let p = ASTParser::new();
+    assert_eq!(p.parse("@b").unwrap(), AST::list(vec!(AST::symbol("access-slot", so(0)), AST::symbol("self", so(0)), AST::symbol("b", so(1))), so(0)));
+    assert_eq!(p.parse("@b:c").unwrap(), AST::list(vec!(AST::symbol("access-slot", so(0)), AST::list(vec!(AST::symbol("access-slot", so(0)), AST::symbol("self", so(0)), AST::symbol("b", so(1))), so(0)), AST::symbol("c", so(3))), so(0)));
+  }
+
+  #[test]
   fn parser_comments() {
     let p = ASTParser::new();
     assert_eq!(p.parse("\"abcdef\" ;; test comment").unwrap(), AST::string("abcdef", so(0)));
