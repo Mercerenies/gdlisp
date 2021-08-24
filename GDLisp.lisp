@@ -1110,6 +1110,7 @@
 (sys/declare superfunction push-error (a) public)
 (sys/declare superfunction push-warning (a) public)
 (sys/declare superfunction typeof (a) public)
+(sys/declare superfunction load (a) public)
 
 (sys/declare superglobal PI public)
 (sys/declare superglobal SPKEY public)
@@ -1255,6 +1256,6 @@
                (let ((,value-var ,value))
                  ((unquote this-file):set-meta ,meta-name ,value-var)
                  ,value-var))))
-       (define-symbol-macro ,name '(,fn-name) .,modifiers))))
+       (define-symbol-macro ,name (list (list 'access-slot (list 'load (this-true-filename)) ',fn-name)) ,.modifiers))))
 
 ;; TODO deflazy will NOT work if imported into another file, due to hygiene rules. How do we deal with this? /////

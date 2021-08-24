@@ -26,7 +26,7 @@ static func _lazy_0():
             _cond_1 = null
     return _cond_1
 static func x():
-    return GDLisp.cons(GDLisp.intern("_lazy_0"), null)
+    return GDLisp.Cons.new(GDLisp.Cons.new(GDLisp.intern("access-slot"), GDLisp.Cons.new(GDLisp.Cons.new(GDLisp.intern("load"), GDLisp.Cons.new("res://TEST.gd", null)), GDLisp.Cons.new(GDLisp.intern("_lazy_0"), null))), null)
 static func run():
     return null
 "#);
@@ -52,7 +52,7 @@ static func _lazy_0():
             _cond_1 = null
     return _cond_1
 static func x():
-    return GDLisp.cons(GDLisp.intern("_lazy_0"), null)
+    return GDLisp.Cons.new(GDLisp.Cons.new(GDLisp.intern("access-slot"), GDLisp.Cons.new(GDLisp.Cons.new(GDLisp.intern("load"), GDLisp.Cons.new("res://TEST.gd", null)), GDLisp.Cons.new(GDLisp.intern("_lazy_0"), null))), null)
 static func run():
     return null
 "#);
