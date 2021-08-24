@@ -1235,3 +1235,20 @@
 
 (defmacro this-file ()
   '(sys/special-ref this-file))
+
+(defmacro deflazy (name value &rest modifiers)
+  (let ((fn-name (gensym "_lazy"))
+        (this-file (gensym "_this_file"))
+        (value-var (gensym "_value"))
+        (meta-name ("__gdlisp_Lazy_{}":format [(gensym):contents] "{}"))) ; TODO Find a better way to convert symbol to string than accessing a, theoretically, private field
+    `(progn
+       (defn ,fn-name ()
+         (let ((,this-file (this-file)))
+           (if ((unquote this-file):has-meta ,meta-name)
+               ((unquote this-file):get-meta ,meta-name)
+               (let ((,value-var ,value))
+                 ((unquote this-file):set-meta ,meta-name ,value-var)
+                 ,value-var))))
+       (define-symbol-macro ,name '(,fn-name) .,modifiers))))
+
+;; TODO deflazy will NOT work if imported into another file, due to hygiene rules. How do we deal with this? /////
