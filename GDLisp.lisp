@@ -1232,3 +1232,6 @@
          (yield)
          (set ,symbol ((unquote symbol):resume)))
        ,symbol)))
+
+(defmacro this-file ()
+  '(sys/special-ref this-file))

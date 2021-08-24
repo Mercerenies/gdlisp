@@ -129,6 +129,12 @@ pub fn sys_this_file_test() {
 }
 
 #[test]
+pub fn this_file_test() {
+  assert_eq!(parse_compile_and_output("(this-file)"),
+             "return load(\"res://TEST.gd\")\n");
+}
+
+#[test]
 #[ignore]
 pub fn sys_this_file_run_test() {
   let output = parse_and_run(r#"
@@ -144,6 +150,26 @@ pub fn sys_this_file_run_in_macro_test() {
   let output = parse_and_run(r#"
     ((defn foo (x) (* x 2))
      (defmacro baz () '((sys/special-ref this-file):foo 124))
+     (print (baz)))"#);
+  assert_eq!(output, "\n248\n");
+}
+
+#[test]
+#[ignore]
+pub fn this_file_run_test() {
+  let output = parse_and_run(r#"
+    ((defn foo (x) (* x 2))
+     (print (foo 124))
+     (print ((this-file):foo 124)))"#);
+  assert_eq!(output, "\n248\n248\n");
+}
+
+#[test]
+#[ignore]
+pub fn this_file_run_in_macro_test() {
+  let output = parse_and_run(r#"
+    ((defn foo (x) (* x 2))
+     (defmacro baz () '((this-file):foo 124))
      (print (baz)))"#);
   assert_eq!(output, "\n248\n");
 }

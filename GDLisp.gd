@@ -723,5 +723,7 @@ static func _if(cnd_129, t_130, f_131):
 static func yield_u002A(arg_132):
     var symbol_133 = gensym("_yield")
     return cons(GDLisp.intern("let"), cons(cons(cons(symbol_133, cons(arg_132, null)), null), cons(cons(GDLisp.intern("while"), cons(cons(GDLisp.intern("and"), cons(cons(GDLisp.intern("instance?"), cons(symbol_133, cons(GDLisp.intern("GDScriptFunctionState"), null))), cons(cons(cons(GDLisp.intern("access-slot"), cons(symbol_133, cons(GDLisp.intern("is-valid"), null))), null), null))), cons(cons(GDLisp.intern("yield"), null), cons(cons(GDLisp.intern("set"), cons(symbol_133, cons(cons(cons(GDLisp.intern("access-slot"), cons(symbol_133, cons(GDLisp.intern("resume"), null))), null), null))), null)))), cons(symbol_133, null))))
+static func this_file():
+    return GDLisp.cons(GDLisp.intern("sys/special-ref"), GDLisp.cons(GDLisp.intern("this-file"), null))
 static func run():
     return null
