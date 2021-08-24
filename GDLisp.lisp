@@ -1236,6 +1236,12 @@
 (defmacro this-file ()
   '(sys/special-ref this-file))
 
+(defmacro this-filename ()
+  '(sys/special-ref this-filename))
+
+(defmacro this-true-filename ()
+  '(sys/special-ref this-true-filename))
+
 (defmacro deflazy (name value &rest modifiers)
   (let ((fn-name (gensym "_lazy"))
         (this-file (gensym "_this_file"))

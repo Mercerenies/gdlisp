@@ -20,6 +20,16 @@ pub enum SpecialRef {
   /// returns a reference to the current file, as a GDScript script
   /// object.
   ThisFile,
+  /// `ThisFileName` will compile into a string literal expression
+  /// which refers to the current (GDScript) filename. If called
+  /// during a macro expansion, this will expand to the virtual name
+  /// of the macro file.
+  ThisFileName,
+  /// `ThisTrueFileName` will compile into a string literal expression
+  /// which refers to the current (GDScript) filename. If called
+  /// during macro expansion, this will expand into the *true* final
+  /// name of the file, not the name of the virtual macro file.
+  ThisTrueFileName,
 }
 
 impl From<SpecialRef> for ExprF {

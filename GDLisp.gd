@@ -725,6 +725,10 @@ static func yield_u002A(arg_132):
     return cons(GDLisp.intern("let"), cons(cons(cons(symbol_133, cons(arg_132, null)), null), cons(cons(GDLisp.intern("while"), cons(cons(GDLisp.intern("and"), cons(cons(GDLisp.intern("instance?"), cons(symbol_133, cons(GDLisp.intern("GDScriptFunctionState"), null))), cons(cons(cons(GDLisp.intern("access-slot"), cons(symbol_133, cons(GDLisp.intern("is-valid"), null))), null), null))), cons(cons(GDLisp.intern("yield"), null), cons(cons(GDLisp.intern("set"), cons(symbol_133, cons(cons(cons(GDLisp.intern("access-slot"), cons(symbol_133, cons(GDLisp.intern("resume"), null))), null), null))), null)))), cons(symbol_133, null))))
 static func this_file():
     return GDLisp.cons(GDLisp.intern("sys/special-ref"), GDLisp.cons(GDLisp.intern("this-file"), null))
+static func this_filename():
+    return GDLisp.cons(GDLisp.intern("sys/special-ref"), GDLisp.cons(GDLisp.intern("this-filename"), null))
+static func this_true_filename():
+    return GDLisp.cons(GDLisp.intern("sys/special-ref"), GDLisp.cons(GDLisp.intern("this-true-filename"), null))
 static func deflazy(name_134, value_135, modifiers_136):
     var fn_name_137 = gensym("_lazy")
     var this_file_138 = gensym("_this_file")

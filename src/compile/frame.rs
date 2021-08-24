@@ -9,7 +9,7 @@ use super::names;
 use super::special_form::lambda;
 use super::special_form::flet;
 use super::special_form::lambda_class;
-use super::preload_resolver::PreloadResolver;
+use super::preload_resolver::{PreloadResolver, DefaultPreloadResolver};
 use super::symbol_table::{SymbolTable, HasSymbolTable};
 use super::symbol_table::local_var::{LocalVar, ValueHint, VarName};
 use super::names::fresh::FreshNameGenerator;
@@ -472,6 +472,20 @@ impl<'a, 'b, 'c, 'd> CompilerFrame<'a, 'b, 'c, 'd, StmtBuilder> {
           inner_class::get_current_filename(self.pipeline, self.compiler.preload_resolver())
           .expect("Error identifying current file"); // TODO Expect
         let expr = VarName::load_expr(current_filename, pos);
+        StExpr { expr, side_effects: SideEffects::None }
+      }
+      SpecialRef::ThisFileName => {
+        let current_filename =
+          inner_class::get_current_filename(self.pipeline, self.compiler.preload_resolver())
+          .expect("Error identifying current file"); // TODO Expect
+        let expr = Expr::from_value(current_filename, pos);
+        StExpr { expr, side_effects: SideEffects::None }
+      }
+      SpecialRef::ThisTrueFileName => {
+        let current_filename =
+          inner_class::get_current_filename(self.pipeline, &DefaultPreloadResolver)
+          .expect("Error identifying current file"); // TODO Expect
+        let expr = Expr::from_value(current_filename, pos);
         StExpr { expr, side_effects: SideEffects::None }
       }
     }

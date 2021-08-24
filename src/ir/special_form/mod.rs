@@ -424,6 +424,8 @@ pub fn special_ref_form(_icompiler: &mut IncCompiler,
   if let ASTF::Symbol(sym) = &tail[0].value {
     match sym.borrow() {
       "this-file" => Ok(Expr::from_value(SpecialRef::ThisFile, pos)),
+      "this-filename" => Ok(Expr::from_value(SpecialRef::ThisFileName, pos)),
+      "this-true-filename" => Ok(Expr::from_value(SpecialRef::ThisTrueFileName, pos)),
       _ => Err(Error::from(GDError::new(GDErrorF::InvalidArg(String::from("sys/special-ref"), tail[0].clone(), String::from("special reference value")), pos))),
     }
   } else {
