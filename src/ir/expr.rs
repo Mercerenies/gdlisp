@@ -8,6 +8,7 @@ use super::identifier::{Namespace, Id};
 use super::special_ref::SpecialRef;
 use crate::sxp::ast::AST;
 use crate::pipeline::source::{SourceOffset, Sourced};
+use crate::runner::path::RPathBuf;
 
 use std::collections::HashSet;
 use std::collections::hash_map::RandomState;
@@ -36,6 +37,7 @@ pub enum ExprF {
   Yield(Option<(Box<Expr>, Box<Expr>)>),
   Return(Box<Expr>),
   SpecialRef(SpecialRef),
+  ContextualFilename(RPathBuf),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -317,6 +319,7 @@ impl Expr {
         expr.walk_locals(acc_vars, acc_fns);
       }
       ExprF::SpecialRef(_) => {}
+      ExprF::ContextualFilename(_) => {}
     };
   }
 

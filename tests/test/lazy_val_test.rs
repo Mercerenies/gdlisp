@@ -1,11 +1,6 @@
 
 extern crate gdlisp;
 
-use gdlisp::ir::modifier::{ParseError as ModifierParseError, ParseErrorF as ModifierParseErrorF};
-use gdlisp::compile::error::{Error as GDError, ErrorF as GDErrorF};
-use gdlisp::pipeline::error::{Error as PError};
-use gdlisp::pipeline::source::SourceOffset;
-
 use super::common::*;
 
 #[test]
@@ -26,7 +21,7 @@ static func _lazy_0():
             _cond_1 = null
     return _cond_1
 static func x():
-    return GDLisp.Cons.new(GDLisp.Cons.new(GDLisp.intern("access-slot"), GDLisp.Cons.new(GDLisp.Cons.new(GDLisp.intern("load"), GDLisp.Cons.new("res://TEST.gd", null)), GDLisp.Cons.new(GDLisp.intern("_lazy_0"), null))), null)
+    return GDLisp.Cons.new(GDLisp.Cons.new(GDLisp.intern("access-slot"), GDLisp.Cons.new(GDLisp.Cons.new(GDLisp.intern("contextual-load"), GDLisp.Cons.new("res://TEST.gd", null)), GDLisp.Cons.new(GDLisp.intern("_lazy_0"), null))), null)
 static func run():
     return null
 "#);
@@ -52,7 +47,7 @@ static func _lazy_0():
             _cond_1 = null
     return _cond_1
 static func x():
-    return GDLisp.Cons.new(GDLisp.Cons.new(GDLisp.intern("access-slot"), GDLisp.Cons.new(GDLisp.Cons.new(GDLisp.intern("load"), GDLisp.Cons.new("res://TEST.gd", null)), GDLisp.Cons.new(GDLisp.intern("_lazy_0"), null))), null)
+    return GDLisp.Cons.new(GDLisp.Cons.new(GDLisp.intern("access-slot"), GDLisp.Cons.new(GDLisp.Cons.new(GDLisp.intern("contextual-load"), GDLisp.Cons.new("res://TEST.gd", null)), GDLisp.Cons.new(GDLisp.intern("_lazy_0"), null))), null)
 static func run():
     return null
 "#);

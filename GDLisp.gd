@@ -729,11 +729,13 @@ static func this_filename():
     return GDLisp.cons(GDLisp.intern("sys/special-ref"), GDLisp.cons(GDLisp.intern("this-filename"), null))
 static func this_true_filename():
     return GDLisp.cons(GDLisp.intern("sys/special-ref"), GDLisp.cons(GDLisp.intern("this-true-filename"), null))
-static func deflazy(name_134, value_135, modifiers_136):
-    var fn_name_137 = gensym("_lazy")
-    var this_file_138 = gensym("_this_file")
-    var value_var_139 = gensym("_value")
-    var meta_name_140 = "__gdlisp_Lazy_{}".format([gensym(null).contents], "{}")
-    return cons(GDLisp.intern("progn"), cons(cons(GDLisp.intern("defn"), cons(fn_name_137, cons(null, cons(cons(GDLisp.intern("let"), cons(cons(cons(this_file_138, cons(cons(GDLisp.intern("this-file"), null), null)), null), cons(cons(GDLisp.intern("if"), cons(cons(cons(GDLisp.intern("access-slot"), cons(this_file_138, cons(GDLisp.intern("has-meta"), null))), cons(meta_name_140, null)), cons(cons(cons(GDLisp.intern("access-slot"), cons(this_file_138, cons(GDLisp.intern("get-meta"), null))), cons(meta_name_140, null)), cons(cons(GDLisp.intern("let"), cons(cons(cons(value_var_139, cons(value_135, null)), null), cons(cons(cons(GDLisp.intern("access-slot"), cons(this_file_138, cons(GDLisp.intern("set-meta"), null))), cons(meta_name_140, cons(value_var_139, null))), cons(value_var_139, null)))), null)))), null))), null)))), cons(cons(GDLisp.intern("define-symbol-macro"), cons(name_134, cons(cons(GDLisp.intern("list"), cons(cons(GDLisp.intern("list"), cons(cons(GDLisp.intern("quote"), cons(GDLisp.intern("access-slot"), null)), cons(cons(GDLisp.intern("list"), cons(cons(GDLisp.intern("quote"), cons(GDLisp.intern("load"), null)), cons(cons(GDLisp.intern("this-true-filename"), null), null))), cons(cons(GDLisp.intern("quote"), cons(fn_name_137, null)), null)))), null)), append(GDLisp.Cons.new(sys_u002Fqq_smart_list(modifiers_136), GDLisp.Cons.new(null, null)))))), null)))
+static func contextual_load(arg_134):
+    return cons(GDLisp.intern("load"), cons(cons(GDLisp.intern("sys/context-filename"), cons(arg_134, null)), null))
+static func deflazy(name_135, value_136, modifiers_137):
+    var fn_name_138 = gensym("_lazy")
+    var this_file_139 = gensym("_this_file")
+    var value_var_140 = gensym("_value")
+    var meta_name_141 = "__gdlisp_Lazy_{}".format([gensym(null).contents], "{}")
+    return cons(GDLisp.intern("progn"), cons(cons(GDLisp.intern("defn"), cons(fn_name_138, cons(null, cons(cons(GDLisp.intern("let"), cons(cons(cons(this_file_139, cons(cons(GDLisp.intern("this-file"), null), null)), null), cons(cons(GDLisp.intern("if"), cons(cons(cons(GDLisp.intern("access-slot"), cons(this_file_139, cons(GDLisp.intern("has-meta"), null))), cons(meta_name_141, null)), cons(cons(cons(GDLisp.intern("access-slot"), cons(this_file_139, cons(GDLisp.intern("get-meta"), null))), cons(meta_name_141, null)), cons(cons(GDLisp.intern("let"), cons(cons(cons(value_var_140, cons(value_136, null)), null), cons(cons(cons(GDLisp.intern("access-slot"), cons(this_file_139, cons(GDLisp.intern("set-meta"), null))), cons(meta_name_141, cons(value_var_140, null))), cons(value_var_140, null)))), null)))), null))), null)))), cons(cons(GDLisp.intern("define-symbol-macro"), cons(name_135, cons(cons(GDLisp.intern("list"), cons(cons(GDLisp.intern("list"), cons(cons(GDLisp.intern("quote"), cons(GDLisp.intern("access-slot"), null)), cons(cons(GDLisp.intern("list"), cons(cons(GDLisp.intern("quote"), cons(GDLisp.intern("contextual-load"), null)), cons(cons(GDLisp.intern("this-true-filename"), null), null))), cons(cons(GDLisp.intern("quote"), cons(fn_name_138, null)), null)))), null)), append(GDLisp.Cons.new(sys_u002Fqq_smart_list(modifiers_137), GDLisp.Cons.new(null, null)))))), null)))
 static func run():
     return null

@@ -632,7 +632,6 @@ static func run():
 "#);
 }
 
-/*
 #[test]
 #[ignore]
 fn lazy_val_import_run_test() {
@@ -649,4 +648,3 @@ static func run():
     return 10
 "#);
 }
-*/ // TODO This doesn't work :(

@@ -1243,6 +1243,11 @@
 (defmacro this-true-filename ()
   '(sys/special-ref this-true-filename))
 
+;; TODO Document the semantics of this macro and what preconditions
+;; are necessary for it to be safe to use.
+(defmacro contextual-load (arg)
+  `(load (sys/context-filename ,arg)))
+
 (defmacro deflazy (name value &rest modifiers)
   (let ((fn-name (gensym "_lazy"))
         (this-file (gensym "_this_file"))
@@ -1256,6 +1261,6 @@
                (let ((,value-var ,value))
                  ((unquote this-file):set-meta ,meta-name ,value-var)
                  ,value-var))))
-       (define-symbol-macro ,name (list (list 'access-slot (list 'load (this-true-filename)) ',fn-name)) ,.modifiers))))
+       (define-symbol-macro ,name (list (list 'access-slot (list 'contextual-load (this-true-filename)) ',fn-name)) ,.modifiers))))
 
 ;; TODO deflazy will NOT work if imported into another file, due to hygiene rules. How do we deal with this? /////

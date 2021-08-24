@@ -14,6 +14,7 @@ use crate::compile::args::Expecting;
 use crate::ir::incremental::IncCompiler;
 use crate::ir::identifier::{Id, IdLike, Namespace};
 use crate::ir::export::Visibility;
+use crate::ir::import::{ImportDecl, ImportDeclParseError};
 use crate::pipeline::Pipeline;
 use crate::pipeline::source::SourceOffset;
 use crate::pipeline::error::Error;
@@ -51,6 +52,7 @@ pub fn dispatch_form(icompiler: &mut IncCompiler,
     "macrolet" => macrolet_form(icompiler, pipeline, tail, pos).map(Some),
     "symbol-macrolet" => symbol_macrolet_form(icompiler, pipeline, tail, pos).map(Some),
     "sys/special-ref" => special_ref_form(icompiler, pipeline, tail, pos).map(Some),
+    "sys/context-filename" => context_filename_form(icompiler, pipeline, tail, pos).map(Some),
     _ => Ok(None),
   }
 }
@@ -430,6 +432,43 @@ pub fn special_ref_form(_icompiler: &mut IncCompiler,
     }
   } else {
     Err(Error::from(GDError::new(GDErrorF::InvalidArg(String::from("sys/special-ref"), tail[0].clone(), String::from("special reference value")), pos)))
+  }
+}
+
+// This one requires a bit of explanation. (sys/context-filename path)
+// is a compiler hook designed to assist with macro expansion. It's
+// much easier to explain *how* it works than to explain when you'd
+// need it. For the latter, see the expansion for `deflazy`, which
+// uses this trick.
+//
+// path must be a literal string. (sys/context-filename path) plugs
+// path into the *current* preload resolver during the compilation
+// stage and produces a new literal string consisting of the result.
+// Obviously, path must be a literal string which parses as a resource
+// path (i.e. "res://*"). This is basically the same transformation
+// (use ...) directives undergo, but I'm exposing it as an
+// expression-level special form so that macros can exploit it.
+//
+// Note that (sys/context-filename ...) is *not* involved in
+// dependency resolution, so macros won't detect it as a dependency
+// like they will a (use ...) directive. Thus, it's basically only
+// safe to use this directive in situations where the relevant file is
+// guaranteed to *already* be loaded by a prior (use ...) in the same
+// file.
+pub fn context_filename_form(_icompiler: &mut IncCompiler,
+                             _pipeline: &mut Pipeline,
+                             tail: &[&AST],
+                             pos: SourceOffset)
+                             -> Result<Expr, Error> {
+  Expecting::exactly(1).validate("sys/context-filename", pos, tail)?;
+  if let ASTF::String(s) = &tail[0].value {
+    let path = ImportDecl::parse_path_param(s).ok_or_else(|| {
+      let err = ImportDeclParseError::InvalidPath(s.clone());
+      Error::from(GDError::from_value(err, pos))
+    })?;
+    Ok(Expr::new(ExprF::ContextualFilename(path), pos))
+  } else {
+    Err(Error::from(GDError::new(GDErrorF::InvalidArg(String::from("sys/context-filename"), tail[0].clone(), String::from("string")), pos)))
   }
 }
 
