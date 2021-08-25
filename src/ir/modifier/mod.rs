@@ -6,7 +6,6 @@
 //! rest of the list. The [`ParseRule`] trait captures this pattern.
 
 pub mod class;
-pub mod object;
 pub mod instance_method;
 pub mod function;
 pub mod macros;

@@ -22,11 +22,14 @@ use crate::pipeline::source::SourceOffset;
 /// The prefix applied to all GDLisp metadata.
 pub const PREFIX: &str = "__gdlisp";
 
-/// Given a GDLisp singleton with (GDScript) name `name`, this is the
-/// name of the metadata used to store the singleton object after
-/// initialization.
-pub fn singleton(name: &str) -> String {
-  format!("{}_Singleton_{}", PREFIX, name)
+/// Given a GDLisp lazy val, this is the name of the metadata with
+/// suffix `name`.
+///
+/// Note that, under the current implementation, the `deflazy` macro
+/// does *not* use the GDScript name but rather a gensym to store the
+/// metadata. This behavior may be changed in the future.
+pub fn lazy(name: &str) -> String {
+  format!("{}_Lazy_{}", PREFIX, name)
 }
 
 /// A `MetadataCompiler` is used as a helper for compiling calls to
@@ -82,8 +85,8 @@ mod tests {
 
   #[test]
   fn naming_test() {
-    assert_eq!(singleton("ABC"), "__gdlisp_Singleton_ABC");
-    assert_eq!(singleton("Foobar"), "__gdlisp_Singleton_Foobar");
+    assert_eq!(lazy("ABC"), "__gdlisp_Lazy_ABC");
+    assert_eq!(lazy("Foobar"), "__gdlisp_Lazy_Foobar");
   }
 
   #[test]

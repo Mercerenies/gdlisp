@@ -737,5 +737,19 @@ static func deflazy(name_135, value_136, modifiers_137):
     var value_var_140 = gensym("_value")
     var meta_name_141 = "__gdlisp_Lazy_{}".format([gensym(null).contents], "{}")
     return cons(GDLisp.intern("progn"), cons(cons(GDLisp.intern("defn"), cons(fn_name_138, cons(null, cons(cons(GDLisp.intern("let"), cons(cons(cons(this_file_139, cons(cons(GDLisp.intern("this-file"), null), null)), null), cons(cons(GDLisp.intern("if"), cons(cons(cons(GDLisp.intern("access-slot"), cons(this_file_139, cons(GDLisp.intern("has-meta"), null))), cons(meta_name_141, null)), cons(cons(cons(GDLisp.intern("access-slot"), cons(this_file_139, cons(GDLisp.intern("get-meta"), null))), cons(meta_name_141, null)), cons(cons(GDLisp.intern("let"), cons(cons(cons(value_var_140, cons(value_136, null)), null), cons(cons(cons(GDLisp.intern("access-slot"), cons(this_file_139, cons(GDLisp.intern("set-meta"), null))), cons(meta_name_141, cons(value_var_140, null))), cons(value_var_140, null)))), null)))), null))), null)))), cons(cons(GDLisp.intern("define-symbol-macro"), cons(name_135, cons(cons(GDLisp.intern("list"), cons(cons(GDLisp.intern("list"), cons(cons(GDLisp.intern("quote"), cons(GDLisp.intern("access-slot"), null)), cons(cons(GDLisp.intern("list"), cons(cons(GDLisp.intern("quote"), cons(GDLisp.intern("contextual-load"), null)), cons(cons(GDLisp.intern("this-true-filename"), null), null))), cons(cons(GDLisp.intern("quote"), cons(fn_name_138, null)), null)))), null)), append(GDLisp.Cons.new(sys_u002Fqq_smart_list(modifiers_137), GDLisp.Cons.new(null, null)))))), null)))
+static func defobject(name_142, parent_143, visibility_144, body_145):
+    if visibility_144 == nil:
+        visibility_144 = GDLisp.intern("public")
+    elif !is_instance(visibility_144, Symbol):
+        body_145 = cons(visibility_144, body_145)
+        visibility_144 = GDLisp.intern("public")
+    elif visibility_144.contents == "public":
+        pass
+    elif visibility_144.contents == "private":
+        pass
+    else:
+        body_145 = cons(visibility_144, body_145)
+        visibility_144 = GDLisp.intern("public")
+    return cons(GDLisp.intern("deflazy"), cons(name_142, cons(cons(GDLisp.intern("new"), cons(parent_143, append(GDLisp.Cons.new(sys_u002Fqq_smart_list(body_145), GDLisp.Cons.new(null, null))))), cons(visibility_144, null))))
 static func run():
     return null

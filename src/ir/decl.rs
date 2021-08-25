@@ -26,7 +26,6 @@ pub enum DeclF {
   ClassDecl(ClassDecl),
   EnumDecl(EnumDecl),
   DeclareDecl(DeclareDecl),
-  ObjectDecl(ObjectDecl),
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -79,15 +78,6 @@ pub struct ClassDecl {
   pub name: String,
   pub extends: String,
   pub main_class: bool,
-  pub constructor: ConstructorDecl,
-  pub decls: Vec<ClassInnerDecl>,
-}
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct ObjectDecl {
-  pub visibility: Visibility,
-  pub name: String,
-  pub extends: String,
   pub constructor: ConstructorDecl,
   pub decls: Vec<ClassInnerDecl>,
 }
@@ -161,16 +151,6 @@ pub struct Export {
 #[derive(Clone, Debug, Copy, Eq, PartialEq)]
 pub struct DuplicateMainClassError(pub SourceOffset);
 
-/// [`ClassDecl`] and [`ObjectDecl`] are roughly the same shape, so
-/// this trait aims to capture the common features between the two.
-/// Both define a class-like construct. In the former case, it's a
-/// full class, and in the latter it's a singleton object.
-pub trait ClassLike {
-  fn get_decls_mut(&mut self) -> &mut Vec<ClassInnerDecl>;
-  fn get_constructor_mut(&mut self) -> &mut ConstructorDecl;
-  fn is_main_class(&self) -> bool;
-}
-
 impl TopLevel {
 
   pub fn new() -> TopLevel {
@@ -234,7 +214,6 @@ impl Decl {
       DeclF::SymbolMacroDecl(decl) => &decl.name,
       DeclF::ConstDecl(decl) => &decl.name,
       DeclF::ClassDecl(decl) => &decl.name,
-      DeclF::ObjectDecl(decl) => &decl.name,
       DeclF::EnumDecl(decl) => &decl.name,
       DeclF::DeclareDecl(decl) => &decl.name,
     }
@@ -264,16 +243,6 @@ impl Decl {
         c.value.get_ids().collect()
       }
       DeclF::ClassDecl(c) => {
-        let mut ids = HashSet::new();
-        ids.insert(Id::new(Namespace::Value, c.extends.to_owned()));
-        ids.extend(c.constructor.dependencies());
-        for d in &c.decls {
-          ids.extend(d.dependencies());
-        }
-        ids.remove(&Id::new(Namespace::Value, String::from("self")));
-        ids
-      }
-      DeclF::ObjectDecl(c) => {
         let mut ids = HashSet::new();
         ids.insert(Id::new(Namespace::Value, c.extends.to_owned()));
         ids.extend(c.constructor.dependencies());
@@ -316,7 +285,6 @@ impl Decl {
       DeclF::SymbolMacroDecl(_) => Namespace::Value,
       DeclF::ConstDecl(_) => Namespace::Value,
       DeclF::ClassDecl(_) => Namespace::Value,
-      DeclF::ObjectDecl(_) => Namespace::Value,
       DeclF::EnumDecl(_) => Namespace::Value,
       DeclF::DeclareDecl(d) => d.declare_type.namespace(),
     }
@@ -329,7 +297,6 @@ impl Decl {
       DeclF::SymbolMacroDecl(d) => d.visibility,
       DeclF::ConstDecl(d) => d.visibility,
       DeclF::ClassDecl(d) => d.visibility,
-      DeclF::ObjectDecl(d) => d.visibility,
       DeclF::EnumDecl(d) => d.visibility,
       DeclF::DeclareDecl(d) => d.visibility,
     }
@@ -342,7 +309,6 @@ impl Decl {
       DeclF::SymbolMacroDecl(d) => &mut d.visibility,
       DeclF::ConstDecl(d) => &mut d.visibility,
       DeclF::ClassDecl(d) => &mut d.visibility,
-      DeclF::ObjectDecl(d) => &mut d.visibility,
       DeclF::EnumDecl(d) => &mut d.visibility,
       DeclF::DeclareDecl(d) => &mut d.visibility,
     }
@@ -371,45 +337,6 @@ impl ClassDecl {
     }
   }
 
-}
-
-impl ClassLike for ClassDecl {
-  fn get_decls_mut(&mut self) -> &mut Vec<ClassInnerDecl> {
-    &mut self.decls
-  }
-  fn get_constructor_mut(&mut self) -> &mut ConstructorDecl {
-    &mut self.constructor
-  }
-  fn is_main_class(&self) -> bool {
-    self.main_class
-  }
-}
-
-impl ObjectDecl {
-
-  pub fn new(name: String, extends: String, pos: SourceOffset) -> ObjectDecl {
-    ObjectDecl {
-      visibility: Visibility::OBJECT,
-      name: name,
-      extends: extends,
-      constructor: ConstructorDecl::empty(pos),
-      decls: vec!(),
-    }
-  }
-
-}
-
-impl ClassLike for ObjectDecl {
-  fn get_decls_mut(&mut self) -> &mut Vec<ClassInnerDecl> {
-    &mut self.decls
-  }
-  fn get_constructor_mut(&mut self) -> &mut ConstructorDecl {
-    &mut self.constructor
-  }
-  /// A singleton object is never a main class
-  fn is_main_class(&self) -> bool {
-    false
-  }
 }
 
 impl ConstructorDecl {

@@ -1263,4 +1263,19 @@
                  ,value-var))))
        (define-symbol-macro ,name (list (list 'access-slot (list 'contextual-load (this-true-filename)) ',fn-name)) ,.modifiers))))
 
-;; TODO deflazy will NOT work if imported into another file, due to hygiene rules. How do we deal with this? /////
+(defmacro defobject (name parent &opt visibility &rest body)
+  ;; TODO We hack the contents field to get equality working on symbols right now; get proper equality on symbols
+  (cond
+    ((= visibility nil)
+     (set visibility 'public))
+    ((not (instance? visibility Symbol))
+     (set body (cons visibility body)) ; It's not a modifier, so it's part of the body
+     (set visibility 'public))
+    ((= visibility:contents "public")
+     nil)
+    ((= visibility:contents "private")
+     nil)
+    (#t
+     (set body (cons visibility body)) ; It's not a modifier, so it's part of the body
+     (set visibility 'public)))
+  `(deflazy ,name (new ,parent ,.body) ,visibility))

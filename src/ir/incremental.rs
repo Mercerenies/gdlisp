@@ -54,8 +54,8 @@ impl IncCompiler {
   /// construct treated in a special way by the compiler during
   /// parsing. It is *not* a declaration, even though it can look like
   /// one syntactically.
-  pub const DECL_HEADS: [&'static str; 8] = [
-    "defn", "defmacro", "defconst", "defclass", "defobject", "defenum", "sys/declare",
+  pub const DECL_HEADS: [&'static str; 7] = [
+    "defn", "defmacro", "defconst", "defclass", "defenum", "sys/declare",
     "define-symbol-macro",
   ];
 
@@ -384,33 +384,6 @@ impl IncCompiler {
             }
             Ok(Decl::new(DeclF::ClassDecl(class), vec[0].pos))
           }
-          "defobject" => {
-            // TODO Unify this with defclass
-            if vec.len() < 3 {
-              return Err(PError::from(Error::new(ErrorF::InvalidDecl(decl.clone()), decl.pos)));
-            }
-            let name = match &vec[1].value {
-              ASTF::Symbol(s) => s.to_owned(),
-              _ => return Err(PError::from(Error::new(ErrorF::InvalidDecl(decl.clone()), decl.pos))),
-            };
-            let superclass = match &vec[2].value {
-              ASTF::Cons(car, cdr) =>
-                match (&car.value, &cdr.value) {
-                  (ASTF::Symbol(superclass_name), ASTF::Nil) => superclass_name.to_owned(),
-                  _ => return Err(PError::from(Error::new(ErrorF::InvalidDecl(decl.clone()), decl.pos))),
-                },
-              _ => return Err(PError::from(Error::new(ErrorF::InvalidDecl(decl.clone()), decl.pos))),
-            };
-            let (mods, decl_body) = modifier::object::parser().parse(&vec[3..])?;
-            let mut object = decl::ObjectDecl::new(name, superclass, vec[0].pos);
-            for m in mods {
-              m.apply(&mut object);
-            }
-            for decl in decl_body {
-              self.compile_class_inner_decl(pipeline, &mut object, decl)?;
-            }
-            Ok(Decl::new(DeclF::ObjectDecl(object), vec[0].pos))
-          }
           "defenum" => {
             if vec.len() < 2 {
               return Err(PError::from(Error::new(ErrorF::InvalidDecl(decl.clone()), decl.pos)));
@@ -516,7 +489,7 @@ impl IncCompiler {
   // TODO Do we need to take two tables here (static and non-static) like we do in compile?
   pub fn compile_class_inner_decl(&mut self,
                                   pipeline: &mut Pipeline,
-                                  acc: &mut impl decl::ClassLike,
+                                  acc: &mut decl::ClassDecl,
                                   curr: &AST)
                                   -> Result<(), PError> {
     // TODO Error if we declare constructor twice
@@ -552,7 +525,7 @@ impl IncCompiler {
             _ => return Err(PError::from(Error::new(ErrorF::InvalidDecl(curr.clone()), curr.pos))),
           };
           let value = self.compile_expr(pipeline, vec[2])?;
-          acc.get_decls_mut().push(decl::ClassInnerDecl::new(decl::ClassInnerDeclF::ClassConstDecl(decl::ConstDecl { visibility: Visibility::CONST, name, value }), vec[0].pos));
+          acc.decls.push(decl::ClassInnerDecl::new(decl::ClassInnerDeclF::ClassConstDecl(decl::ConstDecl { visibility: Visibility::CONST, name, value }), vec[0].pos));
           Ok(())
         }
         "defvar" => {
@@ -590,12 +563,12 @@ impl IncCompiler {
             }
 
             // Exports are only allowed on the main class
-            if export.is_some() && !acc.is_main_class() {
+            if export.is_some() && !acc.main_class {
               return Err(PError::from(Error::new(ErrorF::ExportOnInnerClassVar(vname.clone()), curr.pos)));
             }
 
             let decl = decl::ClassVarDecl { export, name, value };
-            acc.get_decls_mut().push(decl::ClassInnerDecl::new(decl::ClassInnerDeclF::ClassVarDecl(decl), vec[0].pos));
+            acc.decls.push(decl::ClassInnerDecl::new(decl::ClassInnerDeclF::ClassVarDecl(decl), vec[0].pos));
             Ok(())
           } else {
             Err(PError::from(Error::new(ErrorF::InvalidDecl(curr.clone()), curr.pos)))
@@ -624,9 +597,9 @@ impl IncCompiler {
             if fname == "_init" {
               // Constructor
               let super_call = super_call.unwrap_or_default();
-              *acc.get_constructor_mut() = decl::ConstructorDecl { args, super_call, body: Expr::progn(body, vec[0].pos) };
+              acc.constructor = decl::ConstructorDecl { args, super_call, body: Expr::progn(body, vec[0].pos) };
               for m in mods {
-                m.apply_to_constructor(acc.get_constructor_mut())?;
+                m.apply_to_constructor(&mut acc.constructor)?;
               }
             } else {
               // Ordinary functions cannot have super
@@ -642,7 +615,7 @@ impl IncCompiler {
               for m in mods {
                 m.apply(&mut decl);
               }
-              acc.get_decls_mut().push(decl::ClassInnerDecl::new(decl::ClassInnerDeclF::ClassFnDecl(decl), vec[0].pos));
+              acc.decls.push(decl::ClassInnerDecl::new(decl::ClassInnerDeclF::ClassFnDecl(decl), vec[0].pos));
             }
             Ok(())
           } else {
@@ -662,7 +635,7 @@ impl IncCompiler {
           let args_pos = args.pos;
           let args: Vec<_> = DottedExpr::new(args).try_into()?;
           let args = SimpleArgList::parse(args, args_pos)?;
-          acc.get_decls_mut().push(decl::ClassInnerDecl::new(decl::ClassInnerDeclF::ClassSignalDecl(decl::ClassSignalDecl { name, args }), vec[0].pos));
+          acc.decls.push(decl::ClassInnerDecl::new(decl::ClassInnerDeclF::ClassSignalDecl(decl::ClassSignalDecl { name, args }), vec[0].pos));
           Ok(())
         }
         _ => {
@@ -894,7 +867,6 @@ mod tests {
   fn is_decl_test() {
     assert!(IncCompiler::is_decl(&parse_ast("(defn foo ())")));
     assert!(IncCompiler::is_decl(&parse_ast("(defclass Example (Reference) (defn bar (x)))")));
-    assert!(IncCompiler::is_decl(&parse_ast("(defobject Example (Reference) (defn bar (x)))")));
     assert!(IncCompiler::is_decl(&parse_ast("(defmacro foo ())")));
     assert!(IncCompiler::is_decl(&parse_ast("(defconst MY_CONST 3)")));
     assert!(IncCompiler::is_decl(&parse_ast("(defenum MyEnum A B C)")));
