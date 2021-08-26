@@ -3,6 +3,7 @@
 
 use crate::pipeline::source::{SourceOffset, Sourced};
 use crate::util::extract_err;
+use crate::util::recursive::Recursive;
 
 use ordered_float::OrderedFloat;
 
@@ -287,19 +288,6 @@ impl AST {
     result
   }
 
-  /// The maximum depth of the AST. Atomic nodes, such as strings and
-  /// symbols, have a depth of 1. Any node which contains other nodes
-  /// has depth equal to the maximum of the depths of its subnodes
-  /// plus 1.
-  pub fn depth(&self) -> u32 {
-    match &self.value {
-      ASTF::Nil | ASTF::Int(_) | ASTF::Bool(_) | ASTF::Float(_) | ASTF::String(_) | ASTF::Symbol(_) => 1,
-      ASTF::Cons(a, b) => 1 + max(a.depth(), b.depth()),
-      ASTF::Array(v) => 1 + v.iter().map(AST::depth).max().unwrap_or(0),
-      ASTF::Dictionary(v) => 1 + v.iter().map(|(x, y)| max(x.depth(), y.depth())).max().unwrap_or(0),
-    }
-  }
-
   /// In Lisp, we generally think of a *dotted list* as a sequence of
   /// zero or more cons cells, where the cdr of each cell is the next
   /// cons cell, eventually terminated by some non-cons value. For
@@ -402,6 +390,19 @@ impl Sourced for AST {
 
   fn get_value(&self) -> &ASTF {
     &self.value
+  }
+
+}
+
+impl Recursive for AST {
+
+  fn depth(&self) -> u32 {
+    match &self.value {
+      ASTF::Nil | ASTF::Int(_) | ASTF::Bool(_) | ASTF::Float(_) | ASTF::String(_) | ASTF::Symbol(_) => 1,
+      ASTF::Cons(a, b) => 1 + max(a.depth(), b.depth()),
+      ASTF::Array(v) => 1 + v.iter().map(AST::depth).max().unwrap_or(0),
+      ASTF::Dictionary(v) => 1 + v.iter().map(|(x, y)| max(x.depth(), y.depth())).max().unwrap_or(0),
+    }
   }
 
 }
