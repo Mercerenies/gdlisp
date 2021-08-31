@@ -27,12 +27,20 @@ use crate::gdscript::expr::{Expr, ExprF};
 use crate::gdscript::stmt::Stmt;
 use crate::gdscript::library;
 use crate::gdscript::inner_class;
-use crate::sxp::reify::Reify;
+use crate::sxp::reify::pretty::reify_pretty_expr;
 
 use std::cmp::max;
 
 type IRExpr = ir::expr::Expr;
 type IRExprF = ir::expr::ExprF;
+
+/// Quoted S-expressions which are nested deeper than this constant
+/// will be split into several local variables, for efficiency
+/// reasons. See [Godot
+/// #52113](https://github.com/godotengine/godot/issues/52113) for the
+/// reason this is necessary. This constant is passed to
+/// [`reify_pretty_expr`].
+pub const MAX_QUOTE_REIFY_DEPTH: u32 = 4;
 
 /// A `CompilerFrame` contains references to all of the pertinent
 /// information about a particular frame (hence, scope) of a GDScript
@@ -370,7 +378,9 @@ impl<'a, 'b, 'c, 'd> CompilerFrame<'a, 'b, 'c, 'd, StmtBuilder> {
         Ok(StExpr { expr: Expr::new(ExprF::DictionaryLit(vec), expr.pos), side_effects })
       }
       IRExprF::Quote(ast) => {
-        Ok(StExpr { expr: ast.reify(), side_effects: SideEffects::None })
+        let (stmts, result) = reify_pretty_expr(ast, MAX_QUOTE_REIFY_DEPTH, self.name_generator());
+        self.builder.append_all(&mut stmts.into_iter());
+        Ok(StExpr { expr: result, side_effects: SideEffects::None })
       }
       IRExprF::FieldAccess(lhs, sym) => {
 

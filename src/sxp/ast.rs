@@ -3,11 +3,13 @@
 
 use crate::pipeline::source::{SourceOffset, Sourced};
 use crate::util::extract_err;
+use crate::util::recursive::Recursive;
 
 use ordered_float::OrderedFloat;
 
 use std::fmt;
 use std::convert::Infallible;
+use std::cmp::max;
 
 /// The basic type used for representing Lisp S-expressions.
 #[derive(PartialEq, Eq, Hash, Clone, Debug)]
@@ -392,6 +394,19 @@ impl Sourced for AST {
 
 }
 
+impl Recursive for AST {
+
+  fn depth(&self) -> u32 {
+    match &self.value {
+      ASTF::Nil | ASTF::Int(_) | ASTF::Bool(_) | ASTF::Float(_) | ASTF::String(_) | ASTF::Symbol(_) => 1,
+      ASTF::Cons(a, b) => 1 + max(a.depth(), b.depth()),
+      ASTF::Array(v) => 1 + v.iter().map(AST::depth).max().unwrap_or(0),
+      ASTF::Dictionary(v) => 1 + v.iter().map(|(x, y)| max(x.depth(), y.depth())).max().unwrap_or(0),
+    }
+  }
+
+}
+
 #[cfg(test)]
 mod tests {
   use super::*;
@@ -483,6 +498,31 @@ mod tests {
 
   fn add10(x: SourceOffset) -> SourceOffset {
     (usize::from(x) + 10).into()
+  }
+
+  #[test]
+  fn test_depth_atomic() {
+    assert_eq!(int(3).depth(), 1);
+    assert_eq!(nil().depth(), 1);
+    assert_eq!(AST::symbol("my-symbol", SourceOffset(0)).depth(), 1);
+    assert_eq!(AST::string("my-string", SourceOffset(0)).depth(), 1);
+    assert_eq!(AST::float(0.0, SourceOffset(0)).depth(), 1);
+  }
+
+  #[test]
+  fn test_depth_nested() {
+    assert_eq!(cons(int(1), int(2)).depth(), 2);
+    assert_eq!(cons(int(1), cons(int(2), int(3))).depth(), 3);
+    assert_eq!(cons(cons(int(1), int(2)), cons(int(3), int(4))).depth(), 3);
+    assert_eq!(cons(cons(int(1), int(2)), int(3)).depth(), 3);
+    assert_eq!(cons(cons(int(1), int(2)), cons(int(3), nil())).depth(), 3);
+    assert_eq!(AST::new(ASTF::Array(vec!()), SourceOffset(0)).depth(), 1);
+    assert_eq!(AST::new(ASTF::Array(vec!(int(1), int(2))), SourceOffset(0)).depth(), 2);
+    assert_eq!(AST::new(ASTF::Array(vec!(int(1), cons(int(2), int(3)))), SourceOffset(0)).depth(), 3);
+    assert_eq!(AST::new(ASTF::Dictionary(vec!()), SourceOffset(0)).depth(), 1);
+    assert_eq!(AST::new(ASTF::Dictionary(vec!((int(1), int(1)))), SourceOffset(0)).depth(), 2);
+    assert_eq!(AST::new(ASTF::Dictionary(vec!((int(1), cons(nil(), nil())))), SourceOffset(0)).depth(), 3);
+    assert_eq!(AST::new(ASTF::Dictionary(vec!((cons(nil(), nil()), int(1)))), SourceOffset(0)).depth(), 3);
   }
 
 }

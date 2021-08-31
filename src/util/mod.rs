@@ -4,6 +4,7 @@
 pub mod debug_wrapper;
 pub mod lattice;
 pub mod one;
+pub mod recursive;
 
 use std::collections::HashMap;
 use std::hash::Hash;

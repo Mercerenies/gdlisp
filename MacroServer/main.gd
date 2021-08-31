@@ -53,8 +53,8 @@ func run_command(payload):
             peer.put_string(successful_response(pretty(result)))
         "exec":
             var input = args[0]
-            exec(input)
-            peer.put_string(successful_response("Success"))
+            var result = exec(input)
+            peer.put_string(successful_response(pretty(result)))
         "load":
             var input = args[0]
             var idx = len(loaded_files)
@@ -62,14 +62,14 @@ func run_command(payload):
             peer.put_string(successful_response(pretty(idx)))
 
 func eval(input):
-    return exec("return " + input)
+    return exec("    return " + input)
 
 # Funny hack, thanks Godot Q&A! :)
 #
 # https://godotengine.org/qa/339/does-gdscript-have-method-to-execute-string-code-exec-python?show=362#a362
 func exec(input):
     var script = GDScript.new()
-    script.set_source_code("func exec(MAIN):\n    " + input)
+    script.set_source_code("func exec(MAIN):\n" + input)
     script.reload()
 
     var obj = Reference.new()

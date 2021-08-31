@@ -1,9 +1,11 @@
 
 //! Provides the [`Reify`] trait.
 
-use crate::gdscript::expr::{Expr, ExprF};
-use crate::gdscript::library;
-use super::ast::{AST, ASTF};
+pub mod pretty;
+
+use crate::gdscript::expr::Expr;
+use crate::compile::names::fresh::FreshNameGenerator;
+use super::ast::AST;
 
 /// This trait describes any type for which there is a reasonable way
 /// to convert a `&self` into [`crate::gdscript::expr::Expr`]. Note
@@ -17,36 +19,10 @@ pub trait Reify {
 impl Reify for AST {
 
   fn reify(&self) -> Expr {
-    match &self.value {
-      ASTF::Nil => {
-        Expr::null(self.pos)
-      }
-      ASTF::Cons(a, b) => {
-        Expr::call(Some(library::gdlisp_root(self.pos)), "cons", vec!(a.reify(), b.reify()), self.pos)
-      }
-      ASTF::Array(v) => {
-        Expr::new(ExprF::ArrayLit(v.iter().map(Reify::reify).collect()), self.pos)
-      }
-      ASTF::Dictionary(vec) => {
-        Expr::new(ExprF::DictionaryLit(vec.iter().map(|(k, v)| (k.reify(), v.reify())).collect()), self.pos)
-      }
-      ASTF::Int(n) => {
-        Expr::from_value(*n, self.pos)
-      }
-      ASTF::Bool(b) => {
-        Expr::from_value(*b, self.pos)
-      }
-      ASTF::Float(f) => {
-        Expr::from_value(*f, self.pos)
-      }
-      ASTF::String(s) => {
-        Expr::from_value(s.to_owned(), self.pos)
-      }
-      ASTF::Symbol(s) => {
-        let s = Expr::from_value(s.to_owned(), self.pos);
-        Expr::call(Some(library::gdlisp_root(self.pos)), "intern", vec!(s), self.pos)
-      }
-    }
+    let mut gen = FreshNameGenerator::new(vec!());
+    let (stmts, result) = pretty::reify_pretty_expr(self, u32::MAX, &mut gen);
+    assert!(stmts.is_empty()); // At u32::MAX, we should never have need to generate any helper statements.
+    result
   }
 
 }
@@ -55,6 +31,7 @@ impl Reify for AST {
 mod tests {
   use super::*;
   use crate::pipeline::source::SourceOffset;
+  use crate::sxp::ast::ASTF;
 
   fn int(n: i32) -> AST {
     AST::new(ASTF::Int(n), SourceOffset::default())

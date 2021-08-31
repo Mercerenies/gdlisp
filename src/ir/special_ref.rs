@@ -11,7 +11,7 @@ use super::expr::ExprF;
 ///
 /// Special references are converted to [`Expr`](super::expr::Expr)
 /// either via the explicit constructor
-/// [`Expr::SpecialRef`](super::expr::Expr::SpecialRef) or via the
+/// [`ExprF::SpecialRef`](super::expr::ExprF::SpecialRef) or via the
 /// general-purpose helper
 /// [`Expr::from_value`](super::expr::Expr::from_value).
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
