@@ -117,7 +117,6 @@ pub fn empty_object_run_test() {
   "#), "\n1\n");
 }
 
-/* /////
 #[test]
 #[ignore]
 pub fn self_with_closure_run_object_test() {
@@ -133,7 +132,6 @@ pub fn self_with_closure_run_object_test() {
        (print (funcall fn))))
   "#), "\n2\n3\n4\n");
 }
-*/
 
 #[test]
 #[ignore]
