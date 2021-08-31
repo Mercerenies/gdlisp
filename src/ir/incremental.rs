@@ -17,10 +17,11 @@ use super::modifier::{self, ParseRule};
 use super::export::Visibility;
 use crate::sxp::dotted::{DottedExpr, TryFromDottedExprError};
 use crate::sxp::ast::{AST, ASTF};
-use crate::sxp::reify::Reify;
+use crate::sxp::reify::pretty::reify_pretty_expr;
 use crate::compile::error::{Error, ErrorF};
 use crate::compile::resource_type::ResourceType;
 use crate::compile::names::fresh::FreshNameGenerator;
+use crate::compile::frame::MAX_QUOTE_REIFY_DEPTH;
 use crate::gdscript::library;
 use crate::gdscript::decl::Static;
 use crate::pipeline::error::{Error as PError, IOError};
@@ -82,11 +83,21 @@ impl IncCompiler {
           return Err(PError::from(Error::new(ErrorF::MacroInMinimalistError(head), pos)));
         }
 
-        let args: Vec<_> = tail.iter().map(|x| x.reify()).collect();
+        // Local name generator that will be shared among the
+        // arguments but not used outside of this function.
+        let mut local_gen = FreshNameGenerator::new(vec!());
+
+        let mut prelude = vec!();
+        let mut args = vec!();
+        for arg in tail {
+          let (stmts, expr) = reify_pretty_expr(arg, MAX_QUOTE_REIFY_DEPTH, &mut local_gen);
+          prelude.extend(stmts.into_iter());
+          args.push(expr);
+        }
         let server = pipeline.get_server_mut();
         server.set_global_name_generator(&self.names).map_err(|err| IOError::new(err, pos))?;
 
-        let ast = server.run_server_file(*id, args, pos);
+        let ast = server.run_server_file(*id, prelude, args, pos);
 
         server.reset_global_name_generator().map_err(|err| IOError::new(err, pos))?;
 

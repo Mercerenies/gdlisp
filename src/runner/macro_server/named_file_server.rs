@@ -13,7 +13,9 @@ use crate::compile::names;
 use crate::compile::names::fresh::FreshNameGenerator;
 use crate::compile::symbol_table::function_call::{FnCall, FnScope, FnSpecs, FnName};
 use crate::compile::symbol_table::call_magic::compile_default_call;
+use crate::compile::stmt_wrapper::{self, StmtWrapper};
 use crate::gdscript::expr::{Expr as GDExpr, ExprF as GDExprF};
+use crate::gdscript::stmt::Stmt;
 use crate::gdscript::library;
 use crate::ir::arglist::ArgList;
 use crate::pipeline::error::{Error as PError, IOError};
@@ -173,13 +175,17 @@ impl NamedFileServer {
   /// limited to parsing errors, IO communication errors, or semantic
   /// errors in macro evaluation, an `Err` value is returned.
   ///
+  /// `prelude` is a vector of statements which will be run before the
+  /// actual macro call and can be used to set up the environment or
+  /// provide local variables to the macro arguments.
+  ///
   /// # Panics
   ///
   /// This method will panic if given an invalid `id` value. The `id`
   /// must be the macro ID from a prior invocation of `stand_up_macro`
   /// or [`add_reserved_macro`](NamedFileServer::add_reserved_macro)
   /// on the same `NamedFileServer` instance.
-  pub fn run_server_file(&mut self, id: MacroID, args: Vec<GDExpr>, pos: SourceOffset)
+  pub fn run_server_file(&mut self, id: MacroID, prelude: Vec<Stmt>, args: Vec<GDExpr>, pos: SourceOffset)
                          -> Result<AST, PError> {
     let call = self.get_file(id).expect("Invalid MacroID in run_server_file");
     let specs = FnSpecs::from(call.parms.clone());
@@ -202,13 +208,21 @@ impl NamedFileServer {
       specs: specs,
       is_macro: true,
     };
-    self.do_macro_call(call, args, pos)
+    self.do_macro_call(prelude, call, args, pos)
   }
 
-  fn do_macro_call(&mut self, call: FnCall, args: Vec<GDExpr>, pos: SourceOffset) -> Result<AST, PError> {
+  fn do_macro_call(&mut self,
+                   prelude: Vec<Stmt>,
+                   call: FnCall,
+                   args: Vec<GDExpr>,
+                   pos: SourceOffset) -> Result<AST, PError> {
     let server = self.server.get_mut().map_err(|err| IOError::new(err, pos))?;
-    let eval_str = compile_default_call(call, args, pos)?.to_gd();
-    let result = server.issue_command(&ServerCommand::Eval(eval_str)).map_err(|err| IOError::new(err, pos))?;
+    let expr = compile_default_call(call, args, pos)?;
+    let mut stmts = prelude;
+    stmts.push(stmt_wrapper::Return.wrap_expr(expr));
+    let mut exec_str = String::new();
+    Stmt::write_gd_stmts(stmts.iter(), &mut exec_str, 4).expect("Could not write to string in do_macro_call");
+    let result = server.issue_command(&ServerCommand::Exec(exec_str)).map_err(|err| IOError::new(err, pos))?;
     let result = response_to_string(result).map_err(|err| IOError::new(err, pos))?;
     let parser = parser::ASTParser::new();
     let parsed = parser.parse(&result)?;
@@ -220,7 +234,7 @@ impl NamedFileServer {
   pub fn set_global_name_generator(&mut self, gen: &FreshNameGenerator) -> io::Result<()> {
     let server = self.server.get_mut()?;
     let json = gen.to_json();
-    let exec_str = format!("GDLisp.global_name_generator = GDLisp.FreshNameGenerator.from_json({})",
+    let exec_str = format!("    GDLisp.global_name_generator = GDLisp.FreshNameGenerator.from_json({})",
                            json.to_string());
     let cmd = ServerCommand::Exec(exec_str);
     let _result = response_to_string(server.issue_command(&cmd)?)?;
@@ -231,7 +245,7 @@ impl NamedFileServer {
   /// to a newly-constructed name generator.
   pub fn reset_global_name_generator(&mut self) -> io::Result<()> {
     let server = self.server.get_mut()?;
-    let exec_str = String::from(r#"GDLisp.global_name_generator = GDLisp.FreshNameGenerator.new([], "")"#);
+    let exec_str = String::from(r#"    GDLisp.global_name_generator = GDLisp.FreshNameGenerator.new([], "")"#);
     let cmd = ServerCommand::Exec(exec_str);
     let _result = response_to_string(server.issue_command(&cmd)?)?;
     Ok(())
