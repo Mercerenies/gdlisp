@@ -62,14 +62,5 @@ pub fn builtin_const_test() {
                      Orientation:VERTICAL HAlign:LEFT VAlign:TOP
                      Key:A Key:THORN Key:EXCLAM Key:KP_8 Key:KP-9
                      KeyMask:CTRL Joy:BUTTON-13 Joy:R3 Joy:ANALOG-R2
-                     MIDIMessage:NOTE_ON PI SPKEY])"#);
-}
-
-#[test]
-#[ignore]
-pub fn private_builtin_const_test() {
-  assert_eq!(
-    parse_and_run_err(r#"(TYPE_ARRAY)"#),
-    Err(PError::from(GDError::new(GDErrorF::NoSuchVar(String::from("TYPE_ARRAY")), SourceOffset(1)))),
-  );
+                     MIDIMessage:NOTE_ON PI SPKEY TYPE_ARRAY])"#);
 }
