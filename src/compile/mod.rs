@@ -338,7 +338,7 @@ impl Compiler {
             table.set_fn(name.clone(), func, Box::new(DefaultCall));
           }
           ir::decl::DeclareType::SuperglobalFn(args) => {
-            let func = function_call::FnCall::file_constant(
+            let func = function_call::FnCall::superglobal(
               function_call::FnSpecs::from(args.to_owned()),
               function_call::FnScope::Superglobal,
               names::lisp_to_gd(name),

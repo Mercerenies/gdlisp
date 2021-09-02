@@ -167,3 +167,28 @@ pub fn nonsense_modifier_function_test() {
     Err(PError::from(ModifierParseError::new(ModifierParseErrorF::UniquenessError(String::from("visibility")), SourceOffset(21)))),
   );
 }
+
+#[test]
+pub fn declare_function_inner_test_1() {
+  assert_eq!(parse_compile_decl("((sys/declare function f ()) (defclass Foo (Reference) (defn _init () (f))))"),
+             r#"extends Reference
+class Foo extends Reference:
+    func _init():
+        __gdlisp_outer_class_0.f()
+    var __gdlisp_outer_class_0 = load("res://TEST.gd")
+static func run():
+    return null
+"#);
+}
+
+#[test]
+pub fn declare_function_inner_test_2() {
+  assert_eq!(parse_compile_decl("((sys/declare superfunction f ()) (defclass Foo (Reference) (defn _init () (f))))"),
+             r#"extends Reference
+class Foo extends Reference:
+    func _init():
+        f()
+static func run():
+    return null
+"#);
+}
