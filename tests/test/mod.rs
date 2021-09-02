@@ -21,6 +21,7 @@ pub mod lambda_test;
 pub mod lazy_val_test;
 pub mod let_var_test;
 pub mod macro_test;
+pub mod name_translation_test;
 pub mod object_test;
 pub mod quoting_test;
 pub mod simple_expr_test;

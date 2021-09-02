@@ -1,7 +1,7 @@
 
 use crate::gdscript::arglist::ArgList as GDArgList;
 use crate::compile::names::fresh::FreshNameGenerator;
-use crate::compile::names::NameTrans;
+use crate::compile::names::{self, NameTrans};
 use crate::compile::symbol_table::function_call::FnSpecs;
 use crate::sxp::ast::{AST, ASTF};
 use crate::pipeline::source::{SourceOffset, Sourced};
@@ -197,17 +197,17 @@ impl ArgList {
     let mut name_translations = Vec::with_capacity(cap);
     let mut args = Vec::with_capacity(cap);
     for arg in self.required_args {
-      let gd = gen.generate_with(&arg);
+      let gd = gen.generate_with(&names::lisp_to_gd(&arg));
       name_translations.push(NameTrans { lisp_name: arg, gd_name: gd.clone() });
       args.push(gd);
     }
     for arg in self.optional_args {
-      let gd = gen.generate_with(&arg);
+      let gd = gen.generate_with(&names::lisp_to_gd(&arg));
       name_translations.push(NameTrans { lisp_name: arg, gd_name: gd.clone() });
       args.push(gd);
     }
     if let Some((arg, _)) = self.rest_arg {
-      let gd = gen.generate_with(&arg);
+      let gd = gen.generate_with(&names::lisp_to_gd(&arg));
       name_translations.push(NameTrans { lisp_name: arg, gd_name: gd.clone() });
       args.push(gd);
     }
