@@ -711,7 +711,7 @@ class PrimitiveType extends Reference:
         self.primitive_value = primitive_value_113
     var primitive_value
     func is_satisfies(value_114):
-        return __gdlisp_outer_class_112.typeof(value_114) == self.primitive_value
+        return typeof(value_114) == self.primitive_value
     var __gdlisp_outer_class_112 = load("res://GDLisp.gd")
 static func _or(args_115):
     var args_116 = reverse(args_115)
