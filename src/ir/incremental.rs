@@ -454,6 +454,9 @@ impl IncCompiler {
                 (decl, &vec[3..])
               }
               ASTF::Symbol(function) if function == "function" || function == "superfunction" => {
+                if vec.len() < 4 {
+                  return Err(PError::from(Error::new(ErrorF::InvalidDecl(decl.clone()), decl.pos)));
+                }
                 let name = match &vec[2].value {
                   ASTF::Symbol(s) => s.to_owned(),
                   _ => return Err(PError::from(Error::new(ErrorF::InvalidDecl(decl.clone()), decl.pos))),
