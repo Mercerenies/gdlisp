@@ -1079,9 +1079,20 @@
   (sys/call-magic ARRAY-MEMBER-CHECK)
   (member? value arr))
 
+(defn sys/native-class-private ()
+  ;; TODO This is a messy hack. Godot chokes if we write
+  ;; "GDScript.get_class()" because it thinks we're calling a
+  ;; non-static function in a static context. So we store the
+  ;; "GDScript" object in a local variable. Optimizations may clobber
+  ;; this hack eventually, so we need a better way to reify
+  ;; pseudo-objects in Godot like GDScript and (especially) things
+  ;; like Object or Vector2.
+  (let ((x GDScript))
+    (x:get_class)))
+
 (defn instance? (value type)
   (cond
-    ((= (typeof type) TYPE_INT) (= (typeof value) type))
+    ((sys/instance-direct? type GDLispSpecialType) (type:satisfies? value))
     (#t (sys/instance-direct? value type))))
 
 (defn sys/instance-direct? (value type)
@@ -1187,7 +1198,9 @@
 
 ;; TYPE_* Constants
 
-(defclass PrimitiveType (Reference) private
+(defclass GDLispSpecialType (Reference) private)
+
+(defclass PrimitiveType (GDLispSpecialType) private
   (defvar primitive-value)
 
   (defn _init (primitive-value)
@@ -1203,19 +1216,19 @@
 ;; deflazy, and the expansion includes define-symbol-macro), so it's
 ;; off-limits.
 
-(defclass AnyType (Reference) private
+(defclass AnyType (GDLispSpecialType) private
   (defn satisfies? (value)
     #t))
 
-(defclass AnyRefType (Reference) private
+(defclass AnyRefType (GDLispSpecialType) private
   (defn satisfies? (value)
     (= (typeof value) TYPE_OBJECT)))
 
-(defclass AnyValType (Reference) private
+(defclass AnyValType (GDLispSpecialType) private
   (defn satisfies? (value)
     (/= (typeof value) TYPE_OBJECT)))
 
-(defclass NumberType (Reference) private
+(defclass NumberType (GDLispSpecialType) private
   (defn satisfies? (value)
     (let ((t (typeof value)))
       (cond
@@ -1223,11 +1236,11 @@
         ((= t TYPE_REAL) #t)
         (#t #f)))))
 
-(defclass BaseArrayType (Reference) private
+(defclass BaseArrayType (GDLispSpecialType) private
   (defn satisfies? (value)
     (<= TYPE_ARRAY (typeof value) TYPE_COLOR_ARRAY)))
 
-(defclass NothingType (Reference) private
+(defclass NothingType (GDLispSpecialType) private
   (defn satisfies? (value)
     #f))
 

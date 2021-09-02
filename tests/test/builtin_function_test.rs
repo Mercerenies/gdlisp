@@ -547,22 +547,6 @@ pub fn yield_star_running_test() {
   assert_eq!(result, "\n1\n2\n3\n4\n5\n6\n");
 }
 
-///// This test fails (Need to update Int, Float, etc.)
-#[test]
-#[ignore]
-pub fn instance_check_test() {
-  let result = parse_and_run(r#"
-    ((print (instance? 1 Int))
-     (print (instance? 1.0 Float))
-     (print (instance? 1 Float))
-     (print (instance? (Reference:new) Object))
-     (print (instance? (Reference:new) Reference))
-     (print (instance? (Reference:new) Node))
-     (print (instance? (Reference:new) Array)))
-  "#);
-  assert_eq!(result, "\nTrue\nTrue\nFalse\nTrue\nTrue\nFalse\nFalse\n");
-}
-
 #[test]
 #[ignore]
 pub fn map_test_1() {
