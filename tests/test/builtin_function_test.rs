@@ -547,6 +547,7 @@ pub fn yield_star_running_test() {
   assert_eq!(result, "\n1\n2\n3\n4\n5\n6\n");
 }
 
+///// This test fails (Need to update Int, Float, etc.)
 #[test]
 #[ignore]
 pub fn instance_check_test() {

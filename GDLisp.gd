@@ -449,6 +449,12 @@ func _init():
     self._PoolVector2Array = PrimitiveType.new(TYPE_VECTOR2_ARRAY)
     self._PoolVector3Array = PrimitiveType.new(TYPE_VECTOR3_ARRAY)
     self._PoolColorArray = PrimitiveType.new(TYPE_COLOR_ARRAY)
+    self.Any = AnyType.new()
+    self.AnyRef = AnyRefType.new()
+    self.AnyVal = AnyValType.new()
+    self.Number = NumberType.new()
+    self.BaseArray = BaseArrayType.new()
+    self.Nothing = NothingType.new()
 var global_name_generator
 var Null
 var Bool
@@ -477,6 +483,12 @@ var _PoolStringArray
 var _PoolVector2Array
 var _PoolVector3Array
 var _PoolColorArray
+var Any
+var AnyRef
+var AnyVal
+var Number
+var BaseArray
+var Nothing
 static func cons(a_11, b_12):
     return Cons.new(a_11, b_12)
 static func car(a_13):
@@ -713,77 +725,114 @@ class PrimitiveType extends Reference:
     func is_satisfies(value_114):
         return typeof(value_114) == self.primitive_value
     var __gdlisp_outer_class_112 = load("res://GDLisp.gd")
-static func _or(args_115):
-    var args_116 = reverse(args_115)
-    var _cond_117 = null
-    if args_116:
-        var result_118 = cons(cons(true, cons(car(args_116), null)), null)
-        args_116 = cdr(args_116)
-        while args_116 != nil:
-            result_118 = cons(cons(car(args_116), null), result_118)
-            args_116 = cdr(args_116)
-        _cond_117 = cons(GDLisp.intern("cond"), result_118)
+class AnyType extends Reference:
+    func _init():
+        pass
+    func is_satisfies(value_115):
+        return true
+class AnyRefType extends Reference:
+    func _init():
+        pass
+    func is_satisfies(value_117):
+        return typeof(value_117) == TYPE_OBJECT
+    var __gdlisp_outer_class_116 = load("res://GDLisp.gd")
+class AnyValType extends Reference:
+    func _init():
+        pass
+    func is_satisfies(value_119):
+        return typeof(value_119) != TYPE_OBJECT
+    var __gdlisp_outer_class_118 = load("res://GDLisp.gd")
+class NumberType extends Reference:
+    func _init():
+        pass
+    func is_satisfies(value_121):
+        var t_122 = typeof(value_121)
+        var _cond_123 = true if t_122 == TYPE_INT else true if t_122 == TYPE_REAL else false
+        return _cond_123
+    var __gdlisp_outer_class_120 = load("res://GDLisp.gd")
+class BaseArrayType extends Reference:
+    func _init():
+        pass
+    func is_satisfies(value_125):
+        var _cmp_126 = typeof(value_125)
+        return TYPE_ARRAY <= _cmp_126 && _cmp_126 <= TYPE_COLOR_ARRAY
+    var __gdlisp_outer_class_124 = load("res://GDLisp.gd")
+class NothingType extends Reference:
+    func _init():
+        pass
+    func is_satisfies(value_127):
+        return false
+static func _or(args_128):
+    var args_129 = reverse(args_128)
+    var _cond_130 = null
+    if args_129:
+        var result_131 = cons(cons(true, cons(car(args_129), null)), null)
+        args_129 = cdr(args_129)
+        while args_129 != nil:
+            result_131 = cons(cons(car(args_129), null), result_131)
+            args_129 = cdr(args_129)
+        _cond_130 = cons(GDLisp.intern("cond"), result_131)
     else:
-        _cond_117 = false
-    return _cond_117
-static func _and(args_119):
-    var args_120 = reverse(args_119)
-    var _cond_121 = null
-    if args_120:
-        var result_122 = cons(cons(true, cons(car(args_120), null)), null)
-        args_120 = cdr(args_120)
-        while args_120 != nil:
-            result_122 = cons(cons(cons(GDLisp.intern("not"), cons(car(args_120), null)), cons(false, null)), result_122)
-            args_120 = cdr(args_120)
-        _cond_121 = cons(GDLisp.intern("cond"), result_122)
+        _cond_130 = false
+    return _cond_130
+static func _and(args_132):
+    var args_133 = reverse(args_132)
+    var _cond_134 = null
+    if args_133:
+        var result_135 = cons(cons(true, cons(car(args_133), null)), null)
+        args_133 = cdr(args_133)
+        while args_133 != nil:
+            result_135 = cons(cons(cons(GDLisp.intern("not"), cons(car(args_133), null)), cons(false, null)), result_135)
+            args_133 = cdr(args_133)
+        _cond_134 = cons(GDLisp.intern("cond"), result_135)
     else:
-        _cond_121 = true
-    return _cond_121
-static func let_u002A(vars_123, body_124):
-    var _cond_125 = cons(GDLisp.intern("progn"), append(GDLisp.Cons.new(sys_u002Fqq_smart_list(body_124), GDLisp.Cons.new(null, null)))) if vars_123 == nil else cons(GDLisp.intern("let"), cons(cons(car(vars_123), null), cons(cons(GDLisp.intern("let*"), cons(cdr(vars_123), append(GDLisp.Cons.new(sys_u002Fqq_smart_list(body_124), GDLisp.Cons.new(null, null))))), null)))
-    return _cond_125
-static func defvars(args_126):
-    var arr_127 = []
-    while args_126 != nil:
-        arr_127.push_back(GDLisp.Cons.new(GDLisp.intern("defvar"), GDLisp.Cons.new(args_126.car, null)))
-        args_126 = args_126.cdr
-    return cons(GDLisp.intern("progn"), append(GDLisp.Cons.new(sys_u002Fqq_smart_list(arr_127), GDLisp.Cons.new(null, null))))
-static func when(cnd_128, args_129):
-    return cons(GDLisp.intern("cond"), cons(cons(cnd_128, cons(cons(GDLisp.intern("progn"), append(GDLisp.Cons.new(sys_u002Fqq_smart_list(args_129), GDLisp.Cons.new(null, null)))), null)), null))
-static func unless(cnd_130, args_131):
-    return cons(GDLisp.intern("cond"), cons(cons(cnd_130, cons(null, null)), cons(cons(true, cons(cons(GDLisp.intern("progn"), append(GDLisp.Cons.new(sys_u002Fqq_smart_list(args_131), GDLisp.Cons.new(null, null)))), null)), null)))
-static func _if(cnd_132, t_133, f_134):
-    return cons(GDLisp.intern("cond"), cons(cons(cnd_132, cons(t_133, null)), cons(cons(true, cons(f_134, null)), null)))
-static func yield_u002A(arg_135):
-    var symbol_136 = gensym("_yield")
-    return cons(GDLisp.intern("let"), cons(cons(cons(symbol_136, cons(arg_135, null)), null), cons(cons(GDLisp.intern("while"), cons(cons(GDLisp.intern("and"), cons(cons(GDLisp.intern("instance?"), cons(symbol_136, cons(GDLisp.intern("GDScriptFunctionState"), null))), cons(cons(cons(GDLisp.intern("access-slot"), cons(symbol_136, cons(GDLisp.intern("is-valid"), null))), null), null))), cons(cons(GDLisp.intern("yield"), null), cons(cons(GDLisp.intern("set"), cons(symbol_136, cons(cons(cons(GDLisp.intern("access-slot"), cons(symbol_136, cons(GDLisp.intern("resume"), null))), null), null))), null)))), cons(symbol_136, null))))
+        _cond_134 = true
+    return _cond_134
+static func let_u002A(vars_136, body_137):
+    var _cond_138 = cons(GDLisp.intern("progn"), append(GDLisp.Cons.new(sys_u002Fqq_smart_list(body_137), GDLisp.Cons.new(null, null)))) if vars_136 == nil else cons(GDLisp.intern("let"), cons(cons(car(vars_136), null), cons(cons(GDLisp.intern("let*"), cons(cdr(vars_136), append(GDLisp.Cons.new(sys_u002Fqq_smart_list(body_137), GDLisp.Cons.new(null, null))))), null)))
+    return _cond_138
+static func defvars(args_139):
+    var arr_140 = []
+    while args_139 != nil:
+        arr_140.push_back(GDLisp.Cons.new(GDLisp.intern("defvar"), GDLisp.Cons.new(args_139.car, null)))
+        args_139 = args_139.cdr
+    return cons(GDLisp.intern("progn"), append(GDLisp.Cons.new(sys_u002Fqq_smart_list(arr_140), GDLisp.Cons.new(null, null))))
+static func when(cnd_141, args_142):
+    return cons(GDLisp.intern("cond"), cons(cons(cnd_141, cons(cons(GDLisp.intern("progn"), append(GDLisp.Cons.new(sys_u002Fqq_smart_list(args_142), GDLisp.Cons.new(null, null)))), null)), null))
+static func unless(cnd_143, args_144):
+    return cons(GDLisp.intern("cond"), cons(cons(cnd_143, cons(null, null)), cons(cons(true, cons(cons(GDLisp.intern("progn"), append(GDLisp.Cons.new(sys_u002Fqq_smart_list(args_144), GDLisp.Cons.new(null, null)))), null)), null)))
+static func _if(cnd_145, t_146, f_147):
+    return cons(GDLisp.intern("cond"), cons(cons(cnd_145, cons(t_146, null)), cons(cons(true, cons(f_147, null)), null)))
+static func yield_u002A(arg_148):
+    var symbol_149 = gensym("_yield")
+    return cons(GDLisp.intern("let"), cons(cons(cons(symbol_149, cons(arg_148, null)), null), cons(cons(GDLisp.intern("while"), cons(cons(GDLisp.intern("and"), cons(cons(GDLisp.intern("instance?"), cons(symbol_149, cons(GDLisp.intern("GDScriptFunctionState"), null))), cons(cons(cons(GDLisp.intern("access-slot"), cons(symbol_149, cons(GDLisp.intern("is-valid"), null))), null), null))), cons(cons(GDLisp.intern("yield"), null), cons(cons(GDLisp.intern("set"), cons(symbol_149, cons(cons(cons(GDLisp.intern("access-slot"), cons(symbol_149, cons(GDLisp.intern("resume"), null))), null), null))), null)))), cons(symbol_149, null))))
 static func this_file():
     return GDLisp.cons(GDLisp.intern("sys/special-ref"), GDLisp.cons(GDLisp.intern("this-file"), null))
 static func this_filename():
     return GDLisp.cons(GDLisp.intern("sys/special-ref"), GDLisp.cons(GDLisp.intern("this-filename"), null))
 static func this_true_filename():
     return GDLisp.cons(GDLisp.intern("sys/special-ref"), GDLisp.cons(GDLisp.intern("this-true-filename"), null))
-static func contextual_load(arg_137):
-    return cons(GDLisp.intern("load"), cons(cons(GDLisp.intern("sys/context-filename"), cons(arg_137, null)), null))
-static func deflazy(name_138, value_139, modifiers_140):
-    var fn_name_141 = gensym("_lazy")
-    var this_file_142 = gensym("_this_file")
-    var value_var_143 = gensym("_value")
-    var meta_name_144 = "__gdlisp_Lazy_{}".format([gensym(null).contents], "{}")
-    return cons(GDLisp.intern("progn"), cons(cons(GDLisp.intern("defn"), cons(fn_name_141, cons(null, cons(cons(GDLisp.intern("let"), cons(cons(cons(this_file_142, cons(cons(GDLisp.intern("this-file"), null), null)), null), cons(cons(GDLisp.intern("if"), cons(cons(cons(GDLisp.intern("access-slot"), cons(this_file_142, cons(GDLisp.intern("has-meta"), null))), cons(meta_name_144, null)), cons(cons(cons(GDLisp.intern("access-slot"), cons(this_file_142, cons(GDLisp.intern("get-meta"), null))), cons(meta_name_144, null)), cons(cons(GDLisp.intern("let"), cons(cons(cons(value_var_143, cons(value_139, null)), null), cons(cons(cons(GDLisp.intern("access-slot"), cons(this_file_142, cons(GDLisp.intern("set-meta"), null))), cons(meta_name_144, cons(value_var_143, null))), cons(value_var_143, null)))), null)))), null))), null)))), cons(cons(GDLisp.intern("define-symbol-macro"), cons(name_138, cons(cons(GDLisp.intern("list"), cons(cons(GDLisp.intern("list"), cons(cons(GDLisp.intern("quote"), cons(GDLisp.intern("access-slot"), null)), cons(cons(GDLisp.intern("list"), cons(cons(GDLisp.intern("quote"), cons(GDLisp.intern("contextual-load"), null)), cons(cons(GDLisp.intern("this-true-filename"), null), null))), cons(cons(GDLisp.intern("quote"), cons(fn_name_141, null)), null)))), null)), append(GDLisp.Cons.new(sys_u002Fqq_smart_list(modifiers_140), GDLisp.Cons.new(null, null)))))), null)))
-static func defobject(name_145, parent_146, visibility_147, body_148):
-    if visibility_147 == nil:
-        visibility_147 = GDLisp.intern("public")
-    elif !is_instance(visibility_147, Symbol):
-        body_148 = cons(visibility_147, body_148)
-        visibility_147 = GDLisp.intern("public")
-    elif visibility_147.contents == "public":
+static func contextual_load(arg_150):
+    return cons(GDLisp.intern("load"), cons(cons(GDLisp.intern("sys/context-filename"), cons(arg_150, null)), null))
+static func deflazy(name_151, value_152, modifiers_153):
+    var fn_name_154 = gensym("_lazy")
+    var this_file_155 = gensym("_this_file")
+    var value_var_156 = gensym("_value")
+    var meta_name_157 = "__gdlisp_Lazy_{}".format([gensym(null).contents], "{}")
+    return cons(GDLisp.intern("progn"), cons(cons(GDLisp.intern("defn"), cons(fn_name_154, cons(null, cons(cons(GDLisp.intern("let"), cons(cons(cons(this_file_155, cons(cons(GDLisp.intern("this-file"), null), null)), null), cons(cons(GDLisp.intern("if"), cons(cons(cons(GDLisp.intern("access-slot"), cons(this_file_155, cons(GDLisp.intern("has-meta"), null))), cons(meta_name_157, null)), cons(cons(cons(GDLisp.intern("access-slot"), cons(this_file_155, cons(GDLisp.intern("get-meta"), null))), cons(meta_name_157, null)), cons(cons(GDLisp.intern("let"), cons(cons(cons(value_var_156, cons(value_152, null)), null), cons(cons(cons(GDLisp.intern("access-slot"), cons(this_file_155, cons(GDLisp.intern("set-meta"), null))), cons(meta_name_157, cons(value_var_156, null))), cons(value_var_156, null)))), null)))), null))), null)))), cons(cons(GDLisp.intern("define-symbol-macro"), cons(name_151, cons(cons(GDLisp.intern("list"), cons(cons(GDLisp.intern("list"), cons(cons(GDLisp.intern("quote"), cons(GDLisp.intern("access-slot"), null)), cons(cons(GDLisp.intern("list"), cons(cons(GDLisp.intern("quote"), cons(GDLisp.intern("contextual-load"), null)), cons(cons(GDLisp.intern("this-true-filename"), null), null))), cons(cons(GDLisp.intern("quote"), cons(fn_name_154, null)), null)))), null)), append(GDLisp.Cons.new(sys_u002Fqq_smart_list(modifiers_153), GDLisp.Cons.new(null, null)))))), null)))
+static func defobject(name_158, parent_159, visibility_160, body_161):
+    if visibility_160 == nil:
+        visibility_160 = GDLisp.intern("public")
+    elif !is_instance(visibility_160, Symbol):
+        body_161 = cons(visibility_160, body_161)
+        visibility_160 = GDLisp.intern("public")
+    elif visibility_160.contents == "public":
         pass
-    elif visibility_147.contents == "private":
+    elif visibility_160.contents == "private":
         pass
     else:
-        body_148 = cons(visibility_147, body_148)
-        visibility_147 = GDLisp.intern("public")
-    return cons(GDLisp.intern("deflazy"), cons(name_145, cons(cons(GDLisp.intern("new"), cons(parent_146, append(GDLisp.Cons.new(sys_u002Fqq_smart_list(body_148), GDLisp.Cons.new(null, null))))), cons(visibility_147, null))))
+        body_161 = cons(visibility_160, body_161)
+        visibility_160 = GDLisp.intern("public")
+    return cons(GDLisp.intern("deflazy"), cons(name_158, cons(cons(GDLisp.intern("new"), cons(parent_159, append(GDLisp.Cons.new(sys_u002Fqq_smart_list(body_161), GDLisp.Cons.new(null, null))))), cons(visibility_160, null))))
 static func run():
     return null

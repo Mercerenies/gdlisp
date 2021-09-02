@@ -814,6 +814,8 @@
 
 (defclass _GDLisp (Node) main
   (defvar global_name_generator)
+
+  ;; Primitive types
   (defvar Null)
   (defvar Bool)
   (defvar Int)
@@ -841,6 +843,14 @@
   (defvar PoolVector2Array)
   (defvar PoolVector3Array)
   (defvar PoolColorArray)
+
+  ;; Synthetic types
+  (defvar Any)
+  (defvar AnyRef)
+  (defvar AnyVal)
+  (defvar Number)
+  (defvar BaseArray)
+  (defvar Nothing)
 
   (defn _init ()
     (set self:global_name_generator (FreshNameGenerator:new [] 0))
@@ -870,7 +880,13 @@
     (set self:PoolStringArray (PrimitiveType:new TYPE_STRING_ARRAY))
     (set self:PoolVector2Array (PrimitiveType:new TYPE_VECTOR2_ARRAY))
     (set self:PoolVector3Array (PrimitiveType:new TYPE_VECTOR3_ARRAY))
-    (set self:PoolColorArray (PrimitiveType:new TYPE_COLOR_ARRAY))))
+    (set self:PoolColorArray (PrimitiveType:new TYPE_COLOR_ARRAY))
+    (set self:Any (AnyType:new))
+    (set self:AnyRef (AnyRefType:new))
+    (set self:AnyVal (AnyValType:new))
+    (set self:Number (NumberType:new))
+    (set self:BaseArray (BaseArrayType:new))
+    (set self:Nothing (NothingType:new))))
 
 (defn cons (a b)
   (Cons:new a b))
@@ -1180,6 +1196,48 @@
   (defn satisfies? (value)
     (= (typeof value) self:primitive-value)))
 
+;; Note: All of these synthetic types would theoretically be defobject
+;; if we weren't writing them in the standard library. But for
+;; complicated reasons, we can't use macro expansion at all in stdlib,
+;; and defobject is behind three layers of macro (defobject and
+;; deflazy, and the expansion includes define-symbol-macro), so it's
+;; off-limits.
+
+(defclass AnyType (Reference) private
+  (defn satisfies? (value)
+    #t))
+
+(defclass AnyRefType (Reference) private
+  (defn satisfies? (value)
+    (= (typeof value) TYPE_OBJECT)))
+
+(defclass AnyValType (Reference) private
+  (defn satisfies? (value)
+    (/= (typeof value) TYPE_OBJECT)))
+
+(defclass NumberType (Reference) private
+  (defn satisfies? (value)
+    (let ((t (typeof value)))
+      (cond
+        ((= t TYPE_INT) #t)
+        ((= t TYPE_REAL) #t)
+        (#t #f)))))
+
+(defclass BaseArrayType (Reference) private
+  (defn satisfies? (value)
+    (<= TYPE_ARRAY (typeof value) TYPE_COLOR_ARRAY)))
+
+(defclass NothingType (Reference) private
+  (defn satisfies? (value)
+    #f))
+
+(sys/declare value Any public)
+(sys/declare value AnyRef public)
+(sys/declare value AnyVal public)
+(sys/declare value Number public)
+(sys/declare value BaseArray public)
+(sys/declare value Nothing public)
+
 (sys/declare superglobal TYPE_NIL public)
 (sys/declare value Null public)
 (sys/declare superglobal TYPE_BOOL public)
@@ -1342,3 +1400,5 @@
      (set body (cons visibility body)) ; It's not a modifier, so it's part of the body
      (set visibility 'public)))
   `(deflazy ,name (new ,parent ,.body) ,visibility))
+
+; ///// Test synthetic types, implement instance?, and thoroughly test instance?
