@@ -1171,7 +1171,7 @@
 
 ;; TYPE_* Constants
 
-(defclass PrimitiveType (Reference)
+(defclass PrimitiveType (Reference) private
   (defvar primitive-value)
 
   (defn _init (primitive-value)
