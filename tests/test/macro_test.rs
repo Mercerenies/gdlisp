@@ -349,10 +349,11 @@ pub fn gensym_test_1() {
   assert_eq!(result, r#"extends Reference
 static func foo(a_0):
     var x_1 = GDLisp.gensym(null)
-    return GDLisp.cons(GDLisp.intern("let"), GDLisp.cons(GDLisp.cons(GDLisp.cons(x_1, GDLisp.cons(a_0, null)), null), GDLisp.cons([x_1, x_1], null)))
+    var _split_2 = null
+    return GDLisp.cons(GDLisp.intern("let"), GDLisp.cons(GDLisp.cons(GDLisp.cons(x_1, GDLisp.cons(a_0, _split_2)), null), GDLisp.cons([x_1, x_1], null)))
 static func run():
-    var _G_0_2 = 10
-    return [_G_0_2, _G_0_2]
+    var _G_0_3 = 10
+    return [_G_0_3, _G_0_3]
 "#);
 }
 
@@ -363,10 +364,11 @@ pub fn gensym_test_2() {
   assert_eq!(result, r#"extends Reference
 static func foo(a_0):
     var x_1 = GDLisp.gensym(null)
-    return GDLisp.cons(GDLisp.intern("let"), GDLisp.cons(GDLisp.cons(GDLisp.cons(x_1, GDLisp.cons(a_0, null)), null), GDLisp.cons([x_1, x_1], null)))
+    var _split_2 = null
+    return GDLisp.cons(GDLisp.intern("let"), GDLisp.cons(GDLisp.cons(GDLisp.cons(x_1, GDLisp.cons(a_0, _split_2)), null), GDLisp.cons([x_1, x_1], null)))
 static func run():
-    var _G_1_2 = 10
-    return [[_G_1_2, _G_1_2], GDLisp.intern("_G_0")]
+    var _G_1_3 = 10
+    return [[_G_1_3, _G_1_3], GDLisp.intern("_G_0")]
 "#);
 }
 

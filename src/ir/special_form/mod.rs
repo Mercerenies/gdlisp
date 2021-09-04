@@ -8,9 +8,10 @@ use super::expr::{ExprF, Expr, FuncRefTarget, AssignTarget, LambdaClass, LocalFn
 use super::special_ref::SpecialRef;
 use super::decl::{self, Decl, DeclF};
 use super::arglist::ArgList;
-use super::quasiquote::quasiquote;
+use super::quasiquote::quasiquote_with_depth;
 use crate::compile::error::{Error as GDError, ErrorF as GDErrorF};
 use crate::compile::args::Expecting;
+use crate::compile::frame::MAX_QUOTE_REIFY_DEPTH;
 use crate::ir::incremental::IncCompiler;
 use crate::ir::identifier::{Id, IdLike, Namespace};
 use crate::ir::export::Visibility;
@@ -54,6 +55,7 @@ pub fn dispatch_form(icompiler: &mut IncCompiler,
     "sys/special-ref" => special_ref_form(icompiler, pipeline, tail, pos).map(Some),
     "sys/context-filename" => context_filename_form(icompiler, pipeline, tail, pos).map(Some),
     "literally" => literally_form(tail, pos).map(Some),
+    "sys/split" => split_form(icompiler, pipeline, tail, pos).map(Some),
     _ => Ok(None),
   }
 }
@@ -271,7 +273,7 @@ pub fn quasiquote_form(icompiler: &mut IncCompiler,
                        pos: SourceOffset)
                        -> Result<Expr, Error> {
   Expecting::exactly(1).validate("quasiquote", pos, tail)?;
-  quasiquote(icompiler, pipeline, tail[0])
+  quasiquote_with_depth(icompiler, pipeline, tail[0], MAX_QUOTE_REIFY_DEPTH)
 }
 
 pub fn access_slot_form(icompiler: &mut IncCompiler,
@@ -480,6 +482,16 @@ pub fn literally_form(tail: &[&AST], pos: SourceOffset) -> Result<Expr, Error> {
   } else {
     Err(Error::from(GDError::new(GDErrorF::InvalidArg(String::from("literally"), tail[0].clone(), String::from("symbol")), pos)))
   }
+}
+
+pub fn split_form(icompiler: &mut IncCompiler,
+                  pipeline: &mut Pipeline,
+                  tail: &[&AST],
+                  pos: SourceOffset)
+                  -> Result<Expr, Error> {
+  Expecting::exactly(1).validate("sys/split", pos, tail)?;
+  let expr = icompiler.compile_expr(pipeline, tail[0])?;
+  Ok(Expr::new(ExprF::Split(Box::new(expr)), pos))
 }
 
 fn macrolet_bind_locals<B, E, F, I>(icompiler: &mut IncCompiler,
