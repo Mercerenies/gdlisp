@@ -146,10 +146,14 @@ impl IncCompiler {
     Ok(None)
   }
 
+  // TODO This whole method should be over in CallName. Or at least,
+  // most of it should be.
   fn resolve_call_name(&mut self, pipeline: &mut Pipeline, ast: &AST) -> Result<CallName, PError> {
     if let Some((lhs, name)) = CallName::try_resolve_method_name(ast) {
       let lhs = self.compile_expr(pipeline, lhs)?;
       Ok(CallName::MethodName(Box::new(lhs), name.to_owned()))
+    } else if let Some(name) = CallName::try_resolve_atomic_name(ast) {
+      Ok(CallName::AtomicName(name.to_owned()))
     } else {
       match &ast.value {
         ASTF::Symbol(s) => Ok(CallName::SimpleName(s.clone())),
@@ -180,6 +184,7 @@ impl IncCompiler {
         } else {
           let head = self.resolve_call_name(pipeline, vec[0])?;
           let tail = &vec[1..];
+          // TODO Can this be part of CallName?
           match head {
             CallName::SimpleName(head) => {
               self.resolve_simple_call(pipeline, &head, tail, expr.pos)
@@ -187,6 +192,10 @@ impl IncCompiler {
             CallName::MethodName(target, head) => {
               let args = tail.iter().map(|x| self.compile_expr(pipeline, x)).collect::<Result<Vec<_>, _>>()?;
               Ok(Expr::new(ExprF::MethodCall(target, head, args), expr.pos))
+            }
+            CallName::AtomicName(head) => {
+              let args = tail.iter().map(|x| self.compile_expr(pipeline, x)).collect::<Result<Vec<_>, _>>()?;
+              Ok(Expr::new(ExprF::AtomicCall(head, args), expr.pos))
             }
           }
         }

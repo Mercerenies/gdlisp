@@ -38,6 +38,8 @@ pub enum ExprF {
   Return(Box<Expr>),
   SpecialRef(SpecialRef),
   ContextualFilename(RPathBuf),
+  AtomicName(String),
+  AtomicCall(String, Vec<Expr>),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -320,6 +322,12 @@ impl Expr {
       }
       ExprF::SpecialRef(_) => {}
       ExprF::ContextualFilename(_) => {}
+      ExprF::AtomicName(_) => {}
+      ExprF::AtomicCall(_, args) => {
+        for arg in args {
+          arg.walk_locals(acc_vars, acc_fns);
+        }
+      }
     };
   }
 

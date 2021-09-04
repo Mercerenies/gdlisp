@@ -16,6 +16,8 @@ pub enum CallName {
   SimpleName(String),
   /// An `access-slot` qualified call.
   MethodName(Box<Expr>, String),
+  /// A `literally` call.
+  AtomicName(String),
 }
 
 impl CallName {
@@ -27,6 +29,19 @@ impl CallName {
       if vec.len() == 3 && vec[0].value == ASTF::symbol("access-slot") {
         if let ASTF::Symbol(name) = &vec[2].value {
           return Some((vec[1], name));
+        }
+      }
+    }
+    None
+  }
+
+  /// Attempts to resolve `ast` as a `literally` name with a single
+  /// symbol argument.
+  pub fn try_resolve_atomic_name(ast: &AST) -> Option<&str> {
+    if let DottedExpr { elements: vec, terminal: AST { value: ASTF::Nil, pos: _ } } = DottedExpr::new(ast) {
+      if vec.len() == 2 && vec[0].value == ASTF::symbol("literally") {
+        if let ASTF::Symbol(name) = &vec[1].value {
+          return Some(name);
         }
       }
     }

@@ -53,6 +53,7 @@ pub fn dispatch_form(icompiler: &mut IncCompiler,
     "symbol-macrolet" => symbol_macrolet_form(icompiler, pipeline, tail, pos).map(Some),
     "sys/special-ref" => special_ref_form(icompiler, pipeline, tail, pos).map(Some),
     "sys/context-filename" => context_filename_form(icompiler, pipeline, tail, pos).map(Some),
+    "literally" => literally_form(tail, pos).map(Some),
     _ => Ok(None),
   }
 }
@@ -469,6 +470,15 @@ pub fn context_filename_form(_icompiler: &mut IncCompiler,
     Ok(Expr::new(ExprF::ContextualFilename(path), pos))
   } else {
     Err(Error::from(GDError::new(GDErrorF::InvalidArg(String::from("sys/context-filename"), tail[0].clone(), String::from("string")), pos)))
+  }
+}
+
+pub fn literally_form(tail: &[&AST], pos: SourceOffset) -> Result<Expr, Error> {
+  Expecting::exactly(1).validate("literally", pos, tail)?;
+  if let ASTF::Symbol(s) = &tail[0].value {
+    Ok(Expr::new(ExprF::AtomicName(s.clone()), pos))
+  } else {
+    Err(Error::from(GDError::new(GDErrorF::InvalidArg(String::from("literally"), tail[0].clone(), String::from("symbol")), pos)))
   }
 }
 
