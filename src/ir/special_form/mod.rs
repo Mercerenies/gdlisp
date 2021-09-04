@@ -8,9 +8,10 @@ use super::expr::{ExprF, Expr, FuncRefTarget, AssignTarget, LambdaClass, LocalFn
 use super::special_ref::SpecialRef;
 use super::decl::{self, Decl, DeclF};
 use super::arglist::ArgList;
-use super::quasiquote::quasiquote;
+use super::quasiquote::quasiquote_with_depth;
 use crate::compile::error::{Error as GDError, ErrorF as GDErrorF};
 use crate::compile::args::Expecting;
+use crate::compile::frame::MAX_QUOTE_REIFY_DEPTH;
 use crate::ir::incremental::IncCompiler;
 use crate::ir::identifier::{Id, IdLike, Namespace};
 use crate::ir::export::Visibility;
@@ -272,7 +273,7 @@ pub fn quasiquote_form(icompiler: &mut IncCompiler,
                        pos: SourceOffset)
                        -> Result<Expr, Error> {
   Expecting::exactly(1).validate("quasiquote", pos, tail)?;
-  quasiquote(icompiler, pipeline, tail[0])
+  quasiquote_with_depth(icompiler, pipeline, tail[0], MAX_QUOTE_REIFY_DEPTH)
 }
 
 pub fn access_slot_form(icompiler: &mut IncCompiler,

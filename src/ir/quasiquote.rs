@@ -61,33 +61,65 @@ pub fn quasiquote(icompiler: &mut IncCompiler,
                   pipeline: &mut Pipeline,
                   arg: &AST)
                   -> Result<Expr, Error> {
-  let mut engine = QuasiquoteEngine::new(icompiler, pipeline);
-  engine.quasiquote_indexed(arg, 0)
+  quasiquote_with_depth(icompiler, pipeline, arg, u32::MAX)
+}
+
+pub fn quasiquote_with_depth(icompiler: &mut IncCompiler,
+                             pipeline: &mut Pipeline,
+                             arg: &AST,
+                             max_depth: u32)
+                  -> Result<Expr, Error> {
+  let mut engine = QuasiquoteEngine::new(icompiler, pipeline, max_depth);
+  engine.quasiquote_indexed(arg, 0, 0)
 }
 
 struct QuasiquoteEngine<'a, 'b> {
   icompiler: &'a mut IncCompiler,
   pipeline: &'b mut Pipeline,
+  max_depth: u32,
 }
 
 impl<'a, 'b> QuasiquoteEngine<'a, 'b> {
 
-  fn new(icompiler: &'a mut IncCompiler, pipeline: &'b mut Pipeline) -> Self {
-    QuasiquoteEngine { icompiler, pipeline }
+  fn new(icompiler: &'a mut IncCompiler, pipeline: &'b mut Pipeline, max_depth: u32) -> Self {
+    QuasiquoteEngine { icompiler, pipeline, max_depth }
   }
+
+  // Note: nesting_depth is the number of nested quasiquotes we're in.
+  // An unquote encountered when nesting_depth is positive simply
+  // decreases that value rather than performing an actual unquote
+  // operation. current_depth is how far down we are into our
+  // structure and is used to determine when to insert ExprF::Split
+  // calls to avoid Godot parsing issues.
 
   fn quasiquote_indexed(&mut self,
                         arg: &AST,
-                        nesting_depth: u32)
+                        nesting_depth: u32,
+                        current_depth: u32)
                         -> Result<Expr, Error> {
-    self.quasiquote_spliced(arg, nesting_depth).and_then(|qq| {
-      qq.into_single(arg).map_err(Error::from)
+    let (needs_split_wrapper, current_depth) =
+      if current_depth > self.max_depth {
+        (true, 0)
+      } else {
+        (false, current_depth)
+      };
+
+    self.quasiquote_spliced(arg, nesting_depth, current_depth).and_then(|qq| {
+      let value = qq.into_single(arg)?;
+      if needs_split_wrapper {
+        let pos = value.pos;
+        Ok(Expr::new(ExprF::Split(Box::new(value)), pos))
+      } else {
+        Ok(value)
+      }
     })
+
   }
 
   fn quasiquote_spliced(&mut self,
                         arg: &AST,
-                        nesting_depth: u32)
+                        nesting_depth: u32,
+                        current_depth: u32)
                         -> Result<QQSpliced, Error> {
     let unquoted_value = UnquotedValue::from(arg);
 
@@ -143,8 +175,8 @@ impl<'a, 'b> QuasiquoteEngine<'a, 'b> {
             Expr::new(ExprF::Literal(Literal::Symbol(s.to_owned())), arg.pos)
           }
           ASTF::Cons(car, cdr) => {
-            let car = self.quasiquote_spliced(car, nesting_depth)?;
-            let cdr = self.quasiquote_indexed(cdr, nesting_depth)?;
+            let car = self.quasiquote_spliced(car, nesting_depth, current_depth + 1)?;
+            let cdr = self.quasiquote_indexed(cdr, nesting_depth, current_depth + 1)?;
             match car {
               QQSpliced::Single(car) => {
                 Expr::call(String::from("cons"), vec!(car, cdr), arg.pos)
@@ -156,7 +188,7 @@ impl<'a, 'b> QuasiquoteEngine<'a, 'b> {
             }
           }
           ASTF::Array(v) => {
-            let v1 = v.iter().map(|x| self.quasiquote_spliced(x, nesting_depth)).collect::<Result<Vec<_>, _>>()?;
+            let v1 = v.iter().map(|x| self.quasiquote_spliced(x, nesting_depth, current_depth + 1)).collect::<Result<Vec<_>, _>>()?;
 
             let mut acc: Vec<Expr> = vec!();
             let mut current_vec: Vec<Expr> = vec!();
@@ -182,7 +214,7 @@ impl<'a, 'b> QuasiquoteEngine<'a, 'b> {
           }
           ASTF::Dictionary(v) => {
             // TODO Does unquote-spliced make sense in this context?
-            let v1 = v.iter().map(|(k, v)| Ok((self.quasiquote_indexed(k, nesting_depth)?, self.quasiquote_indexed(v, nesting_depth)?))).collect::<Result<Vec<_>, Error>>()?;
+            let v1 = v.iter().map(|(k, v)| Ok((self.quasiquote_indexed(k, nesting_depth, current_depth + 1)?, self.quasiquote_indexed(v, nesting_depth, current_depth + 1)?))).collect::<Result<Vec<_>, Error>>()?;
             Expr::new(ExprF::Dictionary(v1), arg.pos)
           }
         };
