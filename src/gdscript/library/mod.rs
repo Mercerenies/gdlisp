@@ -194,7 +194,8 @@ pub fn all_builtin_names(minimalist: bool) -> HashSet<Id> {
   names
 }
 
-/// Bind all of the built-in GDLisp macros to the macro table given.
+/// Bind all of the built-in GDLisp macros and symbol macros to the
+/// macro table given.
 ///
 /// If the standard library has not been loaded, this function loads
 /// the standard library. As such, this function should not be called
@@ -202,16 +203,27 @@ pub fn all_builtin_names(minimalist: bool) -> HashSet<Id> {
 /// result in a double lock on the stdlib mutex.
 pub fn bind_builtin_macros(macros: &mut HashMap<Id, MacroData>,
                            pipeline: &mut Pipeline) {
-
   let unit = get_stdlib();
-  for (name, func, _magic) in unit.table.fns() {
-    if func.is_macro {
-      let id = pipeline.get_server_mut().add_reserved_macro(names::lisp_to_gd(name), ArgList::from_specs(func.specs));
-      let data = MacroData {
-        id,
-        imported: true,
+
+  for name in &unit.exports {
+    if let Some(data) = unit.macros.get(name) {
+
+      macros.insert(name.to_owned(), data.to_imported());
+
+      // Reverse-engineer the macro arguments from the function table,
+      // then add it to the new pipeline. (TODO Messy hack)
+      let args = match name.namespace {
+        Namespace::Value => {
+          ArgList::empty()
+        }
+        Namespace::Function => {
+          let (call, _) = unit.table.get_fn(&name.name).expect("Error in bind_builtin_macros");
+          ArgList::from_specs(call.specs)
+        }
       };
-      macros.insert(Id::new(Namespace::Function, name.to_owned()), data);
+
+      pipeline.get_server_mut().add_reserved_macro(names::lisp_to_gd(&name.name), args);
+
     }
   }
 

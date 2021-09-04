@@ -440,6 +440,19 @@ impl<'a, 'b, 'c, 'd> CompilerFrame<'a, 'b, 'c, 'd, StmtBuilder> {
           .expect("Unable to resolve preload in sys/context-filename"); // TODO There are macros that expose sys/context-filename to the user; we should probably have this be a real GDError.
         Ok(StExpr { expr: Expr::from_value(new_filename, expr.pos), side_effects: SideEffects::None })
       }
+      IRExprF::AtomicName(s) => {
+        Ok(StExpr { expr: Expr::var(&names::lisp_to_gd_bare(s), expr.pos), side_effects: SideEffects::ReadsState })
+      }
+      IRExprF::AtomicCall(s, args) => {
+        let fnname = names::lisp_to_gd_bare(s);
+        let args = args.iter()
+          .map(|x| self.compile_expr(x, NeedsResult::Yes).map(|x| x.expr))
+          .collect::<Result<Vec<_>, _>>()?;
+        Ok(StExpr {
+          expr: Expr::call(None, &fnname, args, expr.pos),
+          side_effects: SideEffects::ModifiesState,
+        })
+      }
       /* // This will eventually be an optimization.
       IRExprF::Funcall(f, args) => {
         let func_expr = self.compile_expr(builder, table, f, NeedsResult::Yes)?.0;

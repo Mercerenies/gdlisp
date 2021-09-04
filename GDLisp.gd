@@ -721,6 +721,10 @@ static func sys_u002Fqq_smart_array(a_110):
     var t_111 = typeof(a_110)
     var _cond_112 = a_110 if TYPE_ARRAY <= t_111 && t_111 <= TYPE_COLOR_ARRAY else list_to_array(a_110)
     return _cond_112
+static func _PI():
+    return GDLisp.cons(GDLisp.intern("literally"), GDLisp.cons(GDLisp.intern("PI"), null))
+static func _SPKEY():
+    return GDLisp.cons(GDLisp.intern("literally"), GDLisp.cons(GDLisp.intern("SPKEY"), null))
 class GDLispSpecialType extends Reference:
     func _init():
         pass

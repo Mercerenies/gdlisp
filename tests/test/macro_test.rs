@@ -29,6 +29,12 @@ pub fn symbol_macro_test() {
 
 #[test]
 #[ignore]
+pub fn builtin_symbol_macro_test() {
+  assert_eq!(parse_compile_decl("([PI SPKEY (let ((PI 1)) PI)])"), "extends Reference\nstatic func run():\n    var _PI_0 = 1\n    return [PI, SPKEY, _PI_0]\n");
+}
+
+#[test]
+#[ignore]
 pub fn arithmetic_macro_test() {
   assert_eq!(parse_compile_decl("((defmacro foo (x) (+ x 100)) (foo 9))"), "extends Reference\nstatic func foo(x_0):\n    return x_0 + 100\nstatic func run():\n    return 109\n");
 }
@@ -469,10 +475,9 @@ pub fn nonsense_modifier_macro_test() {
 #[test]
 #[ignore]
 pub fn macro_in_minimalist_test() {
-  // TODO Why isn't this MacroInMinimalistError
   assert_eq!(
     parse_compile_decl_err("((sys/nostdlib) (defmacro foo () 10) (foo))"),
-    Err(PError::from(GDError::new(GDErrorF::MacroBeforeDefinitionError(String::from("foo")), SourceOffset(37)))),
+    Err(PError::from(GDError::new(GDErrorF::MacroInMinimalistError(String::from("foo")), SourceOffset(37)))),
   );
 }
 

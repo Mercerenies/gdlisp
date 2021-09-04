@@ -23,7 +23,7 @@ const KNOWN_GDSCRIPT_KEYWORDS: &[&str] = &[
   "Dictionary", "PoolByteArray", "PoolIntArray", "PoolRealArray", "PoolStringArray",
   "PoolVector2Array", "PoolVector3Array", "PoolColorArray", "String", "Vector2",
   "Rect2", "Vector3", "Transform2D", "Plane", "Quat", "AABB", "Basis", "Transform",
-  "Color", "NodePath", "RID", "Object",
+  "Color", "NodePath", "RID", "Object", "PI", "SPKEY",
 ];
 
 /// A `NameTrans` is stored information about how a given GDLisp name
@@ -105,8 +105,24 @@ pub fn is_valid_gd_char(ch: char) -> bool {
 pub fn lisp_to_gd(name: &str) -> String {
   // Escape known GDScript keywords
   if KNOWN_GDSCRIPT_KEYWORDS.iter().any(|kw| *kw == name) {
-    return format!("_{}", name);
+    format!("_{}", name)
+  } else {
+    lisp_to_gd_bare(name)
   }
+}
+
+/// This implements the same transformations as [`lisp_to_gd`], except
+/// that known GDScript keywords are not underscore-escaped. See the
+/// documentation for that function for details on the translations
+/// which take place.
+///
+/// This function should be used sparingly, as it can result in
+/// generating GDScript code that attempts to use names like `if` as
+/// an identifier, which is obviously an error. However, it can also
+/// be used to bypass the usual keyword-escaping rules, to allow
+/// direct calls to the GDScript `Vector2` or `Dictionary` types,
+/// which are normally barred in GDLisp.
+pub fn lisp_to_gd_bare(name: &str) -> String {
   let length = name.chars().count();
   let mut result = String::with_capacity(2 * length);
   let mut iter = name.chars().peekable();
@@ -166,7 +182,29 @@ mod tests {
     assert_eq!(lisp_to_gd("if"), "_if");
     assert_eq!(lisp_to_gd("while"), "_while");
     assert_eq!(lisp_to_gd("While"), "While"); // No translation necessary
-    //assert_eq!(lisp_to_gd("PI"), "_PI"); // TODO This
+    assert_eq!(lisp_to_gd("PI"), "_PI");
+  }
+
+  #[test]
+  fn special_cases_bare() {
+    assert_eq!(lisp_to_gd_bare("bar->baz"), "bar_to_baz");
+    assert_eq!(lisp_to_gd_bare("success?"), "is_success");
+    assert_eq!(lisp_to_gd_bare("->->?"), "is__to__to_");
+  }
+
+  #[test]
+  fn translations_bare() {
+    assert_eq!(lisp_to_gd_bare("foo-bar"), "foo_bar");
+    assert_eq!(lisp_to_gd_bare("foo-bar_baz"), "foo_bar_baz");
+    assert_eq!(lisp_to_gd_bare(">>="), "_GT__GT__EQ_");
+  }
+
+  #[test]
+  fn keywords_bare() {
+    assert_eq!(lisp_to_gd_bare("if"), "if");
+    assert_eq!(lisp_to_gd_bare("while"), "while");
+    assert_eq!(lisp_to_gd_bare("While"), "While"); // No translation necessary
+    assert_eq!(lisp_to_gd_bare("PI"), "PI");
   }
 
 }
