@@ -1112,8 +1112,8 @@
 (sys/declare superfunction typeof (a) public)
 (sys/declare superfunction load (a) public)
 
-(sys/declare superglobal PI public)
-(sys/declare superglobal SPKEY public)
+(define-symbol-macro PI '(literally PI))
+(define-symbol-macro SPKEY '(literally SPKEY))
 
 ;; TYPE_* Constants
 

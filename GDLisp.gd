@@ -652,6 +652,10 @@ static func sys_u002Fqq_smart_array(a_109):
     var t_110 = typeof(a_109)
     var _cond_111 = a_109 if _Array <= t_110 && t_110 <= _PoolColorArray else list_to_array(a_109)
     return _cond_111
+static func _PI():
+    return GDLisp.cons(GDLisp.intern("literally"), GDLisp.cons(GDLisp.intern("PI"), null))
+static func _SPKEY():
+    return GDLisp.cons(GDLisp.intern("literally"), GDLisp.cons(GDLisp.intern("SPKEY"), null))
 const Null = TYPE_NIL
 const Bool = TYPE_BOOL
 const Int = TYPE_INT

@@ -23,7 +23,7 @@ const KNOWN_GDSCRIPT_KEYWORDS: &[&str] = &[
   "Dictionary", "PoolByteArray", "PoolIntArray", "PoolRealArray", "PoolStringArray",
   "PoolVector2Array", "PoolVector3Array", "PoolColorArray", "String", "Vector2",
   "Rect2", "Vector3", "Transform2D", "Plane", "Quat", "AABB", "Basis", "Transform",
-  "Color", "NodePath", "RID", "Object",
+  "Color", "NodePath", "RID", "Object", "PI", "SPKEY",
 ];
 
 /// A `NameTrans` is stored information about how a given GDLisp name
@@ -182,7 +182,7 @@ mod tests {
     assert_eq!(lisp_to_gd("if"), "_if");
     assert_eq!(lisp_to_gd("while"), "_while");
     assert_eq!(lisp_to_gd("While"), "While"); // No translation necessary
-    //assert_eq!(lisp_to_gd("PI"), "_PI"); // TODO This
+    assert_eq!(lisp_to_gd("PI"), "_PI");
   }
 
   #[test]
@@ -204,7 +204,7 @@ mod tests {
     assert_eq!(lisp_to_gd_bare("if"), "if");
     assert_eq!(lisp_to_gd_bare("while"), "while");
     assert_eq!(lisp_to_gd_bare("While"), "While"); // No translation necessary
-    //assert_eq!(lisp_to_gd("PI"), "_PI"); // TODO This ////
+    assert_eq!(lisp_to_gd_bare("PI"), "PI");
   }
 
 }
