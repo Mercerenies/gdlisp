@@ -226,6 +226,7 @@ impl NamedFileServer {
     let result = response_to_string(result).map_err(|err| IOError::new(err, pos))?;
     let parser = parser::ASTParser::new();
     let parsed = parser.parse(&result)?;
+    //println!("{}", parsed);
     Ok(parsed)
   }
 
