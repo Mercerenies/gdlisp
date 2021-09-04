@@ -20,6 +20,7 @@ use crate::sxp::ast::{AST, ASTF};
 use crate::sxp::reify::pretty::reify_pretty_expr;
 use crate::compile::error::{Error, ErrorF};
 use crate::compile::resource_type::ResourceType;
+use crate::compile::names;
 use crate::compile::names::fresh::FreshNameGenerator;
 use crate::compile::frame::MAX_QUOTE_REIFY_DEPTH;
 use crate::gdscript::library;
@@ -773,6 +774,8 @@ impl IncCompiler {
 
     // bind_macro is a no-op in a minimalist compile
     if self.minimalist {
+      let id = pipeline.get_server_mut().add_reserved_macro(names::lisp_to_gd(&orig_name), decl.args);
+      self.macros.insert(Id::new(namespace, orig_name), MacroData { id, imported: false });
       return Ok(());
     }
 
