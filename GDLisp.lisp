@@ -1079,7 +1079,7 @@
   (sys/call-magic ARRAY-MEMBER-CHECK)
   (member? value arr))
 
-(defn sys/native-class-private ()
+(defn sys/native-class-private () private
   ;; TODO This is a messy hack. Godot chokes if we write
   ;; "GDScript.get_class()" because it thinks we're calling a
   ;; non-static function in a static context. So we store the
