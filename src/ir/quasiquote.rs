@@ -67,9 +67,9 @@ pub fn quasiquote(icompiler: &mut IncCompiler,
 fn quasiquote_indexed(icompiler: &mut IncCompiler,
                       pipeline: &mut Pipeline,
                       arg: &AST,
-                      depth: u32)
+                      nesting_depth: u32)
                       -> Result<Expr, Error> {
-  quasiquote_spliced(icompiler, pipeline, arg, depth).and_then(|qq| {
+  quasiquote_spliced(icompiler, pipeline, arg, nesting_depth).and_then(|qq| {
     qq.into_single(arg).map_err(Error::from)
   })
 }
@@ -77,24 +77,24 @@ fn quasiquote_indexed(icompiler: &mut IncCompiler,
 fn quasiquote_spliced(icompiler: &mut IncCompiler,
                       pipeline: &mut Pipeline,
                       arg: &AST,
-                      depth: u32)
+                      nesting_depth: u32)
                       -> Result<QQSpliced, Error> {
   let unquoted_value = UnquotedValue::from(arg);
 
   // Deal with nesting issues
-  let (unquoted_value, depth) = match unquoted_value {
+  let (unquoted_value, nesting_depth) = match unquoted_value {
     UnquotedValue::SimpleValue(_) => {
-      (UnquotedValue::verbatim(arg), depth)
+      (UnquotedValue::verbatim(arg), nesting_depth)
     }
     UnquotedValue::Quasiquote(_) => {
-      (UnquotedValue::verbatim(arg), depth + 1)
+      (UnquotedValue::verbatim(arg), nesting_depth + 1)
     }
     UnquotedValue::Unquote(_) | UnquotedValue::UnquoteSpliced(_) => {
-      if depth > 0 {
+      if nesting_depth > 0 {
         // We're inside a nested quasiquote, so do NOT unquote the value.
-        (UnquotedValue::verbatim(arg), depth - 1)
+        (UnquotedValue::verbatim(arg), nesting_depth - 1)
       } else {
-        (unquoted_value, depth)
+        (unquoted_value, nesting_depth)
       }
     }
   };
@@ -133,8 +133,8 @@ fn quasiquote_spliced(icompiler: &mut IncCompiler,
           Expr::new(ExprF::Literal(Literal::Symbol(s.to_owned())), arg.pos)
         }
         ASTF::Cons(car, cdr) => {
-          let car = quasiquote_spliced(icompiler, pipeline, car, depth)?;
-          let cdr = quasiquote_indexed(icompiler, pipeline, cdr, depth)?;
+          let car = quasiquote_spliced(icompiler, pipeline, car, nesting_depth)?;
+          let cdr = quasiquote_indexed(icompiler, pipeline, cdr, nesting_depth)?;
           match car {
             QQSpliced::Single(car) => {
               Expr::call(String::from("cons"), vec!(car, cdr), arg.pos)
@@ -146,7 +146,7 @@ fn quasiquote_spliced(icompiler: &mut IncCompiler,
           }
         }
         ASTF::Array(v) => {
-          let v1 = v.iter().map(|x| quasiquote_spliced(icompiler, pipeline, x, depth)).collect::<Result<Vec<_>, _>>()?;
+          let v1 = v.iter().map(|x| quasiquote_spliced(icompiler, pipeline, x, nesting_depth)).collect::<Result<Vec<_>, _>>()?;
 
           let mut acc: Vec<Expr> = vec!();
           let mut current_vec: Vec<Expr> = vec!();
@@ -172,7 +172,7 @@ fn quasiquote_spliced(icompiler: &mut IncCompiler,
         }
         ASTF::Dictionary(v) => {
           // TODO Does unquote-spliced make sense in this context?
-          let v1 = v.iter().map(|(k, v)| Ok((quasiquote_indexed(icompiler, pipeline, k, depth)?, quasiquote_indexed(icompiler, pipeline, v, depth)?))).collect::<Result<Vec<_>, Error>>()?;
+          let v1 = v.iter().map(|(k, v)| Ok((quasiquote_indexed(icompiler, pipeline, k, nesting_depth)?, quasiquote_indexed(icompiler, pipeline, v, nesting_depth)?))).collect::<Result<Vec<_>, Error>>()?;
           Expr::new(ExprF::Dictionary(v1), arg.pos)
         }
       };
