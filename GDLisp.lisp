@@ -1163,14 +1163,16 @@
         (set args args:cdr))
       outer:cdr)))
 
+;; TODO Update to use the new typing interface
 (defn sys/qq-smart-list (a)
-  (let ((t (typeof a)))
+  (let ((t ((literally typeof) a)))
     (cond
       ((<= TYPE_ARRAY t TYPE_COLOR_ARRAY) (array->list a))
       (#t a))))
 
+;; TODO Update to use the new typing interface
 (defn sys/qq-smart-array (a)
-  (let ((t (typeof a)))
+  (let ((t ((literally typeof) a)))
     (cond
       ((<= TYPE_ARRAY t TYPE_COLOR_ARRAY) a)
       (#t (list->array a)))))
@@ -1190,7 +1192,6 @@
 (sys/declare superfunction get-global-mouse-position () public) ; TODO Definitely want to wrap this (and all of the mouse functions) in a nice namespace or module or something
 (sys/declare superfunction push-error (a) public)
 (sys/declare superfunction push-warning (a) public)
-(sys/declare superfunction typeof (a) public)
 (sys/declare superfunction load (a) public)
 
 (define-symbol-macro PI '(literally PI))
@@ -1207,7 +1208,7 @@
     (set self:primitive-value primitive-value))
 
   (defn satisfies? (value)
-    (= (typeof value) self:primitive-value)))
+    (= ((literally typeof) value) self:primitive-value)))
 
 ;; Note: All of these synthetic types would theoretically be defobject
 ;; if we weren't writing them in the standard library. But for
@@ -1222,15 +1223,15 @@
 
 (defclass AnyRefType (GDLispSpecialType) private
   (defn satisfies? (value)
-    (= (typeof value) TYPE_OBJECT)))
+    (= ((literally typeof) value) TYPE_OBJECT)))
 
 (defclass AnyValType (GDLispSpecialType) private
   (defn satisfies? (value)
-    (/= (typeof value) TYPE_OBJECT)))
+    (/= ((literally typeof) value) TYPE_OBJECT)))
 
 (defclass NumberType (GDLispSpecialType) private
   (defn satisfies? (value)
-    (let ((t (typeof value)))
+    (let ((t ((literally typeof) value)))
       (cond
         ((= t TYPE_INT) #t)
         ((= t TYPE_REAL) #t)
@@ -1238,7 +1239,7 @@
 
 (defclass BaseArrayType (GDLispSpecialType) private
   (defn satisfies? (value)
-    (<= TYPE_ARRAY (typeof value) TYPE_COLOR_ARRAY)))
+    (<= TYPE_ARRAY ((literally typeof) value) TYPE_COLOR_ARRAY)))
 
 (defclass NothingType (GDLispSpecialType) private
   (defn satisfies? (value)
