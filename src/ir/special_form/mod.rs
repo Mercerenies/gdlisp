@@ -54,6 +54,7 @@ pub fn dispatch_form(icompiler: &mut IncCompiler,
     "sys/special-ref" => special_ref_form(icompiler, pipeline, tail, pos).map(Some),
     "sys/context-filename" => context_filename_form(icompiler, pipeline, tail, pos).map(Some),
     "literally" => literally_form(tail, pos).map(Some),
+    "sys/split" => split_form(icompiler, pipeline, tail, pos).map(Some),
     _ => Ok(None),
   }
 }
@@ -480,6 +481,16 @@ pub fn literally_form(tail: &[&AST], pos: SourceOffset) -> Result<Expr, Error> {
   } else {
     Err(Error::from(GDError::new(GDErrorF::InvalidArg(String::from("literally"), tail[0].clone(), String::from("symbol")), pos)))
   }
+}
+
+pub fn split_form(icompiler: &mut IncCompiler,
+                  pipeline: &mut Pipeline,
+                  tail: &[&AST],
+                  pos: SourceOffset)
+                  -> Result<Expr, Error> {
+  Expecting::exactly(1).validate("sys/split", pos, tail)?;
+  let expr = icompiler.compile_expr(pipeline, tail[0])?;
+  Ok(Expr::new(ExprF::Split(Box::new(expr)), pos))
 }
 
 fn macrolet_bind_locals<B, E, F, I>(icompiler: &mut IncCompiler,

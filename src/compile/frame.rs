@@ -453,6 +453,15 @@ impl<'a, 'b, 'c, 'd> CompilerFrame<'a, 'b, 'c, 'd, StmtBuilder> {
           side_effects: SideEffects::ModifiesState,
         })
       }
+      IRExprF::Split(expr) => {
+        let pos = expr.pos;
+        let expr = self.compile_expr(expr, NeedsResult::Yes)?.expr;
+        let tmp_var = factory::declare_var(self.compiler.name_generator(), self.builder, "_split", Some(expr), pos);
+        Ok(StExpr {
+          expr: Expr::new(ExprF::Var(tmp_var), pos),
+          side_effects: SideEffects::None,
+        })
+      }
       /* // This will eventually be an optimization.
       IRExprF::Funcall(f, args) => {
         let func_expr = self.compile_expr(builder, table, f, NeedsResult::Yes)?.0;

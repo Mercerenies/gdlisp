@@ -40,6 +40,7 @@ pub enum ExprF {
   ContextualFilename(RPathBuf),
   AtomicName(String),
   AtomicCall(String, Vec<Expr>),
+  Split(Box<Expr>), // Compiles the inner expression, but forces it to be stored in a local variable with a generated name.
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -327,6 +328,9 @@ impl Expr {
         for arg in args {
           arg.walk_locals(acc_vars, acc_fns);
         }
+      }
+      ExprF::Split(expr) => {
+        expr.walk_locals(acc_vars, acc_fns);
       }
     };
   }

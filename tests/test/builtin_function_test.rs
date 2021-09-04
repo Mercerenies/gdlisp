@@ -5,6 +5,8 @@ use gdlisp::pipeline::source::SourceOffset;
 
 use super::common::*;
 
+// TODO This file is too big; split it up
+
 #[test]
 #[ignore]
 fn addition_test_1() {
@@ -669,6 +671,14 @@ pub fn custom_call_magic_test_failed() {
     parse_compile_decl_err("((defn foo (x y) (sys/call-magic THIS-MAGIC-DOES-NOT-EXIST) 9))"),
     Err(PError::from(GDError::new(GDErrorF::NoSuchMagic(String::from("THIS-MAGIC-DOES-NOT-EXIST")), SourceOffset(2)))),
   );
+}
+
+#[test]
+pub fn split_call_test() {
+  assert_eq!(parse_compile_and_output("(car (car (car (sys/split (car 0)))))"),
+             r#"var _split_0 = GDLisp.car(0)
+return GDLisp.car(GDLisp.car(GDLisp.car(_split_0)))
+"#);
 }
 
 // TODO Test gensym at runtime once we can pretty-print symbols
