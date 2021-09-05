@@ -1,7 +1,7 @@
 // -*- Rust -*-
 
 use std::str::FromStr;
-use crate::sxp::ast::{AST, ASTF};
+use crate::sxp::ast::AST;
 use crate::sxp::string;
 use crate::sxp::syntax;
 use crate::pipeline::source::SourceOffset;
@@ -65,18 +65,18 @@ pub LiteralOrNestedAST: AST = {
   <pos:@L> "(" <car: AST> <cdr: Cdr> ")" => AST::cons(car, cdr, SourceOffset(pos)),
   <pos:@L> "[" <contents: ArrayContents> "]" => AST::array(contents, SourceOffset(pos)),
   <pos:@L> "{" <contents: DictContents> "}" => AST::dictionary(contents, SourceOffset(pos)),
-  <pos:@L> "V{" <x: AST> <y: AST> "}" => AST::dotted_list(vec!(AST::symbol("vector", SourceOffset(pos)), x, y), AST::nil(SourceOffset(pos))),
-  <pos:@L> "V{" <x: AST> <y: AST> <z: AST> "}" => AST::dotted_list(vec!(AST::symbol("vector", SourceOffset(pos)), x, y, z), AST::nil(SourceOffset(pos))),
-  <pos:@L> <body: LiteralOrNestedAST> ":" <rpos:@L> <name: Symbol> => AST::dotted_list(vec!(AST::symbol("access-slot", SourceOffset(pos)), body, AST::new(ASTF::Symbol(name), SourceOffset(rpos))), AST::nil(SourceOffset(pos))),
-  <pos:@L> <body: LiteralOrNestedAST> ":" <rpos:@L> <path: NodePath> => AST::dotted_list(vec!(AST::dotted_list(vec!(AST::symbol("access-slot", SourceOffset(pos)), body, AST::symbol("get-node", SourceOffset(pos))), AST::nil(SourceOffset(pos))), AST::new(ASTF::String(path), SourceOffset(rpos))), AST::nil(SourceOffset(pos))),
-  <pos:@L> <path: NodePath> => AST::dotted_list(vec!(AST::dotted_list(vec!(AST::symbol("access-slot", SourceOffset(pos)), AST::symbol("self", SourceOffset(pos)), AST::symbol("get-node", SourceOffset(pos))), AST::nil(SourceOffset(pos))), AST::new(ASTF::String(path), SourceOffset(pos))), AST::nil(SourceOffset(pos))),
-  <pos:@L> "@" <rpos:@L> <name: Symbol> => AST::dotted_list(vec!(AST::symbol("access-slot", SourceOffset(pos)), AST::symbol("self", SourceOffset(pos)), AST::new(ASTF::Symbol(name), SourceOffset(rpos))), AST::nil(SourceOffset(pos))),
+  <pos:@L> "V{" <x: AST> <y: AST> "}" => syntax::vector2(x, y, SourceOffset(pos)),
+  <pos:@L> "V{" <x: AST> <y: AST> <z: AST> "}" => syntax::vector3(x, y, z, SourceOffset(pos)),
+  <pos:@L> <body: LiteralOrNestedAST> ":" <rpos:@L> <name: Symbol> => syntax::access_slot(body, AST::symbol(name, SourceOffset(rpos)), SourceOffset(pos)),
+  <pos:@L> <body: LiteralOrNestedAST> ":" <rpos:@L> <path: NodePath> => syntax::get_node_on(body, AST::string(path, SourceOffset(pos)), SourceOffset(pos)),
+  <pos:@L> <path: NodePath> => syntax::get_node_on(AST::symbol("self", SourceOffset(pos)), AST::string(path, SourceOffset(pos)), SourceOffset(pos)),
+  <pos:@L> "@" <rpos:@L> <name: Symbol> => syntax::access_slot(AST::symbol("self", SourceOffset(pos)), AST::symbol(name, SourceOffset(rpos)), SourceOffset(pos)),
 }
 
 Cdr: AST = {
   <pos:@L> => AST::nil(SourceOffset(pos)),
   "." <cdr: AST> => cdr,
-  <pos:@L> <cadr: AST> <cddr: Cdr> => AST::new(ASTF::Cons(Box::new(cadr), Box::new(cddr)), SourceOffset(pos)),
+  <pos:@L> <cadr: AST> <cddr: Cdr> => AST::cons(cadr, cddr, SourceOffset(pos)),
 }
 
 ArrayContents: Vec<AST> = {
