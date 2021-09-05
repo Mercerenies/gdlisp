@@ -1100,7 +1100,14 @@
           "WebSocketPeer" WebSocketPeer "WebSocketServer" WebSocketServer "WebXRInterface" WebXRInterface
           "WindowDialog" WindowDialog "World" World "World2D" World2D
           "WorldEnvironment" WorldEnvironment "X509Certificate" X509Certificate "XMLParser" XMLParser
-          "YSort" YSort})))
+          "YSort" YSort}))
+
+  (defn typeof (value)
+    (let ((t ((literally typeof) value)))
+      (cond
+        ((/= t TYPE_OBJECT) (PrimitiveType:new t))
+        ((value:get_script))
+        (#t (self:native_types_lookup:get (value:get_class) self:Any))))))
 
 (defn cons (a b)
   (Cons:new a b))
@@ -1313,13 +1320,7 @@
   (sys/call-magic DIRECT-INSTANCE-CHECK)
   (sys/instance-direct? value type))
 
-(defn typeof (value)
-  (let ((this (sys/special-ref this-file))
-        (t ((literally typeof) value)))
-    (cond
-      ((/= t TYPE_OBJECT) (PrimitiveType:new t))
-      (value:get_script)
-      (#t (this:native_types_lookup:get (value:get_class) this:Any)))))
+(sys/declare function typeof (value) public)
 
 (defn gensym (&opt prefix)
   (cond
