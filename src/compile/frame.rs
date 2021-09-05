@@ -437,7 +437,7 @@ impl<'a, 'b, 'c, 'd> CompilerFrame<'a, 'b, 'c, 'd, StmtBuilder> {
       }
       IRExprF::ContextualFilename(filename) => {
         let new_filename = self.preload_resolver().resolve_preload(filename)
-          .expect("Unable to resolve preload in sys/context-filename"); // TODO There are macros that expose sys/context-filename to the user; we should probably have this be a real GDError.
+          .ok_or_else(|| Error::new(ErrorF::ContextualFilenameUnresolved, expr.pos))?;
         Ok(StExpr { expr: Expr::from_value(new_filename, expr.pos), side_effects: SideEffects::None })
       }
       IRExprF::AtomicName(s) => {

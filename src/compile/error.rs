@@ -56,6 +56,7 @@ pub enum ErrorF {
   MacroInMinimalistError(String),
   MacroBeforeDefinitionError(String),
   DuplicateMainClass,
+  ContextualFilenameUnresolved,
 }
 
 /// Variant of [`ErrorF`] with source offset information. See
@@ -173,6 +174,9 @@ impl fmt::Display for Error {
       }
       ErrorF::DuplicateMainClass => {
         write!(f, "File has two main classes") // TODO Would be nice to have the source offset of the *original* main class here as well.
+      }
+      ErrorF::ContextualFilenameUnresolved => {
+        write!(f, "Could not resolve contextual filename of current file ({})", INTERNAL_ERROR_NOTE)
       }
     }
   }
