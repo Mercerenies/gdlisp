@@ -1313,6 +1313,14 @@
   (sys/call-magic DIRECT-INSTANCE-CHECK)
   (sys/instance-direct? value type))
 
+(defn typeof (value)
+  (let ((this (sys/special-ref this-file))
+        (t ((literally typeof) value)))
+    (cond
+      ((/= t TYPE_OBJECT) (PrimitiveType:new t))
+      (value:get_script)
+      (#t (this:native_types_lookup:get (value:get_class) this:Any)))))
+
 (defn gensym (&opt prefix)
   (cond
     ((= prefix ()) (Symbol:new (GDLisp:global_name_generator:generate)))
