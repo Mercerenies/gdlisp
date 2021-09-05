@@ -129,7 +129,7 @@ impl IncCompiler {
       Ok(v) => v,
     };
     if !vec.is_empty() {
-      let head = self.resolve_call_name(pipeline, vec[0])?;
+      let head = CallName::resolve_call_name(self, pipeline, vec[0])?;
       if let CallName::SimpleName(head) = head {
         let tail = &vec[1..];
         if self.macros.get(&*Id::build(Namespace::Function, &head)).is_some() {
@@ -145,22 +145,6 @@ impl IncCompiler {
       return self.resolve_macro_call(pipeline, &*Id::build(Namespace::Value, &head), &[], pos).map(Some);
     }
     Ok(None)
-  }
-
-  // TODO This whole method should be over in CallName. Or at least,
-  // most of it should be.
-  fn resolve_call_name(&mut self, pipeline: &mut Pipeline, ast: &AST) -> Result<CallName, PError> {
-    if let Some((lhs, name)) = CallName::try_resolve_method_name(ast) {
-      let lhs = self.compile_expr(pipeline, lhs)?;
-      Ok(CallName::MethodName(Box::new(lhs), name.to_owned()))
-    } else if let Some(name) = CallName::try_resolve_atomic_name(ast) {
-      Ok(CallName::AtomicName(name.to_owned()))
-    } else {
-      match &ast.value {
-        ASTF::Symbol(s) => Ok(CallName::SimpleName(s.clone())),
-        _ => Err(PError::from(Error::new(ErrorF::CannotCall(ast.clone()), ast.pos))),
-      }
-    }
   }
 
   pub fn resolve_simple_call(&mut self, pipeline: &mut Pipeline, head: &str, tail: &[&AST], pos: SourceOffset)
@@ -183,7 +167,7 @@ impl IncCompiler {
         if vec.is_empty() {
           Ok(Expr::literal(Literal::Nil, expr.pos))
         } else {
-          let head = self.resolve_call_name(pipeline, vec[0])?;
+          let head = CallName::resolve_call_name(self, pipeline, vec[0])?;
           let tail = &vec[1..];
           // TODO Can this be part of CallName?
           match head {
