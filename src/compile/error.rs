@@ -240,9 +240,9 @@ impl Error {
 
 }
 
-impl fmt::Display for Error {
+impl fmt::Display for ErrorF {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-    match &self.value {
+    match self {
       ErrorF::DottedListError => {
         write!(f, "Unexpected dotted list")
       }
@@ -306,6 +306,7 @@ impl fmt::Display for Error {
       ErrorF::ExportOnInnerClassVar(v) => {
         write!(f, "Export declarations can only be used on a file's main class, but one was found on {}", v)
       }
+      #[allow(deprecated)]
       ErrorF::ResourceDoesNotExist(s) => {
         write!(f, "Resource {} does not exist", s)
       }
@@ -339,6 +340,13 @@ impl fmt::Display for Error {
     }
   }
 }
+
+impl fmt::Display for Error {
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    write!(f, "{}", &self.value)
+  }
+}
+
 
 impl Sourced for Error {
   type Item = ErrorF;
