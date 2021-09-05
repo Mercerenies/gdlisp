@@ -236,3 +236,74 @@ pub fn base_array_instance_check_test() {
   "#);
   assert_eq!(result, "\nFalse\nFalse\nTrue\nTrue\n");
 }
+
+#[test]
+#[ignore]
+pub fn typeof_primitive_int_test() {
+  let result = parse_and_run(r#"
+    ((let ((t (typeof 100)))
+       (print (instance? 100 t))
+       (print (instance? -2 t))
+       (print (instance? "A" t))
+       (print (instance? (Reference:new) t))))
+  "#);
+  assert_eq!(result, "\nTrue\nTrue\nFalse\nFalse\n");
+}
+
+#[test]
+#[ignore]
+pub fn typeof_primitive_string_test() {
+  let result = parse_and_run(r#"
+    ((let ((t (typeof "A")))
+       (print (instance? 100 t))
+       (print (instance? -2 t))
+       (print (instance? "A" t))
+       (print (instance? (Reference:new) t))))
+  "#);
+  assert_eq!(result, "\nFalse\nFalse\nTrue\nFalse\n");
+}
+
+#[test]
+#[ignore]
+pub fn typeof_array_test() {
+  let result = parse_and_run(r#"
+    ((let ((t (typeof [])))
+       (print (instance? [] t))
+       (print (instance? [3] t))
+       (print (instance? ((literally PoolIntArray) []) t))
+       (print (instance? (Reference:new) t))))
+  "#);
+  assert_eq!(result, "\nTrue\nTrue\nFalse\nFalse\n");
+}
+
+#[test]
+#[ignore]
+pub fn typeof_class_test() {
+  let result = parse_and_run(r#"
+    ((defclass Foo (Reference))
+     (let ((foo (Foo:new)))
+       (print (= (typeof foo) Foo))))
+  "#);
+  assert_eq!(result, "\nTrue\n");
+}
+
+#[test]
+#[ignore]
+pub fn typeof_ref_test() {
+  let result = parse_and_run(r#"
+    ((let ((r (Reference:new)))
+       (print (= (typeof r) Reference))))
+  "#);
+  assert_eq!(result, "\nTrue\n");
+}
+
+#[test]
+#[ignore]
+pub fn typeof_node_test() {
+  let result = parse_and_run(r#"
+    ((let ((node (Node2D:new)))
+       (print (= (typeof node) Node2D))
+       (node:free)))
+  "#);
+  assert_eq!(result, "\nTrue\n");
+}
