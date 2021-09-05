@@ -4,11 +4,11 @@
 use super::args::Expecting;
 use crate::sxp;
 use crate::sxp::ast::AST;
-use crate::ir::arglist::ArgListParseError;
+use crate::ir::arglist::{ArgListParseError, ArgListParseErrorF};
 use crate::ir::identifier::Namespace;
 use crate::ir::decl::DuplicateMainClassError;
 use crate::ir::import::{ImportDeclParseError, ImportNameResolutionError};
-use crate::ir::modifier::{ParseError as ModifierParseError};
+use crate::ir::modifier::{ParseError as ModifierParseError, ParseErrorF as ModifierParseErrorF};
 use crate::compile::symbol_table::local_var::VarNameIntoExtendsError;
 use crate::runner::path::RPathBuf;
 use crate::runner::macro_server::response;
@@ -229,115 +229,215 @@ const INTERNAL_ERROR_NOTE: &str = "Note: Unless you're doing something really st
 
 impl Error {
 
+  /// Constructs a new error from an `ErrorF` and a source offset.
   pub fn new(value: ErrorF, pos: SourceOffset) -> Error {
     Error { value, pos }
   }
 
+  /// Constructs a new error from a value compatible with `ErrorF` and
+  /// a source offset.
   pub fn from_value<T>(value: T, pos: SourceOffset) -> Error
   where ErrorF: From<T> {
     Error::new(ErrorF::from(value), pos)
+  }
+
+  /// Gets the unique identifier of the error shape. See
+  /// [`ErrorF::error_number`].
+  pub fn error_number(&self) -> u32 {
+    self.value.error_number()
+  }
+
+  /// Returns whether the error is internal to GDLisp. See
+  /// [`ErrorF::is_internal`].
+  pub fn is_internal(&self) -> bool {
+    self.value.is_internal()
+  }
+
+}
+
+impl ErrorF {
+
+  /// Produces a unique numerical value representing this type of
+  /// error, intended to make identifying the error easier for the
+  /// user.
+  pub fn error_number(&self) -> u32 {
+    match self {
+      // Note: Error code 0 is not used.
+      ErrorF::DottedListError => 1,
+      ErrorF::ArgListParseError(err) => {
+        match &err.value {
+          ArgListParseErrorF::InvalidArgument(_) => 2,
+          ArgListParseErrorF::UnknownDirective(_) => 3,
+          ArgListParseErrorF::DirectiveOutOfOrder(_) => 4,
+          ArgListParseErrorF::ModifiersNotAllowed => 5,
+        }
+      }
+      ErrorF::ImportDeclParseError(err) => {
+        match err {
+          ImportDeclParseError::NoFilename => 6,
+          ImportDeclParseError::BadFilename(_) => 7,
+          ImportDeclParseError::InvalidPath(_) => 8,
+          ImportDeclParseError::MalformedFunctionImport(_) => 9,
+          ImportDeclParseError::InvalidEnding(_) => 10,
+        }
+      }
+      ErrorF::CannotCall(_) => 11,
+      ErrorF::WrongNumberArgs(_, _, _) => 12,
+      ErrorF::InvalidArg(_, _, _) => 13,
+      ErrorF::NoSuchVar(_) => 14,
+      ErrorF::NoSuchFn(_) => 15,
+      ErrorF::NoSuchEnumValue(_, _) => 16,
+      ErrorF::NoSuchMagic(_) => 17,
+      ErrorF::UnknownDecl(_) => 18,
+      ErrorF::InvalidDecl(_) => 19,
+      ErrorF::UnquoteOutsideQuasiquote => 20,
+      ErrorF::UnquoteSplicedOutsideQuasiquote => 21,
+      ErrorF::BadUnquoteSpliced(_) => 22,
+      ErrorF::NoSuchFile(_) => 23,
+      ErrorF::AmbiguousNamespace(_) => 24,
+      ErrorF::NotConstantEnough(_) => 25,
+      ErrorF::CannotAssignTo(_) => 26,
+      ErrorF::CannotExtend(_) => 27,
+      ErrorF::ExportOnInnerClassVar(_) => 28,
+      #[allow(deprecated)]
+      ErrorF::ResourceDoesNotExist(_) => 29,
+      ErrorF::InvalidImportOnResource(_) => 30,
+      ErrorF::GodotServerError(_) => 31,
+      ErrorF::StaticConstructor => 32,
+      ErrorF::StaticOnLambdaClass(_) => 33,
+      ErrorF::ModifierParseError(err) => {
+        match &err.value {
+          ModifierParseErrorF::UniquenessError(_) => 34,
+          ModifierParseErrorF::Expecting(_, _) => 35,
+          ModifierParseErrorF::ExhaustedAlternatives => 36,
+        }
+      }
+      ErrorF::MacroInMinimalistError(_) => 37,
+      ErrorF::MacroBeforeDefinitionError(_) => 38,
+      ErrorF::DuplicateMainClass => 39,
+      ErrorF::ContextualFilenameUnresolved => 40,
+    }
+  }
+
+  /// Returns whether or not the error is an internal GDLisp error.
+  /// Internal GDLisp errors are those that the compiler emits which
+  /// should generally never be seen by users. If a user encounters
+  /// such an error, it is probably a bug in the GDLisp compiler, and
+  /// such errors are displayed with a disclaimer indicating as much.
+  pub fn is_internal(&self) -> bool {
+    match self {
+      ErrorF::NoSuchMagic(_) => true,
+      ErrorF::MacroInMinimalistError(_) => true,
+      ErrorF::ContextualFilenameUnresolved => true,
+      _ => false,
+    }
   }
 
 }
 
 impl fmt::Display for ErrorF {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    write!(f, "Error {:04}: ", self.error_number())?;
     match self {
       ErrorF::DottedListError => {
-        write!(f, "Unexpected dotted list")
+        write!(f, "Unexpected dotted list")?;
       }
       ErrorF::ArgListParseError(err) => {
-        write!(f, "{}", err)
+        write!(f, "Error parsing argument list: {}", err)?;
       }
       ErrorF::ImportDeclParseError(err) => {
-        write!(f, "{}", err)
+        write!(f, "Error parsing import declaration: {}", err)?;
       }
       ErrorF::CannotCall(ast) => {
-        write!(f, "Cannot make function call on expression {}", ast)
+        write!(f, "Cannot make function call on expression {}", ast)?;
       }
       ErrorF::WrongNumberArgs(name, expected, actual) => {
-        write!(f, "Wrong number of arguments to call {}: expected {}, got {}", name, expected, actual)
+        write!(f, "Wrong number of arguments to call {}: expected {}, got {}", name, expected, actual)?;
       }
       ErrorF::InvalidArg(name, provided, expected) => {
-        write!(f, "Invalid argument to {}, given {}, expecting {}", name, provided, expected)
+        write!(f, "Invalid argument to {}, given {}, expecting {}", name, provided, expected)?;
       }
       ErrorF::NoSuchVar(name) => {
-        write!(f, "No such variable {}", name)
+        write!(f, "No such variable {}", name)?;
       }
       ErrorF::NoSuchFn(name) => {
-        write!(f, "No such function {}", name)
+        write!(f, "No such function {}", name)?;
       }
       ErrorF::NoSuchEnumValue(name, subname) => {
-        write!(f, "No such enum value {}:{}", name, subname)
+        write!(f, "No such enum value {}:{}", name, subname)?;
       }
       ErrorF::NoSuchMagic(name) => {
-        write!(f, "No such call magic {} ({})", name, INTERNAL_ERROR_NOTE)
+        write!(f, "No such call magic {}", name)?;
       }
       ErrorF::UnknownDecl(ast) => {
-        write!(f, "Unknown declaration {}", ast)
+        write!(f, "Unknown declaration {}", ast)?;
       }
       ErrorF::InvalidDecl(ast) => {
-        write!(f, "Invalid declaration {}", ast)
+        write!(f, "Invalid declaration {}", ast)?;
       }
       ErrorF::UnquoteOutsideQuasiquote => {
-        write!(f, "Unquote (,) can only be used inside quasiquote (`)")
+        write!(f, "Unquote (,) can only be used inside quasiquote (`)")?;
       }
       ErrorF::UnquoteSplicedOutsideQuasiquote => {
-        write!(f, "Spliced unquote (,.) can only be used inside quasiquote (`)")
+        write!(f, "Spliced unquote (,.) can only be used inside quasiquote (`)")?;
       }
       ErrorF::BadUnquoteSpliced(ast) => {
-        write!(f, "Spliced unquote (,.) does not make sense in this context: {}", ast)
+        write!(f, "Spliced unquote (,.) does not make sense in this context: {}", ast)?;
       }
       ErrorF::NoSuchFile(p) => {
-        write!(f, "Cannot locate file {}", p)
+        write!(f, "Cannot locate file {}", p)?;
       }
       ErrorF::AmbiguousNamespace(s) => {
-        write!(f, "Ambiguous namespace when importing {}", s)
+        write!(f, "Ambiguous namespace when importing {}", s)?;
       }
       ErrorF::NotConstantEnough(s) => {
-        write!(f, "Expression for constant declaration {} is not constant enough", s)
+        write!(f, "Expression for constant declaration {} is not constant enough", s)?;
       }
       ErrorF::CannotAssignTo(s) => {
-        write!(f, "Cannot assign to immutable variable {}", s)
+        write!(f, "Cannot assign to immutable variable {}", s)?;
       }
       ErrorF::CannotExtend(s) => {
-        write!(f, "Cannot extend expression {}", s)
+        write!(f, "Cannot extend expression {}", s)?;
       }
       ErrorF::ExportOnInnerClassVar(v) => {
-        write!(f, "Export declarations can only be used on a file's main class, but one was found on {}", v)
+        write!(f, "Export declarations can only be used on a file's main class, but one was found on {}", v)?;
       }
       #[allow(deprecated)]
       ErrorF::ResourceDoesNotExist(s) => {
-        write!(f, "Resource {} does not exist", s)
+        write!(f, "Resource {} does not exist", s)?;
       }
       ErrorF::InvalidImportOnResource(s) => {
-        write!(f, "Cannot use restricted or open import lists on resource import at {}", s)
+        write!(f, "Cannot use restricted or open import lists on resource import at {}", s)?;
       }
       ErrorF::GodotServerError(err) => {
-        write!(f, "Error during Godot server task execution (error code {}): {}", err.error_code, err.error_string)
+        write!(f, "Error during Godot server task execution (error code {}): {}", err.error_code, err.error_string)?;
       }
       ErrorF::StaticConstructor => {
-        write!(f, "Class constructors cannot be static")
+        write!(f, "Class constructors cannot be static")?;
       }
       ErrorF::StaticOnLambdaClass(s) => {
-        write!(f, "Static name {} is not allowed on anonymous class instance", s)
+        write!(f, "Static name {} is not allowed on anonymous class instance", s)?;
       }
       ErrorF::ModifierParseError(m) => {
-        write!(f, "Modifier error: {}", m)
+        write!(f, "Modifier error: {}", m)?;
       }
       ErrorF::MacroInMinimalistError(m) => {
-        write!(f, "Attempt to expand macro {} in minimalist file ({})", m, INTERNAL_ERROR_NOTE)
+        write!(f, "Attempt to expand macro {} in minimalist file", m)?;
       }
       ErrorF::MacroBeforeDefinitionError(m) => {
-        write!(f, "Attempt to use macro {} before definition was available", m)
+        write!(f, "Attempt to use macro {} before definition was available", m)?;
       }
       ErrorF::DuplicateMainClass => {
-        write!(f, "File has two main classes") // TODO Would be nice to have the source offset of the *original* main class here as well.
+        write!(f, "File has two main classes")?; // TODO Would be nice to have the source offset of the *original* main class here as well.
       }
       ErrorF::ContextualFilenameUnresolved => {
-        write!(f, "Could not resolve contextual filename of current file ({})", INTERNAL_ERROR_NOTE)
+        write!(f, "Could not resolve contextual filename of current file")?;
       }
     }
+    if self.is_internal() {
+      write!(f, " ({})", INTERNAL_ERROR_NOTE)?;
+    }
+    Ok(())
   }
 }
 

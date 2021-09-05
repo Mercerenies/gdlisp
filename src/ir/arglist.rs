@@ -31,7 +31,7 @@ pub enum ArgListParseErrorF {
   InvalidArgument(AST),
   UnknownDirective(String),
   DirectiveOutOfOrder(String),
-  ModifiersNotAllowed,
+  ModifiersNotAllowed, // TODO This "modifier" is not the same as the way our modifiers module uses the word "modifier"; change this to something else, to be perfectly clear
 }
 
 #[derive(Debug, Clone, Eq, PartialEq)]
