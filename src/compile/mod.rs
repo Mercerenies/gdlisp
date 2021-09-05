@@ -438,6 +438,7 @@ impl Compiler {
         ImportDetails::Named(s) => s.to_owned(),
         _ => return Err(PError::from(Error::new(ErrorF::InvalidImportOnResource(import.filename.to_string()), import.pos))),
       };
+      // TODO Check that the file exists?
       let var = LocalVar::file_constant(preload_name);
       // TODO Value hint? It would have to be based on the file extension / what resource type it is.
       // (e.g. *.gd would be ClassHint, but *.tres or *.png would not be)
