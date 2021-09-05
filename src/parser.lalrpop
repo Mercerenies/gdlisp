@@ -43,8 +43,8 @@ pub AST: AST = {
 }
 
 pub SomeAST: AST = {
-  <pos:@L> <one: AST> => AST::new(ASTF::cons(one, AST::new(ASTF::Nil, SourceOffset(pos))), SourceOffset(pos)),
-  <pos:@L> <first: AST> <rest: SomeAST> => AST::new(ASTF::cons(first, rest), SourceOffset(pos)),
+  <pos:@L> <one: AST> => AST::cons(one, AST::nil(SourceOffset(pos)), SourceOffset(pos)),
+  <pos:@L> <first: AST> <rest: SomeAST> => AST::cons(first, rest, SourceOffset(pos)),
 }
 
 // This is here to fix an ambiguity with the grammar. Specifically, I
@@ -55,16 +55,16 @@ pub SomeAST: AST = {
 // more nebulous, as there are use cases for either possible parse of
 // ,a:b, but I'm treating it the same as the other three for now.
 pub LiteralOrNestedAST: AST = {
-  <pos:@L> "#t" => AST::new(ASTF::Bool(true), SourceOffset(pos)),
-  <pos:@L> "#f" => AST::new(ASTF::Bool(false), SourceOffset(pos)),
-  <pos:@L> <i: Int> => AST::new(ASTF::Int(i), SourceOffset(pos)),
-  <pos:@L> <f: Float> => AST::new(ASTF::Float(f.into()), SourceOffset(pos)),
-  <pos:@L> <s: String> => AST::new(ASTF::String(s), SourceOffset(pos)), // TODO Escaping
-  <pos:@L> <s: Symbol> => AST::new(ASTF::Symbol(s), SourceOffset(pos)),
-  <pos:@L> "(" ")" => AST::new(ASTF::Nil, SourceOffset(pos)),
-  <pos:@L> "(" <car: AST> <cdr: Cdr> ")" => AST::new(ASTF::Cons(Box::new(car), Box::new(cdr)), SourceOffset(pos)),
-  <pos:@L> "[" <contents: ArrayContents> "]" => AST::new(ASTF::Array(contents), SourceOffset(pos)),
-  <pos:@L> "{" <contents: DictContents> "}" => AST::new(ASTF::Dictionary(contents), SourceOffset(pos)),
+  <pos:@L> "#t" => AST::from_value(true, SourceOffset(pos)),
+  <pos:@L> "#f" => AST::from_value(false, SourceOffset(pos)),
+  <pos:@L> <i: Int> => AST::from_value(i, SourceOffset(pos)),
+  <pos:@L> <f: Float> => AST::from_value(f, SourceOffset(pos)),
+  <pos:@L> <s: String> => AST::string(s, SourceOffset(pos)), // TODO Escaping
+  <pos:@L> <s: Symbol> => AST::symbol(s, SourceOffset(pos)),
+  <pos:@L> "(" ")" => AST::nil(SourceOffset(pos)),
+  <pos:@L> "(" <car: AST> <cdr: Cdr> ")" => AST::cons(car, cdr, SourceOffset(pos)),
+  <pos:@L> "[" <contents: ArrayContents> "]" => AST::array(contents, SourceOffset(pos)),
+  <pos:@L> "{" <contents: DictContents> "}" => AST::dictionary(contents, SourceOffset(pos)),
   <pos:@L> "V{" <x: AST> <y: AST> "}" => AST::dotted_list(vec!(AST::symbol("vector", SourceOffset(pos)), x, y), AST::nil(SourceOffset(pos))),
   <pos:@L> "V{" <x: AST> <y: AST> <z: AST> "}" => AST::dotted_list(vec!(AST::symbol("vector", SourceOffset(pos)), x, y, z), AST::nil(SourceOffset(pos))),
   <pos:@L> <body: LiteralOrNestedAST> ":" <rpos:@L> <name: Symbol> => AST::dotted_list(vec!(AST::symbol("access-slot", SourceOffset(pos)), body, AST::new(ASTF::Symbol(name), SourceOffset(rpos))), AST::nil(SourceOffset(pos))),

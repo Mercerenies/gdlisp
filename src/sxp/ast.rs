@@ -80,14 +80,16 @@ impl ASTF {
 
   /// An [`ASTF::String`]. Copies the string argument into a new
   /// [`ASTF`] value.
-  pub fn string(s: &str) -> ASTF {
-    ASTF::String(s.to_owned())
+  pub fn string<S>(s: S) -> ASTF
+  where String : From<S> {
+    ASTF::String(String::from(s))
   }
 
   /// An [`ASTF::Symbol`]. Copies the string argument into a new
   /// [`ASTF`] value.
-  pub fn symbol(s: &str) -> ASTF {
-    ASTF::Symbol(s.to_string())
+  pub fn symbol<S>(s: S) -> ASTF
+  where String : From<S> {
+    ASTF::Symbol(String::from(s))
   }
 
 }
@@ -107,12 +109,14 @@ impl AST {
   }
 
   /// An [`ASTF::Symbol`] with the given value.
-  pub fn symbol(name: &str, pos: SourceOffset) -> AST {
+  pub fn symbol<S>(name: S, pos: SourceOffset) -> AST
+  where String : From<S> {
     AST::new(ASTF::symbol(name), pos)
   }
 
   /// An [`ASTF::String`] with the given value.
-  pub fn string(name: &str, pos: SourceOffset) -> AST {
+  pub fn string<S>(name: S, pos: SourceOffset) -> AST
+  where String : From<S> {
     AST::new(ASTF::string(name), pos)
   }
 
@@ -331,6 +335,12 @@ impl AST {
     AST::new(ASTF::Dictionary(vec), pos)
   }
 
+  /// Uses a [`From`] instance of [`ASTF`] to construct an `AST`.
+  pub fn from_value<T>(value: T, pos: SourceOffset) -> AST
+  where ASTF : From<T> {
+    AST::new(ASTF::from(value), pos)
+  }
+
 }
 
 /// Pretty-print an AST, using a format compatible with [`parser`](crate::parser).
@@ -405,6 +415,42 @@ impl Recursive for AST {
     }
   }
 
+}
+
+impl From<()> for ASTF {
+  fn from(_: ()) -> ASTF {
+    ASTF::Nil
+  }
+}
+
+impl From<i32> for ASTF {
+  fn from(n: i32) -> ASTF {
+    ASTF::Int(n)
+  }
+}
+
+impl From<bool> for ASTF {
+  fn from(b: bool) -> ASTF {
+    ASTF::Bool(b)
+  }
+}
+
+impl From<f32> for ASTF {
+  fn from(f: f32) -> ASTF {
+    ASTF::Float(OrderedFloat(f))
+  }
+}
+
+impl From<String> for ASTF {
+  fn from(s: String) -> ASTF {
+    ASTF::String(s)
+  }
+}
+
+impl<'a> From<&'a str> for ASTF {
+  fn from(s: &'a str) -> ASTF {
+    ASTF::from(String::from(s))
+  }
 }
 
 #[cfg(test)]
