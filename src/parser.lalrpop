@@ -3,6 +3,7 @@
 use std::str::FromStr;
 use crate::sxp::ast::{AST, ASTF};
 use crate::sxp::string;
+use crate::sxp::syntax;
 use crate::pipeline::source::SourceOffset;
 
 grammar;
@@ -34,11 +35,11 @@ match {
 
 pub AST: AST = {
   <ast: LiteralOrNestedAST> => ast,
-  <pos:@L> "'" <body: AST> => AST::dotted_list(vec!(AST::new(ASTF::Symbol(String::from("quote")), SourceOffset(pos)), body), AST::new(ASTF::Nil, SourceOffset(pos))),
-  <pos:@L> "#'" <body: AST> => AST::dotted_list(vec!(AST::new(ASTF::Symbol(String::from("function")), SourceOffset(pos)), body), AST::new(ASTF::Nil, SourceOffset(pos))),
-  <pos:@L> "`" <body: AST> => AST::dotted_list(vec!(AST::new(ASTF::Symbol(String::from("quasiquote")), SourceOffset(pos)), body), AST::new(ASTF::Nil, SourceOffset(pos))),
-  <pos:@L> "," <body: AST> => AST::dotted_list(vec!(AST::new(ASTF::Symbol(String::from("unquote")), SourceOffset(pos)), body), AST::new(ASTF::Nil, SourceOffset(pos))),
-  <pos:@L> ",." <body: AST> => AST::dotted_list(vec!(AST::new(ASTF::Symbol(String::from("unquote-spliced")), SourceOffset(pos)), body), AST::new(ASTF::Nil, SourceOffset(pos))),
+  <pos:@L> "'" <body: AST> => syntax::quote(body, SourceOffset(pos)),
+  <pos:@L> "#'" <body: AST> => syntax::function(body, SourceOffset(pos)),
+  <pos:@L> "`" <body: AST> => syntax::quasiquote(body, SourceOffset(pos)),
+  <pos:@L> "," <body: AST> => syntax::unquote(body, SourceOffset(pos)),
+  <pos:@L> ",." <body: AST> => syntax::unquote_spliced(body, SourceOffset(pos)),
 }
 
 pub SomeAST: AST = {
