@@ -201,31 +201,28 @@ pub fn nothing_instance_check_test() {
   assert_eq!(result, "\nFalse\nFalse\nFalse\nFalse\nFalse\nFalse\nFalse\n");
 }
 
-// TODO Add some other kind of array (PoolColorArray, etc.) to the
-// below tests, once we can construct them (currently, PoolColorArray
-// is not a function in GDLisp, because it's a pseudo-function-object
-// thing in Godot that we need to decide how to deal with)
-
 #[test]
 #[ignore]
 pub fn array_instance_check_test() {
   let result = parse_and_run(r#"
     ((print (instance? (Reference:new) Array))
      (print (instance? 3 Array))
-     (print (instance? [3] Array)))
+     (print (instance? [3] Array))
+     (print (instance? ((literally PoolIntArray) [3]) Array)))
   "#);
-  assert_eq!(result, "\nFalse\nFalse\nTrue\n");
+  assert_eq!(result, "\nFalse\nFalse\nTrue\nFalse\n");
 }
 
 #[test]
 #[ignore]
 pub fn specific_array_instance_check_test() {
   let result = parse_and_run(r#"
-    ((print (instance? (Reference:new) PoolColorArray))
-     (print (instance? 3 PoolColorArray))
-     (print (instance? [3] PoolColorArray)))
+    ((print (instance? (Reference:new) PoolIntArray))
+     (print (instance? 3 PoolIntArray))
+     (print (instance? [3] PoolIntArray))
+     (print (instance? ((literally PoolIntArray) [3]) PoolIntArray)))
   "#);
-  assert_eq!(result, "\nFalse\nFalse\nFalse\n");
+  assert_eq!(result, "\nFalse\nFalse\nFalse\nTrue\n");
 }
 
 #[test]
@@ -234,7 +231,8 @@ pub fn base_array_instance_check_test() {
   let result = parse_and_run(r#"
     ((print (instance? (Reference:new) BaseArray))
      (print (instance? 3 BaseArray))
-     (print (instance? [3] BaseArray)))
+     (print (instance? [3] BaseArray))
+     (print (instance? ((literally PoolIntArray) [3]) BaseArray)))
   "#);
-  assert_eq!(result, "\nFalse\nFalse\nTrue\n");
+  assert_eq!(result, "\nFalse\nFalse\nTrue\nTrue\n");
 }
