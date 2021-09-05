@@ -1,6 +1,8 @@
 
 //! A list of all built-in GDScript classes.
 
+// TODO Should we make the Mono-only names conditionally available? It seems CSharpScript and GodotSharp are the relevant names that don't exist in non-Mono environments
+
 /// A list of all built-in GDScript classes which are always available
 /// from the top-level scope.
 ///
@@ -17,7 +19,7 @@
 /// first-class objects on the Godot side. I already removed a few
 /// (`int`, `float`, `Vector2`, `Vector3`, etc.), but I'm sure there are more
 /// that need to be dealt with.
-pub static GDSCRIPT_CLASS_NAMES: [&str; 625] = [
+pub static GDSCRIPT_CLASS_NAMES: [&str; 622] = [
 //"AABB",
   "AcceptDialog",
   "AnimatedSprite",
@@ -170,7 +172,7 @@ pub static GDSCRIPT_CLASS_NAMES: [&str; 625] = [
   "CSGShape",
   "CSGSphere",
   "CSGTorus",
-  "CSharpScript",
+//"CSharpScript",
   "CubeMap",
   "CubeMesh",
   "Curve",
@@ -231,7 +233,7 @@ pub static GDSCRIPT_CLASS_NAMES: [&str; 625] = [
   "GeometryInstance",
   "GIProbe",
   "GIProbeData",
-  "GodotSharp",
+//"GodotSharp",
   "Gradient",
   "GradientTexture",
   "GraphEdit",
@@ -518,7 +520,7 @@ pub static GDSCRIPT_CLASS_NAMES: [&str; 625] = [
   "UndoRedo",
   "UPNP",
   "UPNPDevice",
-  "Variant",
+//"Variant",
   "VBoxContainer",
 //"Vector2",
 //"Vector3",
