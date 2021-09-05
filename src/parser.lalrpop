@@ -21,6 +21,7 @@ NodePath: String = <s:PATH> => String::from(&s[1..]);
 match {
   r"\s*" => {},
   r";[^\n\r]*[\n\r]?" => {}, // Line comments (starting with semicolon)
+  r"#\|([^|]|\|[^#])*\|#" => {}, // Block comments (nesting is not currently allowed)
   "#t", "#f",
   r"[+-]?[0-9]+" => INT,
   r"[+-]?[0-9]+((\.[0-9]+)([eE][+-]?[0-9]+)?|(\.[0-9]+)?([eE][+-]?[0-9]+))" => FLOAT,

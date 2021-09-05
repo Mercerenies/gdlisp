@@ -69,6 +69,9 @@ mod tests {
     assert_eq!(p.parse("\"abcdef\" ;; test comment").unwrap(), AST::string("abcdef", so(0)));
     assert_eq!(p.parse("\"abc ;; def\"").unwrap(), AST::string("abc ;; def", so(0))); // Note: Not a comment
     assert_eq!(p.parse("(a ;; b \n\n\n c)").unwrap(), AST::cons(AST::symbol("a", so(1)), AST::cons(AST::symbol("c", so(12)), AST::nil(so(13)), so(12)), so(0)));
+    assert_eq!(p.parse("\"abcdef\" #| test comment |#").unwrap(), AST::string("abcdef", so(0)));
+    assert_eq!(p.parse("\"abc #| |# def\"").unwrap(), AST::string("abc #| |# def", so(0))); // Note: Not a comment
+    assert_eq!(p.parse("(a #| b |# c)").unwrap(), AST::cons(AST::symbol("a", so(1)), AST::cons(AST::symbol("c", so(11)), AST::nil(so(12)), so(11)), so(0)));
   }
 
   #[test]
