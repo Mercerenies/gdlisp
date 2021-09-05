@@ -651,7 +651,7 @@ impl IncCompiler {
         }
       }
     } else {
-      Err(PError::from(Error::new(ErrorF::InvalidDecl(curr.clone()), curr.pos)))
+      Err(PError::from(Error::new(ErrorF::UnknownDecl(curr.clone()), curr.pos)))
     }
   }
 
