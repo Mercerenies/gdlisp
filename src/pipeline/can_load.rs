@@ -16,13 +16,29 @@ use super::Pipeline;
 /// to the viewer and the type checker that they only need a limited
 /// part of the `Pipeline` functionality.
 pub trait CanLoad {
+
   /// Gets the current filename, or `None` if there is no current
   /// file.
-  fn current_filename(&self) -> Option<RPathBuf>;
+  fn current_filename_option(&self) -> Option<RPathBuf>;
+
+  /// As
+  /// [`current_filename_option`](CanLoad::current_filename_option),
+  /// but panics in case of `None`. Generally, when we call the
+  /// functions on this trait, we fully expect our pipeline (or
+  /// equivalent object) to be in a fully-initialized state. If this
+  /// precondition is violated, we should fail fast.
+  ///
+  /// # Panics
+  ///
+  /// Panics if `current_filename_option` returns `None`.
+  fn current_filename(&self) -> RPathBuf {
+    self.current_filename_option().expect("Could not identify current filename")
+  }
+
 }
 
 impl CanLoad for Pipeline {
-  fn current_filename(&self) -> Option<RPathBuf> {
+  fn current_filename_option(&self) -> Option<RPathBuf> {
     let mut filename = self.currently_loading_file()?.to_owned();
     filename.path_mut().set_extension("gd");
     Some(filename)

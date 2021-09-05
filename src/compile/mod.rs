@@ -301,7 +301,7 @@ impl Compiler {
       }
       IRDeclF::ClassDecl(ir::decl::ClassDecl { name, main_class, .. }) => {
         if *main_class {
-          let var = LocalVar::current_file(pipeline.current_filename().expect("Could not identify current filename").to_string()).with_hint(ValueHint::ClassName); // TODO Expect?
+          let var = LocalVar::current_file(pipeline.current_filename().to_string()).with_hint(ValueHint::ClassName);
           table.set_var(name.clone(), var);
         } else {
           let var = LocalVar::file_constant(names::lisp_to_gd(name))

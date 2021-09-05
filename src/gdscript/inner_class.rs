@@ -54,8 +54,8 @@ pub fn add_outer_class_ref_named(inner_class: &mut decl::ClassDecl, resolver: &d
 /// fails.
 pub fn get_current_filename<L, R>(current_file: &L, resolver: &R) -> Option<String>
 where L : CanLoad + ?Sized,
-      R : PreloadResolver + ?Sized{
-  current_file.current_filename().and_then(|fname| resolver.resolve_preload(&fname))
+      R : PreloadResolver + ?Sized {
+  resolver.resolve_preload(&current_file.current_filename())
 }
 
 /// Trait for objects, such as declarations, which may need an outer

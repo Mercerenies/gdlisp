@@ -50,7 +50,7 @@ pub fn create_macro_file(pipeline: &mut Pipeline, imports: Vec<ImportDecl>, src_
   let mut table = SymbolTable::new();
   library::bind_builtins(&mut table, minimalist);
 
-  let current_filename = pipeline.current_filename().expect("Error identifying current filename"); // TODO Expect?
+  let current_filename = pipeline.current_filename();
   let mut tmp_file = make_tmp().map_err(|err| IOError::new(err, pos))?;
   let mut resolver = pipeline.make_preload_resolver();
   // Replace the current file name with the macro file name.

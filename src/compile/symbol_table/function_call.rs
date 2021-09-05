@@ -3,6 +3,7 @@
 //! about functions.
 
 use crate::gdscript::expr::Expr;
+use crate::gdscript::inner_class;
 use crate::ir::arglist::VarArg;
 use crate::compile::Compiler;
 use crate::compile::error::Error;
@@ -362,9 +363,14 @@ impl FnName {
   /// [`FnName::update_for_inner_scope`] for details on why this is
   /// necessary. Note that this function is usually called *through*
   /// that one and should seldom be called directly.
+  ///
+  /// # Panics
+  ///
+  /// If the current filename cannot be detected from `loader`, or if
+  /// `resolver` fails to resolve the name given by `loader`, then
+  /// this function will panic.
   pub fn inner_static_load(resolver: &(impl PreloadResolver + ?Sized), loader: &impl CanLoad) -> FnName {
-    let fname = loader.current_filename()
-      .and_then(|fname| resolver.resolve_preload(&fname))
+    let fname = inner_class::get_current_filename(loader, resolver)
       .expect("Cannot identify currently-loading filename");
     FnName::on_local_var(VarName::CurrentFile(fname))
   }
