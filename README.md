@@ -14,6 +14,8 @@ stdin input to GDScript.
 GDLisp is early in development and is very clearly not ready for actual use.
 
 The current version of GDLisp is tested against [Godot
+3.4](https://godotengine.org/article/godot-3-4-is-released) (non-Mono)
+and [Godot
 3.3.3](https://godotengine.org/article/maintenance-release-godot-3-3-3)
 (non-Mono) and expects a command called `godot` to be on your system's
 path which points to the Godot executable.
