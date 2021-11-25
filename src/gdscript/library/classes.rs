@@ -10,7 +10,7 @@
 ///
 /// © Copyright 2014-2020, Juan Linietsky, Ariel Manzur and the Godot community (CC-BY 3.0) Revision 3239b4b5.
 ///
-/// [https://docs.godotengine.org/en/stable/classes/index.html]
+/// <https://docs.godotengine.org/en/stable/classes/index.html>
 ///
 /// Also note: `@GlobalScope` and `@GDScript` are not included here, as we
 /// cannot access them directly from GDScript anyway.
