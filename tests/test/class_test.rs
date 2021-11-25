@@ -817,3 +817,11 @@ pub fn no_self_in_scope_test() {
     Err(PError::from(GDError::new(GDErrorF::NoSuchVar(String::from("self")), SourceOffset(0)))),
   );
 }
+
+#[test]
+pub fn duplicate_constructor_test() {
+  assert_eq!(
+    parse_compile_decl_err("((defclass Foo (Node) (defn _init ()) (defn _init ())))"),
+    Err(PError::from(GDError::new(GDErrorF::DuplicateConstructor, SourceOffset(39)))),
+  );
+}

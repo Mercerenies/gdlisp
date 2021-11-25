@@ -219,3 +219,11 @@ pub fn lambda_class_access_static_fn_test_2() {
   let output = parse_and_run("((defn foo () 100) (let ((x (new Reference (defvar x) (defn _init () (set self:x (foo)))))) (print x:x)))");
   assert_eq!(output, "\n100\n");
 }
+
+#[test]
+pub fn lambda_class_duplicate_constructor_test() {
+  assert_eq!(
+    parse_compile_decl_err("((new Node (defn _init ()) (defn _init ())))"),
+    Err(PError::from(GDError::new(GDErrorF::DuplicateConstructor, SourceOffset(28)))),
+  );
+}

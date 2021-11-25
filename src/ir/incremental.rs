@@ -604,14 +604,22 @@ impl IncCompiler {
             let body = body.iter().map(|expr| self.compile_expr(pipeline, expr)).collect::<Result<Vec<_>, _>>()?;
             if fname == "_init" {
               // Constructor
+
+              // There can only be one constructor defined in the class
+              if acc.constructor.is_some() {
+                return Err(PError::from(Error::new(ErrorF::DuplicateConstructor, vec[0].pos)));
+              }
+
               let super_call = super_call.unwrap_or_default();
               let mut constructor = decl::ConstructorDecl { args, super_call, body: Expr::progn(body, vec[0].pos) };
               for m in mods {
                 m.apply_to_constructor(&mut constructor)?;
               }
               acc.constructor = Some(constructor);
+
             } else {
               // Ordinary functions cannot have super
+
               if super_call.is_some() {
                 return Err(PError::from(Error::new(ErrorF::NoSuchFn(String::from("super")), vec[0].pos)));
               }
@@ -625,6 +633,7 @@ impl IncCompiler {
                 m.apply(&mut decl);
               }
               acc.decls.push(decl::ClassInnerDecl::new(decl::ClassInnerDeclF::ClassFnDecl(decl), vec[0].pos));
+
             }
             Ok(())
           } else {

@@ -215,6 +215,9 @@ pub enum ErrorF {
   ///
   /// If you ever encounter this error, please report it as a bug.
   ContextualFilenameUnresolved,
+  /// Two or more constructors were defined in the same class or
+  /// lambda class.
+  DuplicateConstructor,
 }
 
 /// Variant of [`ErrorF`] with source offset information. See
@@ -316,6 +319,7 @@ impl ErrorF {
       ErrorF::MacroBeforeDefinitionError(_) => 38,
       ErrorF::DuplicateMainClass => 39,
       ErrorF::ContextualFilenameUnresolved => 40,
+      ErrorF::DuplicateConstructor => 41,
     }
   }
 
@@ -432,6 +436,9 @@ impl fmt::Display for ErrorF {
       }
       ErrorF::ContextualFilenameUnresolved => {
         write!(f, "Could not resolve contextual filename of current file")?;
+      }
+      ErrorF::DuplicateConstructor => {
+        write!(f, "Class has two constructors")?; // TODO Would be nice to have the source offset of the *original* constructor here as well.
       }
     }
     if self.is_internal() {
