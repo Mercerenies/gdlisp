@@ -5,6 +5,7 @@
 use crate::ir::expr::{Locals, Functions, LambdaClass, LocalFnClause};
 use crate::compile::symbol_table::local_var::VarScope;
 use crate::compile::symbol_table::SymbolTable;
+use crate::pipeline::source::SourceOffset;
 use super::lambda::closure_fn_to_gd_var; // TODO Move this function over to this module
 
 type IRArgList = crate::ir::arglist::ArgList;
@@ -157,7 +158,7 @@ impl<'a> From<&'a LambdaClass> for ClosureData {
   /// in general, a `self` variable that gets implicitly overwritten
   /// by the class' `self`.
   fn from(class: &'a LambdaClass) -> ClosureData {
-    let (mut closure_vars, mut closure_fns) = class.constructor.get_names();
+    let (mut closure_vars, mut closure_fns) = class.constructor_or_default(SourceOffset::from(0)).get_names();
     for d in &class.decls {
       let (decl_vars, decl_fns) = d.get_names();
       closure_vars.merge_with(decl_vars);

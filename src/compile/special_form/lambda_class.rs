@@ -66,6 +66,16 @@ pub fn compile_lambda_class(frame: &mut CompilerFrame<StmtBuilder>,
   let gd_src_closure_vars = closure.to_gd_closure_vars(table);
 
   // Build the constructor for the lambda class.
+  let default_constructor: ir::decl::ConstructorDecl;
+  let constructor = match constructor {
+    None => {
+      default_constructor = ir::decl::ConstructorDecl::empty(pos);
+      &default_constructor
+    }
+    Some(c) => {
+      &c
+    }
+  };
   let (constructor, constructor_helpers) = compile_lambda_class_constructor(&mut compiler.frame(pipeline, *builder, &mut lambda_table), &constructor, &gd_closure_vars, pos)?;
 
   // Build the class body for the lambda class.

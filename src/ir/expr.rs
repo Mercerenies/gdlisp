@@ -12,6 +12,7 @@ use crate::runner::path::RPathBuf;
 
 use std::collections::HashSet;
 use std::collections::hash_map::RandomState;
+use std::borrow::Cow;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ExprF {
@@ -64,7 +65,7 @@ pub enum FuncRefTarget {
 pub struct LambdaClass {
   pub extends: String,
   pub args: Vec<Expr>,
-  pub constructor: decl::ConstructorDecl,
+  pub constructor: Option<decl::ConstructorDecl>,
   pub decls: Vec<decl::ClassInnerDecl>,
 }
 
@@ -296,7 +297,9 @@ impl Expr {
         }
         acc_vars.visit(extends.to_owned(), AccessType::ClosedRead);
 
-        let (mut con_vars, con_fns) = constructor.get_names();
+        let (mut con_vars, con_fns) =
+          constructor.as_ref().map_or_else(|| (ClosureNames::new(), ClosureNames::new()),
+                                           |x| x.get_names());
         for (_, access_type) in con_vars.iter_mut() {
           *access_type = access_type.closed();
         }
@@ -360,6 +363,15 @@ impl Expr {
     let vars = vars.into_names().map(|x| Id::new(Namespace::Value, x));
     let fns = fns.into_names().map(|x| Id::new(Namespace::Function, x));
     Iterator::chain(vars, fns)
+  }
+
+}
+
+impl LambdaClass {
+
+  /// See [`decl::ClassDecl::constructor_or_default`].
+  pub fn constructor_or_default(&self, default_pos: SourceOffset) -> Cow<decl::ConstructorDecl> {
+    self.constructor.as_ref().map_or_else(|| Cow::Owned(decl::ConstructorDecl::empty(default_pos)), Cow::Borrowed)
   }
 
 }

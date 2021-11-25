@@ -309,7 +309,7 @@ pub fn new_form(icompiler: &mut IncCompiler,
     _ => return Err(Error::from(GDError::new(GDErrorF::InvalidArg(String::from("new"), tail[0].clone(), String::from("superclass declaration")), pos))),
   };
   let super_args = super_call[1..].iter().map(|arg| icompiler.compile_expr(pipeline, arg)).collect::<Result<Vec<_>, _>>()?;
-  let mut cls = decl::ClassDecl::new(String::from("(local anonymous class)"), superclass, pos);
+  let mut cls = decl::ClassDecl::new(String::from("(local anonymous class)"), superclass);
   for decl in &tail[1..] {
     icompiler.compile_class_inner_decl(pipeline, &mut cls, decl)?;
   }

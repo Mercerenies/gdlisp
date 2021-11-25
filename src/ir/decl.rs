@@ -9,6 +9,7 @@ use crate::gdscript::decl::Static;
 use crate::pipeline::source::{SourceOffset, Sourced};
 
 use std::collections::HashSet;
+use std::borrow::Cow;
 
 #[derive(Clone, Debug, Eq, PartialEq, Default)]
 pub struct TopLevel {
@@ -78,7 +79,7 @@ pub struct ClassDecl {
   pub name: String,
   pub extends: String,
   pub main_class: bool,
-  pub constructor: ConstructorDecl,
+  pub constructor: Option<ConstructorDecl>,
   pub decls: Vec<ClassInnerDecl>,
 }
 
@@ -245,7 +246,7 @@ impl Decl {
       DeclF::ClassDecl(c) => {
         let mut ids = HashSet::new();
         ids.insert(Id::new(Namespace::Value, c.extends.to_owned()));
-        ids.extend(c.constructor.dependencies());
+        ids.extend(c.constructor_or_default(SourceOffset::from(0)).dependencies());
         for d in &c.decls {
           ids.extend(d.dependencies());
         }
@@ -326,15 +327,23 @@ impl EnumDecl {
 
 impl ClassDecl {
 
-  pub fn new(name: String, extends: String, pos: SourceOffset) -> ClassDecl {
+  pub fn new(name: String, extends: String) -> ClassDecl {
     ClassDecl {
       visibility: Visibility::CLASS,
       name: name,
       extends: extends,
       main_class: false,
-      constructor: ConstructorDecl::empty(pos),
+      constructor: None,
       decls: vec!(),
     }
+  }
+
+  /// The class' constructor, or an empty constructor if there is no
+  /// constructor. In the latter case, the empty constructor will be
+  /// reported as being at source position default_pos, which should
+  /// be the position of the start of the class declaration.
+  pub fn constructor_or_default(&self, default_pos: SourceOffset) -> Cow<ConstructorDecl> {
+    self.constructor.as_ref().map_or_else(|| Cow::Owned(ConstructorDecl::empty(default_pos)), Cow::Borrowed)
   }
 
 }
@@ -510,7 +519,7 @@ mod tests {
       name: String::from(class_name),
       extends: String::from("Reference"),
       main_class,
-      constructor: ConstructorDecl::empty(SourceOffset::default()),
+      constructor: None,
       decls: vec!(),
     }
   }

@@ -380,7 +380,7 @@ impl IncCompiler {
               _ => return Err(PError::from(Error::new(ErrorF::InvalidDecl(decl.clone()), decl.pos))),
             };
             let (mods, decl_body) = modifier::class::parser().parse(&vec[3..])?;
-            let mut class = decl::ClassDecl::new(name, superclass, vec[0].pos);
+            let mut class = decl::ClassDecl::new(name, superclass);
             for m in mods {
               m.apply(&mut class);
             }
@@ -605,10 +605,11 @@ impl IncCompiler {
             if fname == "_init" {
               // Constructor
               let super_call = super_call.unwrap_or_default();
-              acc.constructor = decl::ConstructorDecl { args, super_call, body: Expr::progn(body, vec[0].pos) };
+              let mut constructor = decl::ConstructorDecl { args, super_call, body: Expr::progn(body, vec[0].pos) };
               for m in mods {
-                m.apply_to_constructor(&mut acc.constructor)?;
+                m.apply_to_constructor(&mut constructor)?;
               }
+              acc.constructor = Some(constructor);
             } else {
               // Ordinary functions cannot have super
               if super_call.is_some() {

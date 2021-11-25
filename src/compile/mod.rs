@@ -127,7 +127,20 @@ impl Compiler {
       IRDeclF::ClassDecl(ir::decl::ClassDecl { visibility: _, name, extends, main_class, constructor, decls }) => {
         let gd_name = names::lisp_to_gd(&name);
         let extends = Compiler::resolve_extends(table, &extends, decl.pos)?;
-        let class = factory::declare_class(&mut self.frame(pipeline, builder, table), gd_name, extends, *main_class, constructor, decls, decl.pos)?;
+
+        // Synthesize default constructor if needed
+        let default_constructor: ir::decl::ConstructorDecl;
+        let constructor = match constructor {
+          None => {
+            default_constructor = ir::decl::ConstructorDecl::empty(decl.pos);
+            &default_constructor
+          }
+          Some(c) => {
+            &c
+          }
+        };
+
+        let class = factory::declare_class(&mut self.frame(pipeline, builder, table), gd_name, extends, *main_class, &constructor, decls, decl.pos)?;
         if *main_class {
           factory::flatten_class_into_main(builder, class);
           Ok(())
