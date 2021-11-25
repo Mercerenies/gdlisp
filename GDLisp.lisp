@@ -1003,10 +1003,10 @@
           "Path2D" Path2D "PathFollow" PathFollow "PathFollow2D" PathFollow2D
           "PCKPacker" PCKPacker "Performance" Performance "PHashTranslation" PHashTranslation
           "PhysicalBone" PhysicalBone "Physics2DDirectBodyState" Physics2DDirectBodyState "Physics2DDirectSpaceState" Physics2DDirectSpaceState
-          "Physics2DServer" Physics2DServer "Physics2DShapeQueryParameters" Physics2DShapeQueryParameters "Physics2DShapeQueryResult" Physics2DShapeQueryResult
+          "Physics2DServer" Physics2DServer "Physics2DShapeQueryParameters" Physics2DShapeQueryParameters
           "Physics2DTestMotionResult" Physics2DTestMotionResult "PhysicsBody" PhysicsBody "PhysicsBody2D" PhysicsBody2D
           "PhysicsDirectBodyState" PhysicsDirectBodyState "PhysicsDirectSpaceState" PhysicsDirectSpaceState "PhysicsMaterial" PhysicsMaterial
-          "PhysicsServer" PhysicsServer "PhysicsShapeQueryParameters" PhysicsShapeQueryParameters "PhysicsShapeQueryResult" PhysicsShapeQueryResult
+          "PhysicsServer" PhysicsServer "PhysicsShapeQueryParameters" PhysicsShapeQueryParameters
           "PinJoint" PinJoint "PinJoint2D" PinJoint2D "PlaneMesh" PlaneMesh
           "PlaneShape" PlaneShape "PluginScript" PluginScript "PointMesh" PointMesh
           "Polygon2D" Polygon2D "PolygonPathFinder" PolygonPathFinder "Popup" Popup
