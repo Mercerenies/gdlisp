@@ -59,7 +59,21 @@ impl MacroServer {
   /// spawns once necessary, consider using [`lazy::LazyServer`]
   /// instead.
   pub fn new() -> io::Result<MacroServer> {
+
+    // This mutex protects our access to GDLisp.gd. Especially when
+    // testing (but also just in general), multiple threads can easily
+    // try to run the fs::copy command below at the same time,
+    // resulting in an inconsistent state of the GDLisp.gd file. With
+    // this mutex, the following steps are atomic:
+    //
+    // 1. Initialize stdlib (if uninitialized)
+    // 2. Copy the GDLisp.gd file into the subdirectory
+    // 3. Load Godot and allow it to read GDLisp.gd
+    //
+    // No other thread can start copying GDLisp.gd until our current
+    // thread allows its subprocess to parse it fully.
     let _lock_guard = MacroServer::lock_macro_server_init()?;
+
     library::ensure_stdlib_loaded();
     fs::copy(PathBuf::from("GDLisp.gd"), PathBuf::from("MacroServer/GDLisp.gd"))?;
     let (tcp_listener, port) = MacroServer::try_to_bind_port(PORT_NUMBER, u16::MAX)?;
