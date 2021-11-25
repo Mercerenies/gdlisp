@@ -215,6 +215,7 @@ dependencies = [
  "json",
  "lalrpop",
  "lalrpop-util",
+ "lazy_static",
  "ordered-float",
  "phf",
  "regex",

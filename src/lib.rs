@@ -3,6 +3,7 @@
 #![allow(non_shorthand_field_patterns)]
 
 #[macro_use] extern crate lalrpop_util;
+#[macro_use] extern crate lazy_static;
 
 pub mod sxp;
 pub mod compile;

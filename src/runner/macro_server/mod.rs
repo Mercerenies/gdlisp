@@ -32,11 +32,16 @@ use std::net::{TcpListener, TcpStream};
 use std::convert::{TryFrom, TryInto};
 use std::fs;
 use std::mem::ManuallyDrop;
+use std::sync::{Mutex, MutexGuard};
 
 // TODO Make port number configurable
 
 /// The TCP port used for communicating with the macro server.
 pub const PORT_NUMBER: u16 = 61992;
+
+lazy_static! {
+  static ref MACRO_SERVER_LOCK: Mutex<()> = Mutex::new(());
+}
 
 /// A `MacroServer` instance manages a child Godot process and a TCP
 /// connection to that process. Using this instance, callers can send
@@ -54,6 +59,7 @@ impl MacroServer {
   /// spawns once necessary, consider using [`lazy::LazyServer`]
   /// instead.
   pub fn new() -> io::Result<MacroServer> {
+    let _lock_guard = MacroServer::lock_macro_server_init()?;
     library::ensure_stdlib_loaded();
     fs::copy(PathBuf::from("GDLisp.gd"), PathBuf::from("MacroServer/GDLisp.gd"))?;
     let (tcp_listener, port) = MacroServer::try_to_bind_port(PORT_NUMBER, u16::MAX)?;
@@ -63,6 +69,12 @@ impl MacroServer {
     Ok(MacroServer {
       tcp_server: tcp_server,
       godot_server: gd_server,
+    })
+  }
+
+  fn lock_macro_server_init() -> io::Result<MutexGuard<'static, ()>> {
+    MACRO_SERVER_LOCK.lock().map_err(|_| {
+      io::Error::new(io::ErrorKind::Other, "MACRO_SERVER_LOCK was poisoned")
     })
   }
 
