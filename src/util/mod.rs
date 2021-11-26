@@ -127,6 +127,19 @@ where I : Iterator<Item=Result<(A, B), E>>,
   Ok((from_a, from_b))
 }
 
+/// Returns a matching element from the vector, mutably.
+///
+/// If no matching element is found, then a new element is appended
+/// and returned.
+pub fn find_or_else_mut<T>(vec: &mut Vec<T>, default: impl FnOnce() -> T, mut pred: impl FnMut(&T) -> bool) -> &mut T {
+  if vec.iter().any(|x| pred(x)) {
+    vec.iter_mut().find(|x| pred(x)).expect("Internal error in find_or_else_mut")
+  } else {
+    vec.push(default());
+    vec.last_mut().expect("Internal error in find_or_else_mut")
+  }
+}
+
 #[cfg(test)]
 mod tests {
   use super::*;
@@ -183,6 +196,28 @@ mod tests {
     assert_eq!(unzip_result, Err(FakeError));
     // Only the count += 1 should have run, not the count += 100
     assert_eq!(count, 1);
+  }
+
+  #[test]
+  fn find_or_else_mut_1() {
+    // If it already exists
+    let mut v = vec!(1, 2, 3, 4);
+    {
+      let m = find_or_else_mut(&mut v, || panic!("default case called unexpectedly"), |x| *x == 3);
+      assert_eq!(m, &mut 3);
+    }
+    assert_eq!(v, vec!(1, 2, 3, 4));
+  }
+
+  #[test]
+  fn find_or_else_mut_2() {
+    // If it doesn't exist
+    let mut v = vec!(1, 2, 3, 4);
+    {
+      let m = find_or_else_mut(&mut v, || 10, |x| *x == 10);
+      assert_eq!(m, &mut 10);
+    }
+    assert_eq!(v, vec!(1, 2, 3, 4, 10));
   }
 
 }
