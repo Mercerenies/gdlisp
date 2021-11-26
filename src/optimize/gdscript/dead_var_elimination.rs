@@ -9,7 +9,7 @@ use super::variables::get_variable_info;
 pub struct DeadVarElimination;
 
 impl DeadVarElimination {
-  fn run_on_body(&self, stmts: &mut Vec<Stmt>) -> Result<(), Error> {
+  fn run_on_body(&self, stmts: &mut Vec<Stmt>) {
     let vars = get_variable_info(stmts);
     *stmts = stmt_walker::walk_stmts_ok(&stmts, stmt_walker::on_each_stmt_ok(|stmt| {
       if let StmtF::VarDecl(var_name, expr) = &stmt.value {
@@ -21,7 +21,6 @@ impl DeadVarElimination {
       }
       vec!(stmt.clone())
     }));
-    Ok(())
   }
 }
 
@@ -30,9 +29,11 @@ impl DeadVarElimination {
  */
 impl FunctionOptimization for DeadVarElimination {
   fn run_on_function(&self, function: &mut decl::FnDecl) -> Result<(), Error> {
-    self.run_on_body(&mut function.body)
+    self.run_on_body(&mut function.body);
+    Ok(())
   }
   fn run_on_init_function(&self, function: &mut decl::InitFnDecl) -> Result<(), Error> {
-    self.run_on_body(&mut function.body)
+    self.run_on_body(&mut function.body);
+    Ok(())
   }
 }

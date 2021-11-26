@@ -386,12 +386,10 @@ impl<'a, 'b, 'c, 'd> CompilerFrame<'a, 'b, 'c, 'd, StmtBuilder> {
 
         // This is a special case to validate enum names, as an extra sanity check.
         if let IRExprF::LocalVar(lhs) = &lhs.value {
-          if let Some(LocalVar { value_hint, .. }) = self.table.get_var(lhs) {
-            if let Some(ValueHint::Enum(vs)) = value_hint {
-              // It's an enum and we know its values; validate
-              if !vs.contains(&names::lisp_to_gd(sym)) {
-                return Err(Error::new(ErrorF::NoSuchEnumValue(lhs.clone(), sym.clone()), expr.pos));
-              }
+          if let Some(LocalVar { value_hint: Some(ValueHint::Enum(vs)), .. }) = self.table.get_var(lhs) {
+            // It's an enum and we know its values; validate
+            if !vs.contains(&names::lisp_to_gd(sym)) {
+              return Err(Error::new(ErrorF::NoSuchEnumValue(lhs.clone(), sym.clone()), expr.pos));
             }
           }
         }

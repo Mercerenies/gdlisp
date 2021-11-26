@@ -79,30 +79,35 @@ pub fn compile_lambda_class(frame: &mut CompilerFrame<StmtBuilder>,
   let (constructor, constructor_helpers) = compile_lambda_class_constructor(&mut compiler.frame(pipeline, *builder, &mut lambda_table), &constructor, &gd_closure_vars, pos)?;
 
   // Build the class body for the lambda class.
-  let mut class_body = vec!();
-  class_body.push(Decl::new(DeclF::InitFnDecl(constructor), pos));
-  for helper in constructor_helpers {
-    class_body.push(Decl::new(DeclF::FnDecl(decl::Static::NonStatic, helper), pos));
-  }
-  for name in gd_closure_vars.iter() {
-    class_body.push(Decl::new(DeclF::VarDecl(None, name.clone(), None), pos));
-  }
-  for d in decls {
-
-    if d.is_static() {
-      // Static methods / constants are not allowed on lambda classes
-      return Err(Error::new(ErrorF::StaticOnLambdaClass(d.name().to_owned()), d.pos));
+  #[allow(clippy::vec_init_then_push)] // For style consistency
+  let class_body = {
+    let mut class_body = vec!();
+    class_body.push(Decl::new(DeclF::InitFnDecl(constructor), pos));
+    for helper in constructor_helpers {
+      class_body.push(Decl::new(DeclF::FnDecl(decl::Static::NonStatic, helper), pos));
     }
+    for name in gd_closure_vars.iter() {
+      class_body.push(Decl::new(DeclF::VarDecl(None, name.clone(), None), pos));
+    }
+    for d in decls {
 
-    // Nothing static is allowed in lambda classes (static methods or
-    // constants). The ClassTablePair simply gets a dummy static
-    // symbol table that will never be used, since we just checked in
-    // the above code that the declaration is non-static.
-    let mut dummy_table = SymbolTable::new();
-    let tables = ClassTablePair { instance_table: &mut lambda_table, static_table: &mut dummy_table };
-    class_body.push(compiler.compile_class_inner_decl(pipeline, *builder, tables, d)?);
+      if d.is_static() {
+        // Static methods / constants are not allowed on lambda classes
+        return Err(Error::new(ErrorF::StaticOnLambdaClass(d.name().to_owned()), d.pos));
+      }
 
-  }
+      // Nothing static is allowed in lambda classes (static methods
+      // or constants). The ClassTablePair simply gets a dummy static
+      // symbol table that will never be used, since we just checked
+      // in the above code that the declaration is non-static.
+      let mut dummy_table = SymbolTable::new();
+      let tables = ClassTablePair { instance_table: &mut lambda_table, static_table: &mut dummy_table };
+      class_body.push(compiler.compile_class_inner_decl(pipeline, *builder, tables, d)?);
+
+    }
+    class_body
+  };
+
   let mut class = decl::ClassDecl {
     name: gd_class_name.clone(),
     extends: extends,
