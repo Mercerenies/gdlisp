@@ -329,6 +329,7 @@ impl ErrorF {
   /// such an error, it is probably a bug in the GDLisp compiler, and
   /// such errors are displayed with a disclaimer indicating as much.
   pub fn is_internal(&self) -> bool {
+    #[allow(clippy::match_like_matches_macro)] // Suggested alternative is quite lengthy on one line
     match self {
       ErrorF::NoSuchMagic(_) => true,
       ErrorF::MacroInMinimalistError(_) => true,
