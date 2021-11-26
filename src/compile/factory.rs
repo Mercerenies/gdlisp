@@ -6,6 +6,7 @@ use super::frame::CompilerFrame;
 use super::stateful::NeedsResult;
 use super::names::fresh::FreshNameGenerator;
 use super::body::builder::{StmtBuilder, CodeBuilder, HasDecls};
+use super::body::class_initializer::ClassInitBuilder;
 use super::stmt_wrapper::{self, StmtWrapper};
 use super::symbol_table::{HasSymbolTable, ClassTablePair};
 use super::symbol_table::local_var::LocalVar;
@@ -146,6 +147,7 @@ pub fn declare_class(frame: &mut CompilerFrame<impl HasDecls>,
     outer_ref_name = frame.name_generator().generate_with(inner_class::OUTER_REFERENCE_NAME);
   }
 
+  let mut class_init_builder = ClassInitBuilder::new();
   let mut instance_table = frame.table.clone();
   let mut static_table = frame.table.clone();
   instance_table.with_local_var::<Result<(), Error>, _>(String::from("self"), self_var, |instance_table| {
@@ -171,7 +173,7 @@ pub fn declare_class(frame: &mut CompilerFrame<impl HasDecls>,
 
     for d in decls {
       let tables = ClassTablePair { instance_table, static_table: &mut static_table };
-      body.push(frame.compiler.compile_class_inner_decl(frame.pipeline, frame.builder, tables, d)?);
+      body.push(frame.compiler.compile_class_inner_decl(frame.pipeline, &mut class_init_builder, tables, d)?);
     }
 
     Ok(())
@@ -182,9 +184,14 @@ pub fn declare_class(frame: &mut CompilerFrame<impl HasDecls>,
     extends: extends,
     body: body,
   };
+
   if needs_outer_ref && !main_class {
     inner_class::add_outer_class_ref_named(&mut decl, frame.preload_resolver(), frame.pipeline, outer_ref_name, pos);
   }
+
+  let class_init = class_init_builder.build_into(frame.builder);
+  class_init.apply(&mut decl);
+
   Ok(decl)
 }
 

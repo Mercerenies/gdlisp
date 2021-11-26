@@ -7,6 +7,7 @@ use crate::compile::CompilerFrame;
 use crate::compile::Compiler;
 use crate::compile::stateful::{StExpr, NeedsResult};
 use crate::compile::body::builder::{StmtBuilder, HasDecls};
+use crate::compile::body::class_initializer::ClassInitBuilder;
 use crate::compile::symbol_table::{SymbolTable, ClassTablePair};
 use crate::compile::symbol_table::local_var::LocalVar;
 use crate::compile::symbol_table::function_call::OuterStaticRef;
@@ -80,6 +81,7 @@ pub fn compile_lambda_class(frame: &mut CompilerFrame<StmtBuilder>,
 
   // Build the class body for the lambda class.
   #[allow(clippy::vec_init_then_push)] // For style consistency
+  let mut class_init_builder = ClassInitBuilder::new();
   let class_body = {
     let mut class_body = vec!();
     class_body.push(Decl::new(DeclF::InitFnDecl(constructor), pos));
@@ -102,7 +104,7 @@ pub fn compile_lambda_class(frame: &mut CompilerFrame<StmtBuilder>,
       // in the above code that the declaration is non-static.
       let mut dummy_table = SymbolTable::new();
       let tables = ClassTablePair { instance_table: &mut lambda_table, static_table: &mut dummy_table };
-      class_body.push(compiler.compile_class_inner_decl(pipeline, *builder, tables, d)?);
+      class_body.push(compiler.compile_class_inner_decl(pipeline, &mut class_init_builder, tables, d)?);
 
     }
     class_body
@@ -117,6 +119,9 @@ pub fn compile_lambda_class(frame: &mut CompilerFrame<StmtBuilder>,
   if needs_outer_ref {
     inner_class::add_outer_class_ref_named(&mut class, compiler.preload_resolver(), *pipeline, outer_ref_name, pos);
   }
+
+  let class_init = class_init_builder.build_into(*builder);
+  class_init.apply(&mut class);
 
   builder.add_helper(Decl::new(DeclF::ClassDecl(class), pos));
 
