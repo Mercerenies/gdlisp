@@ -602,7 +602,7 @@ impl IncCompiler {
             }).transpose()?;
 
             let body = body.iter().map(|expr| self.compile_expr(pipeline, expr)).collect::<Result<Vec<_>, _>>()?;
-            if fname == "_init" {
+            if fname == "_init" { // TODO Replace this with gdscript::library::CONSTRUCTOR_NAME
               // Constructor
 
               // There can only be one constructor defined in the class

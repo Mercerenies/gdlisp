@@ -9,6 +9,7 @@
 use crate::gdscript::expr::Expr;
 use crate::gdscript::stmt::Stmt;
 use crate::gdscript::indent;
+use crate::gdscript::library;
 use crate::gdscript::arglist::ArgList;
 use crate::pipeline::source::{SourceOffset, Sourced};
 
@@ -103,7 +104,7 @@ pub enum Static {
 fn empty_class_body(pos: SourceOffset) -> Decl {
   Decl::new(
     DeclF::FnDecl(Static::NonStatic, FnDecl {
-      name: String::from("_init"),
+      name: String::from("_init"), // TODO Replace this with gdscript::library::CONSTRUCTOR_NAME
       args: ArgList::empty(),
       body: vec!(),
     }),
@@ -116,6 +117,21 @@ impl Decl {
   /// A new `Decl` with its source offset.
   pub fn new(value: DeclF, pos: SourceOffset) -> Decl {
     Decl { value, pos }
+  }
+
+  /// The name of the identifier referenced by this declaration, if
+  /// one exists. Some declarations, such as enums, may not always
+  /// have names.
+  pub fn name(&self) -> Option<&str> {
+    match &self.value {
+      DeclF::VarDecl(_, n, _) => Some(&n),
+      DeclF::ConstDecl(n, _) => Some(&n),
+      DeclF::ClassDecl(cdecl) => Some(&cdecl.name),
+      DeclF::InitFnDecl(idecl) => Some(&library::CONSTRUCTOR_NAME),
+      DeclF::FnDecl(_, fdecl) => Some(&fdecl.name),
+      DeclF::EnumDecl(edecl) => edecl.name.as_ref().map(|x| x.as_ref()),
+      DeclF::SignalDecl(n, _) => Some(&n)
+    }
   }
 
   /// Write the declaration, as GDScript code, to the [`fmt::Write`]
@@ -464,6 +480,35 @@ mod tests {
       clauses: vec!((String::from("Value1"), Some(e(ExprF::from(99)))), (String::from("Value2"), None)),
     }));
     assert_eq!(decl4.to_gd(0), "enum EnumName {\n    Value1 = 99,\n    Value2,\n}\n");
+  }
+
+  #[test]
+  fn decl_names() {
+    let decl1 = d(DeclF::VarDecl(None, String::from("abc"), None));
+    assert_eq!(decl1.name(), Some("abc"));
+
+    let decl2 = d(DeclF::ConstDecl(String::from("MY_CONST"), e(ExprF::from(10))));
+    assert_eq!(decl2.name(), Some("MY_CONST"));
+
+    let decl3 = d(DeclF::ClassDecl(ClassDecl { name: String::from("MyClass"),
+                                               extends: ClassExtends::Qualified(vec!(String::from("Node"))),
+                                               body: vec!() }));
+    assert_eq!(decl3.name(), Some("MyClass"));
+
+    let decl4 = d(DeclF::InitFnDecl(InitFnDecl { args: ArgList::empty(), super_call: vec!(), body: vec!() }));
+    assert_eq!(decl4.name(), Some("_init"));
+
+    let decl5 = d(DeclF::FnDecl(Static::NonStatic, FnDecl { name: String::from("foobar"), args: ArgList::empty(), body: vec!() }));
+    assert_eq!(decl5.name(), Some("foobar"));
+
+    let decl6 = d(DeclF::EnumDecl(EnumDecl { name: Some(String::from("MyEnum")), clauses: vec!() }));
+    assert_eq!(decl6.name(), Some("MyEnum"));
+
+    let decl7 = d(DeclF::EnumDecl(EnumDecl { name: None, clauses: vec!() }));
+    assert_eq!(decl7.name(), None);
+
+    let decl8 = d(DeclF::SignalDecl(String::from("signal_emitted"), ArgList::empty()));
+    assert_eq!(decl8.name(), Some("signal_emitted"));
   }
 
 }
