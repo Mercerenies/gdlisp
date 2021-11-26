@@ -17,7 +17,7 @@ pub struct DirectVarSubstitute;
 // alter this a bit.
 
 impl DirectVarSubstitute {
-  fn run_on_body(&self, stmts: &mut Vec<Stmt>) -> Result<(), Error> {
+  fn run_on_body(&self, stmts: &mut Vec<Stmt>) {
     let vars = get_variable_info(stmts);
     *stmts = expr_walker::walk_exprs_ok(stmts, |var_expr| {
       if let ExprF::Var(var_name) = &var_expr.value {
@@ -29,7 +29,6 @@ impl DirectVarSubstitute {
       }
       var_expr.clone()
     });
-    Ok(())
   }
 }
 
@@ -40,9 +39,11 @@ impl DirectVarSubstitute {
  */
 impl FunctionOptimization for DirectVarSubstitute {
   fn run_on_function(&self, function: &mut decl::FnDecl) -> Result<(), Error> {
-    self.run_on_body(&mut function.body)
+    self.run_on_body(&mut function.body);
+    Ok(())
   }
   fn run_on_init_function(&self, function: &mut decl::InitFnDecl) -> Result<(), Error> {
-    self.run_on_body(&mut function.body)
+    self.run_on_body(&mut function.body);
+    Ok(())
   }
 }
