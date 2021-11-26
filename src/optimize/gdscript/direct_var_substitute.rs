@@ -19,16 +19,16 @@ pub struct DirectVarSubstitute;
 impl DirectVarSubstitute {
   fn run_on_body(&self, stmts: &mut Vec<Stmt>) -> Result<(), Error> {
     let vars = get_variable_info(stmts);
-    *stmts = expr_walker::walk_exprs(stmts, |var_expr| {
+    *stmts = expr_walker::walk_exprs_ok(stmts, |var_expr| {
       if let ExprF::Var(var_name) = &var_expr.value {
         if let Some(info) = vars.get(var_name) {
           if info.is_read_only() && constant::expr_is_constant(&info.value) {
-            return Ok(info.value.clone());
+            return info.value.clone();
           }
         }
       }
-      Ok(var_expr.clone())
-    })?;
+      var_expr.clone()
+    });
     Ok(())
   }
 }

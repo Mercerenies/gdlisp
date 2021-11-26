@@ -53,12 +53,12 @@ pub fn get_variable_info(stmts: &[Stmt]) -> HashMap<String, VarInfo> {
   }));
 
   // Read accesses
-  expr_walker::walk_exprs(stmts, |expr| {
+  expr_walker::walk_exprs_ok(stmts, |expr| {
     if let ExprF::Var(s) = &expr.value {
       map.entry(s.to_owned()).and_modify(|v| v.read_count += 1);
     }
-    Ok(expr.clone()) // Pass through
-  }).expect("Internal error in variables::get_variable_info"); // Cannot fail
+    expr.clone() // Pass through
+  });
 
   map
 }

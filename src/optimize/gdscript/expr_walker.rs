@@ -2,24 +2,34 @@
 use super::stmt_walker;
 use crate::gdscript::stmt::{self, Stmt, StmtF};
 use crate::gdscript::expr::{self, Expr, ExprF};
-use crate::compile::error::Error;
+use crate::util::extract_err;
 
 // Post-order traversal
 
-// TODO Provide infallible variants of all of these as well (like in stmt_walker)
-
-pub fn walk_expr<'a>(stmt: &Stmt, mut walker: impl FnMut(&Expr) -> Result<Expr, Error> + 'a)
-                     -> Result<Vec<Stmt>, Error> {
+pub fn walk_expr<'a, E>(stmt: &Stmt, mut walker: impl FnMut(&Expr) -> Result<Expr, E> + 'a)
+                        -> Result<Vec<Stmt>, E> {
   stmt_walker::walk_stmt(stmt, stmt_walker::on_each_stmt(|s| walk_impl(&mut walker, s)))
 }
 
-pub fn walk_exprs<'a>(stmts: &[Stmt], mut walker: impl FnMut(&Expr) -> Result<Expr, Error> + 'a)
-                      -> Result<Vec<Stmt>, Error> {
+pub fn walk_exprs<'a, E>(stmts: &[Stmt], mut walker: impl FnMut(&Expr) -> Result<Expr, E> + 'a)
+                         -> Result<Vec<Stmt>, E> {
   stmt_walker::walk_stmts(stmts, stmt_walker::on_each_stmt(|s| walk_impl(&mut walker, s)))
 }
 
-fn walk_impl_expr<'a>(walker: &mut (impl FnMut(&Expr) -> Result<Expr, Error> + 'a), expr: &Expr)
-                      -> Result<Expr, Error> {
+pub fn walk_expr_ok<'a>(stmt: &Stmt, mut walker: impl FnMut(&Expr) -> Expr + 'a)
+                        -> Vec<Stmt> {
+  let result = walk_expr(stmt, move |x| Ok(walker(x)));
+  extract_err(result)
+}
+
+pub fn walk_exprs_ok<'a>(stmts: &[Stmt], mut walker: impl FnMut(&Expr) -> Expr + 'a)
+                         -> Vec<Stmt> {
+  let result = walk_exprs(stmts, move |x| Ok(walker(x)));
+  extract_err(result)
+}
+
+fn walk_impl_expr<'a, E>(walker: &mut (impl FnMut(&Expr) -> Result<Expr, E> + 'a), expr: &Expr)
+                         -> Result<Expr, E> {
   let mut expr = expr.clone();
   match &mut expr.value {
     ExprF::Subscript(a, b) => {
@@ -70,8 +80,8 @@ fn walk_impl_expr<'a>(walker: &mut (impl FnMut(&Expr) -> Result<Expr, Error> + '
   walker(&expr)
 }
 
-fn walk_impl<'a>(walker: &mut (impl FnMut(&Expr) -> Result<Expr, Error> + 'a), stmt: &Stmt)
-                 -> Result<Vec<Stmt>, Error> {
+fn walk_impl<'a, E>(walker: &mut (impl FnMut(&Expr) -> Result<Expr, E> + 'a), stmt: &Stmt)
+                    -> Result<Vec<Stmt>, E> {
   let new_stmt = match &stmt.value {
     StmtF::Expr(e) => {
       StmtF::Expr(walk_impl_expr(walker, &e)?)
@@ -79,7 +89,7 @@ fn walk_impl<'a>(walker: &mut (impl FnMut(&Expr) -> Result<Expr, Error> + 'a), s
     StmtF::IfStmt(stmt::IfStmt { if_clause, elif_clauses, else_clause }) => {
       let new_if_stmt = stmt::IfStmt {
         if_clause: (walk_impl_expr(walker, &if_clause.0)?, if_clause.1.clone()),
-        elif_clauses: (elif_clauses.iter().map(|(e, s)| Ok((walk_impl_expr(walker, e)?, s.clone()))).collect::<Result<_, Error>>()?),
+        elif_clauses: (elif_clauses.iter().map(|(e, s)| Ok((walk_impl_expr(walker, e)?, s.clone()))).collect::<Result<_, E>>()?),
         else_clause: else_clause.clone(),
       };
       StmtF::IfStmt(new_if_stmt)
