@@ -103,9 +103,9 @@ pub enum Static {
 
 fn empty_class_body(pos: SourceOffset) -> Decl {
   Decl::new(
-    DeclF::FnDecl(Static::NonStatic, FnDecl {
-      name: String::from("_init"), // TODO Replace this with gdscript::library::CONSTRUCTOR_NAME
+    DeclF::InitFnDecl(InitFnDecl {
       args: ArgList::empty(),
+      super_call: vec!(),
       body: vec!(),
     }),
     pos
