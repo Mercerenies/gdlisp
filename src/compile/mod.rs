@@ -215,8 +215,15 @@ impl Compiler {
         }).transpose()?;
         let exports = exports.map(|args| decl::Export { args });
         let name = names::lisp_to_gd(&v.name);
-        Compiler::compile_inner_var_value(&name, v.value.as_ref(), &mut self.frame(pipeline, &mut builder.init_builder, table), decl.pos)?;
-        Ok(Decl::new(DeclF::VarDecl(exports, name, None), decl.pos))
+        // Note: immediate_value is *only* values which will be
+        // compiled directly into the declaration. Initializers added
+        // to _init or _ready are not included in this return value
+        // (they are added to the mutable builder frame instead).
+        let immediate_value = {
+          let mut local_frame = self.frame(pipeline, &mut builder.init_builder, table);
+          Compiler::compile_inner_var_value(&name, v.value.as_ref(), &mut local_frame, decl.pos)?
+        };
+        Ok(Decl::new(DeclF::VarDecl(exports, name, immediate_value), decl.pos))
       }
       ir::decl::ClassInnerDeclF::ClassFnDecl(f) => {
         let gd_name = names::lisp_to_gd(&f.name);
@@ -234,15 +241,27 @@ impl Compiler {
                              value: Option<&IRExpr>,
                              frame: &mut CompilerFrame<StmtBuilder>,
                              pos: SourceOffset)
-                             -> Result<(), Error> {
-    // TODO If it's a constant (provably), leave it be, as it can be useful for tooling support (////)
-    if let Some(value) = value {
-      let destination = stmt_wrapper::AssignToExpr(
-        Expr::self_var(pos).attribute(name.to_owned(), pos),
-      );
-      frame.compile_stmt(&destination, value)?;
+                             -> Result<Option<Expr>, Error> {
+    match value {
+      None => Ok(None),
+      Some(value) => {
+
+        // Try to compile as a constant first
+        if let Ok(simple_expr) = frame.compile_simple_expr(name, value, NeedsResult::Yes) {
+          if simple_expr.is_allowable_const(frame.table) {
+            return Ok(Some(simple_expr));
+          }
+        }
+
+        // Otherwise, compile as an ordinary expression into the builder.
+        let destination = stmt_wrapper::AssignToExpr(
+          Expr::self_var(pos).attribute(name.to_owned(), pos),
+        );
+        frame.compile_stmt(&destination, value)?;
+        Ok(None)
+
+      }
     }
-    Ok(())
   }
 
   /// Given the (simple) name of an `extends` clause for a class or

@@ -8,14 +8,11 @@ class Cons extends Reference:
     var cdr
 class Function extends Reference:
     func _init():
-        self.__is_gdlisp_function = true
-        self.__gdlisp_required = 0
-        self.__gdlisp_optional = 0
-        self.__gdlisp_rest = 1
-    var __is_gdlisp_function
-    var __gdlisp_required
-    var __gdlisp_optional
-    var __gdlisp_rest
+        pass
+    var __is_gdlisp_function = true
+    var __gdlisp_required = 0
+    var __gdlisp_optional = 0
+    var __gdlisp_rest = 1
     const __gdlisp_vararg_no = 0
     const __gdlisp_vararg_rest = 1
     const __gdlisp_vararg_arr = 2
