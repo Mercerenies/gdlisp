@@ -412,6 +412,13 @@ mod tests {
     Functions::from_hashset(vec.into_iter().collect())
   }
 
+  fn lvc(name: &str, value: Expr) -> LocalVarClause {
+    LocalVarClause {
+      name: name.to_owned(),
+      value,
+    }
+  }
+
   // For most of these tests, we don't care about SourceOffset, so
   // let's just make it easier to construct values with SourceOffset
   // of 0.
@@ -439,27 +446,27 @@ mod tests {
   fn test_locals_let() {
 
     // Declared variable
-    let e1 = e(ExprF::Let(vec!(("var".to_owned(), e(ExprF::Literal(Literal::Nil)))),
+    let e1 = e(ExprF::Let(vec!(lvc("var", e(ExprF::Literal(Literal::Nil)))),
                           Box::new(e(ExprF::Literal(Literal::Nil)))));
     assert_eq!(e1.get_locals(), lhash(vec!()));
 
     // Declared and used variable
-    let e2 = e(ExprF::Let(vec!(("var".to_owned(), e(ExprF::Literal(Literal::Nil)))),
+    let e2 = e(ExprF::Let(vec!(lvc("var", e(ExprF::Literal(Literal::Nil)))),
                           Box::new(e(ExprF::LocalVar("var".to_owned())))));
     assert_eq!(e2.get_locals(), lhash(vec!()));
 
     // Different variable
-    let e3 = e(ExprF::Let(vec!(("var_unused".to_owned(), e(ExprF::Literal(Literal::Nil)))),
+    let e3 = e(ExprF::Let(vec!(lvc("var_unused", e(ExprF::Literal(Literal::Nil)))),
                           Box::new(e(ExprF::LocalVar("var1".to_owned())))));
     assert_eq!(e3.get_locals(), lhash(vec!("var1".to_owned())));
 
     // Variable in decl
-    let e4 = e(ExprF::Let(vec!(("var_unused".to_owned(), e(ExprF::LocalVar("var".to_owned())))),
+    let e4 = e(ExprF::Let(vec!(lvc("var_unused", e(ExprF::LocalVar("var".to_owned())))),
                           Box::new(e(ExprF::Literal(Literal::Nil)))));
     assert_eq!(e4.get_locals(), lhash(vec!("var".to_owned())));
 
     // Variable in decl (soon to be shadowed)
-    let e4 = e(ExprF::Let(vec!(("var".to_owned(), e(ExprF::LocalVar("var".to_owned())))),
+    let e4 = e(ExprF::Let(vec!(lvc("var", e(ExprF::LocalVar("var".to_owned())))),
                           Box::new(e(ExprF::Literal(Literal::Nil)))));
     assert_eq!(e4.get_locals(), lhash(vec!("var".to_owned())));
 

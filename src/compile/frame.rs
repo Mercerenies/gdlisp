@@ -9,6 +9,7 @@ use super::names;
 use super::special_form::lambda;
 use super::special_form::flet;
 use super::special_form::lambda_class;
+use super::special_form::let_block;
 use super::preload_resolver::{PreloadResolver, DefaultPreloadResolver};
 use super::symbol_table::{SymbolTable, HasSymbolTable};
 use super::symbol_table::local_var::{LocalVar, ValueHint, VarName};
@@ -20,12 +21,10 @@ use super::stmt_wrapper::{self, StmtWrapper};
 use crate::pipeline::Pipeline;
 use crate::pipeline::source::SourceOffset;
 use crate::ir;
-use crate::ir::access_type::AccessType;
-use crate::ir::expr::{FuncRefTarget, AssignTarget, LocalVarClause};
+use crate::ir::expr::{FuncRefTarget, AssignTarget};
 use crate::ir::special_ref::SpecialRef;
 use crate::gdscript::expr::{Expr, ExprF};
 use crate::gdscript::stmt::Stmt;
-use crate::gdscript::library;
 use crate::gdscript::inner_class;
 use crate::sxp::reify::pretty::reify_pretty_expr;
 
@@ -293,23 +292,7 @@ impl<'a, 'b, 'c, 'd> CompilerFrame<'a, 'b, 'c, 'd, StmtBuilder> {
         self.compile_function_call(f, args, expr.pos)
       }
       IRExprF::Let(clauses, body) => {
-        let closure_vars = body.get_locals();
-        let var_names = clauses.iter().map::<Result<(String, String), Error>, _>(|clause| {
-          let LocalVarClause { name: ast_name, value: expr } = clause;
-          let ast_name = ast_name.to_owned();
-          let result_value = self.compile_expr(&expr, NeedsResult::Yes)?.expr;
-          let result_value =
-            if closure_vars.get(&ast_name).unwrap_or(&AccessType::None).requires_cell() {
-              library::cell::construct_cell(result_value)
-            } else {
-              result_value
-            };
-          let gd_name = factory::declare_var(&mut self.compiler.name_generator(), self.builder, &names::lisp_to_gd(&ast_name), Some(result_value), clause.value.pos);
-          Ok((ast_name, gd_name))
-        }).collect::<Result<Vec<_>, _>>()?;
-        self.with_local_vars(&mut var_names.into_iter().map(|x| (x.0.clone(), LocalVar::local(x.1, *closure_vars.get(&x.0).unwrap_or(&AccessType::None)))), |frame| {
-          frame.compile_expr(body, needs_result)
-        })
+        let_block::compile_let(self, clauses, body, needs_result, expr.pos)
       }
       IRExprF::FLet(clauses, body) => {
         flet::compile_flet(self, clauses, body, needs_result, expr.pos)

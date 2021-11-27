@@ -4,6 +4,7 @@ pub mod flet;
 pub mod lambda_class;
 pub mod lambda_vararg;
 pub mod closure;
+pub mod let_block;
 
 use crate::ir;
 use crate::ir::access_type::AccessType;
