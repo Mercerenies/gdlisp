@@ -178,7 +178,17 @@ static func run():
 "#);
 }
 
-////
+#[test]
+pub fn ready_member_var_class_test_2() {
+  assert_eq!(parse_compile_decl(r#"((defclass ClassName (Node) main (defvar x "foo" (export String) onready)))"#),
+             r#"extends Node
+func _init():
+    pass
+export(String) onready var x = "foo"
+static func run():
+    return null
+"#);
+}
 
 #[test]
 pub fn complicated_member_var_class_test() {
@@ -201,6 +211,33 @@ func _init(x_0):
 var x
 func get_x():
     return self.x
+static func run():
+    return null
+"#);
+}
+
+#[test]
+pub fn complicated_ready_member_var_class_test() {
+  // Note: We use _cond_2 here because _cond_1 disappears during the
+  // failed compilation of (if 1 2 3) via compile_simple_expr.
+  assert_eq!(
+    parse_compile_decl("((defclass ClassName (Node) main (defvar x (if 1 2 3) onready) (defn _init (x) (set self:x x)) (defn get-x () self:x)))"),
+    r#"extends Node
+func _init(x_0):
+    self.x = x_0
+var x
+func get_x():
+    return self.x
+func _ready():
+    var _cond_2 = null
+    if 1:
+        _cond_2 = 2
+    else:
+        if true:
+            _cond_2 = 3
+        else:
+            _cond_2 = null
+    self.x = _cond_2
 static func run():
     return null
 "#);
