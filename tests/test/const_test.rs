@@ -36,14 +36,6 @@ pub fn const_test_nonconst_in_enum() {
 }
 
 #[test]
-pub fn const_test_nonconst_in_member_var() {
-  assert_eq!(
-    parse_compile_decl_err("((defclass Foo (Reference) (defvar b (list->array 1))))"),
-    Err(PError::from(GDError::new(GDErrorF::NotConstantEnough(String::from("b")), SourceOffset(37)))),
-  );
-}
-
-#[test]
 #[ignore]
 pub fn const_test_run() {
   let output = parse_and_run(r#"

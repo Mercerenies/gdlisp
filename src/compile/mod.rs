@@ -215,12 +215,16 @@ impl Compiler {
         }).transpose()?;
         let exports = exports.map(|args| decl::Export { args });
         let name = names::lisp_to_gd(&v.name);
-        let value = v.value.as_ref().map::<Result<_, Error>, _>(|expr| {
-          let value = self.frame(pipeline, &mut (), table).compile_simple_expr(&name, expr, NeedsResult::Yes)?;
-          value.validate_const_expr(&v.name, table)?;
-          Ok(value)
-        }).transpose()?;
-        Ok(Decl::new(DeclF::VarDecl(exports, name, value), decl.pos))
+
+        // TODO If it's a constant (provably), leave it be, as it can be useful for tooling support (////)
+        if let Some(value) = &v.value {
+          let destination = stmt_wrapper::AssignToExpr(
+            Expr::self_var(decl.pos).attribute(name.clone(), decl.pos),
+          );
+          self.frame(pipeline, &mut builder.init_builder, table).compile_stmt(&destination, value)?;
+        }
+
+        Ok(Decl::new(DeclF::VarDecl(exports, name, None), decl.pos))
       }
       ir::decl::ClassInnerDeclF::ClassFnDecl(f) => {
         let gd_name = names::lisp_to_gd(&f.name);

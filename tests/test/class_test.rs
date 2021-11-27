@@ -100,8 +100,9 @@ pub fn member_var_class_test_3() {
              r#"extends Reference
 class ClassName extends Node:
     func _init(x_0):
+        self.x = 999
         self.x = x_0
-    var x = 999
+    var x
     func get_x():
         return self.x
 static func run():
@@ -128,8 +129,9 @@ pub fn member_var_class_test_5() {
   assert_eq!(parse_compile_decl(r#"((defclass ClassName (Node) main (defvar x "foo" (export String "foo" "bar")) (defn _init (x) (set self:x x)) (defn get-x () self:x)))"#),
              r#"extends Node
 func _init(x_0):
+    self.x = "foo"
     self.x = x_0
-export(String, "foo", "bar") var x = "foo"
+export(String, "foo", "bar") var x
 func get_x():
     return self.x
 static func run():
@@ -157,8 +159,33 @@ pub fn member_var_class_test_7() {
   assert_eq!(parse_compile_decl(r#"((defclass ClassName (Node) main (defvar x "foo" (export String "foo" "bar")) (defn _init (x) (set @x x)) (defn get-x () @x)))"#),
              r#"extends Node
 func _init(x_0):
+    self.x = "foo"
     self.x = x_0
-export(String, "foo", "bar") var x = "foo"
+export(String, "foo", "bar") var x
+func get_x():
+    return self.x
+static func run():
+    return null
+"#);
+}
+
+#[test]
+pub fn complicated_member_var_class_test() {
+  assert_eq!(
+    parse_compile_decl("((defclass ClassName (Node) main (defvar x (if 1 2 3)) (defn _init (x) (set self:x x)) (defn get-x () self:x)))"),
+    r#"extends Node
+func _init(x_0):
+    var _cond_1 = null
+    if 1:
+        _cond_1 = 2
+    else:
+        if true:
+            _cond_1 = 3
+        else:
+            _cond_1 = null
+    self.x = _cond_1
+    self.x = x_0
+var x
 func get_x():
     return self.x
 static func run():
@@ -168,14 +195,6 @@ static func run():
 
 #[test]
 pub fn bad_member_var_class_test_1() {
-  assert_eq!(
-    parse_compile_decl_err("((defclass ClassName (Node) (defvar x (if 1 2 3)) (defn _init (x) (set self:x x)) (defn get-x () self:x)))"),
-    Err(PError::from(GDError::new(GDErrorF::NotConstantEnough(String::from("x")), SourceOffset(38)))),
-  );
-}
-
-#[test]
-pub fn bad_member_var_class_test_2() {
   // Can't have export on inner class
   assert_eq!(
     parse_compile_decl_err("((defclass ClassName (Node) (defvar x (export int)) (defn _init (x) (set self:x x)) (defn get-x () self:x)))"),

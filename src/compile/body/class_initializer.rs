@@ -75,7 +75,7 @@ impl HasDecls for ClassInitBuilder {
 
 impl ClassInit {
 
-  // TODO Protect any variables which might be shadowed by the initializer
+  // TODO Protect any variables which might be shadowed by the initializer (////)
   pub fn apply(mut self, class: &mut ClassDecl) {
     // Initializer
     {
