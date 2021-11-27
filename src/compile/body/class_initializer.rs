@@ -75,7 +75,9 @@ impl HasDecls for ClassInitBuilder {
 
 impl ClassInit {
 
-  // TODO Protect any variables which might be shadowed by the initializer (////)
+  // TODO Is it possible for variables to be shadowed by the
+  // initializer arguments here? Should we throw an error in that
+  // case?
   pub fn apply(mut self, class: &mut ClassDecl) {
     // Initializer
     {
