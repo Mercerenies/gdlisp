@@ -263,8 +263,6 @@ impl<'a, 'b, 'c, 'd> CompilerFrame<'a, 'b, 'c, 'd, StmtBuilder> {
                       expr: &IRExpr,
                       needs_result: NeedsResult)
                       -> Result<StExpr, Error> {
-    // TODO I made a mess of this when converting to IR. Separate this
-    // into many helper functions, probably over multiple files.
     match &expr.value {
       IRExprF::LocalVar(s) => {
         self.table.get_var(s).ok_or_else(|| Error::new(ErrorF::NoSuchVar(s.clone()), expr.pos)).map(|var| {
@@ -311,54 +309,14 @@ impl<'a, 'b, 'c, 'd> CompilerFrame<'a, 'b, 'c, 'd, StmtBuilder> {
           }
         }
       }
-      IRExprF::Assign(AssignTarget::Variable(pos, name), expr) => {
-        let var = self.table.get_var(name).ok_or_else(|| Error::new(ErrorF::NoSuchVar(name.clone()), *pos))?.to_owned();
-        if !var.assignable {
-          return Err(Error::new(ErrorF::CannotAssignTo(var.name.to_gd(*pos)), expr.pos));
-        }
-        self.compile_stmt(&stmt_wrapper::AssignToExpr(var.expr(*pos)), expr)?;
-        Ok(StExpr { expr: var.expr(*pos), side_effects: SideEffects::from(var.access_type) })
-      }
-      IRExprF::Assign(AssignTarget::InstanceField(pos, lhs, name), expr) => {
-        // TODO Weirdness with setget makes this stateful flag not
-        // always right? I mean, foo:bar can have side effects if bar
-        // is protected by a setget.
-        let StExpr { expr: mut lhs, side_effects } = self.compile_expr(lhs, NeedsResult::Yes)?;
-        // Assign to a temp if it's stateful
-        if needs_result == NeedsResult::Yes && side_effects.modifies_state() {
-          let var = factory::declare_var(self.compiler.name_generator(), self.builder, "_assign", Some(lhs), expr.pos);
-          lhs = Expr::new(ExprF::Var(var), *pos);
-        }
-        let lhs = Expr::new(ExprF::Attribute(Box::new(lhs), names::lisp_to_gd(name)), expr.pos);
-        self.compile_stmt(&stmt_wrapper::AssignToExpr(lhs.clone()), expr)?;
-        if needs_result == NeedsResult::Yes {
-          Ok(StExpr { expr: lhs, side_effects: SideEffects::None })
-        } else {
-          Ok(Compiler::nil_expr(expr.pos))
-        }
+      IRExprF::Assign(target, expr) => {
+        self.compile_assignment(target, expr, needs_result)
       }
       IRExprF::Array(vec) => {
-        let mut side_effects = SideEffects::None;
-        let vec = vec.iter().map(|expr| {
-          let StExpr { expr: cexpr, side_effects: state } = self.compile_expr(expr, NeedsResult::Yes)?;
-          side_effects = max(side_effects, state);
-          Ok(cexpr)
-        }).collect::<Result<Vec<_>, Error>>()?;
-        Ok(StExpr { expr: Expr::new(ExprF::ArrayLit(vec), expr.pos), side_effects })
+        self.compile_array(vec.iter(), expr.pos)
       }
       IRExprF::Dictionary(vec) => {
-        let mut side_effects = SideEffects::None;
-        let vec = vec.iter().map(|(k, v)| {
-
-          let StExpr { expr: kexpr, side_effects: kstate } = self.compile_expr(k, NeedsResult::Yes)?;
-          side_effects = max(side_effects, kstate);
-
-          let StExpr { expr: vexpr, side_effects: vstate } = self.compile_expr(v, NeedsResult::Yes)?;
-          side_effects = max(side_effects, vstate);
-
-          Ok((kexpr, vexpr))
-        }).collect::<Result<Vec<_>, Error>>()?;
-        Ok(StExpr { expr: Expr::new(ExprF::DictionaryLit(vec), expr.pos), side_effects })
+        self.compile_dictionary(vec.iter(), expr.pos)
       }
       IRExprF::Quote(ast) => {
         let (stmts, result) = reify_pretty_expr(ast, MAX_QUOTE_REIFY_DEPTH, self.name_generator());
@@ -507,6 +465,68 @@ impl<'a, 'b, 'c, 'd> CompilerFrame<'a, 'b, 'c, 'd, StmtBuilder> {
         StExpr { expr, side_effects: SideEffects::None }
       }
     }
+  }
+
+  fn compile_assignment(&mut self,
+                        target: &AssignTarget,
+                        expr: &IRExpr,
+                        needs_result: NeedsResult)
+                        -> Result<StExpr, Error> {
+    match target {
+      AssignTarget::Variable(pos, name) => {
+        let var = self.table.get_var(name).ok_or_else(|| Error::new(ErrorF::NoSuchVar(name.clone()), *pos))?.to_owned();
+        if !var.assignable {
+          return Err(Error::new(ErrorF::CannotAssignTo(var.name.to_gd(*pos)), expr.pos));
+        }
+        self.compile_stmt(&stmt_wrapper::AssignToExpr(var.expr(*pos)), expr)?;
+        Ok(StExpr { expr: var.expr(*pos), side_effects: SideEffects::from(var.access_type) })
+      }
+      AssignTarget::InstanceField(pos, lhs, name) => {
+        // TODO Weirdness with setget makes this stateful flag not
+        // always right? I mean, foo:bar can have side effects if bar
+        // is protected by a setget.
+        let StExpr { expr: mut lhs, side_effects } = self.compile_expr(lhs, NeedsResult::Yes)?;
+        // Assign to a temp if it's stateful
+        if needs_result == NeedsResult::Yes && side_effects.modifies_state() {
+          let var = factory::declare_var(self.compiler.name_generator(), self.builder, "_assign", Some(lhs), expr.pos);
+          lhs = Expr::new(ExprF::Var(var), *pos);
+        }
+        let lhs = Expr::new(ExprF::Attribute(Box::new(lhs), names::lisp_to_gd(name)), expr.pos);
+        self.compile_stmt(&stmt_wrapper::AssignToExpr(lhs.clone()), expr)?;
+        if needs_result == NeedsResult::Yes {
+          Ok(StExpr { expr: lhs, side_effects: SideEffects::None })
+        } else {
+          Ok(Compiler::nil_expr(expr.pos))
+        }
+      }
+    }
+  }
+
+  fn compile_array<'a1>(&mut self, elements: impl Iterator<Item=&'a1 IRExpr>, pos: SourceOffset)
+                        -> Result<StExpr, Error> {
+    let mut side_effects = SideEffects::None;
+    let vec = elements.map(|expr| {
+      let StExpr { expr: cexpr, side_effects: state } = self.compile_expr(expr, NeedsResult::Yes)?;
+      side_effects = max(side_effects, state);
+      Ok(cexpr)
+    }).collect::<Result<Vec<_>, Error>>()?;
+    Ok(StExpr { expr: Expr::new(ExprF::ArrayLit(vec), pos), side_effects })
+  }
+
+  fn compile_dictionary<'a1>(&mut self, elements: impl Iterator<Item=&'a1 (IRExpr, IRExpr)>, pos: SourceOffset)
+                             -> Result<StExpr, Error> {
+    let mut side_effects = SideEffects::None;
+    let vec = elements.map(|(k, v)| {
+
+      let StExpr { expr: kexpr, side_effects: kstate } = self.compile_expr(k, NeedsResult::Yes)?;
+      side_effects = max(side_effects, kstate);
+
+      let StExpr { expr: vexpr, side_effects: vstate } = self.compile_expr(v, NeedsResult::Yes)?;
+      side_effects = max(side_effects, vstate);
+
+      Ok((kexpr, vexpr))
+    }).collect::<Result<Vec<_>, Error>>()?;
+    Ok(StExpr { expr: Expr::new(ExprF::DictionaryLit(vec), pos), side_effects })
   }
 
 }
