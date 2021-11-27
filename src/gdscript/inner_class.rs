@@ -44,7 +44,7 @@ pub fn add_outer_class_ref_named(inner_class: &mut decl::ClassDecl, resolver: &d
   let current_filename = get_current_filename(current_file, resolver)
     .expect("Error identifying current file"); // TODO Expect
   let load_expr = VarName::load_expr(current_filename, pos);
-  let var_decl = Decl::new(DeclF::VarDecl(None, var_name, Some(load_expr)), pos);
+  let var_decl = Decl::new(DeclF::VarDecl(None, decl::Onready::No, var_name, Some(load_expr)), pos);
   inner_class.body.push(var_decl);
 }
 

@@ -20,7 +20,7 @@ use std::fmt::{self, Write};
 /// The type of GDScript declarations.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum DeclF {
-  VarDecl(Option<Export>, String, Option<Expr>),
+  VarDecl(Option<Export>, Onready, String, Option<Expr>),
   ConstDecl(String, Expr),
   ClassDecl(ClassDecl),
   InitFnDecl(InitFnDecl),
@@ -101,6 +101,13 @@ pub enum Static {
   NonStatic, IsStatic,
 }
 
+/// A Boolean-isomorphic type which indicates whether or not a
+/// variable has the `onready` modifier.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub enum Onready {
+  No, Yes,
+}
+
 fn empty_class_body(pos: SourceOffset) -> Decl {
   Decl::new(
     DeclF::InitFnDecl(InitFnDecl {
@@ -124,7 +131,7 @@ impl Decl {
   /// have names.
   pub fn name(&self) -> Option<&str> {
     match &self.value {
-      DeclF::VarDecl(_, n, _) => Some(&n),
+      DeclF::VarDecl(_, _, n, _) => Some(&n),
       DeclF::ConstDecl(n, _) => Some(&n),
       DeclF::ClassDecl(cdecl) => Some(&cdecl.name),
       DeclF::InitFnDecl(_) => Some(&library::CONSTRUCTOR_NAME),
@@ -147,13 +154,16 @@ impl Decl {
   pub fn write_gd<W : fmt::Write>(&self, w: &mut W, ind: u32) -> Result<(), fmt::Error> {
     indent(w, ind)?;
     match &self.value {
-      DeclF::VarDecl(export, name, value) => {
+      DeclF::VarDecl(export, onready, name, value) => {
         if let Some(export) = export {
           if export.args.is_empty() {
             write!(w, "export ")?;
           } else {
             write!(w, "export({}) ", export.args.iter().map(|x| x.to_gd()).collect::<Vec<_>>().join(", "))?;
           }
+        }
+        if bool::from(*onready) {
+          write!(w, "onready ")?;
         }
         write!(w, "var {}", name)?;
         match value {
@@ -303,6 +313,24 @@ impl From<Static> for bool {
   }
 }
 
+impl From<Onready> for bool {
+  fn from(r: Onready) -> bool {
+    r == Onready::Yes
+  }
+}
+
+impl From<bool> for Static {
+  fn from(b: bool) -> Static {
+    if b { Static::IsStatic } else { Static::NonStatic }
+  }
+}
+
+impl From<bool> for Onready {
+  fn from(b: bool) -> Onready {
+    if b { Onready::Yes } else { Onready::No }
+  }
+}
+
 #[cfg(test)]
 mod tests {
   use super::*;
@@ -320,8 +348,10 @@ mod tests {
   #[test]
   fn var_and_const() {
     let expr = e(ExprF::from(10));
-    assert_eq!(d(DeclF::VarDecl(None, String::from("foo"), None)).to_gd(0), "var foo\n");
-    assert_eq!(d(DeclF::VarDecl(None, String::from("foo"), Some(expr.clone()))).to_gd(0), "var foo = 10\n");
+    assert_eq!(d(DeclF::VarDecl(None, Onready::No, String::from("foo"), None)).to_gd(0), "var foo\n");
+    assert_eq!(d(DeclF::VarDecl(None, Onready::No, String::from("foo"), Some(expr.clone()))).to_gd(0), "var foo = 10\n");
+    assert_eq!(d(DeclF::VarDecl(None, Onready::Yes, String::from("foo"), None)).to_gd(0), "onready var foo\n");
+    assert_eq!(d(DeclF::VarDecl(None, Onready::Yes, String::from("foo"), Some(expr.clone()))).to_gd(0), "onready var foo = 10\n");
     assert_eq!(d(DeclF::ConstDecl(String::from("FOO"), expr.clone())).to_gd(0), "const FOO = 10\n");
   }
 
@@ -330,13 +360,16 @@ mod tests {
     let expr = e(ExprF::from(10));
 
     let export1 = Export { args: vec!(Expr::var("int", SourceOffset::default())) };
-    assert_eq!(d(DeclF::VarDecl(Some(export1), String::from("foo"), None)).to_gd(0), "export(int) var foo\n");
+    assert_eq!(d(DeclF::VarDecl(Some(export1), Onready::No, String::from("foo"), None)).to_gd(0), "export(int) var foo\n");
 
     let export2 = Export { args: vec!() };
-    assert_eq!(d(DeclF::VarDecl(Some(export2), String::from("foo"), None)).to_gd(0), "export var foo\n");
+    assert_eq!(d(DeclF::VarDecl(Some(export2), Onready::No, String::from("foo"), None)).to_gd(0), "export var foo\n");
 
-    let export3 = Export { args: vec!(Expr::var("int", SourceOffset::default()), Expr::from_value(1, SourceOffset::default()), Expr::from_value(10, SourceOffset::default())) };
-    assert_eq!(d(DeclF::VarDecl(Some(export3), String::from("foo"), Some(expr.clone()))).to_gd(0), "export(int, 1, 10) var foo = 10\n");
+    let export3 = Export { args: vec!() };
+    assert_eq!(d(DeclF::VarDecl(Some(export3), Onready::Yes, String::from("foo"), None)).to_gd(0), "export onready var foo\n");
+
+    let export4 = Export { args: vec!(Expr::var("int", SourceOffset::default()), Expr::from_value(1, SourceOffset::default()), Expr::from_value(10, SourceOffset::default())) };
+    assert_eq!(d(DeclF::VarDecl(Some(export4), Onready::No, String::from("foo"), Some(expr.clone()))).to_gd(0), "export(int, 1, 10) var foo = 10\n");
   }
 
   #[test]
@@ -438,7 +471,7 @@ mod tests {
       name: String::from("MyClass"),
       extends: ClassExtends::named(String::from("ParentClass")),
       body: vec!(
-        d(DeclF::VarDecl(None, String::from("variable"), None)),
+        d(DeclF::VarDecl(None, Onready::No, String::from("variable"), None)),
       ),
     }));
     assert_eq!(decl2.to_gd(0), "class MyClass extends ParentClass:\n    var variable\n");
@@ -447,11 +480,21 @@ mod tests {
       name: String::from("MyClass"),
       extends: ClassExtends::named(String::from("ParentClass")),
       body: vec!(
-        d(DeclF::VarDecl(None, String::from("variable"), None)),
+        d(DeclF::VarDecl(None, Onready::No, String::from("variable"), None)),
         sample_function.clone(),
       ),
     }));
     assert_eq!(decl3.to_gd(0), "class MyClass extends ParentClass:\n    var variable\n    func sample():\n        pass\n");
+
+    let decl4 = d(DeclF::ClassDecl(ClassDecl {
+      name: String::from("MyClass"),
+      extends: ClassExtends::named(String::from("ParentClass")),
+      body: vec!(
+        d(DeclF::VarDecl(None, Onready::Yes, String::from("variable"), None)),
+        sample_function.clone(),
+      ),
+    }));
+    assert_eq!(decl4.to_gd(0), "class MyClass extends ParentClass:\n    onready var variable\n    func sample():\n        pass\n");
 
   }
 
@@ -484,7 +527,7 @@ mod tests {
 
   #[test]
   fn decl_names() {
-    let decl1 = d(DeclF::VarDecl(None, String::from("abc"), None));
+    let decl1 = d(DeclF::VarDecl(None, Onready::No, String::from("abc"), None));
     assert_eq!(decl1.name(), Some("abc"));
 
     let decl2 = d(DeclF::ConstDecl(String::from("MY_CONST"), e(ExprF::from(10))));

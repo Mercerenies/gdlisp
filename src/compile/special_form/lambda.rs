@@ -119,7 +119,7 @@ pub fn compile_labels_scc(frame: &mut CompilerFrame<StmtBuilder>,
   };
   let mut class_body = vec!();
   for var in &gd_closure_vars {
-    class_body.push(Decl::new(DeclF::VarDecl(None, var.clone(), None), pos));
+    class_body.push(Decl::new(DeclF::VarDecl(None, decl::Onready::No, var.clone(), None), pos));
   }
   class_body.push(Decl::new(DeclF::FnDecl(decl::Static::NonStatic, constructor), pos));
   for func in functions {

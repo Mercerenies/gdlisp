@@ -167,6 +167,20 @@ static func run():
 }
 
 #[test]
+pub fn ready_member_var_class_test_1() {
+  assert_eq!(parse_compile_decl(r#"((defclass ClassName (Node) main (defvar x "foo" onready)))"#),
+             r#"extends Node
+func _init():
+    pass
+onready var x = "foo"
+static func run():
+    return null
+"#);
+}
+
+////
+
+#[test]
 pub fn complicated_member_var_class_test() {
   // Note: We use _cond_2 here because _cond_1 disappears during the
   // failed compilation of (if 1 2 3) via compile_simple_expr.

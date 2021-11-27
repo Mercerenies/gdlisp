@@ -120,14 +120,14 @@ impl ClassInit {
   pub fn apply(mut self, class: &mut ClassDecl) {
 
     // Initializer
-    {
+    if !self.init.is_empty() {
       let initializer = ClassInit::find_initializer(&mut class.body);
       self.init.append(&mut initializer.body);
       initializer.body = self.init;
     }
 
     // Ready
-    {
+    if !self.ready.is_empty() {
       let ready = ClassInit::find_ready(&mut class.body);
       self.ready.append(&mut ready.body);
       ready.body = self.ready;

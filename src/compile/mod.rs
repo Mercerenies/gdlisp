@@ -15,13 +15,13 @@ pub mod frame;
 
 use frame::CompilerFrame;
 use body::builder::{CodeBuilder, StmtBuilder, HasDecls};
-use body::class_initializer::ClassInitBuilder;
+use body::class_initializer::{ClassInitBuilder, InitTime};
 use names::fresh::FreshNameGenerator;
 use preload_resolver::PreloadResolver;
 use constant::MaybeConstant;
 use crate::gdscript::literal::Literal;
 use crate::gdscript::expr::{Expr, ExprF};
-use crate::gdscript::decl::{self, Decl, DeclF, ClassExtends};
+use crate::gdscript::decl::{self, Decl, DeclF, ClassExtends, Onready};
 use crate::gdscript::library;
 use crate::gdscript::arglist::ArgList;
 use error::{Error, ErrorF};
@@ -223,7 +223,8 @@ impl Compiler {
           let mut local_frame = self.frame(pipeline, builder.builder_for(v.init_time), table);
           Compiler::compile_inner_var_value(&name, v.value.as_ref(), &mut local_frame, decl.pos)?
         };
-        Ok(Decl::new(DeclF::VarDecl(exports, name, immediate_value), decl.pos))
+        let onready = Onready::from(immediate_value.is_some() && v.init_time == InitTime::Ready);
+        Ok(Decl::new(DeclF::VarDecl(exports, onready, name, immediate_value), decl.pos))
       }
       ir::decl::ClassInnerDeclF::ClassFnDecl(f) => {
         let gd_name = names::lisp_to_gd(&f.name);

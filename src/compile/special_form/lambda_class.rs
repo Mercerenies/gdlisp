@@ -89,7 +89,7 @@ pub fn compile_lambda_class(frame: &mut CompilerFrame<StmtBuilder>,
       class_body.push(Decl::new(DeclF::FnDecl(decl::Static::NonStatic, helper), pos));
     }
     for name in gd_closure_vars.iter() {
-      class_body.push(Decl::new(DeclF::VarDecl(None, name.clone(), None), pos));
+      class_body.push(Decl::new(DeclF::VarDecl(None, decl::Onready::No, name.clone(), None), pos));
     }
     for d in decls {
 

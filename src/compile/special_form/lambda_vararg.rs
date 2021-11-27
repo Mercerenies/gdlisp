@@ -118,7 +118,7 @@ pub fn generate_lambda_class(class_name: String,
     };
   let mut class_body = vec!();
   for var in closed_vars {
-    class_body.push(Decl::new(DeclF::VarDecl(None, var.to_owned(), None), pos));
+    class_body.push(Decl::new(DeclF::VarDecl(None, decl::Onready::No, var.to_owned(), None), pos));
   }
   class_body.append(&mut vec!(
     Decl::new(DeclF::FnDecl(decl::Static::NonStatic, constructor), pos),

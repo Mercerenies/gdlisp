@@ -501,7 +501,6 @@ impl IncCompiler {
                                   acc: &mut decl::ClassDecl,
                                   curr: &AST)
                                   -> Result<(), PError> {
-    // TODO Error if we declare constructor twice
 
     // Deal with macros
     let mut candidate: Option<AST>;
@@ -538,7 +537,7 @@ impl IncCompiler {
           Ok(())
         }
         "defvar" => {
-          if vec.len() < 2 || vec.len() > 4 {
+          if vec.len() < 2 {
             return Err(PError::from(Error::new(ErrorF::InvalidDecl(curr.clone()), curr.pos)));
           }
           if let ASTF::Symbol(vname) = &vec[1].value {
@@ -566,8 +565,10 @@ impl IncCompiler {
                 }
               }
             }
+            // Modifiers
+            let (mods, body) = modifier::var::parser().parse(&vec[idx..])?;
             // (Extra)
-            if idx < vec.len() {
+            if !body.is_empty() {
               return Err(PError::from(Error::new(ErrorF::InvalidDecl(curr.clone()), curr.pos)));
             }
 
@@ -576,7 +577,13 @@ impl IncCompiler {
               return Err(PError::from(Error::new(ErrorF::ExportOnInnerClassVar(vname.clone()), curr.pos)));
             }
 
-            let decl = decl::ClassVarDecl { export, name, value, init_time: InitTime::default() };
+            let decl = {
+              let mut decl = decl::ClassVarDecl { export, name, value, init_time: InitTime::default() };
+              for m in mods {
+                m.apply(&mut decl);
+              }
+              decl
+            };
             acc.decls.push(decl::ClassInnerDecl::new(decl::ClassInnerDeclF::ClassVarDecl(decl), vec[0].pos));
             Ok(())
           } else {

@@ -15,6 +15,7 @@ pub mod visibility;
 pub mod magic;
 pub mod file;
 pub mod declare;
+pub mod var;
 
 use crate::sxp::ast::{AST, ASTF};
 use crate::pipeline::source::{SourceOffset, Sourced};

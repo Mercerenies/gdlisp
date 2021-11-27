@@ -58,7 +58,7 @@ fn on_decl(opt: &impl FunctionOptimization, decl: &mut Decl) -> Result<(), Error
       }
       Ok(())
     }
-    DeclF::VarDecl(_, _, _) | DeclF::ConstDecl(_, _) | DeclF::SignalDecl(_, _) | DeclF::EnumDecl(_) => {
+    DeclF::VarDecl(_, _, _, _) | DeclF::ConstDecl(_, _) | DeclF::SignalDecl(_, _) | DeclF::EnumDecl(_) => {
       Ok(())
     }
   }
