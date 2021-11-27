@@ -15,6 +15,8 @@ use super::builder::{StmtBuilder, HasDecls};
 pub struct ClassInitBuilder {
   /// The builder for `_init`.
   pub init_builder: StmtBuilder,
+  /// The builder for `_ready`.
+  pub ready_builder: StmtBuilder,
   /// Any declarations which have been absorbed by another builder.
   /// This field exists for compatibility with [`HasDecls`] so that
   /// this builder can be composed with others easily.
@@ -27,6 +29,8 @@ pub struct ClassInitBuilder {
 pub struct ClassInit {
   /// Statements to be prepended to the class' `_init` method.
   pub init: Vec<Stmt>,
+  /// Statements to be prepended to the class' `_ready` method.
+  pub ready: Vec<Stmt>,
 }
 
 /// The time that an instance variable should be initialized.
@@ -35,6 +39,9 @@ pub enum InitTime {
   /// The variable is initialized during `_init()`, i.e. when the
   /// instance itself is first constructed.
   Init,
+  /// The variable is initialized during `_ready()`, i.e. when the
+  /// instance is added to the scene tree.
+  Ready,
 }
 
 impl ClassInitBuilder {
@@ -48,6 +55,7 @@ impl ClassInitBuilder {
   pub fn builder_for(&mut self, init_time: InitTime) -> &mut StmtBuilder {
     match init_time {
       InitTime::Init => &mut self.init_builder,
+      InitTime::Ready => unimplemented!(), ////
     }
   }
 
@@ -57,10 +65,16 @@ impl ClassInitBuilder {
 
     // Initializer
     let (init, mut init_helpers) = self.init_builder.build();
+    helpers.append(&mut init_helpers);
+
+    // Ready
+    let (ready, mut ready_helpers) = self.ready_builder.build();
+    helpers.append(&mut ready_helpers);
+
     let initializer = ClassInit {
       init,
+      ready,
     };
-    helpers.append(&mut init_helpers);
 
     (initializer, helpers)
   }
