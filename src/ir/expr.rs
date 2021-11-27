@@ -23,7 +23,7 @@ pub enum ExprF {
   WhileStmt(Box<Expr>, Box<Expr>),
   ForStmt(String, Box<Expr>, Box<Expr>),
   Call(String, Vec<Expr>),
-  Let(Vec<(String, Expr)>, Box<Expr>),
+  Let(Vec<LocalVarClause>, Box<Expr>),
   FLet(Vec<LocalFnClause>, Box<Expr>),
   Labels(Vec<LocalFnClause>, Box<Expr>),
   Lambda(ArgList, Box<Expr>),
@@ -74,6 +74,12 @@ pub struct LocalFnClause {
   pub name: String,
   pub args: ArgList,
   pub body: Expr,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct LocalVarClause {
+  pub name: String,
+  pub value: Expr,
 }
 
 /// A collection of local variables, as well as the broadest
@@ -190,8 +196,8 @@ impl Expr {
       ExprF::Let(clauses, body) => {
         let mut vars = HashSet::new();
         for clause in clauses {
-          vars.insert(clause.0.to_owned());
-          clause.1.walk_locals(acc_vars, acc_fns);
+          vars.insert(clause.name.to_owned());
+          clause.value.walk_locals(acc_vars, acc_fns);
         }
         let mut local_scope = Locals::new();
         body.walk_locals(&mut local_scope, acc_fns);

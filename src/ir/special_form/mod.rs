@@ -4,7 +4,7 @@ pub mod assignment;
 
 use crate::sxp::ast::{AST, ASTF};
 use crate::sxp::dotted::DottedExpr;
-use super::expr::{ExprF, Expr, FuncRefTarget, AssignTarget, LambdaClass, LocalFnClause};
+use super::expr::{ExprF, Expr, FuncRefTarget, AssignTarget, LambdaClass, LocalVarClause, LocalFnClause};
 use super::special_ref::SpecialRef;
 use super::decl::{self, Decl, DeclF};
 use super::arglist::ArgList;
@@ -139,9 +139,9 @@ pub fn let_form(icompiler: &mut IncCompiler,
       ASTF::Symbol(s) => Ok(s.clone()),
       _ => Err(Error::from(GDError::new(GDErrorF::InvalidArg(String::from("let"), (*clause).clone(), String::from("variable declaration")), pos))),
     }?;
-    Ok((name, Expr::progn(result_value, clause.pos)))
+    Ok(LocalVarClause { name, value: Expr::progn(result_value, clause.pos) })
   }).collect::<Result<Vec<_>, _>>()?;
-  let var_names: Vec<_> = var_clauses.iter().map(|x| x.0.clone()).collect();
+  let var_names: Vec<_> = var_clauses.iter().map(|x| x.name.clone()).collect();
   macrolet_unbind_macros(icompiler, pipeline, &mut var_names.iter().map(|x| (Namespace::Value, &**x)), |icompiler, pipeline| {
     let body = tail[1..].iter().map(|expr| icompiler.compile_expr(pipeline, expr)).collect::<Result<Vec<_>, _>>()?;
     Ok(Expr::new(ExprF::Let(var_clauses, Box::new(Expr::progn(body, pos))), pos))
