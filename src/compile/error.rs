@@ -145,10 +145,7 @@ pub enum ErrorF {
   CannotAssignTo(String),
   /// An attempt was made to extend a value which cannot be extended
   /// as a class.
-  ///
-  /// TODO Provide better info here than `String`, via the
-  /// already-in-place [`VarNameIntoExtendsError`] infrastructure.
-  CannotExtend(String),
+  CannotExtend(VarNameIntoExtendsError),
   /// An `export` declaration was used on a variable in an inner
   /// class.
   ///
@@ -401,8 +398,8 @@ impl fmt::Display for ErrorF {
       ErrorF::CannotAssignTo(s) => {
         write!(f, "Cannot assign to immutable variable {}", s)?;
       }
-      ErrorF::CannotExtend(s) => {
-        write!(f, "Cannot extend expression {}", s)?;
+      ErrorF::CannotExtend(err) => {
+        write!(f, "{}", err)?;
       }
       ErrorF::ExportOnInnerClassVar(v) => {
         write!(f, "Export declarations can only be used on a file's main class, but one was found on {}", v)?;
@@ -518,20 +515,7 @@ impl From<ImportNameResolutionError> for ErrorF {
 
 impl From<VarNameIntoExtendsError> for ErrorF {
   fn from(err: VarNameIntoExtendsError) -> ErrorF {
-    match err {
-      VarNameIntoExtendsError::CannotExtendLocal(s) => {
-        ErrorF::CannotExtend(s)
-      }
-      VarNameIntoExtendsError::CannotExtendCurrentFile(s) => {
-        ErrorF::CannotExtend(s)
-      }
-      VarNameIntoExtendsError::CannotExtendLazyValue(s) => {
-        ErrorF::CannotExtend(s)
-      }
-      VarNameIntoExtendsError::CannotExtendNull => {
-        ErrorF::CannotExtend(String::from("null"))
-      }
-    }
+    ErrorF::CannotExtend(err)
   }
 }
 

@@ -11,6 +11,7 @@ use crate::pipeline::source::SourceOffset;
 
 use std::borrow::ToOwned;
 use std::convert::TryFrom;
+use std::fmt;
 
 /// All of the relevant information needed to understand a variable is
 /// stored in `LocalVar`. Despite its name, this structure is used to
@@ -72,7 +73,7 @@ pub enum VarName {
 /// into an [`Expr`]. It can also sometimes be converted (via
 /// [`TryFrom`]) into a [`ClassExtends`](decl::ClassExtends). This is
 /// the error type that can result when the latter conversion fails.
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub enum VarNameIntoExtendsError {
   /// It is not permitted to have a class extend a local variable.
   /// Even if the class is an anonymous class defined at local scope,
@@ -456,4 +457,23 @@ impl ValueHint {
     ValueHint::Enum(values.map(str::to_owned).collect())
   }
 
+}
+
+impl fmt::Display for VarNameIntoExtendsError {
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    match self {
+      VarNameIntoExtendsError::CannotExtendLocal(s) => {
+        write!(f, "Cannot extend local variable {}", s)
+      }
+      VarNameIntoExtendsError::CannotExtendCurrentFile(s) => {
+        write!(f, "Cannot extend reference to current file {}", s)
+      }
+      VarNameIntoExtendsError::CannotExtendLazyValue(s) => {
+        write!(f, "Cannot extend lazy-initialized value {}", s)
+      }
+      VarNameIntoExtendsError::CannotExtendNull => {
+        write!(f, "Cannot extend null value")
+      }
+    }
+  }
 }

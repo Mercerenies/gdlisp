@@ -26,7 +26,7 @@ use crate::gdscript::library;
 use crate::gdscript::arglist::ArgList;
 use error::{Error, ErrorF};
 use symbol_table::{SymbolTable, ClassTablePair};
-use symbol_table::local_var::{LocalVar, ValueHint, VarName, VarScope};
+use symbol_table::local_var::{LocalVar, ValueHint, VarName, VarScope, VarNameIntoExtendsError};
 use symbol_table::function_call;
 use symbol_table::call_magic::{CallMagic, DefaultCall};
 use symbol_table::call_magic::table::MagicTable;
@@ -283,7 +283,7 @@ impl Compiler {
   pub fn resolve_extends(table: &SymbolTable, extends: &str, pos: SourceOffset) -> Result<ClassExtends, Error> {
     let var = table.get_var(extends).ok_or_else(|| Error::new(ErrorF::NoSuchVar(extends.to_owned()), pos))?;
     if var.scope != VarScope::GlobalVar {
-      return Err(Error::new(ErrorF::CannotExtend(extends.to_owned()), pos));
+      return Err(Error::new(ErrorF::CannotExtend(VarNameIntoExtendsError::CannotExtendLocal(extends.to_owned())), pos));
     }
     let var_name = var.name.clone();
     ClassExtends::try_from(var_name).map_err(|x| Error::from_value(x, pos))
