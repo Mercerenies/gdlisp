@@ -72,6 +72,8 @@ struct MacroCall {
   file: Option<NamedTempFile>, // Macros can optionally retain a file resource, which will be deleted when the macro is discarded from scope.
 }
 
+const RESERVED_MACRO_INDEX: u32 = u32::MAX;
+
 // TODO Make this return GDError like it probably should.
 fn response_to_string(response: response::ServerResponse) -> io::Result<String> {
   String::try_from(response).map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e.to_string()))
@@ -110,7 +112,7 @@ impl NamedFileServer {
     let id = self.next_reserved_id;
     self.next_reserved_id = self.next_reserved_id.next();
     self.macro_files.insert(id, MacroCall {
-      index: 0, // TODO This is weird
+      index: RESERVED_MACRO_INDEX,
       original_name: name.clone(),
       name,
       parms,
@@ -193,10 +195,20 @@ impl NamedFileServer {
       if id.is_reserved() {
         library::gdlisp_root(pos)
       } else {
+
+        // A non-reserved macro should never end up at this position.
+        // (This would get caught by the below try_from, but we can
+        // supply a better error message in this specific case)
+        if call.index == RESERVED_MACRO_INDEX {
+          panic!("Non-reserved macro at reserved index {}", call.index);
+        }
+
+        let call_index = i32::try_from(call.index).expect(&format!("Macro reference indices exceeded i32 range, got {}", call.index));
+
         GDExpr::new(
           GDExprF::Subscript(
             Box::new(GDExpr::attribute(GDExpr::var("MAIN", pos), "loaded_files", pos)),
-            Box::new(GDExpr::from_value(call.index as i32, pos)),
+            Box::new(GDExpr::from_value(call_index, pos)),
           ),
           pos,
         )
