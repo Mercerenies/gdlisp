@@ -36,6 +36,10 @@ pub const GDLISP_NAME: &str = "GDLisp";
 /// The name of a GDScript constructor.
 pub const CONSTRUCTOR_NAME: &str = "_init";
 
+/// The name of a GDScript _ready function which runs when a node is
+/// added to the scene tree.
+pub const READY_NAME: &str = "_ready";
+
 /// An expression which accesses the global GDLisp singleton object.
 pub fn gdlisp_root(pos: SourceOffset) -> Expr {
   Expr::var(GDLISP_NAME, pos)

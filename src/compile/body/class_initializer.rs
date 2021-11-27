@@ -1,9 +1,10 @@
 
 //! Builders for class initializers.
 
-use crate::gdscript::decl::{Decl, DeclF, ClassDecl, InitFnDecl};
+use crate::gdscript::decl::{Decl, DeclF, ClassDecl, InitFnDecl, FnDecl, Static};
 use crate::gdscript::stmt::Stmt;
 use crate::gdscript::arglist::ArgList;
+use crate::gdscript::library::READY_NAME;
 use crate::util::find_or_else_mut;
 use crate::pipeline::source::SourceOffset;
 use super::builder::{StmtBuilder, HasDecls};
@@ -55,7 +56,7 @@ impl ClassInitBuilder {
   pub fn builder_for(&mut self, init_time: InitTime) -> &mut StmtBuilder {
     match init_time {
       InitTime::Init => &mut self.init_builder,
-      InitTime::Ready => unimplemented!(), ////
+      InitTime::Ready => &mut self.ready_builder,
     }
   }
 
@@ -117,12 +118,21 @@ impl ClassInit {
   // initializer arguments here? Should we throw an error in that
   // case?
   pub fn apply(mut self, class: &mut ClassDecl) {
+
     // Initializer
     {
       let initializer = ClassInit::find_initializer(&mut class.body);
       self.init.append(&mut initializer.body);
       initializer.body = self.init;
     }
+
+    // Ready
+    {
+      let ready = ClassInit::find_ready(&mut class.body);
+      self.ready.append(&mut ready.body);
+      ready.body = self.ready;
+    }
+
   }
 
   /// Find the initializer function defined on the current class. If
@@ -141,6 +151,26 @@ impl ClassInit {
     Decl::new(DeclF::InitFnDecl(InitFnDecl {
       args: ArgList::empty(),
       super_call: vec!(),
+      body: vec!(),
+    }), SourceOffset(0))
+  }
+
+  /// Find the _ready function defined on the current class. If no
+  /// _ready function is defined, then an empty one is created,
+  /// appended to the class, and returned.
+  pub fn find_ready(decls: &mut Vec<Decl>) -> &mut FnDecl {
+    let decl = find_or_else_mut(decls, ClassInit::empty_ready, |d| matches!(&d.value, DeclF::FnDecl(_, f) if f.name == READY_NAME));
+    if let DeclF::FnDecl(_, fdecl) = &mut decl.value {
+      fdecl
+    } else {
+      panic!("Internal error in ClassInit::find_ready")
+    }
+  }
+
+  fn empty_ready() -> Decl {
+    Decl::new(DeclF::FnDecl(Static::NonStatic, FnDecl {
+      name: READY_NAME.to_string(),
+      args: ArgList::empty(),
       body: vec!(),
     }), SourceOffset(0))
   }
