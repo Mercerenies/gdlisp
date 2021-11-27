@@ -86,7 +86,7 @@ impl Compiler {
     CompilerFrame::new(self, pipeline, builder, table)
   }
 
-  //// To CompilerFrame too
+  // TODO To CompilerFrame
   pub fn compile_decl(&mut self,
                       pipeline: &mut Pipeline,
                       builder: &mut CodeBuilder,
