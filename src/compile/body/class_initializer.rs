@@ -23,10 +23,18 @@ pub struct ClassInitBuilder {
 
 /// This is the eventual result of a [`ClassInitBuilder`]. It contains
 /// information that can be used to modify a [`ClassDecl`].
-#[derive(Default, Clone)]
+#[derive(Default, Clone, Debug)]
 pub struct ClassInit {
   /// Statements to be prepended to the class' `_init` method.
   pub init: Vec<Stmt>,
+}
+
+/// The time that an instance variable should be initialized.
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub enum InitTime {
+  /// The variable is initialized during `_init()`, i.e. when the
+  /// instance itself is first constructed.
+  Init,
 }
 
 impl ClassInitBuilder {
@@ -35,6 +43,12 @@ impl ClassInitBuilder {
   /// `ClassInitBuilder::default()`.
   pub fn new() -> ClassInitBuilder {
     ClassInitBuilder::default()
+  }
+
+  pub fn builder_for(&mut self, init_time: InitTime) -> &mut StmtBuilder {
+    match init_time {
+      InitTime::Init => &mut self.init_builder,
+    }
   }
 
   /// Builds the builder into a [`ClassInit`].
@@ -69,6 +83,16 @@ impl HasDecls for ClassInitBuilder {
 
   fn add_decl(&mut self, decl: Decl) {
     self.other_helpers.push(decl);
+  }
+
+}
+
+impl Default for InitTime {
+
+  /// [`InitTime::Init`] is the "default" initialization time, if no
+  /// modifiers are applied.
+  fn default() -> InitTime {
+    InitTime::Init
   }
 
 }

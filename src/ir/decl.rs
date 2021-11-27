@@ -7,6 +7,7 @@ use super::identifier::{Namespace, Id, IdLike};
 use super::export::Visibility;
 use crate::gdscript::decl::Static;
 use crate::pipeline::source::{SourceOffset, Sourced};
+use crate::compile::body::class_initializer::InitTime;
 
 use std::collections::HashSet;
 use std::borrow::Cow;
@@ -115,6 +116,7 @@ pub struct ClassVarDecl {
   pub export: Option<Export>,
   pub name: String,
   pub value: Option<Expr>,
+  pub init_time: InitTime,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]

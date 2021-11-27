@@ -220,7 +220,7 @@ impl Compiler {
         // to _init or _ready are not included in this return value
         // (they are added to the mutable builder frame instead).
         let immediate_value = {
-          let mut local_frame = self.frame(pipeline, &mut builder.init_builder, table);
+          let mut local_frame = self.frame(pipeline, builder.builder_for(v.init_time), table);
           Compiler::compile_inner_var_value(&name, v.value.as_ref(), &mut local_frame, decl.pos)?
         };
         Ok(Decl::new(DeclF::VarDecl(exports, name, immediate_value), decl.pos))

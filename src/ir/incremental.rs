@@ -23,6 +23,7 @@ use crate::compile::resource_type::ResourceType;
 use crate::compile::names;
 use crate::compile::names::fresh::FreshNameGenerator;
 use crate::compile::frame::MAX_QUOTE_REIFY_DEPTH;
+use crate::compile::body::class_initializer::InitTime;
 use crate::gdscript::library;
 use crate::gdscript::decl::Static;
 use crate::pipeline::error::{Error as PError, IOError};
@@ -575,7 +576,7 @@ impl IncCompiler {
               return Err(PError::from(Error::new(ErrorF::ExportOnInnerClassVar(vname.clone()), curr.pos)));
             }
 
-            let decl = decl::ClassVarDecl { export, name, value };
+            let decl = decl::ClassVarDecl { export, name, value, init_time: InitTime::default() };
             acc.decls.push(decl::ClassInnerDecl::new(decl::ClassInnerDeclF::ClassVarDecl(decl), vec[0].pos));
             Ok(())
           } else {
