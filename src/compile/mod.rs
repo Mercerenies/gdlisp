@@ -14,7 +14,7 @@ pub mod factory;
 pub mod frame;
 
 use frame::CompilerFrame;
-use body::builder::{CodeBuilder, HasDecls};
+use body::builder::{CodeBuilder, StmtBuilder, HasDecls};
 use body::class_initializer::ClassInitBuilder;
 use names::fresh::FreshNameGenerator;
 use preload_resolver::PreloadResolver;
@@ -215,15 +215,7 @@ impl Compiler {
         }).transpose()?;
         let exports = exports.map(|args| decl::Export { args });
         let name = names::lisp_to_gd(&v.name);
-
-        // TODO If it's a constant (provably), leave it be, as it can be useful for tooling support (////)
-        if let Some(value) = &v.value {
-          let destination = stmt_wrapper::AssignToExpr(
-            Expr::self_var(decl.pos).attribute(name.clone(), decl.pos),
-          );
-          self.frame(pipeline, &mut builder.init_builder, table).compile_stmt(&destination, value)?;
-        }
-
+        Compiler::compile_inner_var_value(&name, v.value.as_ref(), &mut self.frame(pipeline, &mut builder.init_builder, table), decl.pos)?;
         Ok(Decl::new(DeclF::VarDecl(exports, name, None), decl.pos))
       }
       ir::decl::ClassInnerDeclF::ClassFnDecl(f) => {
@@ -236,6 +228,21 @@ impl Compiler {
         Ok(Decl::new(DeclF::FnDecl(f.is_static, func), decl.pos))
       }
     }
+  }
+
+  fn compile_inner_var_value(name: &str,
+                             value: Option<&IRExpr>,
+                             frame: &mut CompilerFrame<StmtBuilder>,
+                             pos: SourceOffset)
+                             -> Result<(), Error> {
+    // TODO If it's a constant (provably), leave it be, as it can be useful for tooling support (////)
+    if let Some(value) = value {
+      let destination = stmt_wrapper::AssignToExpr(
+        Expr::self_var(pos).attribute(name.to_owned(), pos),
+      );
+      frame.compile_stmt(&destination, value)?;
+    }
+    Ok(())
   }
 
   /// Given the (simple) name of an `extends` clause for a class or
