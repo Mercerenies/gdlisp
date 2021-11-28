@@ -5,12 +5,30 @@ use phf::{phf_map};
 
 pub mod fresh;
 
-// TODO More translations
+// Note: Many of these translations are based on the similar
+// translations performed by the Scala compiler.
+//
+// https://github.com/lampepfl/dotty/blob/master/compiler/src/dotty/tools/dotc/util/NameTransformer.scala
 const TRANSLATIONS: phf::Map<char, &'static str> = phf_map! {
   '-' => "_",
   '<' => "_LT_",
   '>' => "_GT_",
   '=' => "_EQ_",
+  '~' => "_TILDE_",
+  '!' => "_BANG_",
+  '#' => "_HASH_",
+  '%' => "_PERCENT_",
+  '^' => "_UP_",
+  '&' => "_AMP_",
+  '|' => "_BAR_",
+  '*' => "_TIMES_",
+  '/' => "_DIV_",
+  '+' => "_PLUS_",
+  ':' => "_COLON_",
+  '\\' => "_BSLASH_",
+  '?' => "_QMARK_",
+  '@' => "_AT_",
+  '$' => "_DSIGN_",
 };
 
 const KNOWN_GDSCRIPT_KEYWORDS: &[&str] = &[
@@ -95,7 +113,7 @@ pub fn is_valid_gd_char(ch: char) -> bool {
 /// assert_eq!(lisp_to_gd("<=>"), "_LT__EQ__GT_");
 ///
 /// // General codepoints
-/// assert_eq!(lisp_to_gd("w~~w"), "w_u007E_u007Ew");
+/// assert_eq!(lisp_to_gd("w~~w"), "w_TILDE__TILDE_w");
 /// assert_eq!(lisp_to_gd("α"), "_u03B1");
 /// assert_eq!(lisp_to_gd("😃"), "_u1F603");
 ///
@@ -176,6 +194,26 @@ mod tests {
     assert_eq!(lisp_to_gd("foo-bar"), "foo_bar");
     assert_eq!(lisp_to_gd("foo-bar_baz"), "foo_bar_baz");
     assert_eq!(lisp_to_gd(">>="), "_GT__GT__EQ_");
+    assert_eq!(lisp_to_gd("~a~"), "_TILDE_a_TILDE_");
+    assert_eq!(lisp_to_gd("!"), "_BANG_");
+    assert_eq!(lisp_to_gd("+1+"), "_PLUS_1_PLUS_");
+    assert_eq!(lisp_to_gd("1^2"), "_1_UP_2");
+    assert_eq!(lisp_to_gd("a&&b"), "a_AMP__AMP_b");
+    assert_eq!(lisp_to_gd("a||b"), "a_BAR__BAR_b");
+    assert_eq!(lisp_to_gd("a*b"), "a_TIMES_b");
+    assert_eq!(lisp_to_gd("a/b"), "a_DIV_b");
+    assert_eq!(lisp_to_gd("a+b"), "a_PLUS_b");
+    assert_eq!(lisp_to_gd("keyword:"), "keyword_COLON_");
+    assert_eq!(lisp_to_gd("\\"), "_BSLASH_");
+    assert_eq!(lisp_to_gd("?-not-at-end"), "_QMARK__not_at_end");
+    assert_eq!(lisp_to_gd("@annotation"), "_AT_annotation");
+    assert_eq!(lisp_to_gd("$jquery"), "_DSIGN_jquery");
+  }
+
+  #[test]
+  fn starts_with_number() {
+    assert_eq!(lisp_to_gd("99"), "_99");
+    assert_eq!(lisp_to_gd("d99"), "d99");
   }
 
   #[test]
