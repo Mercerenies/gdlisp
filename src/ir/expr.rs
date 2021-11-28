@@ -14,6 +14,8 @@ use std::collections::HashSet;
 use std::collections::hash_map::RandomState;
 use std::borrow::Cow;
 
+pub const DEFAULT_SPLIT_NAME: &str = "_split";
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ExprF {
   LocalVar(String),
@@ -41,7 +43,7 @@ pub enum ExprF {
   ContextualFilename(RPathBuf),
   AtomicName(String),
   AtomicCall(String, Vec<Expr>),
-  Split(Box<Expr>), // Compiles the inner expression, but forces it to be stored in a local variable with a generated name. (TODO Consider allowing splits to be named, for better local variable naming on the GDScript side)
+  Split(String, Box<Expr>), // Compiles the inner expression, but forces it to be stored in a local variable with a generated name (the string argument is a prefix for the name)
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -151,6 +153,14 @@ impl Expr {
   pub fn from_value<T>(value: T, pos: SourceOffset) -> Expr
   where ExprF : From<T> {
     Expr::new(ExprF::from(value), pos)
+  }
+
+  pub fn named_split(self, name: &str, pos: SourceOffset) -> Expr {
+    Expr::new(ExprF::Split(name.to_owned(), Box::new(self)), pos)
+  }
+
+  pub fn split(self, pos: SourceOffset) -> Expr {
+    self.named_split(DEFAULT_SPLIT_NAME, pos)
   }
 
   fn walk_locals(&self, acc_vars: &mut Locals, acc_fns: &mut Functions) {
@@ -338,7 +348,10 @@ impl Expr {
           arg.walk_locals(acc_vars, acc_fns);
         }
       }
-      ExprF::Split(expr) => {
+      ExprF::Split(_, expr) => {
+        // The "name" of the split is not a GDLisp-level name; it's a
+        // hint to the later stages of the compiler. So it doesn't
+        // matter for our purposes.
         expr.walk_locals(acc_vars, acc_fns);
       }
     };

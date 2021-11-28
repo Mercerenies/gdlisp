@@ -108,7 +108,7 @@ impl<'a, 'b> QuasiquoteEngine<'a, 'b> {
       let value = qq.into_single(arg)?;
       if needs_split_wrapper {
         let pos = value.pos;
-        Ok(Expr::new(ExprF::Split(Box::new(value)), pos))
+        Ok(value.named_split("_quasiquote", pos))
       } else {
         Ok(value)
       }

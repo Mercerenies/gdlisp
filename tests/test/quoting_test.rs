@@ -83,7 +83,7 @@ pub fn quasiquote_unquote_spliced_list_test() {
 #[test]
 pub fn quasiquote_nested_test() {
   assert_eq!(parse_compile_and_output("``(,a)"),
-             "var _split_0 = null\nreturn GDLisp.cons(GDLisp.intern(\"quasiquote\"), GDLisp.cons(GDLisp.cons(GDLisp.cons(GDLisp.intern(\"unquote\"), GDLisp.cons(GDLisp.intern(\"a\"), _split_0)), null), null))\n");
+             "var _quasiquote_0 = null\nreturn GDLisp.cons(GDLisp.intern(\"quasiquote\"), GDLisp.cons(GDLisp.cons(GDLisp.cons(GDLisp.intern(\"unquote\"), GDLisp.cons(GDLisp.intern(\"a\"), _quasiquote_0)), null), null))\n");
 }
 
 #[test]
@@ -145,7 +145,7 @@ pub fn quasiquote_nesting_test() {
   assert_eq!(parse_compile_and_output("`(1 2 3 4)"),
              "return GDLisp.cons(1, GDLisp.cons(2, GDLisp.cons(3, GDLisp.cons(4, null))))\n");
   assert_eq!(parse_compile_and_output("`(1 2 3 4 5)"),
-             "var _split_0 = null\nreturn GDLisp.cons(1, GDLisp.cons(2, GDLisp.cons(3, GDLisp.cons(4, GDLisp.cons(5, _split_0)))))\n");
+             "var _quasiquote_0 = null\nreturn GDLisp.cons(1, GDLisp.cons(2, GDLisp.cons(3, GDLisp.cons(4, GDLisp.cons(5, _quasiquote_0)))))\n");
   assert_eq!(parse_compile_and_output("`(1 2 3 4 5 6)"),
-             "var _split_0 = GDLisp.cons(6, null)\nreturn GDLisp.cons(1, GDLisp.cons(2, GDLisp.cons(3, GDLisp.cons(4, GDLisp.cons(5, _split_0)))))\n");
+             "var _quasiquote_0 = GDLisp.cons(6, null)\nreturn GDLisp.cons(1, GDLisp.cons(2, GDLisp.cons(3, GDLisp.cons(4, GDLisp.cons(5, _quasiquote_0)))))\n");
 }

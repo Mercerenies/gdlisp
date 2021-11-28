@@ -491,7 +491,7 @@ pub fn split_form(icompiler: &mut IncCompiler,
                   -> Result<Expr, Error> {
   Expecting::exactly(1).validate("sys/split", pos, tail)?;
   let expr = icompiler.compile_expr(pipeline, tail[0])?;
-  Ok(Expr::new(ExprF::Split(Box::new(expr)), pos))
+  Ok(expr.split(pos))
 }
 
 fn macrolet_bind_locals<B, E, F, I>(icompiler: &mut IncCompiler,
