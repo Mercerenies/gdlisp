@@ -23,10 +23,44 @@ use std::fmt;
 /// An `Expecting` instance where `maximum < minimum` will accept no
 /// argument lists and always produce an error. No effort is made in
 /// this module to prevent the construction of such instances.
+///
+/// See also [`ExpectedShape`], which deals with the expected shape of
+/// a single argument, rather than the number of arguments.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct Expecting {
   pub minimum: usize,
   pub maximum: usize,
+}
+
+/// `ExpectedShape` specifies the type of argument that is expected.
+///
+/// Whereas [`Expecting`] concerns itself with the number of
+/// arguments, this enum concerns itself with the shape of an
+/// individual argument.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum ExpectedShape {
+  /// A variable declaration clause for a let expression.
+  VarDecl,
+  /// A macro declaration clause in a macrolet expression.
+  MacroDecl,
+  /// A function declaration clause in an flet expression or similar.
+  FnDecl,
+  /// A valid "extends" clause for a class declaration.
+  SuperclassDecl,
+  /// A special reference name. See
+  /// [`crate::ir::special_form::special_ref_form`].
+  SpecialRefValue,
+  /// A symbol literal.
+  Symbol,
+  /// A string literal.
+  String,
+  /// A nonempty list literal.
+  NonemptyList,
+  /// A second argument to `yield`. The GDScript `yield` function is
+  /// unique in that it has two optional arguments, but if one is
+  /// supplied then the other becomes required. This special value
+  /// provides an error message specific to that unique case.
+  YieldArg,
 }
 
 impl Expecting {
@@ -95,6 +129,22 @@ impl fmt::Display for Expecting {
       write!(f, "at most {}", self.maximum)
     } else {
       write!(f, "{} to {}", self.minimum, self.maximum)
+    }
+  }
+}
+
+impl fmt::Display for ExpectedShape {
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    match self {
+      ExpectedShape::VarDecl => write!(f, "variable declaration"),
+      ExpectedShape::MacroDecl => write!(f, "macro declaration"),
+      ExpectedShape::FnDecl => write!(f, "function declaration"),
+      ExpectedShape::SuperclassDecl => write!(f, "superclass declaration"),
+      ExpectedShape::SpecialRefValue => write!(f, "special reference value"),
+      ExpectedShape::Symbol => write!(f, "symbol"),
+      ExpectedShape::String => write!(f, "string"),
+      ExpectedShape::NonemptyList => write!(f, "nonempty list"),
+      ExpectedShape::YieldArg => write!(f, "additional argument (yield takes 0 or 2 arguments)"),
     }
   }
 }

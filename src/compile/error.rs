@@ -1,7 +1,7 @@
 
 //! Errors that can occur as a result of GDLisp code.
 
-use super::args::Expecting;
+use super::args::{Expecting, ExpectedShape};
 use crate::sxp;
 use crate::sxp::ast::AST;
 use crate::ir::arglist::{ArgListParseError, ArgListParseErrorF};
@@ -61,7 +61,7 @@ pub enum ErrorF {
   /// This error includes the name of the callable object, the faulty
   /// argument that was passed, and a freeform text description of the
   /// sort of argument that was expected.
-  InvalidArg(String, AST, String), // TODO Standardize the third argument in some kind of ADT.
+  InvalidArg(String, AST, ExpectedShape),
   /// A name was referenced in the variable namespace, but no such
   /// name was found in the symbol table.
   NoSuchVar(String),

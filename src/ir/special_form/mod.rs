@@ -10,7 +10,7 @@ use super::decl::{self, Decl, DeclF};
 use super::arglist::ArgList;
 use super::quasiquote::quasiquote_with_depth;
 use crate::compile::error::{Error as GDError, ErrorF as GDErrorF};
-use crate::compile::args::Expecting;
+use crate::compile::args::{Expecting, ExpectedShape};
 use crate::compile::frame::MAX_QUOTE_REIFY_DEPTH;
 use crate::ir::incremental::IncCompiler;
 use crate::ir::identifier::{Id, IdLike, Namespace};
@@ -78,7 +78,7 @@ pub fn cond_form(icompiler: &mut IncCompiler,
     let vec: Vec<&AST> = DottedExpr::new(clause).try_into().map_err(|x| GDError::from_value(x, pos))?;
     match vec.len() {
       0 => {
-        Err(Error::from(GDError::new(GDErrorF::InvalidArg(String::from("cond"), (*clause).clone(), String::from("nonempty list")), pos)))
+        Err(Error::from(GDError::new(GDErrorF::InvalidArg(String::from("cond"), (*clause).clone(), ExpectedShape::NonemptyList), pos)))
       }
       1 => {
         let cond = icompiler.compile_expr(pipeline, vec[0])?;
@@ -114,7 +114,7 @@ pub fn for_form(icompiler: &mut IncCompiler,
   Expecting::at_least(2).validate("for", pos, tail)?;
   let name = match &tail[0].value {
     ASTF::Symbol(s) => s.to_owned(),
-    _ => return Err(Error::from(GDError::new(GDErrorF::InvalidArg(String::from("for"), (*tail[0]).clone(), String::from("variable name")), pos))),
+    _ => return Err(Error::from(GDError::new(GDErrorF::InvalidArg(String::from("for"), (*tail[0]).clone(), ExpectedShape::Symbol), pos))),
   };
   let iter = icompiler.compile_expr(pipeline, tail[1])?;
   let body = tail[2..].iter().map(|x| icompiler.compile_expr(pipeline, x)).collect::<Result<Vec<_>, _>>()?;
@@ -132,12 +132,12 @@ pub fn let_form(icompiler: &mut IncCompiler,
     let var: Vec<_> = match DottedExpr::new(clause) {
       DottedExpr { elements, terminal: AST { value: ASTF::Nil, pos: _ } } if !elements.is_empty() => elements,
       DottedExpr { elements, terminal: tail@AST { value: ASTF::Symbol(_), pos: _ } } if elements.is_empty() => vec!(tail),
-      _ => return Err(Error::from(GDError::new(GDErrorF::InvalidArg(String::from("let"), (*clause).clone(), String::from("variable declaration")), pos)))
+      _ => return Err(Error::from(GDError::new(GDErrorF::InvalidArg(String::from("let"), (*clause).clone(), ExpectedShape::VarDecl), pos)))
     };
     let result_value = var[1..].iter().map(|e| icompiler.compile_expr(pipeline, e)).collect::<Result<Vec<_>, _>>()?;
     let name = match &var[0].value {
       ASTF::Symbol(s) => Ok(s.clone()),
-      _ => Err(Error::from(GDError::new(GDErrorF::InvalidArg(String::from("let"), (*clause).clone(), String::from("variable declaration")), pos))),
+      _ => Err(Error::from(GDError::new(GDErrorF::InvalidArg(String::from("let"), (*clause).clone(), ExpectedShape::VarDecl), pos))),
     }?;
     Ok(LocalVarClause { name, value: Expr::progn(result_value, clause.pos) })
   }).collect::<Result<Vec<_>, _>>()?;
@@ -169,7 +169,7 @@ pub fn function_form(tail: &[&AST],
       Ok(Expr::new(ExprF::FuncRef(FuncRefTarget::SimpleName(s.clone())), pos))
     }
     _ => {
-      Err(Error::from(GDError::new(GDErrorF::InvalidArg(String::from("function"), tail[0].clone(), String::from("symbol")), pos)))
+      Err(Error::from(GDError::new(GDErrorF::InvalidArg(String::from("function"), tail[0].clone(), ExpectedShape::Symbol), pos)))
     }
   }
 }
@@ -191,14 +191,14 @@ pub fn assign_form(icompiler: &mut IncCompiler,
         if let ExprF::FieldAccess(lhs, slot_name) = access_slot_form(icompiler, pipeline, &inner[1..], pos)?.value {
           AssignmentForm::Simple(AssignTarget::InstanceField(inner[0].pos, lhs, slot_name))
         } else {
-          return Err(Error::from(GDError::new(GDErrorF::InvalidArg(String::from("set"), x.clone(), String::from("symbol")), pos)));
+          return Err(Error::from(GDError::new(GDErrorF::InvalidArg(String::from("set"), x.clone(), ExpectedShape::Symbol), pos)));
         }
       } else if let ASTF::Symbol(s) = &inner[0].value {
         let head = AssignmentForm::str_to_setter_prefix(s);
         let args = inner[1..].iter().map(|x| icompiler.compile_expr(pipeline, x)).collect::<Result<_, _>>()?;
         AssignmentForm::SetterCall(head, args)
       } else {
-        return Err(Error::from(GDError::new(GDErrorF::InvalidArg(String::from("set"), x.clone(), String::from("symbol")), pos)));
+        return Err(Error::from(GDError::new(GDErrorF::InvalidArg(String::from("set"), x.clone(), ExpectedShape::Symbol), pos)));
       }
     }
   };
@@ -221,11 +221,11 @@ pub fn flet_form(icompiler: &mut IncCompiler,
   let fn_names: Vec<_> = fns.iter().map(|clause| {
     let func: Vec<_> = DottedExpr::new(clause).try_into()?;
     if func.len() < 2 {
-      return Err(Error::from(GDError::new(GDErrorF::InvalidArg(String::from("flet"), (*clause).clone(), String::from("function declaration")), pos)));
+      return Err(Error::from(GDError::new(GDErrorF::InvalidArg(String::from("flet"), (*clause).clone(), ExpectedShape::FnDecl), pos)));
     }
     match &func[0].value {
       ASTF::Symbol(s) => Ok(s.clone()),
-      _ => Err(Error::from(GDError::new(GDErrorF::InvalidArg(String::from("flet"), (*clause).clone(), String::from("function declaration")), pos))),
+      _ => Err(Error::from(GDError::new(GDErrorF::InvalidArg(String::from("flet"), (*clause).clone(), ExpectedShape::FnDecl), pos))),
     }
   }).collect::<Result<_, _>>()?;
 
@@ -244,11 +244,11 @@ pub fn flet_form(icompiler: &mut IncCompiler,
     let fn_clauses = fns.into_iter().map(|clause| {
       let func: Vec<_> = DottedExpr::new(clause).try_into()?;
       if func.len() < 2 {
-        return Err(Error::from(GDError::new(GDErrorF::InvalidArg(String::from("flet"), clause.clone(), String::from("function declaration")), pos)));
+        return Err(Error::from(GDError::new(GDErrorF::InvalidArg(String::from("flet"), clause.clone(), ExpectedShape::FnDecl), pos)));
       }
       let name = match &func[0].value {
         ASTF::Symbol(s) => Ok(s.clone()),
-        _ => Err(Error::from(GDError::new(GDErrorF::InvalidArg(String::from("flet"), (*clause).clone(), String::from("function declaration")), pos))),
+        _ => Err(Error::from(GDError::new(GDErrorF::InvalidArg(String::from("flet"), (*clause).clone(), ExpectedShape::FnDecl), pos))),
       }?;
       let args: Vec<_> = DottedExpr::new(func[1]).try_into()?;
       let args = ArgList::parse(args)?;
@@ -285,7 +285,7 @@ pub fn access_slot_form(icompiler: &mut IncCompiler,
   let lhs = icompiler.compile_expr(pipeline, tail[0])?;
   let slot_name = match &tail[1].value {
     ASTF::Symbol(s) => s.to_owned(),
-    _ => return Err(Error::from(GDError::new(GDErrorF::InvalidArg(String::from("access-slot"), tail[1].clone(), String::from("symbol")), pos))),
+    _ => return Err(Error::from(GDError::new(GDErrorF::InvalidArg(String::from("access-slot"), tail[1].clone(), ExpectedShape::Symbol), pos))),
   };
   Ok(Expr::new(ExprF::FieldAccess(Box::new(lhs), slot_name), pos))
 }
@@ -302,11 +302,11 @@ pub fn new_form(icompiler: &mut IncCompiler,
   };
   let super_call = Vec::try_from(DottedExpr::new(&super_call))?;
   if super_call.is_empty() {
-    return Err(Error::from(GDError::new(GDErrorF::InvalidArg(String::from("new"), tail[0].clone(), String::from("superclass declaration")), pos)));
+    return Err(Error::from(GDError::new(GDErrorF::InvalidArg(String::from("new"), tail[0].clone(), ExpectedShape::SuperclassDecl), pos)));
   }
   let superclass = match &super_call[0].value {
     ASTF::Symbol(superclass_name) => superclass_name.to_owned(),
-    _ => return Err(Error::from(GDError::new(GDErrorF::InvalidArg(String::from("new"), tail[0].clone(), String::from("superclass declaration")), pos))),
+    _ => return Err(Error::from(GDError::new(GDErrorF::InvalidArg(String::from("new"), tail[0].clone(), ExpectedShape::SuperclassDecl), pos))),
   };
   let super_args = super_call[1..].iter().map(|arg| icompiler.compile_expr(pipeline, arg)).collect::<Result<Vec<_>, _>>()?;
   let mut cls = decl::ClassDecl::new(String::from("(local anonymous class)"), superclass);
@@ -339,7 +339,7 @@ pub fn yield_form(icompiler: &mut IncCompiler,
       // how do we correctly report errors for this relatively bizarre
       // special form, since WrongNumberArgs assumes an interval as
       // expected argument count?
-      Err(Error::from(GDError::new(GDErrorF::InvalidArg(String::from("yield"), AST::nil(SourceOffset(0)), String::from("additional argument (yield takes 0 or 2 arguments)")), pos)))
+      Err(Error::from(GDError::new(GDErrorF::InvalidArg(String::from("yield"), AST::nil(SourceOffset(0)), ExpectedShape::YieldArg), pos)))
     }
     2 => {
       let lhs = icompiler.compile_expr(pipeline, tail[0])?;
@@ -372,11 +372,11 @@ pub fn macrolet_form(icompiler: &mut IncCompiler,
   let fn_clauses = fns.into_iter().map(|clause| {
     let func: Vec<_> = DottedExpr::new(clause).try_into()?;
     if func.len() < 2 {
-      return Err(Error::from(GDError::new(GDErrorF::InvalidArg(String::from("macrolet"), clause.clone(), String::from("macro declaration")), pos)));
+      return Err(Error::from(GDError::new(GDErrorF::InvalidArg(String::from("macrolet"), clause.clone(), ExpectedShape::MacroDecl), pos)));
     }
     let name = match &func[0].value {
       ASTF::Symbol(s) => Ok(s.clone()),
-      _ => Err(Error::from(GDError::new(GDErrorF::InvalidArg(String::from("macrolet"), (*clause).clone(), String::from("macro declaration")), pos))),
+      _ => Err(Error::from(GDError::new(GDErrorF::InvalidArg(String::from("macrolet"), (*clause).clone(), ExpectedShape::MacroDecl), pos))),
     }?;
     let args: Vec<_> = DottedExpr::new(func[1]).try_into()?;
     let args = ArgList::parse(args)?;
@@ -402,11 +402,11 @@ pub fn symbol_macrolet_form(icompiler: &mut IncCompiler,
   let var_clauses = vars.into_iter().map(|clause| {
     let var: Vec<_> = DottedExpr::new(clause).try_into()?;
     if var.len() != 2 {
-      return Err(Error::from(GDError::new(GDErrorF::InvalidArg(String::from("symbol-macrolet"), clause.clone(), String::from("macro declaration")), pos)));
+      return Err(Error::from(GDError::new(GDErrorF::InvalidArg(String::from("symbol-macrolet"), clause.clone(), ExpectedShape::MacroDecl), pos)));
     }
     let name = match &var[0].value {
       ASTF::Symbol(s) => Ok(s.clone()),
-      _ => Err(Error::from(GDError::new(GDErrorF::InvalidArg(String::from("symbol-macrolet"), (*clause).clone(), String::from("macro declaration")), pos))),
+      _ => Err(Error::from(GDError::new(GDErrorF::InvalidArg(String::from("symbol-macrolet"), (*clause).clone(), ExpectedShape::MacroDecl), pos))),
     }?;
     let body = icompiler.compile_expr(pipeline, var[1])?;
     Ok(decl::MacroDecl { visibility: Visibility::MACRO, name, args: ArgList::empty(), body: body })
@@ -431,10 +431,10 @@ pub fn special_ref_form(_icompiler: &mut IncCompiler,
       "this-file" => Ok(Expr::from_value(SpecialRef::ThisFile, pos)),
       "this-filename" => Ok(Expr::from_value(SpecialRef::ThisFileName, pos)),
       "this-true-filename" => Ok(Expr::from_value(SpecialRef::ThisTrueFileName, pos)),
-      _ => Err(Error::from(GDError::new(GDErrorF::InvalidArg(String::from("sys/special-ref"), tail[0].clone(), String::from("special reference value")), pos))),
+      _ => Err(Error::from(GDError::new(GDErrorF::InvalidArg(String::from("sys/special-ref"), tail[0].clone(), ExpectedShape::SpecialRefValue), pos))),
     }
   } else {
-    Err(Error::from(GDError::new(GDErrorF::InvalidArg(String::from("sys/special-ref"), tail[0].clone(), String::from("special reference value")), pos)))
+    Err(Error::from(GDError::new(GDErrorF::InvalidArg(String::from("sys/special-ref"), tail[0].clone(), ExpectedShape::SpecialRefValue), pos)))
   }
 }
 
@@ -471,7 +471,7 @@ pub fn context_filename_form(_icompiler: &mut IncCompiler,
     })?;
     Ok(Expr::new(ExprF::ContextualFilename(path), pos))
   } else {
-    Err(Error::from(GDError::new(GDErrorF::InvalidArg(String::from("sys/context-filename"), tail[0].clone(), String::from("string")), pos)))
+    Err(Error::from(GDError::new(GDErrorF::InvalidArg(String::from("sys/context-filename"), tail[0].clone(), ExpectedShape::String), pos)))
   }
 }
 
@@ -480,7 +480,7 @@ pub fn literally_form(tail: &[&AST], pos: SourceOffset) -> Result<Expr, Error> {
   if let ASTF::Symbol(s) = &tail[0].value {
     Ok(Expr::new(ExprF::AtomicName(s.clone()), pos))
   } else {
-    Err(Error::from(GDError::new(GDErrorF::InvalidArg(String::from("literally"), tail[0].clone(), String::from("symbol")), pos)))
+    Err(Error::from(GDError::new(GDErrorF::InvalidArg(String::from("literally"), tail[0].clone(), ExpectedShape::Symbol), pos)))
   }
 }
 
