@@ -103,14 +103,6 @@ pub enum FnName {
   OnLocalVar(Box<VarName>),
   /// A local function referenced by the current local scope.
   OnLocalScope,
-  /// Special compiler-only case: a top-level macro name being called
-  /// *during* compilation.
-  ///
-  /// This option is a sort of backdoor into the `FnName` mechanism to
-  /// allow certain compiler techniques to be implemented more easily.
-  /// Ideally, we will eventually eliminate this case and replace it
-  /// with something more specific and accurate.
-  MacroCall(Box<Expr>), // TODO Be more specific than Expr here?
 }
 
 /// A specification of the parameters a function takes. `FnSpecs` is
@@ -351,10 +343,6 @@ impl FnName {
         // This case definitely shouldn't happen. Leave it alone I guess.
         FnName::OnLocalScope
       }
-      FnName::MacroCall(m) => {
-        // Shouldn't happen :)
-        FnName::MacroCall(m)
-      }
     }
   }
 
@@ -441,7 +429,6 @@ impl FnName {
       FnName::ImportedConstant(var_name) => Some(var_name.into_expr(pos)),
       FnName::OnLocalVar(var_name) => Some(var_name.into_expr(pos)),
       FnName::OnLocalScope => None,
-      FnName::MacroCall(m) => Some(*m),
     }
   }
 

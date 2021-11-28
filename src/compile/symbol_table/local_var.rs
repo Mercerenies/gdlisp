@@ -52,6 +52,8 @@ pub enum VarName {
   Superglobal(String),
   /// A file-level constant defined in another file and imported.
   ImportedConstant(Box<VarName>, String),
+  /// A file-level constant subscripted by a given constant numerical value.
+  SubscriptedConstant(Box<VarName>, i32),
   /// The current file, as a constant value. This is semantically
   /// similar to a [`VarName::FileConstant`], but it is a special
   /// case, as `VarName::CurrentFile` is required to compile to a
@@ -79,6 +81,9 @@ pub enum VarNameIntoExtendsError {
   /// Even if the class is an anonymous class defined at local scope,
   /// there is no good semantic way to permit this behavior.
   CannotExtendLocal(String),
+  /// It is not permitted to have a class which extends a subscripted
+  /// (i.e. `foo[bar]`) expression.
+  CannotExtendSubscript(Box<VarName>, i32),
   /// It is not permitted to have a class extend the currently loading
   /// file. This would cause a cyclic load error in Godot.
   CannotExtendCurrentFile(String),
@@ -337,6 +342,7 @@ impl VarName {
       VarName::FileConstant(s) => Some(&s),
       VarName::Superglobal(s) => Some(&s),
       VarName::ImportedConstant(_, _) => None,
+      VarName::SubscriptedConstant(_, _) => None,
       VarName::CurrentFile(_) => None,
       VarName::LazyValue(_) => None,
       VarName::ImportedLazyValue(_, _) => None,
@@ -371,6 +377,11 @@ impl VarName {
         let lhs = Box::new(lhs.into_imported(import_name));
         VarName::ImportedConstant(lhs, s)
       }
+      VarName::SubscriptedConstant(lhs, n) => {
+        // Import the constant transitively.
+        let lhs = Box::new(lhs.into_imported(import_name));
+        VarName::SubscriptedConstant(lhs, n)
+      }
       VarName::CurrentFile(_) => {
         // The current file imports as the name of the import itself.
         VarName::FileConstant(import_name)
@@ -400,6 +411,7 @@ impl VarName {
       VarName::FileConstant(s) => Expr::new(ExprF::Var(s), pos),
       VarName::Superglobal(s) => Expr::new(ExprF::Var(s), pos),
       VarName::ImportedConstant(lhs, s) => Expr::new(ExprF::Attribute(Box::new(lhs.into_expr(pos)), s), pos),
+      VarName::SubscriptedConstant(lhs, n) => Expr::new(ExprF::Subscript(Box::new(lhs.into_expr(pos)), Box::new(Expr::from_value(n, pos))), pos),
       VarName::CurrentFile(filename) => VarName::load_expr(filename, pos),
       VarName::LazyValue(s) => Expr::call(None, &s, vec!(), pos),
       VarName::ImportedLazyValue(lhs, s) => Expr::call(Some(lhs.into_expr(pos)), &s, vec!(), pos),
@@ -430,6 +442,9 @@ impl TryFrom<VarName> for decl::ClassExtends {
         let decl::ClassExtends::Qualified(mut vec) = decl::ClassExtends::try_from(*lhs)?;
         vec.push(s);
         Ok(decl::ClassExtends::Qualified(vec))
+      }
+      VarName::SubscriptedConstant(lhs, n) => {
+        Err(VarNameIntoExtendsError::CannotExtendSubscript(lhs, n))
       }
       VarName::CurrentFile(s) => {
         Err(VarNameIntoExtendsError::CannotExtendCurrentFile(s))
@@ -464,6 +479,10 @@ impl fmt::Display for VarNameIntoExtendsError {
     match self {
       VarNameIntoExtendsError::CannotExtendLocal(s) => {
         write!(f, "Cannot extend local variable {}", s)
+      }
+      VarNameIntoExtendsError::CannotExtendSubscript(expr, n) => {
+        let expr = expr.clone().into_expr(SourceOffset(0)).subscript(Expr::from_value(*n, SourceOffset(0)), SourceOffset(0));
+        write!(f, "Cannot extend reference to current file {}", expr.to_gd())
       }
       VarNameIntoExtendsError::CannotExtendCurrentFile(s) => {
         write!(f, "Cannot extend reference to current file {}", s)

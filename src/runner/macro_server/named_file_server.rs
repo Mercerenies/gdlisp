@@ -11,10 +11,11 @@ use crate::sxp::ast::AST;
 use crate::runner::macro_server::lazy::LazyServer;
 use crate::compile::names;
 use crate::compile::names::fresh::FreshNameGenerator;
+use crate::compile::symbol_table::local_var::VarName;
 use crate::compile::symbol_table::function_call::{FnCall, FnScope, FnSpecs, FnName};
 use crate::compile::symbol_table::call_magic::compile_default_call;
 use crate::compile::stmt_wrapper::{self, StmtWrapper};
-use crate::gdscript::expr::{Expr as GDExpr, ExprF as GDExprF};
+use crate::gdscript::expr::{Expr as GDExpr};
 use crate::gdscript::stmt::Stmt;
 use crate::gdscript::library;
 use crate::ir::arglist::ArgList;
@@ -207,14 +208,14 @@ impl NamedFileServer {
         let index_error_message = format!("Macro reference indices exceeded i32 range, got {}", call.index);
         let call_index = i32::try_from(call.index).expect(&index_error_message);
 
-        let expr = GDExpr::new(
-          GDExprF::Subscript(
-            Box::new(GDExpr::attribute(GDExpr::var("MAIN", pos), "loaded_files", pos)),
-            Box::new(GDExpr::from_value(call_index, pos)),
-          ),
-          pos,
+        let target = VarName::SubscriptedConstant(
+          Box::new(VarName::ImportedConstant(
+            Box::new(VarName::FileConstant(String::from("MAIN"))),
+            String::from("loaded_files"),
+          )),
+          call_index,
         );
-        FnName::MacroCall(Box::new(expr))
+        FnName::OnLocalVar(Box::new(target))
       };
     let call = FnCall {
       scope: FnScope::Global,
