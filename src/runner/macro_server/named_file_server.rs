@@ -203,7 +203,8 @@ impl NamedFileServer {
           panic!("Non-reserved macro at reserved index {}", call.index);
         }
 
-        let call_index = i32::try_from(call.index).expect(&format!("Macro reference indices exceeded i32 range, got {}", call.index));
+        let index_error_message = format!("Macro reference indices exceeded i32 range, got {}", call.index);
+        let call_index = i32::try_from(call.index).expect(&index_error_message);
 
         GDExpr::new(
           GDExprF::Subscript(
