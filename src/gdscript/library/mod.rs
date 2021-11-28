@@ -15,7 +15,7 @@ use super::expr::{Expr, ExprF};
 use crate::compile::Compiler;
 use crate::compile::names;
 use crate::compile::symbol_table::SymbolTable;
-use crate::compile::symbol_table::local_var::LocalVar;
+use crate::compile::symbol_table::local_var::{LocalVar, VarName};
 use crate::ir::arglist::ArgList;
 use crate::ir::identifier::{Id, Namespace};
 use crate::ir::macros::MacroData;
@@ -43,6 +43,11 @@ pub const READY_NAME: &str = "_ready";
 /// An expression which accesses the global GDLisp singleton object.
 pub fn gdlisp_root(pos: SourceOffset) -> Expr {
   Expr::var(GDLISP_NAME, pos)
+}
+
+/// A variable name which accesses the global GDLisp singleton object.
+pub fn gdlisp_root_var_name() -> VarName {
+  VarName::Superglobal(GDLISP_NAME.to_owned())
 }
 
 /// An expression which accesses a specific field on [`gdlisp_root`].

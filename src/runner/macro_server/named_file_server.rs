@@ -193,7 +193,8 @@ impl NamedFileServer {
     let specs = FnSpecs::from(call.parms.clone());
     let call_object =
       if id.is_reserved() {
-        library::gdlisp_root(pos)
+        let gdlisp_root = library::gdlisp_root_var_name();
+        FnName::OnLocalVar(Box::new(gdlisp_root))
       } else {
 
         // A non-reserved macro should never end up at this position.
@@ -206,17 +207,18 @@ impl NamedFileServer {
         let index_error_message = format!("Macro reference indices exceeded i32 range, got {}", call.index);
         let call_index = i32::try_from(call.index).expect(&index_error_message);
 
-        GDExpr::new(
+        let expr = GDExpr::new(
           GDExprF::Subscript(
             Box::new(GDExpr::attribute(GDExpr::var("MAIN", pos), "loaded_files", pos)),
             Box::new(GDExpr::from_value(call_index, pos)),
           ),
           pos,
-        )
+        );
+        FnName::MacroCall(Box::new(expr))
       };
     let call = FnCall {
       scope: FnScope::Global,
-      object: FnName::MacroCall(Box::new(call_object)),
+      object: call_object,
       function: call.name.to_owned(),
       specs: specs,
       is_macro: true,
