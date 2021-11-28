@@ -25,8 +25,6 @@
 
 pub mod table;
 
-use dyn_clone::{self, DynClone};
-
 use crate::gdscript::expr::{Expr, ExprF};
 use crate::gdscript::stmt::Stmt;
 use crate::gdscript::op;
@@ -44,6 +42,10 @@ use crate::util;
 use crate::pipeline::source::SourceOffset;
 use super::function_call::FnCall;
 use super::SymbolTable;
+
+use dyn_clone::{self, DynClone};
+
+use std::rc::Rc;
 
 /// An implementor of `CallMagic` can meaningfully compile a given
 /// function call expression `call` into some GDScript [`Expr`].
@@ -160,7 +162,13 @@ pub struct InstanceOf;
 /// `*`.
 #[derive(Clone)]
 pub struct CompileToBinOp {
-  pub zero: ExprF, // TODO Not perfect, given that using ExprF here restricts us to non-recursive values, but it'll do for now
+  // Note: This has to be Fn (and inside an Rc) since all CallMagic
+  // implementors must be cloneable, so this function must be able to
+  // be called, even if there are multiple shared references to it.
+  // This shouldn't matter much in practice, as this function should
+  // be a simple constructor for an expression that has no side
+  // effects.
+  pub zero: Rc<dyn Fn(SourceOffset) -> Expr>,
   pub bin: op::BinaryOp,
   pub assoc: Assoc,
 }
@@ -271,7 +279,7 @@ impl CallMagic for CompileToBinOp {
              pos: SourceOffset) -> Result<Expr, Error> {
     let args = strip_st(args);
     if args.is_empty() {
-      Ok(Expr::new(self.zero.clone(), pos))
+      Ok((self.zero)(pos))
     } else {
       Ok(match self.assoc {
         Assoc::Left => {
