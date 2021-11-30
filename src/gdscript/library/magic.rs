@@ -109,6 +109,9 @@ pub fn bind_magic(table: &mut MagicTable) {
   // Array Membership Check (member?)
   table.set(String::from("ARRAY-MEMBER-CHECK"), Box::new(call_magic::ElementOf));
 
+  // Node access (sys/get-node)
+  table.set(String::from("GET-NODE-SYNTAX"), Box::new(call_magic::GetNodeSyntax));
+
 }
 
 /// Produce a new [`MagicTable`] with all of the magic bound as though

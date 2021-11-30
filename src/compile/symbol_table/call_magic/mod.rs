@@ -26,6 +26,7 @@
 pub mod table;
 
 use crate::gdscript::expr::{Expr, ExprF};
+use crate::gdscript::literal::Literal;
 use crate::gdscript::stmt::Stmt;
 use crate::gdscript::op;
 use crate::gdscript::library;
@@ -148,6 +149,15 @@ pub struct ElementOf;
 /// is used on the internal system function `sys/instance-direct?`.
 #[derive(Clone)]
 pub struct InstanceOf;
+
+/// [Call magic] for the `$` syntax used to invoke `get_node` in
+/// GDScript.
+///
+/// This call magic compiles expressions of the form `(sys/get-node a
+/// b)` into GDScript `$x` syntax wherever it makes sense to do so, or
+/// `(a:get-node b)` in any other context.
+#[derive(Clone)]
+pub struct GetNodeSyntax;
 
 /// `CompileToBinOp` is a [`CallMagic`] which compiles function calls
 /// to sequences of binary operator application.
@@ -598,5 +608,40 @@ impl CallMagic for InstanceOf {
     let (value, type_) = args::two(args);
 
     Ok(value.binary(op::BinaryOp::Is, type_, pos))
+  }
+}
+
+impl CallMagic for GetNodeSyntax {
+  fn compile(&self,
+             call: FnCall,
+             _compiler: &mut Compiler,
+             _builder: &mut StmtBuilder,
+             _table: &mut SymbolTable,
+             args: Vec<StExpr>,
+             pos: SourceOffset) -> Result<Expr, Error> {
+    let args = strip_st(args);
+    Expecting::exactly(2).validate(&call.function, pos, &args)?;
+    let (value, path) = args::two(args);
+
+    if let ExprF::Literal(Literal::String(s)) = &path.value {
+      if value.value == ExprF::Var(String::from("self")) {
+        // We can use the $x syntax on the GDScript side
+        //
+        // TODO Make sure the string only has symbols allowed in a
+        // GDScript node path literal.
+        return Ok(Expr::from_value(Literal::NodeLiteral(s.to_owned()), pos));
+      }
+    }
+
+    // Otherwise, just compile to self.get_node.
+    Ok(
+      Expr::call(
+        Some(value),
+        "get_node",
+        vec!(path),
+        pos,
+      ),
+    )
+
   }
 }

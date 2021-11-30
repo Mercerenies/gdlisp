@@ -86,7 +86,8 @@ pub fn access_slot(x: AST, y: AST, pos: SourceOffset) -> AST {
 /// get-node) y)`.
 pub fn get_node_on(x: AST, y: AST, pos: SourceOffset) -> AST {
   AST::list(vec!(
-    access_slot(x, AST::symbol("get-node", pos), pos),
+    AST::symbol("sys/get-node", pos),
+    x,
     y,
   ), pos)
 }

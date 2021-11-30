@@ -818,7 +818,7 @@ pub fn get_node_on_self_class_test() {
 func _init():
     pass
 func test():
-    return self.get_node("Target/Node")
+    return $Target/Node
 static func run():
     return null
 "#);

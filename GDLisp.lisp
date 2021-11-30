@@ -1300,6 +1300,10 @@
   (sys/call-magic ARRAY-MEMBER-CHECK)
   (member? value arr))
 
+(defn sys/get-node (obj path)
+  (sys/call-magic GET-NODE-SYNTAX)
+  (obj:get-node path))
+
 (defn sys/native-class-private () private
   ;; TODO This is a messy hack. Godot chokes if we write
   ;; "GDScript.get_class()" because it thinks we're calling a
