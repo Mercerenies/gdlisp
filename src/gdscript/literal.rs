@@ -21,6 +21,7 @@ pub enum Literal {
   Int(i32),
   Float(OrderedFloat<f32>),
   String(String),
+  NodeLiteral(String),
   Null,
   Bool(bool),
 }
@@ -41,6 +42,7 @@ impl Literal {
     match self {
       Literal::Int(n) => n.to_string(),
       Literal::String(s) => format!("\"{}\"", s), // TODO Proper escaping
+      Literal::NodeLiteral(s) => format!("${}", s), // TODO Proper escaping
       Literal::Null => String::from("null"),
       Literal::Bool(b) => if *b { String::from("true") } else { String::from("false") },
       Literal::Float(f) => format!("{:e}", **f),
