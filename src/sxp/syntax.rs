@@ -91,3 +91,127 @@ pub fn get_node_on(x: AST, y: AST, pos: SourceOffset) -> AST {
     y,
   ), pos)
 }
+
+#[cfg(test)]
+mod tests {
+  use super::*;
+  use crate::sxp::ast::AST;
+
+  #[test]
+  fn test_unary() {
+    assert_eq!(
+      unary("foo", AST::int(10, SourceOffset(1)), SourceOffset(3)),
+      AST::list(
+        vec!(
+          AST::symbol("foo", SourceOffset(3)),
+          AST::int(10, SourceOffset(1)),
+        ),
+        SourceOffset(3),
+      )
+    )
+  }
+
+  #[test]
+  fn test_binary() {
+    assert_eq!(
+      binary("bar", AST::int(10, SourceOffset(1)), AST::int(20, SourceOffset(99)), SourceOffset(3)),
+      AST::list(
+        vec!(
+          AST::symbol("bar", SourceOffset(3)),
+          AST::int(10, SourceOffset(1)),
+          AST::int(20, SourceOffset(99)),
+        ),
+        SourceOffset(3),
+      )
+    )
+  }
+
+  #[test]
+  fn test_trinary() {
+    assert_eq!(
+      trinary("baz", AST::int(10, SourceOffset(1)), AST::int(20, SourceOffset(99)), AST::int(30, SourceOffset(999)), SourceOffset(3)),
+      AST::list(
+        vec!(
+          AST::symbol("baz", SourceOffset(3)),
+          AST::int(10, SourceOffset(1)),
+          AST::int(20, SourceOffset(99)),
+          AST::int(30, SourceOffset(999)),
+        ),
+        SourceOffset(3),
+      )
+    )
+  }
+
+  #[test]
+  fn test_quote() {
+    assert_eq!(
+      quote(AST::int(9, SourceOffset(100)), SourceOffset(3)),
+      AST::list(
+        vec!(
+          AST::symbol("quote", SourceOffset(3)),
+          AST::int(9, SourceOffset(100)),
+        ),
+        SourceOffset(3),
+      )
+    )
+  }
+
+  #[test]
+  fn test_function() {
+    assert_eq!(
+      function(AST::int(9, SourceOffset(100)), SourceOffset(3)),
+      AST::list(
+        vec!(
+          AST::symbol("function", SourceOffset(3)),
+          AST::int(9, SourceOffset(100)),
+        ),
+        SourceOffset(3),
+      )
+    )
+  }
+
+  #[test]
+  fn test_quasiquote() {
+    assert_eq!(
+      quasiquote(AST::int(9, SourceOffset(100)), SourceOffset(3)),
+      AST::list(
+        vec!(
+          AST::symbol("quasiquote", SourceOffset(3)),
+          AST::int(9, SourceOffset(100)),
+        ),
+        SourceOffset(3),
+      )
+    )
+  }
+
+  #[test]
+  fn test_unquote() {
+    assert_eq!(
+      unquote(AST::int(9, SourceOffset(100)), SourceOffset(3)),
+      AST::list(
+        vec!(
+          AST::symbol("unquote", SourceOffset(3)),
+          AST::int(9, SourceOffset(100)),
+        ),
+        SourceOffset(3),
+      )
+    )
+  }
+
+  #[test]
+  fn test_unquote_spliced() {
+    assert_eq!(
+      unquote_spliced(AST::int(9, SourceOffset(100)), SourceOffset(3)),
+      AST::list(
+        vec!(
+          AST::symbol("unquote-spliced", SourceOffset(3)),
+          AST::int(9, SourceOffset(100)),
+        ),
+        SourceOffset(3),
+      )
+    )
+  }
+
+  // TODO The rest of these
+
+}
