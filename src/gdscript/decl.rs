@@ -6,6 +6,7 @@
 //! [`Decl::write_gd`] for writing declarations as GDScript syntax to
 //! a [`fmt::Write`] instance.
 
+use crate::gdscript::literal::Literal;
 use crate::gdscript::expr::Expr;
 use crate::gdscript::stmt::Stmt;
 use crate::gdscript::indent;
@@ -61,7 +62,7 @@ pub enum ClassExtends {
   /// A qualified name. `Qualified(vec!("foo", "bar", "baz"))`
   /// represents the name `foo.bar.baz`.
   Qualified(Vec<String>),
-  // StringLit(String), // TODO Support string literals (once we have them in general)
+  StringLit(String), // TODO Test this
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -286,6 +287,7 @@ impl ClassExtends {
   pub fn to_gd(&self) -> String {
     match self {
       ClassExtends::Qualified(names) => names.join("."),
+      ClassExtends::StringLit(string) => Literal::String(string.to_owned()).to_gd(),
     }
   }
 

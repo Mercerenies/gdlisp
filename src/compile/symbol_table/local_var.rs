@@ -427,6 +427,11 @@ impl VarName {
 impl TryFrom<VarName> for decl::ClassExtends {
   type Error = VarNameIntoExtendsError;
 
+  // Note: This will only succeed into ClassExtends::Qualified. It
+  // will never produce any other alternative value for ClassExtends.
+  // This behavior may change in the future, at which point we'll need
+  // to change VarName::ImportedConstant to transitively handle that
+  // (or at least err in a better way than panicking).
   fn try_from(var_name: VarName) -> Result<decl::ClassExtends, VarNameIntoExtendsError> {
     match var_name {
       VarName::Local(s) => {
@@ -439,9 +444,18 @@ impl TryFrom<VarName> for decl::ClassExtends {
         Ok(decl::ClassExtends::Qualified(vec!(s)))
       }
       VarName::ImportedConstant(lhs, s) => {
-        let decl::ClassExtends::Qualified(mut vec) = decl::ClassExtends::try_from(*lhs)?;
-        vec.push(s);
-        Ok(decl::ClassExtends::Qualified(vec))
+        match decl::ClassExtends::try_from(*lhs)? {
+          decl::ClassExtends::Qualified(mut vec) => {
+            vec.push(s);
+            Ok(decl::ClassExtends::Qualified(vec))
+          }
+          decl::ClassExtends::StringLit(_) => {
+            // This case should never occur under the current
+            // implementation. If we change it so that it can, then we
+            // need to convert this to an error, not a panic.
+            panic!("Internal error in try_from");
+          }
+        }
       }
       VarName::SubscriptedConstant(lhs, n) => {
         Err(VarNameIntoExtendsError::CannotExtendSubscript(lhs, n))
