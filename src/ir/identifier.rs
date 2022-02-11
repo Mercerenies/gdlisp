@@ -1,13 +1,15 @@
 
 //! This module defines the [`Id`] type, for namespaced identifiers.
 
+use serde::{Serialize, Deserialize};
+
 use std::borrow::{Borrow, ToOwned};
 use std::hash::{Hash, Hasher};
 
 /// An identifier consists of a namespace and a name. Two identifiers
 /// which happen to share a name but are in different namespaces are
 /// considered unrelated and distinct names.
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct Id {
   /// The identifier namespace.
   pub namespace: Namespace,
@@ -17,7 +19,7 @@ pub struct Id {
 
 /// There are two namespaces in GDLisp: the value namespace and the
 /// function namespace.
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum Namespace {
   /// The value namespace consists of variables (local and global),
   /// class declarations, enums, and constants.
