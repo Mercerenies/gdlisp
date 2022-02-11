@@ -2,9 +2,9 @@ name: "Ubuntu 20.04 (Godot v3.4)"
 
 on:
   push:
-    branches: [ master, no-more-unsafe ]
+    branches: [ master ]
   pull_request:
-    branches: [ master, no-more-unsafe ]
+    branches: [ master ]
 
 env:
   CARGO_TERM_COLOR: always
