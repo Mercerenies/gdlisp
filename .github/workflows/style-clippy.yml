@@ -2,9 +2,9 @@ name: Clippy Style Checker
 
 on:
   push:
-    branches: [ master, no-more-unsafe ]
+    branches: [ master ]
   pull_request:
-    branches: [ master, no-more-unsafe ]
+    branches: [ master ]
 
 env:
   CARGO_TERM_COLOR: always
