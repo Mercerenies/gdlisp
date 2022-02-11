@@ -110,6 +110,12 @@ fn get_stdlib() -> &'static TranslationUnit {
   }
 }
 
+pub fn load_stdlib() -> TranslationUnit {
+  let mut pipeline = Pipeline::new(gdlisp_project_config());
+  let stdlib = load_stdlib_file(&mut pipeline);
+  stdlib.clone_detached()
+}
+
 fn load_stdlib_file(pipeline: &mut Pipeline) -> &TranslationUnit {
   pipeline.load_file(&PathBuf::from("GDLisp.lisp")).expect("Error loading standard library")
 }

@@ -19,6 +19,9 @@ pub struct CommandLineArgs {
   /// Whether `--help` was provided.
   pub help_message: bool,
 
+  /// Whether the internal `--compile-stdlib` was provided.
+  pub compile_stdlib_flag: bool,
+
 }
 
 impl CommandLineArgs {
@@ -45,7 +48,8 @@ pub fn options() -> Options {
   opts
     .parsing_style(ParsingStyle::FloatingFrees)
     .long_only(false)
-    .optflag("", "help", "Display usage information");
+    .optflag("", "help", "Display usage information")
+    .optflag("", "compile-stdlib", "Compile the GDLisp standard library");
   opts
 }
 
@@ -64,6 +68,7 @@ pub fn parse_args(args: &[String]) -> CommandLineArgs {
       let mut result = CommandLineArgs::new();
 
       result.help_message = parsed.opt_present("help");
+      result.compile_stdlib_flag = parsed.opt_present("compile-stdlib");
       result.input_file = parsed.free.first().cloned();
 
       result

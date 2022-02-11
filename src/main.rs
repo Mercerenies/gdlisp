@@ -12,7 +12,7 @@ mod parser_test;
 lalrpop_mod!(pub parser);
 */
 
-use gdlisp::gdscript::decl;
+use gdlisp::gdscript::{decl, library};
 use gdlisp::command_line::{parse_args, show_help_message};
 use gdlisp::pipeline::Pipeline;
 use gdlisp::pipeline::config::ProjectConfig;
@@ -96,7 +96,10 @@ fn main() {
       }
     }
 
-    if let Some(input) = parsed_args.input_file {
+    if parsed_args.compile_stdlib_flag {
+      let _translation_unit = library::load_stdlib();
+      println!("Stdlib compiled successfully.")
+    } else if let Some(input) = parsed_args.input_file {
       let input: &Path = input.as_ref();
       if input.is_dir() {
         compile_all_files(input);
