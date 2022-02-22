@@ -81,7 +81,7 @@ pub fn compile_lambda_class(frame: &mut CompilerFrame<StmtBuilder>,
 
   // Build the class body for the lambda class.
   let mut class_init_builder = ClassInitBuilder::new();
-  #[allow(clippy::vec_init_then_push)] // For style consistency
+  //#[allow(clippy::vec_init_then_push)] // For style consistency
   let class_body = {
     let mut class_body = vec!();
     class_body.push(Decl::new(DeclF::InitFnDecl(constructor), pos));
