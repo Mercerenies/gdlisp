@@ -26,8 +26,7 @@
 use crate::compile::symbol_table::call_magic::{CallMagic, Assoc};
 use crate::compile::symbol_table::call_magic::table::MagicTable;
 use crate::gdscript::op;
-use crate::gdscript::expr::{Expr, ExprF};
-use crate::pipeline::source::SourceOffset;
+use crate::gdscript::literal::Literal;
 
 /// Bind all GDLisp call magic to the magic table given.
 pub fn bind_magic(table: &mut MagicTable) {
@@ -38,11 +37,11 @@ pub fn bind_magic(table: &mut MagicTable) {
 
   // Addition (+)
   table.set(String::from("ADDITION"),
-            CallMagic::CompileToBinOp(Expr::new(ExprF::from(0), SourceOffset(0)), op::BinaryOp::Add, Assoc::Left));
+            CallMagic::CompileToBinOp(Literal::from(0), op::BinaryOp::Add, Assoc::Left));
 
   // Multiplication (*)
   table.set(String::from("MULTIPLICATION"),
-            CallMagic::CompileToBinOp(Expr::new(ExprF::from(1), SourceOffset(0)), op::BinaryOp::Times, Assoc::Left));
+            CallMagic::CompileToBinOp(Literal::from(0), op::BinaryOp::Times, Assoc::Left));
 
   // Subtraction (-)
   table.set(String::from("SUBTRACTION"), CallMagic::MinusOperation);

@@ -44,7 +44,9 @@ use crate::pipeline::source::SourceOffset;
 use super::function_call::FnCall;
 use super::SymbolTable;
 
-/// An `CallMagic` can meaningfully compile a given function call
+use serde::{Serialize, Deserialize};
+
+/// A `CallMagic` can meaningfully compile a given function call
 /// expression `call` into some GDScript [`Expr`].
 ///
 /// Note that, although we talk about call magic applying to certain
@@ -54,7 +56,7 @@ use super::SymbolTable;
 /// functions or for builtins without special behavior, the
 /// [`DefaultCall`] singleton is used, which performs the basic
 /// function call compilation routine via [`compile_default_call`].
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub enum CallMagic {
   /// A default [`CallMagic`] for any functions without special
   /// behavior. The `CallMagic` implementation for `DefaultCall`
@@ -118,7 +120,7 @@ pub enum CallMagic {
   ///
   /// This call magic is used to implement the GDLisp builtins `+` and
   /// `*`.
-  CompileToBinOp(Expr, op::BinaryOp, Assoc),
+  CompileToBinOp(Literal, op::BinaryOp, Assoc),
   /// `CompileToTransCmp` is a [`CallMagic`] which compiles function
   /// calls to transitive sequences of binary comparison applications.
   ///
@@ -143,7 +145,7 @@ pub enum CallMagic {
 }
 
 /// Associativity of an operator.
-#[derive(Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd, Serialize, Deserialize)]
 pub enum Assoc {
   /// A left associative operator, as `(a + b) + c`.
   Left,
@@ -223,8 +225,7 @@ impl CallMagic {
       CallMagic::CompileToBinOp(zero, op, assoc) => {
         let args = strip_st(args);
         if args.is_empty() {
-          let mut expr = zero.clone();
-          expr.pos = pos;
+          let expr = Expr::from_value(zero.clone(), pos);
           Ok(expr)
         } else {
           Ok(match assoc {

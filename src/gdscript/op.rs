@@ -1,21 +1,23 @@
 
 //! All of the operators recognized by GDScript.
 
+use serde::{Serialize, Deserialize};
+
 /// Unary operators.
-#[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Hash, Debug)]
+#[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Hash, Debug, Serialize, Deserialize)]
 pub enum UnaryOp {
   BitNot, Negate, Not,
 }
 
 /// Binary operators.
-#[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Hash, Debug)]
+#[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Hash, Debug, Serialize, Deserialize)]
 pub enum BinaryOp {
   Times, Div, Mod, Add, Sub, LShift, RShift, BitAnd, BitXor,
   BitOr, LT, GT, Eq, NE, LE, GE, Is, In, And, Or, Cast,
 }
 
 /// Assignment operators.
-#[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Hash, Debug)]
+#[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Hash, Debug, Serialize, Deserialize)]
 pub enum AssignOp {
   Eq, Add, Sub, Times, Div, Mod, BitAnd, BitOr,
 }

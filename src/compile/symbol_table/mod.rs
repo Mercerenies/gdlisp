@@ -16,6 +16,8 @@ use function_call::FnCall;
 use call_magic::{CallMagic};
 use local_var::{LocalVar, ValueHint, ValueHintsTable};
 
+use serde::{Serialize, Deserialize};
+
 use std::collections::HashMap;
 use std::borrow::Borrow;
 
@@ -24,7 +26,7 @@ use std::borrow::Borrow;
 /// Types, such as classes and primitive types, fall into the variable
 /// namespace. `SymbolTable` encompasses a table of names available in
 /// the current scope, in either namespace.
-#[derive(Clone, Debug, Default)]
+#[derive(Clone, Debug, Default, Serialize, Deserialize)]
 pub struct SymbolTable {
   locals: HashMap<String, LocalVar>,
   reverse_locals: HashMap<String, String>, // key: GDScript name, value: GDLisp name (to use in locals)
