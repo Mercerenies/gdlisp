@@ -97,7 +97,7 @@ fn main() {
     }
 
     if parsed_args.compile_stdlib_flag {
-      let _translation_unit = library::load_stdlib();
+      library::load_stdlib_to_file();
       println!("Stdlib compiled successfully.")
     } else if let Some(input) = parsed_args.input_file {
       let input: &Path = input.as_ref();

@@ -26,10 +26,11 @@ use crate::pipeline::config::ProjectConfig;
 use crate::pipeline::source::SourceOffset;
 use classes::GDSCRIPT_CLASS_NAMES;
 
+use rmp_serde::{encode, decode};
+
 use std::collections::{HashSet, HashMap};
 use std::path::PathBuf;
-use std::ptr;
-use std::sync::Once;
+use std::fs::File;
 
 /// The name of the top-level GDLisp singleton object.
 pub const GDLISP_NAME: &str = "GDLisp";
@@ -82,37 +83,18 @@ pub fn gdlisp_project_config() -> ProjectConfig {
   }
 }
 
-fn get_stdlib() -> &'static StdlibUnit {
-  // TODO This is a nasty hack that uses global variables to get what
-  // I want. To be honest, I'm not fully sure how we're going to fix
-  // it, but it needs to not stay this way long-term.
-  static mut UNIT: *const StdlibUnit = ptr::null();
-  static ONCE: Once = Once::new();
-
-  unsafe {
-    ONCE.call_once(|| {
-      // We don't want to keep a Pipeline in static storage. Pipeline
-      // contains a macro server child process, and if Drop doesn't
-      // get called, then that process will remain even after the
-      // compiler terminates. Thus, we use a Pipeline locally here,
-      // get the translation unit, detach the translation unit from
-      // the pipeline, and then drop the pipeline. The detach function
-      // is only safe as long as the standard library doesn't define
-      // any non-reserved macros. But this definition is tautological,
-      // because all macros defined in the standard library are, by
-      // definition, reserved macros with special behavior. Hence,
-      // detaching the translation unit is tautologically safe.
-      let unit = Box::new(load_stdlib());
-      UNIT = Box::into_raw(unit);
-    });
-    &*UNIT
-  }
+fn get_stdlib() -> StdlibUnit {
+  let file = File::open("GDLisp.msgpack").expect("I/O error reading GDLisp.msgpack (this file should have been built as part of the GDLisp build process; are you sure you have compiled GDLisp fully?)");
+  decode::from_read(file).expect("Error deserializing stdlib (this is likely a GDLisp error and should be reported as a bug)")
 }
 
-pub fn load_stdlib() -> StdlibUnit {
+pub fn load_stdlib_to_file() -> StdlibUnit {
   let mut pipeline = Pipeline::new(gdlisp_project_config());
-  let stdlib = load_stdlib_file(&mut pipeline);
-  StdlibUnit::from(stdlib.clone_detached())
+  let unit = load_stdlib_file(&mut pipeline);
+  let stdlib = StdlibUnit::from(unit.clone_detached());
+  let mut file = File::create("GDLisp.msgpack").expect("I/O error loading stdlib (does GDLisp have write permissions for this folder?)");
+  encode::write(&mut file, &stdlib).expect("Error during serialization of stdlib");
+  stdlib
 }
 
 fn load_stdlib_file(pipeline: &mut Pipeline) -> &TranslationUnit {
@@ -149,7 +131,7 @@ pub fn bind_builtins(table: &mut SymbolTable, minimalist: bool) {
     } else {
       Some(get_stdlib())
     };
-  bind_builtins_unchecked(table, unit);
+  bind_builtins_unchecked(table, unit.as_ref());
 }
 
 fn bind_builtins_unchecked(table: &mut SymbolTable, unit: Option<&StdlibUnit>) {
