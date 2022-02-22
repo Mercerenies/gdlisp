@@ -19,7 +19,7 @@ use std::fmt;
 /// stored in `LocalVar`. Despite its name, this structure is used to
 /// describe all names in the variable namespace in Godot, including
 /// local variables, global constants, and class names.
-#[derive(PartialEq, Eq, Clone, Debug)]
+#[derive(PartialEq, Eq, Clone, Debug, Serialize, Deserialize)]
 pub struct LocalVar {
   /// The name of the variable.
   pub name: VarName,
@@ -119,7 +119,7 @@ pub enum VarScope {
 /// A hint as to the value of a [`VarName`], if known. This
 /// information can be used in optimizations or possible compiler
 /// warnings.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum ValueHint {
   /// The variable refers to a class. Class names cannot be reassigned
   /// and are always valid as types.
