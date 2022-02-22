@@ -21,6 +21,7 @@ use crate::ir::identifier::{Id, Namespace};
 use crate::ir::macros::MacroData;
 use crate::pipeline::Pipeline;
 use crate::pipeline::translation_unit::TranslationUnit;
+use crate::pipeline::stdlib_unit::StdlibUnit;
 use crate::pipeline::config::ProjectConfig;
 use crate::pipeline::source::SourceOffset;
 use classes::GDSCRIPT_CLASS_NAMES;
@@ -81,11 +82,11 @@ pub fn gdlisp_project_config() -> ProjectConfig {
   }
 }
 
-fn get_stdlib() -> &'static TranslationUnit {
+fn get_stdlib() -> &'static StdlibUnit {
   // TODO This is a nasty hack that uses global variables to get what
   // I want. To be honest, I'm not fully sure how we're going to fix
   // it, but it needs to not stay this way long-term.
-  static mut UNIT: *const TranslationUnit = ptr::null();
+  static mut UNIT: *const StdlibUnit = ptr::null();
   static ONCE: Once = Once::new();
 
   unsafe {
@@ -101,19 +102,17 @@ fn get_stdlib() -> &'static TranslationUnit {
       // because all macros defined in the standard library are, by
       // definition, reserved macros with special behavior. Hence,
       // detaching the translation unit is tautologically safe.
-      let mut pipeline = Pipeline::new(gdlisp_project_config());
-      let stdlib = load_stdlib_file(&mut pipeline);
-      let unit = Box::new(stdlib.clone_detached());
+      let unit = Box::new(load_stdlib());
       UNIT = Box::into_raw(unit);
     });
     &*UNIT
   }
 }
 
-pub fn load_stdlib() -> TranslationUnit {
+pub fn load_stdlib() -> StdlibUnit {
   let mut pipeline = Pipeline::new(gdlisp_project_config());
   let stdlib = load_stdlib_file(&mut pipeline);
-  stdlib.clone_detached()
+  StdlibUnit::from(stdlib.clone_detached())
 }
 
 fn load_stdlib_file(pipeline: &mut Pipeline) -> &TranslationUnit {
@@ -153,7 +152,7 @@ pub fn bind_builtins(table: &mut SymbolTable, minimalist: bool) {
   bind_builtins_unchecked(table, unit);
 }
 
-fn bind_builtins_unchecked(table: &mut SymbolTable, unit: Option<&TranslationUnit>) {
+fn bind_builtins_unchecked(table: &mut SymbolTable, unit: Option<&StdlibUnit>) {
 
   // (Assumes minimalist compile iff unit is None)
 
