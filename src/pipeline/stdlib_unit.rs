@@ -6,11 +6,14 @@ use crate::ir::identifier::Id;
 use crate::ir::macros::MacroData;
 use super::translation_unit::TranslationUnit;
 
+use serde::{Serialize, Deserialize};
+
 use std::collections::HashMap;
 
 /// A stripped-down version of [`TranslationUnit`] containing the
 /// parts of the unit that are necessary to understand the standard
 /// library.
+#[derive(Serialize, Deserialize)]
 pub struct StdlibUnit {
   /// See [`TranslationUnit::table`].
   pub table: SymbolTable,
