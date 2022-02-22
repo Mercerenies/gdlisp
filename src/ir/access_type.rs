@@ -2,6 +2,8 @@
 //! Defines the [`AccessType`] enum, for describing methods of
 //! accessing a local variable.
 
+use serde::{Serialize, Deserialize};
+
 use crate::util::lattice::Lattice;
 
 /// `AccessType` describes the different ways we can access a variable.
@@ -63,7 +65,7 @@ use crate::util::lattice::Lattice;
 /// variable for lambda purposes, and a closure does not care about
 /// internal mutability, only the top-level value and how constant it
 /// remains.
-#[derive(PartialEq, Eq, Debug, Clone, Copy)]
+#[derive(PartialEq, Eq, Debug, Clone, Copy, Serialize, Deserialize)]
 pub enum AccessType {
   /// The variable in question is never accessed in the relevant
   /// scope.

@@ -12,6 +12,7 @@
 use crate::ir::literal::{Literal as IRLiteral};
 
 use ordered_float::OrderedFloat;
+use serde::{Serialize, Deserialize};
 
 use std::convert::TryFrom;
 

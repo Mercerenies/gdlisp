@@ -9,6 +9,8 @@ use crate::gdscript::literal::Literal;
 use crate::gdscript::library::cell::CELL_CONTENTS;
 use crate::pipeline::source::SourceOffset;
 
+use serde::{Serialize, Deserialize};
+
 use std::borrow::ToOwned;
 use std::convert::TryFrom;
 use std::fmt;
@@ -40,7 +42,7 @@ pub struct LocalVar {
 /// [`From::from`]). This type should be thought of as a spiritual
 /// subtype of `Expr`, only supporting a strict subset of expressions
 /// which are necessary for name translations.
-#[derive(PartialEq, Eq, Clone, Debug)]
+#[derive(PartialEq, Eq, Clone, Debug, Serialize, Deserialize)]
 pub enum VarName {
   /// A variable which is local to the current scope and can be seen
   /// unqualified.
@@ -100,7 +102,7 @@ pub enum VarNameIntoExtendsError {
 }
 
 /// The scope of a variable.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 pub enum VarScope {
   /// Global variables are available at least in the current file, if
   /// not everywhere. A global variable never needs to be closed over,
