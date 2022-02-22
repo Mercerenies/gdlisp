@@ -178,7 +178,7 @@ fn bind_builtins_unchecked(table: &mut SymbolTable, unit: Option<&TranslationUni
         Namespace::Function => {
           let (call, magic) = unit.table.get_fn(&id.name).unwrap_or_else(|| panic!("Exported function name {} does not appear", id.name));
           let call = Compiler::translate_call(String::from("GDLisp"), call.clone());
-          let magic = dyn_clone::clone_box(magic);
+          let magic = magic.clone();
           table.set_fn(id.name.to_owned(), call, magic);
         }
       }

@@ -13,7 +13,7 @@ use crate::compile::preload_resolver::PreloadResolver;
 use crate::compile::args::Expecting;
 use crate::pipeline::can_load::CanLoad;
 use crate::pipeline::source::SourceOffset;
-use super::call_magic::{CallMagic, DefaultCall};
+use super::call_magic::{CallMagic};
 use super::local_var::VarName;
 use super::SymbolTable;
 
@@ -161,7 +161,7 @@ impl FnCall {
     FnCall { specs, scope, object: FnName::Superglobal, function, is_macro: false }
   }
 
-  /// As [`FnCall::into_expr_with_magic`] with [`DefaultCall`] as the
+  /// As [`FnCall::into_expr_with_magic`] with [`CallMagic::DefaultCall`] as the
   /// call magic type.
   pub fn into_expr(self,
                    compiler: &mut Compiler,
@@ -170,13 +170,13 @@ impl FnCall {
                    args: Vec<StExpr>,
                    pos: SourceOffset)
                    -> Result<Expr, Error> {
-    self.into_expr_with_magic(&DefaultCall, compiler, builder, table, args, pos)
+    self.into_expr_with_magic(&CallMagic::DefaultCall, compiler, builder, table, args, pos)
   }
 
   /// Compile, via [`CallMagic::compile`], the function call `self`
   /// into an [`Expr`].
   pub fn into_expr_with_magic(self,
-                              magic: &dyn CallMagic,
+                              magic: &CallMagic,
                               compiler: &mut Compiler,
                               builder: &mut StmtBuilder,
                               table: &mut SymbolTable,

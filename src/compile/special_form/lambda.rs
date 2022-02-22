@@ -9,7 +9,7 @@ use crate::compile::body::builder::StmtBuilder;
 use crate::compile::symbol_table::SymbolTable;
 use crate::compile::symbol_table::local_var::{LocalVar, VarScope, VarName};
 use crate::compile::symbol_table::function_call::{FnCall, FnSpecs, FnScope, FnName, OuterStaticRef};
-use crate::compile::symbol_table::call_magic::DefaultCall;
+use crate::compile::symbol_table::call_magic::CallMagic;
 use crate::compile::stmt_wrapper;
 use crate::compile::error::{Error, ErrorF};
 use crate::compile::stateful::SideEffects;
@@ -77,7 +77,7 @@ pub fn compile_labels_scc(frame: &mut CompilerFrame<StmtBuilder>,
   for (func_name, clause) in &named_clauses {
     let specs = FnSpecs::from(clause.args.to_owned());
     let fn_call = special_local_fn_call(local_var_name.clone(), func_name.clone(), specs);
-    lambda_table.set_fn(clause.name.to_owned(), fn_call, Box::new(DefaultCall));
+    lambda_table.set_fn(clause.name.to_owned(), fn_call, CallMagic::DefaultCall);
   }
 
   let (bound_calls, functions) = unzip_err::<Error, Vec<_>, Vec<_>, _, _, _>(named_clauses.iter().map(|(func_name, clause)| {
@@ -218,7 +218,7 @@ where I : Iterator<Item=&'a U>,
       Some((call, magic)) => {
         let mut call = call.clone();
         call.object.update_for_inner_scope(outer_static_ref, compiler.preload_resolver(), pipeline);
-        lambda_table.set_fn(func.borrow().to_owned(), call, dyn_clone::clone_box(magic));
+        lambda_table.set_fn(func.borrow().to_owned(), call, magic.clone());
       }
     };
   }

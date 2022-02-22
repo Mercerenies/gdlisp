@@ -44,12 +44,8 @@ use crate::pipeline::source::SourceOffset;
 use super::function_call::FnCall;
 use super::SymbolTable;
 
-use dyn_clone::{self, DynClone};
-
-use std::rc::Rc;
-
-/// An implementor of `CallMagic` can meaningfully compile a given
-/// function call expression `call` into some GDScript [`Expr`].
+/// An `CallMagic` can meaningfully compile a given function call
+/// expression `call` into some GDScript [`Expr`].
 ///
 /// Note that, although we talk about call magic applying to certain
 /// designated builtin calls, strictly speaking every function call
@@ -58,153 +54,92 @@ use std::rc::Rc;
 /// functions or for builtins without special behavior, the
 /// [`DefaultCall`] singleton is used, which performs the basic
 /// function call compilation routine via [`compile_default_call`].
-///
-/// Note that all `CallMagic` is required to implement [`DynClone`].
-/// This is a technical detail to allow [`dyn_clone`] to work its
-/// magic. Pragmatically, this means that any `CallMagic` implementor
-/// should implement [`Clone`], which then automatically covers
-/// `DynClone` via a blanket implementation.
-pub trait CallMagic : DynClone {
-  /// Given a [`FnCall`] instance `call` and argument list `args`,
-  /// compile the call into a GDScript [`Expr`]. `compiler` provides a
-  /// fresh name generator and compilation state, `builder` provides
-  /// the enclosing block body as a [`StmtBuilder`], and `table`
-  /// provides the enclosing scope information.
-  fn compile(&self,
-             call: FnCall,
-             compiler: &mut Compiler,
-             builder: &mut StmtBuilder,
-             table: &mut SymbolTable,
-             args: Vec<StExpr>,
-             pos: SourceOffset) -> Result<Expr, Error>;
-}
-
-dyn_clone::clone_trait_object!(CallMagic);
-
-/// A default [`CallMagic`] for any functions without special
-/// behavior. The `CallMagic` implementation for `DefaultCall` simply
-/// delegates to [`compile_default_call`].
-#[derive(Clone)]
-pub struct DefaultCall;
-
-/// [Call magic](CallMagic) for the `-` builtin.
-#[derive(Clone)]
-pub struct MinusOperation;
-
-/// [Call magic](CallMagic) for the (fractional) division operator.
-#[derive(Clone)]
-pub struct DivOperation;
-
-/// [Call magic](CallMagic) for the integer division operator.
-#[derive(Clone)]
-pub struct IntDivOperation;
-
-/// [Call magic](CallMagic) for the mathematical modulo operator.
-#[derive(Clone)]
-pub struct ModOperation;
-
-/// [`CallMagic`] for the inequality `/=` operator. `NEqOperation`
-/// only provides special behavior if two or fewer arguments are
-/// given. If more than two arguments are given, `NEqOperation` will
-/// fall back to `fallback`.
-#[derive(Clone)]
-pub struct NEqOperation { pub fallback: Box<dyn CallMagic> }
-
-/// The [call magic](CallMagic) for the Boolean negation operation.
-#[derive(Clone)]
-pub struct BooleanNotOperation;
-
-/// [`CallMagic`] for the builtin `list` function. This call magic
-/// compiles calls to literal `cons` cell constructors.
-#[derive(Clone)]
-pub struct ListOperation;
-
-/// [`CallMagic`] for the builtin `vector` function, which compiles
-/// `vector` calls to literal `Vector2` or `Vector3` constructions in
-/// GDScript.
-#[derive(Clone)]
-pub struct VectorOperation;
-
-/// [`CallMagic`] for array subscript (via `elt`). This magic compiles
-/// directly to the `foo[bar]` subscript notation in GDScript.
-#[derive(Clone)]
-pub struct ArraySubscript;
-
-/// [`CallMagic`] for array subscript assignment (via `set-elt`). This
-/// magic compiles directly to the `foo[bar] = baz` subscript notation
-/// in GDScript.
-#[derive(Clone)]
-pub struct ArraySubscriptAssign;
-
-/// [Call magic] for the `member?` builtin function. This magic
-/// compiles to the GDScript `in` operator.
-#[derive(Clone)]
-pub struct ElementOf;
-
-/// [Call magic] for instance type checks in Godot.
-///
-/// Note that the GDLisp built-in `instance?` does *not* compile to
-/// this magic, as that function is overloaded internally to work on
-/// primitive type constants as well as actual instances. This magic
-/// is used on the internal system function `sys/instance-direct?`.
-#[derive(Clone)]
-pub struct InstanceOf;
-
-/// [Call magic] for the `$` syntax used to invoke `get_node` in
-/// GDScript.
-///
-/// This call magic compiles expressions of the form `(sys/get-node a
-/// b)` into GDScript `$x` syntax wherever it makes sense to do so, or
-/// `(a:get-node b)` in any other context.
-#[derive(Clone)]
-pub struct GetNodeSyntax;
-
-/// `CompileToBinOp` is a [`CallMagic`] which compiles function calls
-/// to sequences of binary operator application.
-///
-/// If no arguments are provided, then this magic compiles to `zero`
-/// unconditionally. If one argument is provided, it is passed through
-/// untouched. If two or more arguments are provided, they are
-/// combined using `bin` in order, with associativity given by
-/// `assoc`.
-///
-/// This call magic is used to implement the GDLisp builtins `+` and
-/// `*`.
-#[derive(Clone)]
-pub struct CompileToBinOp {
-  // Note: This has to be Fn (and inside an Rc) since all CallMagic
-  // implementors must be cloneable, so this function must be able to
-  // be called, even if there are multiple shared references to it.
-  // This shouldn't matter much in practice, as this function should
-  // be a simple constructor for an expression that has no side
-  // effects.
-  pub zero: Rc<dyn Fn(SourceOffset) -> Expr>,
-  pub bin: op::BinaryOp,
-  pub assoc: Assoc,
-}
-
-/// `CompileToTransCmp` is a [`CallMagic`] which compiles function
-/// calls to transitive sequences of binary comparison applications.
-///
-/// Conceptually, `CompileToTransCmp` can be thought of as translating
-/// a call like `(< a b c d)` into `a < b and b < c and c < d`.
-/// However, the translation is more subtle than that, as any of the
-/// names which are evaluated twice (i.e. all except the first and
-/// last) have to be checked for side effects. If the arguments might
-/// exhibit side effects, then they will need to be assigned to local
-/// variables to avoid evaluating the calls twice in the expression.
-///
-/// If zero arguments are provided, then an error is returned. If one
-/// argument is provided, the result is vacuously true, as there are
-/// no comparisons to be performed.
-///
-/// This call magic is used for most builtin comparison operators,
-/// such as `=` and `<`. It is notably *not* used for `/=`, which is
-/// handled by [`NEqOperation`] due to its unique (non-transitive)
-/// behavior.
-#[derive(Clone)]
-pub struct CompileToTransCmp {
-  pub bin: op::BinaryOp,
+#[derive(Clone, Debug)]
+pub enum CallMagic {
+  /// A default [`CallMagic`] for any functions without special
+  /// behavior. The `CallMagic` implementation for `DefaultCall`
+  /// simply delegates to [`compile_default_call`].
+  DefaultCall,
+  /// [Call magic](CallMagic) for the `-` builtin.
+  MinusOperation,
+  /// [Call magic](CallMagic) for the (fractional) division operator.
+  DivOperation,
+  /// [Call magic](CallMagic) for the integer division operator.
+  IntDivOperation,
+  /// [Call magic](CallMagic) for the mathematical modulo operator.
+  ModOperation,
+  /// [`CallMagic`] for the inequality `/=` operator. `NEqOperation`
+  /// only provides special behavior if two or fewer arguments are
+  /// given. If more than two arguments are given, `NEqOperation` will
+  /// fall back to `fallback`.
+  NEqOperation(Box<CallMagic>),
+  /// The [call magic](CallMagic) for the Boolean negation operation.
+  BooleanNotOperation,
+  /// [`CallMagic`] for the builtin `list` function. This call magic
+  /// compiles calls to literal `cons` cell constructors.
+  ListOperation,
+  /// [`CallMagic`] for the builtin `vector` function, which compiles
+  /// `vector` calls to literal `Vector2` or `Vector3` constructions
+  /// in GDScript.
+  VectorOperation,
+  /// [`CallMagic`] for array subscript (via `elt`). This magic
+  /// compiles directly to the `foo[bar]` subscript notation in
+  /// GDScript.
+  ArraySubscript,
+  /// [`CallMagic`] for array subscript assignment (via `set-elt`). This
+  /// magic compiles directly to the `foo[bar] = baz` subscript notation
+  /// in GDScript.
+  ArraySubscriptAssign,
+  /// [Call magic] for the `member?` builtin function. This magic
+  /// compiles to the GDScript `in` operator.
+  ElementOf,
+  /// [Call magic] for instance type checks in Godot.
+  ///
+  /// Note that the GDLisp built-in `instance?` does *not* compile to
+  /// this magic, as that function is overloaded internally to work on
+  /// primitive type constants as well as actual instances. This magic
+  /// is used on the internal system function `sys/instance-direct?`.
+  InstanceOf,
+  /// [Call magic] for the `$` syntax used to invoke `get_node` in
+  /// GDScript.
+  ///
+  /// This call magic compiles expressions of the form `(sys/get-node
+  /// a b)` into GDScript `$x` syntax wherever it makes sense to do
+  /// so, or `(a:get-node b)` in any other context.
+  GetNodeSyntax,
+  /// `CompileToBinOp` is a [`CallMagic`] which compiles function
+  /// calls to sequences of binary operator application.
+  ///
+  /// If no arguments are provided, then this magic compiles to `zero`
+  /// unconditionally. If one argument is provided, it is passed
+  /// through untouched. If two or more arguments are provided, they
+  /// are combined using `bin` in order, with associativity given by
+  /// `assoc`.
+  ///
+  /// This call magic is used to implement the GDLisp builtins `+` and
+  /// `*`.
+  CompileToBinOp(Expr, op::BinaryOp, Assoc),
+  /// `CompileToTransCmp` is a [`CallMagic`] which compiles function
+  /// calls to transitive sequences of binary comparison applications.
+  ///
+  /// Conceptually, `CompileToTransCmp` can be thought of as
+  /// translating a call like `(< a b c d)` into `a < b and b < c and
+  /// c < d`. However, the translation is more subtle than that, as
+  /// any of the names which are evaluated twice (i.e. all except the
+  /// first and last) have to be checked for side effects. If the
+  /// arguments might exhibit side effects, then they will need to be
+  /// assigned to local variables to avoid evaluating the calls twice
+  /// in the expression.
+  ///
+  /// If zero arguments are provided, then an error is returned. If
+  /// one argument is provided, the result is vacuously true, as there
+  /// are no comparisons to be performed.
+  ///
+  /// This call magic is used for most builtin comparison operators,
+  /// such as `=` and `<`. It is notably *not* used for `/=`, which is
+  /// handled by [`NEqOperation`] due to its unique (non-transitive)
+  /// behavior.
+  CompileToTransCmp(op::BinaryOp),
 }
 
 /// Associativity of an operator.
@@ -263,385 +198,264 @@ pub fn compile_default_call(call: FnCall, mut args: Vec<Expr>, pos: SourceOffset
   Ok(Expr::new(ExprF::Call(object.map(Box::new), function, args), pos))
 }
 
-impl CallMagic for DefaultCall {
+impl CallMagic {
   // TODO Currently, this uses the GD name in error messages, which is
   // super wonky, especially for stdlib calls. Store the Lisp name and
   // use it for this.
-  fn compile(&self,
-             call: FnCall,
-             _compiler: &mut Compiler,
-             _builder: &mut StmtBuilder,
-             _table: &mut SymbolTable,
-             args: Vec<StExpr>,
-             pos: SourceOffset) -> Result<Expr, Error> {
-    let args = strip_st(args);
-    compile_default_call(call, args, pos)
-  }
-}
 
-impl CallMagic for CompileToBinOp {
-  fn compile(&self,
-             _call: FnCall,
-             _compiler: &mut Compiler,
-             _builder: &mut StmtBuilder,
-             _table: &mut SymbolTable,
-             args: Vec<StExpr>,
-             pos: SourceOffset) -> Result<Expr, Error> {
-    let args = strip_st(args);
-    if args.is_empty() {
-      Ok((self.zero)(pos))
-    } else {
-      Ok(match self.assoc {
-        Assoc::Left => {
-          util::fold1(args.into_iter(), |x, y| Expr::new(ExprF::Binary(Box::new(x), self.bin, Box::new(y)), pos))
+  /// Given a [`FnCall`] instance `call` and argument list `args`,
+  /// compile the call into a GDScript [`Expr`]. `compiler` provides a
+  /// fresh name generator and compilation state, `builder` provides
+  /// the enclosing block body as a [`StmtBuilder`], and `table`
+  /// provides the enclosing scope information.
+  pub fn compile(&self,
+                 call: FnCall,
+                 compiler: &mut Compiler,
+                 builder: &mut StmtBuilder,
+                 table: &mut SymbolTable,
+                 mut args: Vec<StExpr>, // TODO Get this declared immutable here and mutable on inner scopes only
+                 pos: SourceOffset) -> Result<Expr, Error> {
+    match self {
+      CallMagic::DefaultCall => {
+        let args = strip_st(args);
+        compile_default_call(call, args, pos)
+      }
+      CallMagic::CompileToBinOp(zero, op, assoc) => {
+        let args = strip_st(args);
+        if args.is_empty() {
+          let mut expr = zero.clone();
+          expr.pos = pos;
+          Ok(expr)
+        } else {
+          Ok(match assoc {
+            Assoc::Left => {
+              util::fold1(args.into_iter(), |x, y| Expr::new(ExprF::Binary(Box::new(x), *op, Box::new(y)), pos))
+            }
+            Assoc::Right => {
+              util::fold1(args.into_iter().rev(), |x, y| Expr::new(ExprF::Binary(Box::new(y), *op, Box::new(x)), pos))
+            }
+          }.unwrap())
         }
-        Assoc::Right => {
-          util::fold1(args.into_iter().rev(), |x, y| Expr::new(ExprF::Binary(Box::new(y), self.bin, Box::new(x)), pos))
-        }
-      }.unwrap())
-    }
-  }
-}
-
-impl CallMagic for CompileToTransCmp {
-  fn compile(&self,
-             call: FnCall,
-             compiler: &mut Compiler,
-             builder: &mut StmtBuilder,
-             _table: &mut SymbolTable,
-             mut args: Vec<StExpr>,
-             pos: SourceOffset) -> Result<Expr, Error> {
-    Expecting::at_least(1).validate(&call.function, pos, &args)?;
-    match args.len() {
-      0 => {
-        unreachable!()
       }
-      1 => {
-        // Dump to the builder as a simple statement if it's stateful.
-        (&stmt_wrapper::Vacuous).wrap_to_builder(builder, args[0].clone());
-        Ok(Expr::from_value(true, pos))
-      }
-      2 => {
-        let a = args.remove(0).expr;
-        let b = args.remove(0).expr;
-        Ok(Expr::new(ExprF::Binary(Box::new(a), self.bin, Box::new(b)), pos))
-      }
-      _ => {
-        // We need to use several of the arguments twice, so any
-        // arguments (such as function calls) which are potentially
-        // stateful need to be stored in temporaries. Note that simply
-        // accessing variables, even variables which may change, is
-        // fine, since we're doing it twice in a row, and nothing
-        // happens in between.
-        let args = args.into_iter().map(|x| {
-          let StExpr { expr, side_effects } = x;
-          if side_effects.modifies_state() {
-            let var_name = factory::declare_var(compiler.name_generator(), builder, "_cmp", Some(expr), pos);
-            Expr::new(ExprF::Var(var_name), pos)
-          } else {
-            expr
+      CallMagic::CompileToTransCmp(op) => {
+        Expecting::at_least(1).validate(&call.function, pos, &args)?;
+        match args.len() {
+          0 => {
+            unreachable!()
           }
-        });
-        let comparisons = util::each_pair(args).map(|(x, y)| {
-          Expr::new(ExprF::Binary(Box::new(x), self.bin, Box::new(y)), pos)
-        });
-        Ok(
-          util::fold1(comparisons, |x, y| Expr::new(ExprF::Binary(Box::new(x), op::BinaryOp::And, Box::new(y)), pos)).unwrap()
-        )
+          1 => {
+            // Dump to the builder as a simple statement if it's stateful.
+            (&stmt_wrapper::Vacuous).wrap_to_builder(builder, args[0].clone());
+            Ok(Expr::from_value(true, pos))
+          }
+          2 => {
+            let a = args.remove(0).expr;
+            let b = args.remove(0).expr;
+            Ok(Expr::new(ExprF::Binary(Box::new(a), *op, Box::new(b)), pos))
+          }
+          _ => {
+            // We need to use several of the arguments twice, so any
+            // arguments (such as function calls) which are
+            // potentially stateful need to be stored in temporaries.
+            // Note that simply accessing variables, even variables
+            // which may change, is fine, since we're doing it twice
+            // in a row, and nothing happens in between.
+            let args = args.into_iter().map(|x| {
+              let StExpr { expr, side_effects } = x;
+              if side_effects.modifies_state() {
+                let var_name = factory::declare_var(compiler.name_generator(), builder, "_cmp", Some(expr), pos);
+                Expr::new(ExprF::Var(var_name), pos)
+              } else {
+                expr
+              }
+            });
+            let comparisons = util::each_pair(args).map(|(x, y)| {
+              Expr::new(ExprF::Binary(Box::new(x), *op, Box::new(y)), pos)
+            });
+            Ok(
+              util::fold1(comparisons, |x, y| Expr::new(ExprF::Binary(Box::new(x), op::BinaryOp::And, Box::new(y)), pos)).unwrap()
+            )
+          }
+        }
       }
-    }
-  }
-}
-
-impl CallMagic for MinusOperation {
-  fn compile(&self,
-             call: FnCall,
-             _compiler: &mut Compiler,
-             _builder: &mut StmtBuilder,
-             _table: &mut SymbolTable,
-             args: Vec<StExpr>,
-             pos: SourceOffset) -> Result<Expr, Error> {
-    let args = strip_st(args);
-    Expecting::at_least(1).validate(&call.function, pos, &args)?;
-    match args.len() {
-      0 => {
-        unreachable!()
+      CallMagic::MinusOperation => {
+        let args = strip_st(args);
+        Expecting::at_least(1).validate(&call.function, pos, &args)?;
+        match args.len() {
+          0 => {
+            unreachable!()
+          }
+          1 => {
+            let arg = args::one(args);
+            Ok(arg.unary(op::UnaryOp::Negate, pos))
+          }
+          _ => {
+            Ok(
+              util::fold1(args.into_iter(), |x, y| x.binary(op::BinaryOp::Sub, y, pos)).unwrap()
+            )
+          }
+        }
       }
-      1 => {
-        let arg = args::one(args);
-        Ok(arg.unary(op::UnaryOp::Negate, pos))
+      CallMagic::DivOperation => {
+        let mut args = strip_st(args);
+        Expecting::at_least(1).validate(&call.function, pos, &args)?;
+        match args.len() {
+          0 => {
+            unreachable!()
+          }
+          1 => {
+            let one = Expr::from_value(1, pos);
+            let arg = args::one(args);
+            Ok(one.binary(op::BinaryOp::Div, expr_wrapper::float(arg), pos))
+          }
+          _ => {
+            let first = args.remove(0);
+            let result = args.into_iter().fold(first, |x, y| {
+              x.binary(op::BinaryOp::Div, expr_wrapper::float(y), pos)
+            });
+            Ok(result)
+          }
+        }
       }
-      _ => {
-        Ok(
-          util::fold1(args.into_iter(), |x, y| x.binary(op::BinaryOp::Sub, y, pos)).unwrap()
-        )
+      // TODO Integer division (both the regular function and the call
+      // magic) still does floating-point division if the first
+      // argument is a vector. I want to do integer division to each
+      // component of the vector, which GDScript has no built-in way
+      // to do.
+      CallMagic::IntDivOperation => {
+        let mut args = strip_st(args);
+        Expecting::at_least(1).validate(&call.function, pos, &args)?;
+        match args.len() {
+          0 => {
+            unreachable!()
+          }
+          1 => {
+            let one = Expr::from_value(1, pos);
+            let arg = args::one(args);
+            Ok(one.binary(op::BinaryOp::Div, expr_wrapper::int(arg), pos))
+          }
+          _ => {
+            let first = args.remove(0);
+            let result = args.into_iter().fold(first, |x, y| {
+              x.binary(op::BinaryOp::Div, expr_wrapper::int(y), pos)
+            });
+            Ok(result)
+          }
+        }
       }
-    }
-  }
-}
-
-impl CallMagic for DivOperation {
-  fn compile(&self,
-             call: FnCall,
-             _compiler: &mut Compiler,
-             _builder: &mut StmtBuilder,
-             _table: &mut SymbolTable,
-             args: Vec<StExpr>,
-             pos: SourceOffset) -> Result<Expr, Error> {
-    let mut args = strip_st(args);
-    Expecting::at_least(1).validate(&call.function, pos, &args)?;
-    match args.len() {
-      0 => {
-        unreachable!()
-      }
-      1 => {
-        let one = Expr::from_value(1, pos);
-        let arg = args::one(args);
-        Ok(one.binary(op::BinaryOp::Div, expr_wrapper::float(arg), pos))
-      }
-      _ => {
-        let first = args.remove(0);
-        let result = args.into_iter().fold(first, |x, y| {
-          x.binary(op::BinaryOp::Div, expr_wrapper::float(y), pos)
-        });
-        Ok(result)
-      }
-    }
-  }
-}
-
-// TODO Integer division (both the regular function and the call
-// magic) still does floating-point division if the first argument is
-// a vector. I want to do integer division to each component of the
-// vector, which GDScript has no built-in way to do.
-impl CallMagic for IntDivOperation {
-  fn compile(&self,
-             call: FnCall,
-             _compiler: &mut Compiler,
-             _builder: &mut StmtBuilder,
-             _table: &mut SymbolTable,
-             args: Vec<StExpr>,
-             pos: SourceOffset) -> Result<Expr, Error> {
-    let mut args = strip_st(args);
-    Expecting::at_least(1).validate(&call.function, pos, &args)?;
-    match args.len() {
-      0 => {
-        unreachable!()
-      }
-      1 => {
-        let one = Expr::from_value(1, pos);
-        let arg = args::one(args);
-        Ok(one.binary(op::BinaryOp::Div, expr_wrapper::int(arg), pos))
-      }
-      _ => {
-        let first = args.remove(0);
-        let result = args.into_iter().fold(first, |x, y| {
-          x.binary(op::BinaryOp::Div, expr_wrapper::int(y), pos)
-        });
-        Ok(result)
-      }
-    }
-  }
-}
-
-impl CallMagic for ModOperation {
-  fn compile(&self,
-             call: FnCall,
-             _compiler: &mut Compiler,
-             _builder: &mut StmtBuilder,
-             _table: &mut SymbolTable,
-             args: Vec<StExpr>,
-             pos: SourceOffset) -> Result<Expr, Error> {
-    let args = strip_st(args);
-    Expecting::exactly(2).validate(&call.function, pos, &args)?;
-    let (x, y) = args::two(args);
-    Ok(Expr::new(ExprF::Binary(Box::new(x), op::BinaryOp::Mod, Box::new(y)), pos))
-  }
-}
-
-impl CallMagic for NEqOperation {
-  fn compile(&self,
-             call: FnCall,
-             compiler: &mut Compiler,
-             builder: &mut StmtBuilder,
-             table: &mut SymbolTable,
-             args: Vec<StExpr>,
-             pos: SourceOffset) -> Result<Expr, Error> {
-    // We only optimize for the 0, 1, and 2 argument cases. Any more
-    // arguments than that and the resulting expression would just be
-    // long and annoying, and it's simply easier to call the built-in
-    // anyway.
-    Expecting::at_least(1).validate(&call.function, pos, &args)?;
-    match args.len() {
-      0 => {
-        unreachable!()
-      }
-      1 => {
-        // Dump to the builder as a simple statement if it's stateful.
-        (&stmt_wrapper::Vacuous).wrap_to_builder(builder, args[0].clone());
-        Ok(Expr::from_value(true, pos))
-      }
-      2 => {
-        let (lhs, rhs) = args::two(strip_st(args));
-        Ok(lhs.binary(op::BinaryOp::NE, rhs, pos))
-      }
-      _ => {
-        self.fallback.compile(call, compiler, builder, table, args, pos)
-      }
-    }
-  }
-}
-
-impl CallMagic for BooleanNotOperation {
-  fn compile(&self,
-             call: FnCall,
-             _compiler: &mut Compiler,
-             _builder: &mut StmtBuilder,
-             _table: &mut SymbolTable,
-             args: Vec<StExpr>,
-             pos: SourceOffset) -> Result<Expr, Error> {
-    let args = strip_st(args);
-    Expecting::exactly(1).validate(&call.function, pos, &args)?;
-    let arg = args::one(args);
-    Ok(arg.unary(op::UnaryOp::Not, pos))
-  }
-}
-
-impl CallMagic for ListOperation {
-  fn compile(&self,
-             _call: FnCall,
-             _compiler: &mut Compiler,
-             _builder: &mut StmtBuilder,
-             _table: &mut SymbolTable,
-             args: Vec<StExpr>,
-             pos: SourceOffset) -> Result<Expr, Error> {
-    let args = strip_st(args);
-    Ok(library::construct_list(args, pos))
-  }
-}
-
-impl CallMagic for VectorOperation {
-  fn compile(&self,
-             call: FnCall,
-             _compiler: &mut Compiler,
-             _builder: &mut StmtBuilder,
-             _table: &mut SymbolTable,
-             args: Vec<StExpr>,
-             pos: SourceOffset) -> Result<Expr, Error> {
-    let args = strip_st(args);
-    Expecting::between(2, 3).validate(&call.function, pos, &args)?;
-    match args.len() {
-      2 => {
+      CallMagic::ModOperation => {
+        let args = strip_st(args);
+        Expecting::exactly(2).validate(&call.function, pos, &args)?;
         let (x, y) = args::two(args);
-        Ok(Expr::call(None, "Vector2", vec!(x, y), pos))
+        Ok(Expr::new(ExprF::Binary(Box::new(x), op::BinaryOp::Mod, Box::new(y)), pos))
       }
-      3 => {
-        let (x, y, z) = args::three(args);
-        Ok(Expr::call(None, "Vector3", vec!(x, y, z), pos))
+      CallMagic::NEqOperation(fallback) => {
+        // We only optimize for the 0, 1, and 2 argument cases. Any more
+        // arguments than that and the resulting expression would just be
+        // long and annoying, and it's simply easier to call the built-in
+        // anyway.
+        Expecting::at_least(1).validate(&call.function, pos, &args)?;
+        match args.len() {
+          0 => {
+            unreachable!()
+          }
+          1 => {
+            // Dump to the builder as a simple statement if it's stateful.
+            (&stmt_wrapper::Vacuous).wrap_to_builder(builder, args[0].clone());
+            Ok(Expr::from_value(true, pos))
+          }
+          2 => {
+            let (lhs, rhs) = args::two(strip_st(args));
+            Ok(lhs.binary(op::BinaryOp::NE, rhs, pos))
+          }
+          _ => {
+            fallback.compile(call, compiler, builder, table, args, pos)
+          }
+        }
       }
-      _ => {
-        unreachable!()
+      CallMagic::BooleanNotOperation => {
+        let args = strip_st(args);
+        Expecting::exactly(1).validate(&call.function, pos, &args)?;
+        let arg = args::one(args);
+        Ok(arg.unary(op::UnaryOp::Not, pos))
+      }
+      CallMagic::ListOperation => {
+        let args = strip_st(args);
+        Ok(library::construct_list(args, pos))
+      }
+      CallMagic::VectorOperation => {
+        let args = strip_st(args);
+        Expecting::between(2, 3).validate(&call.function, pos, &args)?;
+        match args.len() {
+          2 => {
+            let (x, y) = args::two(args);
+            Ok(Expr::call(None, "Vector2", vec!(x, y), pos))
+          }
+          3 => {
+            let (x, y, z) = args::three(args);
+            Ok(Expr::call(None, "Vector3", vec!(x, y, z), pos))
+          }
+          _ => {
+            unreachable!()
+          }
+        }
+      }
+      CallMagic::ArraySubscript => {
+        let args = strip_st(args);
+        Expecting::exactly(2).validate(&call.function, pos, &args)?;
+        let (arr, n) = args::two(args);
+        Ok(arr.subscript(n, pos))
+      }
+      CallMagic::ArraySubscriptAssign => {
+        let args = strip_st(args);
+        Expecting::exactly(3).validate(&call.function, pos, &args)?;
+        let (x, arr, n) = args::three(args);
+
+        let assign_target = arr.subscript(n, pos);
+        builder.append(Stmt::simple_assign(assign_target.clone(), x, pos));
+        Ok(assign_target)
+      }
+      CallMagic::ElementOf => {
+        let args = strip_st(args);
+        Expecting::exactly(2).validate(&call.function, pos, &args)?;
+        let (value, arr) = args::two(args);
+
+        Ok(value.binary(op::BinaryOp::In, arr, pos))
+      }
+      CallMagic::InstanceOf => {
+        let args = strip_st(args);
+        Expecting::exactly(2).validate(&call.function, pos, &args)?;
+        let (value, type_) = args::two(args);
+
+        Ok(value.binary(op::BinaryOp::Is, type_, pos))
+      }
+      CallMagic::GetNodeSyntax => {
+        let args = strip_st(args);
+        Expecting::exactly(2).validate(&call.function, pos, &args)?;
+        let (value, path) = args::two(args);
+
+        if let ExprF::Literal(Literal::String(s)) = &path.value {
+          if value.value == ExprF::Var(String::from("self")) {
+            // We can use the $x syntax on the GDScript side
+            //
+            // TODO Make sure the string only has symbols allowed in a
+            // GDScript node path literal.
+            return Ok(Expr::from_value(Literal::NodeLiteral(s.to_owned()), pos));
+          }
+        }
+
+        // Otherwise, just compile to self.get_node.
+        Ok(
+          Expr::call(
+            Some(value),
+            "get_node",
+            vec!(path),
+            pos,
+          ),
+        )
+
       }
     }
   }
-}
 
-impl CallMagic for ArraySubscript {
-  fn compile(&self,
-             call: FnCall,
-             _compiler: &mut Compiler,
-             _builder: &mut StmtBuilder,
-             _table: &mut SymbolTable,
-             args: Vec<StExpr>,
-             pos: SourceOffset) -> Result<Expr, Error> {
-    let args = strip_st(args);
-    Expecting::exactly(2).validate(&call.function, pos, &args)?;
-    let (arr, n) = args::two(args);
-    Ok(arr.subscript(n, pos))
-  }
-}
-
-impl CallMagic for ArraySubscriptAssign {
-  fn compile(&self,
-             call: FnCall,
-             _compiler: &mut Compiler,
-             builder: &mut StmtBuilder,
-             _table: &mut SymbolTable,
-             args: Vec<StExpr>,
-             pos: SourceOffset) -> Result<Expr, Error> {
-    let args = strip_st(args);
-    Expecting::exactly(3).validate(&call.function, pos, &args)?;
-    let (x, arr, n) = args::three(args);
-
-    let assign_target = arr.subscript(n, pos);
-    builder.append(Stmt::simple_assign(assign_target.clone(), x, pos));
-    Ok(assign_target)
-  }
-}
-
-impl CallMagic for ElementOf {
-  fn compile(&self,
-             call: FnCall,
-             _compiler: &mut Compiler,
-             _builder: &mut StmtBuilder,
-             _table: &mut SymbolTable,
-             args: Vec<StExpr>,
-             pos: SourceOffset) -> Result<Expr, Error> {
-    let args = strip_st(args);
-    Expecting::exactly(2).validate(&call.function, pos, &args)?;
-    let (value, arr) = args::two(args);
-
-    Ok(value.binary(op::BinaryOp::In, arr, pos))
-  }
-}
-
-impl CallMagic for InstanceOf {
-  fn compile(&self,
-             call: FnCall,
-             _compiler: &mut Compiler,
-             _builder: &mut StmtBuilder,
-             _table: &mut SymbolTable,
-             args: Vec<StExpr>,
-             pos: SourceOffset) -> Result<Expr, Error> {
-    let args = strip_st(args);
-    Expecting::exactly(2).validate(&call.function, pos, &args)?;
-    let (value, type_) = args::two(args);
-
-    Ok(value.binary(op::BinaryOp::Is, type_, pos))
-  }
-}
-
-impl CallMagic for GetNodeSyntax {
-  fn compile(&self,
-             call: FnCall,
-             _compiler: &mut Compiler,
-             _builder: &mut StmtBuilder,
-             _table: &mut SymbolTable,
-             args: Vec<StExpr>,
-             pos: SourceOffset) -> Result<Expr, Error> {
-    let args = strip_st(args);
-    Expecting::exactly(2).validate(&call.function, pos, &args)?;
-    let (value, path) = args::two(args);
-
-    if let ExprF::Literal(Literal::String(s)) = &path.value {
-      if value.value == ExprF::Var(String::from("self")) {
-        // We can use the $x syntax on the GDScript side
-        //
-        // TODO Make sure the string only has symbols allowed in a
-        // GDScript node path literal.
-        return Ok(Expr::from_value(Literal::NodeLiteral(s.to_owned()), pos));
-      }
-    }
-
-    // Otherwise, just compile to self.get_node.
-    Ok(
-      Expr::call(
-        Some(value),
-        "get_node",
-        vec!(path),
-        pos,
-      ),
-    )
-
-  }
 }
