@@ -17,11 +17,13 @@ use super::call_magic::{CallMagic, DefaultCall};
 use super::local_var::VarName;
 use super::SymbolTable;
 
+use serde::{Serialize, Deserialize};
+
 /// All of the relevant information needed to make a call to a
 /// function is stored in `FnCall`.
 /// [`CallMagic`](super::call_magic::CallMagic) requires an `FnCall` to
 /// identify the information about a function.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct FnCall {
   /// The function's scope.
   pub scope: FnScope,
@@ -42,7 +44,7 @@ pub struct FnCall {
 /// affects certain compiled behaviors of the function, such as
 /// whether it needs to be included in closures and how it gets
 /// imported into new scopes.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum FnScope {
   /// A superglobal function is available in all scopes, such as
   /// built-in GDScript functions like `abs()` or `min()`.
@@ -90,7 +92,7 @@ pub enum FnScope {
 /// `FnName` should be thought of as a more restricted form of `Expr`.
 /// The ultimate goal of this type is to eventually be converted to an
 /// `Expr` via [`From::from`].
-#[derive(PartialEq, Eq, Clone, Debug)]
+#[derive(PartialEq, Eq, Clone, Debug, Serialize, Deserialize)]
 pub enum FnName {
   /// A static function local to the file and defined at the
   /// top-level.
@@ -109,7 +111,7 @@ pub enum FnName {
 /// similar to [`ArgList`](crate::ir::arglist::ArgList) except that
 /// the latter specifies names for its arguments, whereas this
 /// structure simply designates the shape of the function.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub struct FnSpecs {
   pub required: usize,
   pub optional: usize,

@@ -6,6 +6,8 @@ use crate::compile::symbol_table::function_call::FnSpecs;
 use crate::sxp::ast::{AST, ASTF};
 use crate::pipeline::source::{SourceOffset, Sourced};
 
+use serde::{Serialize, Deserialize};
+
 use std::convert::TryFrom;
 use std::borrow::Borrow;
 use std::cmp::Ordering;
@@ -23,7 +25,7 @@ pub struct SimpleArgList {
   pub args: Vec<String>,
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub enum VarArg { RestArg, ArrArg }
 
 #[derive(Debug, Clone, Eq, PartialEq)]
