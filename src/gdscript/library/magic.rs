@@ -41,7 +41,7 @@ pub fn bind_magic(table: &mut MagicTable) {
 
   // Multiplication (*)
   table.set(String::from("MULTIPLICATION"),
-            CallMagic::CompileToBinOp(Literal::from(0), op::BinaryOp::Times, Assoc::Left));
+            CallMagic::CompileToBinOp(Literal::from(1), op::BinaryOp::Times, Assoc::Left));
 
   // Subtraction (-)
   table.set(String::from("SUBTRACTION"), CallMagic::MinusOperation);
