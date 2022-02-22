@@ -19,7 +19,7 @@ use std::ops::Deref;
 use std::fmt;
 
 /// The type of GDScript literal values.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum Literal {
   Int(i32),
   Float(LiteralFloat),
@@ -32,7 +32,7 @@ pub enum Literal {
 /// A literal floating-point value, with reflexive equality semantics.
 /// The only difference between this type and [`OrderedFloat`] is that
 /// the former supports serde.
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Serialize, Deserialize)]
 pub struct LiteralFloat(pub f32);
 
 /// In most cases, we can convert an
