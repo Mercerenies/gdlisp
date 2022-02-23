@@ -11,7 +11,7 @@ use crate::gdscript::stmt::{self, Stmt, StmtF};
 use crate::util::extract_err;
 
 struct StmtWalker<'a, E> {
-  pub imp: Box<WalkFn<'a, E>>,
+  imp: Box<WalkFn<'a, E>>,
 }
 
 type WalkFn<'a, E> = dyn FnMut(&[Stmt]) -> Result<Vec<Stmt>, E> + 'a;

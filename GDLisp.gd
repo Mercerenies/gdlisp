@@ -508,10 +508,10 @@ static func cdr(a_18):
     return a_18.cdr
 static func set_car(b_19, a_20):
     a_20.car = b_19
-    return a_20.car
+    return b_19
 static func set_cdr(b_21, a_22):
     a_22.cdr = b_21
-    return a_22.cdr
+    return b_21
 static func intern(a_23):
     return Symbol.new(a_23)
 static func length(x_24):
