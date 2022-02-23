@@ -1,6 +1,6 @@
 
 use crate::ir::expr::{self, Expr, ExprF};
-use crate::ir::decl;
+use crate::ir::decl::{self, Decl, DeclF};
 use crate::util::extract_err;
 
 // Post-order traversal
@@ -237,6 +237,104 @@ pub fn walk_expr_ok<'a>(expr: &Expr, mut walker: impl FnMut(&Expr) -> Expr + 'a)
                         -> Expr {
   let result = walk_expr(expr, move |x| Ok(walker(x)));
   extract_err(result)
+}
+
+pub fn walk_exprs_in_decl<'a, E>(decl: &Decl, walker: impl FnMut(&Expr) -> Result<Expr, E> + 'a)
+                                 -> Result<Decl, E> {
+  let new_decl = match &decl.value {
+    DeclF::ConstDecl(d) => {
+      DeclF::ConstDecl(decl::ConstDecl {
+        visibility: d.visibility,
+        name: d.name.clone(),
+        value: walk_expr(&d.value, walker)?,
+      })
+    }
+    DeclF::FnDecl(d) => {
+      DeclF::FnDecl(decl::FnDecl {
+        visibility: d.visibility,
+        call_magic: d.call_magic.clone(),
+        name: d.name.clone(),
+        args: d.args.clone(),
+        body: walk_expr(&d.body, walker)?,
+      })
+    }
+    DeclF::MacroDecl(d) => {
+      DeclF::MacroDecl(decl::MacroDecl {
+        visibility: d.visibility,
+        name: d.name.clone(),
+        args: d.args.clone(),
+        body: walk_expr(&d.body, walker)?,
+      })
+    }
+    DeclF::SymbolMacroDecl(d) => {
+      DeclF::SymbolMacroDecl(decl::SymbolMacroDecl {
+        visibility: d.visibility,
+        name: d.name.clone(),
+        body: walk_expr(&d.body, walker)?,
+      })
+    }
+    DeclF::EnumDecl(d) => {
+      let mut walker = walker;
+      let clauses = d.clauses.iter().map(|(s, e)| {
+        Ok((s.clone(), e.as_ref().map(|e1| walk_expr(e1, |x| walker(x))).transpose()?))
+      }).collect::<Result<Vec<_>, _>>()?;
+      DeclF::EnumDecl(decl::EnumDecl {
+        visibility: d.visibility,
+        name: d.name.clone(),
+        clauses: clauses,
+      })
+    }
+    DeclF::DeclareDecl(d) => {
+      DeclF::DeclareDecl(d.clone())
+    }
+    DeclF::ClassDecl(d) => {
+      let mut walker = walker;
+      let mut walker = ExprWalker::new(|x| walker(x));
+      let constructor = d.constructor.as_ref().map(|c| {
+        Ok(decl::ConstructorDecl {
+          args: c.args.clone(),
+          super_call: walker.walk_exprs(&c.super_call)?,
+          body: walker.walk_expr(&c.body)?,
+        })
+      }).transpose()?;
+      let decls = d.decls.iter().map(|d| {
+        // TODO Technically ClassConstDecl and ClassVarDecl contain
+        // expressions. We should walk those too.
+        let new_decl = match &d.value {
+          decl::ClassInnerDeclF::ClassSignalDecl(_) => d.value.clone(),
+          decl::ClassInnerDeclF::ClassConstDecl(_) => d.value.clone(),
+          decl::ClassInnerDeclF::ClassVarDecl(_) => d.value.clone(),
+          decl::ClassInnerDeclF::ClassFnDecl(inner) => {
+            decl::ClassInnerDeclF::ClassFnDecl(decl::ClassFnDecl {
+              is_static: inner.is_static,
+              name: inner.name.clone(),
+              args: inner.args.clone(),
+              body: walker.walk_expr(&inner.body)?,
+            })
+          }
+        };
+        Ok(decl::ClassInnerDecl { value: new_decl, pos: d.pos })
+      }).collect::<Result<Vec<_>, _>>()?;
+      DeclF::ClassDecl(decl::ClassDecl {
+        visibility: d.visibility,
+        name: d.name.clone(),
+        extends: d.extends.clone(),
+        main_class: d.main_class,
+        constructor: constructor,
+        decls: decls,
+      })
+    }
+  };
+  Ok(Decl::new(new_decl, decl.pos))
+}
+
+pub fn walk_exprs_in_toplevel<'a, E>(decl: &decl::TopLevel, mut walker: impl FnMut(&Expr) -> Result<Expr, E> + 'a)
+                                     -> Result<decl::TopLevel, E> {
+  Ok(decl::TopLevel {
+    imports: decl.imports.clone(),
+    decls: decl.decls.iter().map(|d| walk_exprs_in_decl(d, |x| walker(x))).collect::<Result<Vec<_>, _>>()?,
+    minimalist_flag: decl.minimalist_flag,
+  })
 }
 
 // TODO Test me :)
