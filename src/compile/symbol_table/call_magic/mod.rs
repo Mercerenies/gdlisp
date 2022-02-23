@@ -54,8 +54,9 @@ use serde::{Serialize, Deserialize};
 /// written in GDLisp invokes call magic. This trait is *always* used
 /// to compile function calls. In most cases, for user-defined
 /// functions or for builtins without special behavior, the
-/// [`DefaultCall`] singleton is used, which performs the basic
-/// function call compilation routine via [`compile_default_call`].
+/// [`CallMagic::DefaultCall`] option is used, which performs the
+/// basic function call compilation routine via
+/// [`compile_default_call`].
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub enum CallMagic {
   /// A default [`CallMagic`] for any functions without special
@@ -139,7 +140,7 @@ pub enum CallMagic {
   ///
   /// This call magic is used for most builtin comparison operators,
   /// such as `=` and `<`. It is notably *not* used for `/=`, which is
-  /// handled by [`NEqOperation`] due to its unique (non-transitive)
+  /// handled by [`CallMagic::NEqOperation`] due to its unique (non-transitive)
   /// behavior.
   CompileToTransCmp(op::BinaryOp),
 }
@@ -165,8 +166,8 @@ fn strip_st(x: Vec<StExpr>) -> Vec<Expr> {
 /// its arguments `args` into a standard GDScript function call,
 /// taking into consideration any optional-argument or rest-argument
 /// padding which needs to be done to make the call correct on the
-/// GDScript call. This is called by [`DefaultCall::compile`] to
-/// perform its work.
+/// GDScript call. This is called by [`CallMagic::compile`] in the
+/// [`CallMagic::DefaultCall`] case to perform its work.
 pub fn compile_default_call(call: FnCall, mut args: Vec<Expr>, pos: SourceOffset) -> Result<Expr, Error> {
   let FnCall { scope: _, object, function, specs, is_macro: _ } = call;
   // First, check arity
