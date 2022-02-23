@@ -23,94 +23,80 @@
 //! function would be guaranteed to compile to actual addition and not
 //! be recursive.
 
-use crate::compile::symbol_table::call_magic;
+use crate::compile::symbol_table::call_magic::{CallMagic, Assoc};
 use crate::compile::symbol_table::call_magic::table::MagicTable;
 use crate::gdscript::op;
-use crate::gdscript::expr::{Expr, ExprF};
-
-use std::rc::Rc;
+use crate::gdscript::literal::Literal;
 
 /// Bind all GDLisp call magic to the magic table given.
 pub fn bind_magic(table: &mut MagicTable) {
 
   // Default magic (used by default for all user-defined functions and
   // for any builtins which don't request other magic)
-  table.set(String::from("DEFAULT"), Box::new(call_magic::DefaultCall));
+  table.set(String::from("DEFAULT"), CallMagic::DefaultCall);
 
   // Addition (+)
   table.set(String::from("ADDITION"),
-            Box::new(
-              call_magic::CompileToBinOp {
-                zero: Rc::new(|pos| Expr::new(ExprF::from(0), pos)),
-                bin: op::BinaryOp::Add,
-                assoc: call_magic::Assoc::Left,
-              }
-            ));
+            CallMagic::CompileToBinOp(Literal::from(0), op::BinaryOp::Add, Assoc::Left));
 
   // Multiplication (*)
   table.set(String::from("MULTIPLICATION"),
-            Box::new(
-              call_magic::CompileToBinOp {
-                zero: Rc::new(|pos| Expr::new(ExprF::from(1), pos)),
-                bin: op::BinaryOp::Times,
-                assoc: call_magic::Assoc::Left,
-              }
-            ));
+            CallMagic::CompileToBinOp(Literal::from(1), op::BinaryOp::Times, Assoc::Left));
 
   // Subtraction (-)
-  table.set(String::from("SUBTRACTION"), Box::new(call_magic::MinusOperation));
+  table.set(String::from("SUBTRACTION"), CallMagic::MinusOperation);
 
   // Division (/)
-  table.set(String::from("DIVISION"), Box::new(call_magic::DivOperation));
+  table.set(String::from("DIVISION"), CallMagic::DivOperation);
 
   // Integer Division (div)
-  table.set(String::from("INTEGER-DIVISION"), Box::new(call_magic::IntDivOperation));
+  table.set(String::from("INTEGER-DIVISION"), CallMagic::IntDivOperation);
 
   // Modulo Division (mod)
-  table.set(String::from("MODULO"), Box::new(call_magic::ModOperation));
+  table.set(String::from("MODULO"), CallMagic::ModOperation);
 
   // Equality (=)
-  table.set(String::from("EQUAL"), Box::new(call_magic::CompileToTransCmp { bin: op::BinaryOp::Eq }));
+  table.set(String::from("EQUAL"), CallMagic::CompileToTransCmp(op::BinaryOp::Eq));
 
   // Less Than (<)
-  table.set(String::from("LESS-THAN"), Box::new(call_magic::CompileToTransCmp { bin: op::BinaryOp::LT }));
+  table.set(String::from("LESS-THAN"), CallMagic::CompileToTransCmp(op::BinaryOp::LT));
 
   // Greater Than (>)
-  table.set(String::from("GREATER-THAN"), Box::new(call_magic::CompileToTransCmp { bin: op::BinaryOp::GT }));
+  table.set(String::from("GREATER-THAN"), CallMagic::CompileToTransCmp(op::BinaryOp::GT));
 
   // Less Than or Equal (<=)
-  table.set(String::from("LESS-THAN-OR-EQUAL"), Box::new(call_magic::CompileToTransCmp { bin: op::BinaryOp::LE }));
+  table.set(String::from("LESS-THAN-OR-EQUAL"), CallMagic::CompileToTransCmp(op::BinaryOp::LE));
 
   // Greater Than or Equal (>=)
-  table.set(String::from("GREATER-THAN-OR-EQUAL"), Box::new(call_magic::CompileToTransCmp { bin: op::BinaryOp::GE }));
+  table.set(String::from("GREATER-THAN-OR-EQUAL"), CallMagic::CompileToTransCmp(op::BinaryOp::GE));
 
   // Not Equal (/=)
   table.set(String::from("NOT-EQUAL"),
-            Box::new(call_magic::NEqOperation { fallback: Box::new(call_magic::DefaultCall) }));
+            CallMagic::NEqOperation(Box::new(CallMagic::DefaultCall)));
 
   // Boolean Not (not)
-  table.set(String::from("BOOLEAN-NOT"), Box::new(call_magic::BooleanNotOperation));
+  table.set(String::from("BOOLEAN-NOT"), CallMagic::BooleanNotOperation);
 
   // List (list)
-  table.set(String::from("LIST"), Box::new(call_magic::ListOperation));
+  table.set(String::from("LIST"), CallMagic::ListOperation);
 
   // Vector (vector)
-  table.set(String::from("VECTOR"), Box::new(call_magic::VectorOperation));
+  table.set(String::from("VECTOR"), CallMagic::VectorOperation);
 
   // Array Subscript (elt)
-  table.set(String::from("ARRAY-SUBSCRIPT"), Box::new(call_magic::ArraySubscript));
+  table.set(String::from("ARRAY-SUBSCRIPT"), CallMagic::ArraySubscript);
 
   // Array Subscript Assignment (set-elt)
-  table.set(String::from("ARRAY-SUBSCRIPT-ASSIGNMENT"), Box::new(call_magic::ArraySubscriptAssign));
+  table.set(String::from("ARRAY-SUBSCRIPT-ASSIGNMENT"), CallMagic::ArraySubscriptAssign);
 
   // Direct Instance Check (sys/instance_direct?)
-  table.set(String::from("DIRECT-INSTANCE-CHECK"), Box::new(call_magic::InstanceOf));
+  table.set(String::from("DIRECT-INSTANCE-CHECK"), CallMagic::InstanceOf);
 
   // Array Membership Check (member?)
-  table.set(String::from("ARRAY-MEMBER-CHECK"), Box::new(call_magic::ElementOf));
+  table.set(String::from("ARRAY-MEMBER-CHECK"), CallMagic::ElementOf);
 
   // Node access (sys/get-node)
-  table.set(String::from("GET-NODE-SYNTAX"), Box::new(call_magic::GetNodeSyntax));
+  table.set(String::from("GET-NODE-SYNTAX"), CallMagic::GetNodeSyntax);
 
 }
 

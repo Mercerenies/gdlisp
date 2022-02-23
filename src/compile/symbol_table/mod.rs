@@ -13,9 +13,10 @@ pub mod call_magic;
 pub mod local_var;
 
 use function_call::FnCall;
-use call_magic::{CallMagic, DefaultCall};
+use call_magic::{CallMagic};
 use local_var::{LocalVar, ValueHint, ValueHintsTable};
-use crate::util::debug_wrapper::DebugWrapper;
+
+use serde::{Serialize, Deserialize};
 
 use std::collections::HashMap;
 use std::borrow::Borrow;
@@ -25,11 +26,11 @@ use std::borrow::Borrow;
 /// Types, such as classes and primitive types, fall into the variable
 /// namespace. `SymbolTable` encompasses a table of names available in
 /// the current scope, in either namespace.
-#[derive(Clone, Debug, Default)]
+#[derive(Clone, Debug, Default, Serialize, Deserialize)]
 pub struct SymbolTable {
   locals: HashMap<String, LocalVar>,
   reverse_locals: HashMap<String, String>, // key: GDScript name, value: GDLisp name (to use in locals)
-  functions: HashMap<String, (FnCall, DebugWrapper<Box<dyn CallMagic + 'static>>)>,
+  functions: HashMap<String, (FnCall, CallMagic)>,
 }
 
 /// When we move into a class scope, we need to keep two symbol
@@ -85,16 +86,16 @@ impl SymbolTable {
 
   /// Gets the function call and call magic associated with the given
   /// GDLisp function name.
-  pub fn get_fn(&self, name: &str) -> Option<(&FnCall, &(dyn CallMagic + 'static))> {
+  pub fn get_fn(&self, name: &str) -> Option<(&FnCall, &CallMagic)> {
     self.functions.get(name).map(|(call, magic)| {
-      (call, &*magic.0)
+      (call, magic)
     })
   }
 
   /// Sets the function call and call magic associated with the given
   /// function name.
-  pub fn set_fn(&mut self, name: String, value: FnCall, magic: Box<dyn CallMagic + 'static>) {
-    self.functions.insert(name, (value, DebugWrapper(magic)));
+  pub fn set_fn(&mut self, name: String, value: FnCall, magic: CallMagic) {
+    self.functions.insert(name, (value, magic));
   }
 
   /// Deletes any function call info and call magic associated with
@@ -109,18 +110,18 @@ impl SymbolTable {
   }
 
   /// An iterator over the function namespace of this table.
-  pub fn fns(&self) -> impl Iterator<Item=(&str, &FnCall, &(dyn CallMagic + 'static))> {
+  pub fn fns(&self) -> impl Iterator<Item=(&str, &FnCall, &CallMagic)> {
     self.functions.iter().map(|(name, value)| {
-      (name.borrow(), &value.0, &*value.1.0)
+      (name.borrow(), &value.0, &value.1)
     })
   }
 
   /// An iterator over the function namespace of this table, providing
   /// mutable access to the function call information and the call
   /// magic.
-  pub fn fns_mut(&mut self) -> impl Iterator<Item=(&str, &mut FnCall, &mut (dyn CallMagic + 'static))> {
+  pub fn fns_mut(&mut self) -> impl Iterator<Item=(&str, &mut FnCall, &mut CallMagic)> {
     self.functions.iter_mut().map(|(name, value)| {
-      (name.borrow(), &mut value.0, &mut *value.1.0)
+      (name.borrow(), &mut value.0, &mut value.1)
     })
   }
 
@@ -133,7 +134,7 @@ impl SymbolTable {
       self.set_var(name.to_owned(), value.to_owned());
     }
     for (name, call, magic) in other.fns() {
-      self.set_fn(name.to_owned(), call.to_owned(), dyn_clone::clone_box(magic));
+      self.set_fn(name.to_owned(), call.to_owned(), magic.to_owned());
     }
   }
 
@@ -191,8 +192,8 @@ pub trait HasSymbolTable {
                       name: String,
                       value: FnCall,
                       block: impl FnOnce(&mut Self) -> B) -> B {
-    let previous = self.get_symbol_table_mut().get_fn(&name).map(|(p, m)| (p.clone(), dyn_clone::clone_box(m)));
-    self.get_symbol_table_mut().set_fn(name.clone(), value, Box::new(DefaultCall));
+    let previous = self.get_symbol_table_mut().get_fn(&name).map(|(p, m)| (p.clone(), m.clone()));
+    self.get_symbol_table_mut().set_fn(name.clone(), value, CallMagic::DefaultCall);
     let result = block(self);
     if let Some((p, m)) = previous {
       self.get_symbol_table_mut().set_fn(name, p, m);
@@ -297,9 +298,9 @@ mod tests {
   fn test_fns() {
     let mut table = SymbolTable::new();
     assert_eq!(table.get_fn("foo").map(|x| x.0), None);
-    table.set_fn("foo".to_owned(), sample_fn(), Box::new(DefaultCall));
+    table.set_fn("foo".to_owned(), sample_fn(), CallMagic::DefaultCall);
     assert_eq!(table.get_fn("foo").map(|x| x.0), Some(&sample_fn()));
-    table.set_fn("foo".to_owned(), sample_fn(), Box::new(DefaultCall));
+    table.set_fn("foo".to_owned(), sample_fn(), CallMagic::DefaultCall);
     table.del_fn("foo");
     assert_eq!(table.get_fn("foo").map(|x| x.0), None);
   }
@@ -307,9 +308,9 @@ mod tests {
   #[test]
   fn test_iter_fns() {
     let mut table = SymbolTable::new();
-    table.set_fn("foo".to_owned(), sample_fn(), Box::new(DefaultCall));
-    table.set_fn("foo1".to_owned(), sample_fn(), Box::new(DefaultCall));
-    table.set_fn("foo2".to_owned(), sample_fn(), Box::new(DefaultCall));
+    table.set_fn("foo".to_owned(), sample_fn(), CallMagic::DefaultCall);
+    table.set_fn("foo1".to_owned(), sample_fn(), CallMagic::DefaultCall);
+    table.set_fn("foo2".to_owned(), sample_fn(), CallMagic::DefaultCall);
     let mut vec: Vec<_> = table.fns().map(|(x, y, _)| (x, y)).collect();
     vec.sort_unstable_by(|a, b| a.0.cmp(b.0));
     let tmp = sample_fn();

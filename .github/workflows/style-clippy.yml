@@ -21,6 +21,6 @@ jobs:
         rustup update
         rustup component add clippy
     - name: Build
-      run: cargo build --verbose
+      run: rake build[--verbose]
     - name: Run Clippy
-      run: cargo clippy --verbose
+      run: rake clippy[--verbose]

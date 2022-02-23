@@ -12,7 +12,6 @@
 //! regarded as an implementation detail (like anything else in the
 //! `sys/*` namespace).
 
-use crate::util::debug_wrapper::DebugWrapper;
 use super::CallMagic;
 
 use std::collections::HashMap;
@@ -21,11 +20,10 @@ use std::collections::HashMap;
 /// values are [`CallMagic`](super::CallMagic) instances.
 ///
 /// This type can be thought of, in spirit, as `HashMap<String,
-/// CallMagic>`, except that `MagicTable` paints over some of the
-/// syntactic verbosity of dealing directly with boxed `dyn` traits.
+/// CallMagic>`.
 #[derive(Clone, Debug, Default)]
 pub struct MagicTable {
-  values: HashMap<String, DebugWrapper<Box<dyn CallMagic + 'static>>>,
+  values: HashMap<String, CallMagic>,
 }
 
 impl MagicTable {
@@ -36,14 +34,14 @@ impl MagicTable {
   }
 
   /// Gets the call magic associated to the given name.
-  pub fn get(&self, name: &str) -> Option<&(dyn CallMagic + 'static)> {
-    self.values.get(name).map(|x| &*x.0)
+  pub fn get(&self, name: &str) -> Option<&CallMagic> {
+    self.values.get(name)
   }
 
   /// Assigns call magic to the given name, replacing any previous
   /// call magic affiliated with that name.
-  pub fn set(&mut self, name: String, value: Box<dyn CallMagic + 'static>) {
-    self.values.insert(name, DebugWrapper(value));
+  pub fn set(&mut self, name: String, value: CallMagic) {
+    self.values.insert(name, value);
   }
 
   /// Removes the call magic associated to the given name, if it
@@ -53,14 +51,14 @@ impl MagicTable {
   }
 
   /// Converts `self` into a hash map containing the same information.
-  pub fn into_hashmap(self) -> HashMap<String, Box<dyn CallMagic + 'static>> {
-    self.values.into_iter().map(|(k, v)| (k, v.0)).collect()
+  pub fn into_hashmap(self) -> HashMap<String, CallMagic> {
+    self.values
   }
 
 }
 
-impl From<HashMap<String, Box<dyn CallMagic + 'static>>> for MagicTable {
-  fn from(values: HashMap<String, Box<dyn CallMagic + 'static>>) -> MagicTable {
-    MagicTable { values: values.into_iter().map(|(k, v)| (k, DebugWrapper(v))).collect() }
+impl From<HashMap<String, CallMagic>> for MagicTable {
+  fn from(values: HashMap<String, CallMagic>) -> MagicTable {
+    MagicTable { values }
   }
 }

@@ -26,14 +26,14 @@ jobs:
         ls -l
         cd ..
     - name: Build
-      run: cargo build --verbose
+      run: rake build[--verbose]
     - name: Run Standard Test Suite
       run: |
         PATH="$PWD/godot-build/:$PATH"
         echo "$PATH"
-        cargo test --verbose
+        rake test[--verbose]
     - name: Run Full Test Suite
       run: |
         PATH="$PWD/godot-build/:$PATH"
         echo "$PATH"
-        cargo test --verbose -- --ignored
+        rake 'test[--verbose,--,--ignored]'

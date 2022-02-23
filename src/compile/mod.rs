@@ -28,7 +28,7 @@ use error::{Error, ErrorF};
 use symbol_table::{SymbolTable, ClassTablePair};
 use symbol_table::local_var::{LocalVar, ValueHint, VarName, VarScope, VarNameIntoExtendsError};
 use symbol_table::function_call;
-use symbol_table::call_magic::{CallMagic, DefaultCall};
+use symbol_table::call_magic::CallMagic;
 use symbol_table::call_magic::table::MagicTable;
 use crate::ir;
 use crate::ir::import::{ImportName, ImportDecl, ImportDetails};
@@ -301,14 +301,14 @@ impl Compiler {
           function_call::FnScope::Global,
           names::lisp_to_gd(name),
         );
-        let call_magic: Box<dyn CallMagic> = match call_magic {
-          None => Box::new(DefaultCall),
+        let call_magic: CallMagic = match call_magic {
+          None => CallMagic::DefaultCall,
           Some(m) => {
             // If a call magic declaration was specified, it MUST
             // exist or it's a compile error.
             match magic_table.get(m) {
               None => return Err(Error::new(ErrorF::NoSuchMagic(m.to_owned()), decl.pos)),
-              Some(magic) => dyn_clone::clone_box(magic),
+              Some(magic) => magic.clone(),
             }
           }
         };
@@ -323,7 +323,7 @@ impl Compiler {
           function_call::FnScope::Global,
           names::lisp_to_gd(name),
         );
-        table.set_fn(name.clone(), func, Box::new(DefaultCall));
+        table.set_fn(name.clone(), func, CallMagic::DefaultCall);
       }
       IRDeclF::SymbolMacroDecl(ir::decl::SymbolMacroDecl { name, .. }) => {
         // No action; symbol macros have no runtime binding presence.
@@ -380,7 +380,7 @@ impl Compiler {
               function_call::FnScope::Global,
               names::lisp_to_gd(name),
             );
-            table.set_fn(name.clone(), func, Box::new(DefaultCall));
+            table.set_fn(name.clone(), func, CallMagic::DefaultCall);
           }
           ir::decl::DeclareType::SuperglobalFn(args) => {
             let func = function_call::FnCall::superglobal(
@@ -388,7 +388,7 @@ impl Compiler {
               function_call::FnScope::Superglobal,
               names::lisp_to_gd(name),
             );
-            table.set_fn(name.clone(), func, Box::new(DefaultCall));
+            table.set_fn(name.clone(), func, CallMagic::DefaultCall);
           }
         }
       }
@@ -461,7 +461,7 @@ impl Compiler {
           Namespace::Function => {
             let (call, _) = unit_table.get_fn(&export_name).ok_or_else(|| Error::new(ErrorF::NoSuchFn(export_name), import.pos))?;
             let call = Compiler::translate_call(preload_name.clone(), call.clone());
-            table.set_fn(import_name.clone(), call, Box::new(DefaultCall));
+            table.set_fn(import_name.clone(), call, CallMagic::DefaultCall);
           }
           Namespace::Value => {
             let mut var = unit_table.get_var(&export_name).ok_or_else(|| Error::new(ErrorF::NoSuchVar(export_name), import.pos))?.clone();
@@ -572,9 +572,9 @@ mod tests {
   fn bind_helper_symbols(table: &mut SymbolTable) {
     // Binds a few helper names to the symbol table for the sake of
     // debugging.
-    table.set_fn(String::from("foo1"), FnCall::file_constant(FnSpecs::new(1, 0, None), FnScope::Global, String::from("foo1")), Box::new(DefaultCall));
-    table.set_fn(String::from("foo"), FnCall::file_constant(FnSpecs::new(0, 0, None), FnScope::Global, String::from("foo")), Box::new(DefaultCall));
-    table.set_fn(String::from("bar"), FnCall::file_constant(FnSpecs::new(0, 0, None), FnScope::Global, String::from("bar")), Box::new(DefaultCall));
+    table.set_fn(String::from("foo1"), FnCall::file_constant(FnSpecs::new(1, 0, None), FnScope::Global, String::from("foo1")), CallMagic::DefaultCall);
+    table.set_fn(String::from("foo"), FnCall::file_constant(FnSpecs::new(0, 0, None), FnScope::Global, String::from("foo")), CallMagic::DefaultCall);
+    table.set_fn(String::from("bar"), FnCall::file_constant(FnSpecs::new(0, 0, None), FnScope::Global, String::from("bar")), CallMagic::DefaultCall);
     table.set_var(String::from("foobar"), LocalVar::read(String::from("foobar")));
   }
 

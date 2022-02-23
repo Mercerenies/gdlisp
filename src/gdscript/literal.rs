@@ -12,19 +12,28 @@
 use crate::ir::literal::{Literal as IRLiteral};
 
 use ordered_float::OrderedFloat;
+use serde::{Serialize, Deserialize};
 
 use std::convert::TryFrom;
+use std::ops::Deref;
+use std::fmt;
 
 /// The type of GDScript literal values.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum Literal {
   Int(i32),
-  Float(OrderedFloat<f32>),
+  Float(LiteralFloat),
   String(String),
   NodeLiteral(String),
   Null,
   Bool(bool),
 }
+
+/// A literal floating-point value, with reflexive equality semantics.
+/// The only difference between this type and [`OrderedFloat`] is that
+/// the former supports serde.
+#[derive(Clone, Copy, Serialize, Deserialize)]
+pub struct LiteralFloat(pub f32);
 
 /// In most cases, we can convert an
 /// [`ir::literal::Literal`](IRLiteral) to a [`Literal`]. However,
@@ -59,7 +68,7 @@ impl From<i32> for Literal {
 
 impl From<OrderedFloat<f32>> for Literal {
   fn from(x: OrderedFloat<f32>) -> Literal {
-    Literal::Float(x)
+    Literal::Float(LiteralFloat(*x))
   }
 }
 
@@ -88,11 +97,40 @@ impl TryFrom<IRLiteral> for Literal {
     match value {
       IRLiteral::Nil => Ok(Literal::Null),
       IRLiteral::Int(n) => Ok(Literal::Int(n)),
-      IRLiteral::Float(f) => Ok(Literal::Float(f)),
+      IRLiteral::Float(f) => Ok(Literal::Float(LiteralFloat(*f))),
       IRLiteral::String(s) => Ok(Literal::String(s)),
       IRLiteral::Symbol(_) => Err(IRToExprLiteralError), // Doesn't compile to a GDScript literal
       IRLiteral::Bool(b) => Ok(Literal::Bool(b)),
     }
+  }
+
+}
+
+impl PartialEq for LiteralFloat {
+
+  /// Compares the two floats for equality using [`OrderedFloat`]
+  /// semantics, so NaN compares equal to itself.
+  fn eq(&self, other: &Self) -> bool {
+    OrderedFloat(**self) == OrderedFloat(**other)
+  }
+
+}
+
+impl Eq for LiteralFloat {}
+
+impl Deref for LiteralFloat {
+  type Target = f32;
+
+  fn deref(&self) -> &f32 {
+    &self.0
+  }
+
+}
+
+impl fmt::Debug for LiteralFloat {
+
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    write!(f, "{}", self.0)
   }
 
 }

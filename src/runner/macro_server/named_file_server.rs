@@ -26,6 +26,7 @@ use super::command::ServerCommand;
 use super::response;
 
 use tempfile::NamedTempFile;
+use serde::{Serialize, Deserialize};
 
 use std::collections::HashMap;
 use std::path::Path;
@@ -60,7 +61,7 @@ pub struct NamedFileServer {
 
 /// A simple identifier type which is used as the key type in
 /// [`NamedFileServer`].
-#[derive(Copy, Clone, Debug, Eq, PartialEq, Hash, Default)]
+#[derive(Copy, Clone, Debug, Eq, PartialEq, Hash, Default, Serialize, Deserialize)]
 #[repr(transparent)]
 pub struct MacroID(u32);
 

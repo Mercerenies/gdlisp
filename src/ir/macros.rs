@@ -18,11 +18,12 @@ use crate::ir::identifier::Id;
 use crate::ir::declaration_table::DeclarationTable;
 
 use tempfile::{NamedTempFile, Builder};
+use serde::{Serialize, Deserialize};
 
 use std::io::{self, Write};
 use std::collections::HashSet;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct MacroData {
   pub id: MacroID,
   pub imported: bool,
