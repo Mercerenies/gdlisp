@@ -18,7 +18,7 @@ impl<'a, E> ExprWalker<'a, E> {
   }
 
   fn walk_exprs(&mut self, exprs: &[Expr]) -> Result<Vec<Expr>, E> {
-    exprs.into_iter().map(|e| {
+    exprs.iter().map(|e| {
       self.walk_expr(e)
     }).collect()
   }
@@ -47,7 +47,7 @@ impl<'a, E> ExprWalker<'a, E> {
         ExprF::Progn(self.walk_exprs(body)?)
       }
       ExprF::CondStmt(options) => {
-        ExprF::CondStmt(options.into_iter().map(|(cond, body)| {
+        ExprF::CondStmt(options.iter().map(|(cond, body)| {
           Ok((self.walk_expr(cond)?, body.as_ref().map(|b| self.walk_expr(b)).transpose()?))
         }).collect::<Result<Vec<_>, _>>()?)
       }
@@ -71,7 +71,7 @@ impl<'a, E> ExprWalker<'a, E> {
         )
       }
       ExprF::Let(clauses, body) => {
-        let clauses = clauses.into_iter().map(|clause| {
+        let clauses = clauses.iter().map(|clause| {
           Ok(expr::LocalVarClause {
             name: clause.name.clone(),
             value: self.walk_expr(&clause.value)?,
@@ -83,7 +83,7 @@ impl<'a, E> ExprWalker<'a, E> {
         )
       }
       ExprF::FLet(clauses, body) => {
-        let clauses = clauses.into_iter().map(|clause| {
+        let clauses = clauses.iter().map(|clause| {
           Ok(expr::LocalFnClause {
             name: clause.name.clone(),
             args: clause.args.clone(),
@@ -96,7 +96,7 @@ impl<'a, E> ExprWalker<'a, E> {
         )
       }
       ExprF::Labels(clauses, body) => {
-        let clauses = clauses.into_iter().map(|clause| {
+        let clauses = clauses.iter().map(|clause| {
           Ok(expr::LocalFnClause {
             name: clause.name.clone(),
             args: clause.args.clone(),
@@ -141,7 +141,7 @@ impl<'a, E> ExprWalker<'a, E> {
         ExprF::Array(self.walk_exprs(body)?)
       }
       ExprF::Dictionary(options) => {
-        ExprF::Dictionary(options.into_iter().map(|(k, v)| {
+        ExprF::Dictionary(options.iter().map(|(k, v)| {
           Ok((self.walk_expr(k)?, self.walk_expr(v)?))
         }).collect::<Result<Vec<_>, _>>()?)
       }
