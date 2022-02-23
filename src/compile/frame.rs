@@ -485,16 +485,19 @@ impl<'a, 'b, 'c, 'd> CompilerFrame<'a, 'b, 'c, 'd, StmtBuilder> {
         // TODO Weirdness with setget makes this stateful flag not
         // always right? I mean, foo:bar can have side effects if bar
         // is protected by a setget.
-        let StExpr { expr: mut lhs, side_effects } = self.compile_expr(lhs, NeedsResult::Yes)?;
-        // Assign to a temp if it's stateful
-        if needs_result == NeedsResult::Yes && side_effects.modifies_state() {
-          let var = factory::declare_var(self.compiler.name_generator(), self.builder, "_assign", Some(lhs), expr.pos);
-          lhs = Expr::new(ExprF::Var(var), *pos);
-        }
+        let StExpr { expr: lhs, side_effects: _ } = self.compile_expr(lhs, NeedsResult::Yes)?;
         let lhs = Expr::new(ExprF::Attribute(Box::new(lhs), names::lisp_to_gd(name)), expr.pos);
-        self.compile_stmt(&stmt_wrapper::AssignToExpr(lhs.clone()), expr)?;
+        let StExpr { expr: mut rhs, side_effects } = self.compile_expr(expr, NeedsResult::Yes)?;
+        // Assign to a temporary if the RHS is stateful and we need a result.
+        if needs_result == NeedsResult::Yes && side_effects.modifies_state() {
+          let var = factory::declare_var(self.compiler.name_generator(), self.builder, "_assign", Some(rhs), expr.pos);
+          rhs = Expr::new(ExprF::Var(var), *pos);
+        }
+        self.builder.append(
+          Stmt::simple_assign(lhs, rhs.clone(), *pos),
+        );
         if needs_result == NeedsResult::Yes {
-          Ok(StExpr { expr: lhs, side_effects: SideEffects::None })
+          Ok(StExpr { expr: rhs, side_effects: SideEffects::None })
         } else {
           Ok(Compiler::nil_expr(expr.pos))
         }
