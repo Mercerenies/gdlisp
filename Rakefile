@@ -15,7 +15,7 @@ task :build do |t, args|
   sh 'cargo', 'run', '--', '--compile-stdlib'
 end
 
-task :run do |t, args|
+task run: :build do |t, args|
   sh 'cargo', 'run', *args
 end
 

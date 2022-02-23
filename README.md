@@ -7,9 +7,10 @@ Lisp for the [Godot](https://godotengine.org/) platform! This
 work-in-progress language aims to be a Lisp dialect which compiles to
 GDScript.
 
-This project is built using [Cargo](https://doc.rust-lang.org/cargo/).
-Use `cargo test` to run the test suite, and use `cargo run` to compile
-stdin input to GDScript.
+This project is built using [Cargo](https://doc.rust-lang.org/cargo/)
+with [Rake](https://ruby.github.io/rake/) as a wrapper for custom
+build scripts. Use `rake test` to run the test suite, and use `rake
+run` to compile stdin input to GDScript.
 
 GDLisp is early in development and is very clearly not ready for actual use.
 
