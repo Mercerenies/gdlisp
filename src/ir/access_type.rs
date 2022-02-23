@@ -73,6 +73,15 @@ pub enum AccessType {
   /// The variable is read *directly* in the relevant scope.
   Read,
   /// The variable is written to *directly* in the relevant scope.
+  ///
+  /// This includes direct assignment to the variable itself or to an
+  /// instance variable *on* this variable. Nested assignment to an
+  /// instance variable of an instance variable (or deeper) is
+  /// excluded specifically. This condition is included so as to
+  /// ensure that COW data structures such as Vector behave correctly
+  /// inside closures. Specifically, COW structures should be wrapped
+  /// in cells if a slot on them is ever changed, not just if the
+  /// variable itself is assigned to.
   RW,
   /// The variable is read within a closure in the relevant scope.
   ClosedRead,

@@ -276,6 +276,12 @@ impl Expr {
           }
           AssignTarget::InstanceField(_, lhs, _) => {
             lhs.walk_locals(acc_vars, acc_fns);
+            // If the LHS is specifically a variable, then that
+            // variable also becomes RW, since it might contain a COW
+            // value.
+            if let ExprF::LocalVar(v) = &lhs.value {
+              acc_vars.visit(v.to_owned(), AccessType::RW);
+            }
           }
         }
         expr.walk_locals(acc_vars, acc_fns);
@@ -509,6 +515,27 @@ mod tests {
       e(ExprF::Assign(AssignTarget::Variable(SourceOffset::default(), String::from("var")), Box::new(e(ExprF::Literal(Literal::Nil))))),
     )));
     assert_eq!(e4.get_locals(), lhash_rw(vec!(("var".to_owned(), AccessType::RW))));
+
+  }
+
+  #[test]
+  fn test_locals_slot_assignment() {
+
+    // Simple slot assignment
+    let e1 = e(ExprF::Assign(
+      AssignTarget::InstanceField(SourceOffset::default(), Box::new(e(ExprF::LocalVar(String::from("var")))), String::from("foo")),
+      Box::new(e(ExprF::Literal(Literal::Nil))),
+    ));
+    assert_eq!(e1.get_locals(), lhash_rw(vec!(("var".to_owned(), AccessType::RW))));
+
+    // Nested slot assignment
+    let e2 = e(ExprF::Assign(
+      AssignTarget::InstanceField(SourceOffset::default(),
+                                  Box::new(e(ExprF::FieldAccess(Box::new(e(ExprF::LocalVar(String::from("var")))), String::from("foo")))),
+                                  String::from("baro")),
+      Box::new(e(ExprF::Literal(Literal::Nil))),
+    ));
+    assert_eq!(e2.get_locals(), lhash_rw(vec!(("var".to_owned(), AccessType::Read))));
 
   }
 

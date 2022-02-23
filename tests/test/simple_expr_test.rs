@@ -71,13 +71,31 @@ static func run():
 #[test]
 pub fn slot_assign_test_1() {
   let result = parse_compile_and_output("(let ((a 1)) (set a:b 3))");
-  assert_eq!(result, "var a_0 = 1\na_0.b = 3\nreturn a_0.b\n");
+  assert_eq!(result, "var a_0 = 1\na_0.b = 3\nreturn 3\n");
 }
 
 #[test]
 pub fn slot_assign_test_2() {
   let result = parse_compile_and_output("(let ((a 1)) (set (access-slot a b) 3))");
-  assert_eq!(result, "var a_0 = 1\na_0.b = 3\nreturn a_0.b\n");
+  assert_eq!(result, "var a_0 = 1\na_0.b = 3\nreturn 3\n");
+}
+
+#[test]
+pub fn slot_assign_test_3() {
+  let result = parse_compile_and_output("(progn (let ((a 1)) (set (access-slot a b) 3)) 0)");
+  assert_eq!(result, "var a_0 = 1\na_0.b = 3\nreturn 0\n");
+}
+
+#[test]
+pub fn slot_assign_test_4() {
+  let result = parse_compile_and_output("(let ((a 1)) (set (access-slot a b) (a:foo)))");
+  assert_eq!(result, "var a_0 = 1\nvar _assign_1 = a_0.foo()\na_0.b = _assign_1\nreturn _assign_1\n");
+}
+
+#[test]
+pub fn slot_assign_test_5() {
+  let result = parse_compile_and_output("(progn (let ((a 1)) (set (access-slot a b) (a:foo))) 0)");
+  assert_eq!(result, "var a_0 = 1\na_0.b = a_0.foo()\nreturn 0\n");
 }
 
 #[test]
@@ -107,11 +125,11 @@ pub fn assign_to_slot_test() {
   assert_eq!(parse_compile_and_output("(let ((x 1)) (set x:foo 100) 2)"),
              "var x_0 = 1\nx_0.foo = 100\nreturn 2\n");
   assert_eq!(parse_compile_and_output("(let ((x 1)) (set x:foo 100))"),
-             "var x_0 = 1\nx_0.foo = 100\nreturn x_0.foo\n");
+             "var x_0 = 1\nx_0.foo = 100\nreturn 100\n");
   assert_eq!(parse_compile_and_output("(flet ((f () 1)) (set (f):foo 100) 2)"),
              "_flet_0().foo = 100\nreturn 2\n");
   assert_eq!(parse_compile_and_output("(flet ((f () 1)) (set (f):foo 100))"),
-             "var _assign_1 = _flet_0()\n_assign_1.foo = 100\nreturn _assign_1.foo\n");
+             "_flet_0().foo = 100\nreturn 100\n");
 }
 
 
@@ -172,4 +190,28 @@ pub fn this_file_run_in_macro_test() {
      (defmacro baz () '((this-file):foo 124))
      (print (baz)))"#);
   assert_eq!(output, "\n248\n");
+}
+
+#[test]
+#[ignore]
+pub fn assign_to_vec_test_1() {
+  let output = parse_and_run(r#"
+    ((let ((v (vector 1 1 1)))
+       (print v:x)
+       (set v:x 10)
+       (print v:x)))
+  "#);
+  assert_eq!(output, "\n1\n10\n");
+}
+
+#[test]
+#[ignore]
+pub fn assign_to_vec_test_2() {
+  let output = parse_and_run(r#"
+    ((let ((v (vector 1 1 1)))
+       (print v:x)
+       (funcall (lambda () (set v:x 10)))
+       (print v:x)))
+  "#);
+  assert_eq!(output, "\n1\n10\n");
 }
