@@ -482,9 +482,6 @@ impl<'a, 'b, 'c, 'd> CompilerFrame<'a, 'b, 'c, 'd, StmtBuilder> {
         Ok(StExpr { expr: var.expr(*pos), side_effects: SideEffects::from(var.access_type) })
       }
       AssignTarget::InstanceField(pos, lhs, name) => {
-        // TODO Weirdness with setget makes this stateful flag not
-        // always right? I mean, foo:bar can have side effects if bar
-        // is protected by a setget.
         let StExpr { expr: lhs, side_effects: _ } = self.compile_expr(lhs, NeedsResult::Yes)?;
         let lhs = Expr::new(ExprF::Attribute(Box::new(lhs), names::lisp_to_gd(name)), expr.pos);
         let StExpr { expr: mut rhs, side_effects } = self.compile_expr(expr, NeedsResult::Yes)?;
