@@ -42,6 +42,9 @@ pub const CONSTRUCTOR_NAME: &str = "_init";
 /// added to the scene tree.
 pub const READY_NAME: &str = "_ready";
 
+/// The name of the default superclass, when one is not specified.
+pub const REFERENCE_NAME: &str = "Reference";
+
 /// An expression which accesses the global GDLisp singleton object.
 pub fn gdlisp_root(pos: SourceOffset) -> Expr {
   Expr::var(GDLISP_NAME, pos)

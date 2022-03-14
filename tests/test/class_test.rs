@@ -14,8 +14,13 @@ pub fn empty_class_test() {
 }
 
 #[test]
-pub fn simple_class_test() {
+pub fn simple_class_test_1() {
   assert_eq!(parse_compile_decl("((defclass ClassName (Node) (defvar x) (defn _init (y)) (defn foo () 2)))"), "extends Reference\nclass ClassName extends Node:\n    func _init(y_0):\n        pass\n    var x\n    func foo():\n        return 2\nstatic func run():\n    return null\n");
+}
+
+#[test]
+pub fn simple_class_test_2() {
+  assert_eq!(parse_compile_decl("((defclass ClassName () (defvar x) (defn _init (y)) (defn foo () 2)))"), "extends Reference\nclass ClassName extends Reference:\n    func _init(y_0):\n        pass\n    var x\n    func foo():\n        return 2\nstatic func run():\n    return null\n");
 }
 
 #[test]
@@ -667,6 +672,17 @@ func foo():
     return 1
 static func run():
     return load("res://TEST.gd")
+"#);
+}
+
+#[test]
+pub fn main_class_test_4() {
+  assert_eq!(parse_compile_decl("((defclass Foo () main))"),
+             r#"extends Reference
+func _init():
+    pass
+static func run():
+    return null
 "#);
 }
 

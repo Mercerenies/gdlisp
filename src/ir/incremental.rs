@@ -373,6 +373,8 @@ impl IncCompiler {
               _ => return Err(PError::from(Error::new(ErrorF::InvalidDecl(decl.clone()), decl.pos))),
             };
             let superclass = match &vec[2].value {
+              ASTF::Nil =>
+                library::REFERENCE_NAME.to_owned(),
               ASTF::Cons(car, cdr) =>
                 match (&car.value, &cdr.value) {
                   (ASTF::Symbol(superclass_name), ASTF::Nil) => superclass_name.to_owned(),
