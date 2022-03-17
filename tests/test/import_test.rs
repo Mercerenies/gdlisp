@@ -1,8 +1,6 @@
 
 extern crate gdlisp;
 
-// TODO Once we have constant exports, make a test for ambiguous import namespace.
-
 use super::common::import::MockFileLoader;
 use super::common::dummy_config;
 
@@ -605,5 +603,49 @@ static func bar():
     return load("res://a.gd")._lazy_0()
 static func run():
     return 10
+"#);
+}
+
+#[test]
+fn ambiguous_import_namespace_test() {
+  let mut loader = MockFileLoader::new();
+  loader.add_file("a.lisp", "(defn foo ()) (defconst foo 10)");
+  loader.add_file("main.lisp", r#"(use "res://a.lisp" (foo))"#);
+  let mut pipeline = Pipeline::with_resolver(dummy_config(), Box::new(loader));
+  assert_eq!(
+    pipeline.load_file("main.lisp").map(|_| ()),
+    Err(PError::from(GDError::new(GDErrorF::AmbiguousNamespace(String::from("foo")), SourceOffset(5)))),
+  );
+}
+
+#[test]
+fn ambiguous_import_namespace_disambiguate_value_test() {
+  let mut loader = MockFileLoader::new();
+  loader.add_file("a.lisp", "(defn foo ()) (defconst foo 10)");
+  loader.add_file("main.lisp", r#"(use "res://a.lisp" ((foo value))) (defn bar () foo)"#);
+  let mut pipeline = Pipeline::with_resolver(dummy_config(), Box::new(loader));
+  let result = pipeline.load_file("main.lisp").unwrap().gdscript.to_gd();
+  assert_eq!(result, r#"extends Node
+const _Import_0 = preload("res://a.gd")
+static func bar():
+    return _Import_0.foo
+static func run():
+    return null
+"#);
+}
+
+#[test]
+fn ambiguous_import_namespace_disambiguate_function_test() {
+  let mut loader = MockFileLoader::new();
+  loader.add_file("a.lisp", "(defn foo ()) (defconst foo 10)");
+  loader.add_file("main.lisp", r#"(use "res://a.lisp" ((foo function))) (defn bar () (foo))"#);
+  let mut pipeline = Pipeline::with_resolver(dummy_config(), Box::new(loader));
+  let result = pipeline.load_file("main.lisp").unwrap().gdscript.to_gd();
+  assert_eq!(result, r#"extends Node
+const _Import_0 = preload("res://a.gd")
+static func bar():
+    return _Import_0.foo()
+static func run():
+    return null
 "#);
 }
