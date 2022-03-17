@@ -33,7 +33,7 @@ pub enum ArgListParseErrorF {
   InvalidArgument(AST),
   UnknownDirective(String),
   DirectiveOutOfOrder(String),
-  ModifiersNotAllowed, // TODO This "modifier" is not the same as the way our modifiers module uses the word "modifier"; change this to something else, to be perfectly clear
+  SimpleArgListExpected,
 }
 
 #[derive(Debug, Clone, Eq, PartialEq)]
@@ -294,7 +294,7 @@ impl TryFrom<ArgList> for SimpleArgList {
     if arglist.optional_args.is_empty() && arglist.rest_arg.is_none() {
       Ok(SimpleArgList { args: arglist.required_args })
     } else {
-      Err(ArgListParseErrorF::ModifiersNotAllowed)
+      Err(ArgListParseErrorF::SimpleArgListExpected)
     }
   }
 
@@ -318,8 +318,8 @@ impl fmt::Display for ArgListParseError {
       ArgListParseErrorF::DirectiveOutOfOrder(s) => {
         write!(f, "Arglist directive appeared out of order {}", s)
       }
-      ArgListParseErrorF::ModifiersNotAllowed => {
-        write!(f, "Arglist modifiers not allowed in this context")
+      ArgListParseErrorF::SimpleArgListExpected => {
+        write!(f, "Only simple arglists are allowed in this context")
       }
     }
   }

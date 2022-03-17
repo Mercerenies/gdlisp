@@ -269,7 +269,7 @@ impl ErrorF {
           ArgListParseErrorF::InvalidArgument(_) => 2,
           ArgListParseErrorF::UnknownDirective(_) => 3,
           ArgListParseErrorF::DirectiveOutOfOrder(_) => 4,
-          ArgListParseErrorF::ModifiersNotAllowed => 5,
+          ArgListParseErrorF::SimpleArgListExpected => 5,
         }
       }
       ErrorF::ImportDeclParseError(err) => {
