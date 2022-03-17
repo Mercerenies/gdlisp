@@ -52,6 +52,11 @@ fn addition_test_indirect_3() {
 }
 
 #[test]
+fn addition_test_indirect_4() {
+  assert_eq!(parse_and_run("((print (apply (function +) 1 2 '(3 4))))"), "\n10\n");
+}
+
+#[test]
 fn multiplication_test_1() {
   assert_eq!(parse_and_run("((print (*)))"), "\n1\n");
 }

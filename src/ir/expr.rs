@@ -144,7 +144,7 @@ impl Expr {
   pub fn self_evaluating_lambda(self) -> Expr {
     let pos = self.pos;
     Expr::call(
-      String::from("funcall"), // TODO a sys/ version of funcall that can't be shadowed by the user
+      String::from("funcall"), // TODO a sys/ version of funcall that can't be shadowed by the user /////
       vec!(Expr::new(ExprF::Lambda(ArgList::empty(), Box::new(self)), pos)),
       pos,
     )

@@ -1118,6 +1118,16 @@
 (defn cdr (a)
   a:cdr)
 
+(defn init (a)
+  (cond
+    ((sys/instance-direct? (cdr a) Cons) (cons (car a) (init (cdr a))))
+    (#t nil)))
+
+(defn tail (a)
+  (cond
+    ((sys/instance-direct? (cdr a) Cons) (tail (cdr a)))
+    (#t (car a))))
+
 (defn set-car (b a)
   (set a:car b))
 
@@ -1135,9 +1145,14 @@
     result))
 
 (defn funcall (f &rest args)
-  (cond
-    ((sys/instance-direct? f Function) (f:call_funcv args))
-    (#t (push-error "Attempt to call non-function"))))
+  (apply f args))
+
+(defn apply (f &rest args)
+  (let ((args1 (init args))
+        (args2 (tail args)))
+    (cond
+      ((sys/instance-direct? f Function) (f:call_funcv (append args1 args2)))
+      (#t (push-error "Attempt to call non-function")))))
 
 (defn + (&rest args)
   (sys/call-magic ADDITION)
