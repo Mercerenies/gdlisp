@@ -198,9 +198,10 @@ impl<'a, E> ExprWalker<'a, E> {
     let extends = cls.extends.clone();
     let args = self.walk_exprs(&cls.args)?;
     let constructor = cls.constructor.as_ref().map(|c| {
+      let super_call = decl::SuperCall { call: self.walk_exprs(&c.super_call.call)?, pos: c.super_call.pos };
       Ok(decl::ConstructorDecl {
         args: c.args.clone(),
-        super_call: self.walk_exprs(&c.super_call)?,
+        super_call: super_call,
         body: self.walk_expr(&c.body)?,
       })
     }).transpose()?;
@@ -291,9 +292,10 @@ pub fn walk_exprs_in_decl<'a, E>(decl: &Decl, walker: impl FnMut(&Expr) -> Resul
       let mut walker = walker;
       let mut walker = ExprWalker::new(|x| walker(x));
       let constructor = d.constructor.as_ref().map(|c| {
+        let super_call = decl::SuperCall { call: walker.walk_exprs(&c.super_call.call)?, pos: c.super_call.pos };
         Ok(decl::ConstructorDecl {
           args: c.args.clone(),
-          super_call: walker.walk_exprs(&c.super_call)?,
+          super_call: super_call,
           body: walker.walk_expr(&c.body)?,
         })
       }).transpose()?;

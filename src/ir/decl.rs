@@ -87,8 +87,14 @@ pub struct ClassDecl {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ConstructorDecl {
   pub args: SimpleArgList,
-  pub super_call: Vec<Expr>,
+  pub super_call: SuperCall,
   pub body: Expr,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct SuperCall {
+  pub call: Vec<Expr>,
+  pub pos: SourceOffset,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -357,14 +363,14 @@ impl ConstructorDecl {
   pub fn empty(pos: SourceOffset) -> ConstructorDecl {
     ConstructorDecl {
       args: SimpleArgList { args: vec!() },
-      super_call: vec!(),
+      super_call: SuperCall::empty(pos),
       body: Expr::literal(Literal::Nil, pos),
     }
   }
 
   pub fn dependencies(&self) -> HashSet<Id> {
     let mut ids: HashSet<Id> = self.body.get_ids().collect();
-    for expr in &self.super_call {
+    for expr in &self.super_call.call {
       for id in expr.get_ids() {
         ids.insert(id);
       }
@@ -383,6 +389,16 @@ impl ConstructorDecl {
     }
     loc.remove("self");
     (loc, func)
+  }
+
+}
+
+impl SuperCall {
+
+  /// An empty super call, which invokes the super constructor with no
+  /// arguments.
+  pub fn empty(pos: SourceOffset) -> SuperCall {
+    SuperCall { call: vec!(), pos: pos }
   }
 
 }

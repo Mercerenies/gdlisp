@@ -201,7 +201,7 @@ pub fn declare_constructor(frame: &mut CompilerFrame<impl HasDecls>,
   let constructor_with_init = declare_function_with_init(frame,
                                                          String::from(library::CONSTRUCTOR_NAME),
                                                          IRArgList::from(constructor.args.clone()),
-                                                         &constructor.super_call,
+                                                         &constructor.super_call.call,
                                                          &constructor.body,
                                                          &stmt_wrapper::Vacuous)?;
   let DeclaredFnWithInit { function: constructor, inits } = constructor_with_init;

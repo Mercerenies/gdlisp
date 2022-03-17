@@ -291,10 +291,10 @@ pub fn bad_static_constructor_class_test() {
 
 #[test]
 pub fn bad_super_in_instance_function_test() {
-  // Can't have super in non-constructor method (TODO Points to the declaration, not the super right now)
+  // Can't have super in non-constructor method
   assert_eq!(
     parse_compile_decl_err("((defclass ClassName (Node) (defn foo () (super 1))))"),
-    Err(PError::from(GDError::new(GDErrorF::NoSuchFn(String::from("super")), SourceOffset(29)))),
+    Err(PError::from(GDError::new(GDErrorF::NoSuchFn(String::from("super")), SourceOffset(42)))),
   );
 }
 

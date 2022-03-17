@@ -252,14 +252,14 @@ impl IncCompiler {
   /// If a "super" call is present, its arguments, as well as a slice
   /// of the rest of the body, is returned. Otherwise, the whole slice
   /// is returned untouched.
-  pub fn detect_super<'a, 'b>(body: &'a [&'b AST]) -> (Option<Vec<&'b AST>>, &'a [&'b AST]) {
+  pub fn detect_super<'a, 'b>(body: &'a [&'b AST]) -> (Option<(Vec<&'b AST>, SourceOffset)>, &'a [&'b AST]) {
     if !body.is_empty() {
       let first: Result<Vec<_>, _> = DottedExpr::new(&body[0]).try_into();
       if let Ok(mut first) = first {
         if !first.is_empty() && first[0].value == ASTF::Symbol(String::from("super")) {
-          first.remove(0);
+          let super_symbol = first.remove(0);
           let super_args = first;
-          return (Some(super_args), &body[1..]);
+          return (Some((super_args, super_symbol.pos)), &body[1..]);
         }
       }
     }
@@ -607,8 +607,9 @@ impl IncCompiler {
             // Check for super call (only valid in constructor, but we
             // run the check unconditionally)
             let (super_call, body) = IncCompiler::detect_super(body);
-            let super_call = super_call.map(|super_call| {
-              super_call.iter().map(|expr| self.compile_expr(pipeline, expr)).collect::<Result<Vec<_>, _>>()
+            let super_call = super_call.map::<Result<_, PError>, _>(|(super_call, pos)| {
+              let call = super_call.iter().map(|expr| self.compile_expr(pipeline, expr)).collect::<Result<Vec<_>, _>>()?;
+              Ok(decl::SuperCall { call, pos })
             }).transpose()?;
 
             let body = body.iter().map(|expr| self.compile_expr(pipeline, expr)).collect::<Result<Vec<_>, _>>()?;
@@ -620,7 +621,7 @@ impl IncCompiler {
                 return Err(PError::from(Error::new(ErrorF::DuplicateConstructor, vec[0].pos)));
               }
 
-              let super_call = super_call.unwrap_or_default();
+              let super_call = super_call.unwrap_or_else(|| decl::SuperCall::empty(vec[0].pos));
               let mut constructor = decl::ConstructorDecl { args, super_call, body: Expr::progn(body, vec[0].pos) };
               for m in mods {
                 m.apply_to_constructor(&mut constructor)?;
@@ -630,8 +631,8 @@ impl IncCompiler {
             } else {
               // Ordinary functions cannot have super
 
-              if super_call.is_some() {
-                return Err(PError::from(Error::new(ErrorF::NoSuchFn(String::from("super")), vec[0].pos)));
+              if let Some(super_call) = &super_call {
+                return Err(PError::from(Error::new(ErrorF::NoSuchFn(String::from("super")), super_call.pos)));
               }
               let mut decl = decl::ClassFnDecl {
                 is_static: Static::NonStatic,
