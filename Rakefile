@@ -20,7 +20,15 @@ task run: :build do |t, args|
 end
 
 task :test do |t, args|
-  sh 'cargo', 'test', *args
+  case args.to_a[0]
+  when nil
+    sh 'cargo', 'test'
+  when "--ignored"
+    sh 'cargo', 'test', '--', '--ignored'
+  when "--all"
+    sh 'cargo', 'test'
+    sh 'cargo', 'test', '--', '--ignored'
+  end
 end
 
 task :clean do |t, args|
