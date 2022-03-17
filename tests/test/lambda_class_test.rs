@@ -125,7 +125,6 @@ static func run():
 }
 
 #[test]
-#[ignore]
 pub fn constructor_uses_outer_ref_lambda_class_test_run() {
   let result = parse_and_run("((defn foo () (print 10)) (new Reference (defn _init () (foo))))");
   assert_eq!(result, "\n10\n");
@@ -148,21 +147,18 @@ pub fn bad_const_in_lambda_class_test() {
 }
 
 #[test]
-#[ignore]
 pub fn lambda_class_running_test_1() {
   let output = parse_and_run("((let ((x (new Reference (defn foo () 100)))) (print (x:foo))))");
   assert_eq!(output, "\n100\n");
 }
 
 #[test]
-#[ignore]
 pub fn lambda_class_running_test_2() {
   let output = parse_and_run("((let ((x (let ((y 99)) (new Reference (defn foo () y))))) (print (x:foo))))");
   assert_eq!(output, "\n99\n");
 }
 
 #[test]
-#[ignore]
 pub fn lambda_class_running_test_3() {
   let output = parse_and_run(r#"
     ((let ((inst (let ((x 768))
@@ -174,7 +170,6 @@ pub fn lambda_class_running_test_3() {
 }
 
 #[test]
-#[ignore]
 pub fn lambda_class_running_test_4() {
   let output = parse_and_run(r#"
     ((let ((inst (let ((x 768))
@@ -186,7 +181,6 @@ pub fn lambda_class_running_test_4() {
 }
 
 #[test]
-#[ignore]
 pub fn lambda_class_running_test_5() {
   // Note: This one requires x to be wrapped in a Cell.
   let output = parse_and_run(r#"
@@ -200,21 +194,18 @@ pub fn lambda_class_running_test_5() {
 }
 
 #[test]
-#[ignore]
 pub fn lambda_class_running_test_6() {
   let output = parse_and_run("((let ((x (let ((y 99)) (new (Reference 1) (defvar z) (defn _init (z) (set self:z z)) (defn foo () (+ self:z y)))))) (print (x:foo))))");
   assert_eq!(output, "\n100\n");
 }
 
 #[test]
-#[ignore]
 pub fn lambda_class_access_static_fn_test_1() {
   let output = parse_and_run("((defn foo () 100) (let ((x (new Reference (defn test () (foo))))) (print (x:test))))");
   assert_eq!(output, "\n100\n");
 }
 
 #[test]
-#[ignore]
 pub fn lambda_class_access_static_fn_test_2() {
   let output = parse_and_run("((defn foo () 100) (let ((x (new Reference (defvar x) (defn _init () (set self:x (foo)))))) (print x:x)))");
   assert_eq!(output, "\n100\n");

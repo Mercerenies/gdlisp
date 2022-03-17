@@ -8,307 +8,256 @@ use super::common::*;
 // TODO This file is too big; split it up
 
 #[test]
-#[ignore]
 fn addition_test_1() {
   assert_eq!(parse_and_run("((print (+)))"), "\n0\n");
 }
 
 #[test]
-#[ignore]
 fn addition_test_2() {
   assert_eq!(parse_and_run("((print (+ 1)))"), "\n1\n");
 }
 
 #[test]
-#[ignore]
 fn addition_test_3() {
   assert_eq!(parse_and_run("((print (+ 1 5)))"), "\n6\n");
 }
 
 #[test]
-#[ignore]
 fn addition_test_4() {
   assert_eq!(parse_and_run("((print (+ 1 5 2)))"), "\n8\n");
 }
 
 #[test]
-#[ignore]
 fn addition_test_5() {
   assert_eq!(parse_and_run("((print (+ 1 5 2 -4)))"), "\n4\n");
 }
 
 #[test]
-#[ignore]
 fn addition_test_6() {
   assert_eq!(parse_and_run("((print (+ (vector 1 1) (vector 2 3))))"), "\n(3, 4)\n");
 }
 
 #[test]
-#[ignore]
 fn addition_test_7() {
   assert_eq!(parse_and_run("((print (+ (vector 1 1))))"), "\n(1, 1)\n");
 }
 
 #[test]
-#[ignore]
 fn addition_test_indirect_1() {
   assert_eq!(parse_and_run("((print (funcall (function +) 1 5 2 -4)))"), "\n4\n");
 }
 
 #[test]
-#[ignore]
 fn addition_test_indirect_2() {
   assert_eq!(parse_and_run("((print (funcall (function +))))"), "\n0\n");
 }
 
 #[test]
-#[ignore]
 fn addition_test_indirect_3() {
   assert_eq!(parse_and_run("((print (funcall (function +) 3)))"), "\n3\n");
 }
 
 #[test]
-#[ignore]
 fn multiplication_test_1() {
   assert_eq!(parse_and_run("((print (*)))"), "\n1\n");
 }
 
 #[test]
-#[ignore]
 fn multiplication_test_2() {
   assert_eq!(parse_and_run("((print (* 4)))"), "\n4\n");
 }
 
 #[test]
-#[ignore]
 fn multiplication_test_3() {
   assert_eq!(parse_and_run("((print (* 4 3)))"), "\n12\n");
 }
 
 #[test]
-#[ignore]
 fn multiplication_test_4() {
   assert_eq!(parse_and_run("((print (* 4 3 2)))"), "\n24\n");
 }
 
 #[test]
-#[ignore]
 fn multiplication_test_5() {
   assert_eq!(parse_and_run("((print (* 4 (vector 1 2) 2 (vector 2 3))))"), "\n(16, 48)\n");
 }
 
 #[test]
-#[ignore]
 fn multiplication_test_indirect_1() {
   assert_eq!(parse_and_run("((print (funcall (function *) 4 3 2)))"), "\n24\n");
 }
 
 #[test]
-#[ignore]
 fn multiplication_test_indirect_2() {
   assert_eq!(parse_and_run("((print (funcall (function *))))"), "\n1\n");
 }
 
 #[test]
-#[ignore]
 fn multiplication_test_indirect_3() {
   assert_eq!(parse_and_run("((print (funcall (function *) 3)))"), "\n3\n");
 }
 
 #[test]
-#[ignore]
 fn subtraction_test_1() {
   assert_eq!(parse_and_run("((print (- 4)))"), "\n-4\n");
 }
 
 #[test]
-#[ignore]
 fn subtraction_test_2() {
   assert_eq!(parse_and_run("((print (- 4 3)))"), "\n1\n");
 }
 
 #[test]
-#[ignore]
 fn subtraction_test_3() {
   assert_eq!(parse_and_run("((print (- 4 3 2)))"), "\n-1\n");
 }
 
 #[test]
-#[ignore]
 fn subtraction_test_indirect_1() {
   assert_eq!(parse_and_run("((print (funcall (function -) 4 3 2)))"), "\n-1\n");
 }
 
 #[test]
-#[ignore]
 fn subtraction_test_indirect_2() {
   assert_eq!(parse_and_run("((print (funcall (function -) 3)))"), "\n-3\n");
 }
 
 #[test]
-#[ignore]
 fn division_test_1() {
   assert_eq!(parse_and_run("((print (/ 4)))"), "\n0.25\n");
 }
 
 #[test]
-#[ignore]
 fn division_test_2() {
   assert_eq!(parse_and_run("((print (/ 4 2)))"), "\n2\n");
 }
 
 #[test]
-#[ignore]
 fn division_test_3() {
   assert_eq!(parse_and_run("((print (/ 4 2 2)))"), "\n1\n");
 }
 
 #[test]
-#[ignore]
 fn division_test_4() {
   assert_eq!(parse_and_run("((print (/ (vector 4 2 4) 2 2)))"), "\n(1, 0.5, 1)\n");
 }
 
 #[test]
-#[ignore]
 fn division_test_indirect_1() {
   assert_eq!(parse_and_run("((print (funcall (function /) 4)))"), "\n0.25\n");
 }
 
 #[test]
-#[ignore]
 fn division_test_indirect_2() {
   assert_eq!(parse_and_run("((print (funcall (function /) 3 2)))"), "\n1.5\n");
 }
 
 #[test]
-#[ignore]
 fn int_division_test_1() {
   assert_eq!(parse_and_run("((print (div 4)))"), "\n0\n");
 }
 
 #[test]
-#[ignore]
 fn int_division_test_2() {
   assert_eq!(parse_and_run("((print (div 4 2)))"), "\n2\n");
 }
 
 #[test]
-#[ignore]
 fn int_division_test_3() {
   assert_eq!(parse_and_run("((print (div 4 2 2)))"), "\n1\n");
 }
 
 #[test]
-#[ignore]
 fn int_division_test_indirect_1() {
   assert_eq!(parse_and_run("((print (funcall (function div) 4)))"), "\n0\n");
 }
 
 #[test]
-#[ignore]
 fn int_division_test_indirect_2() {
   assert_eq!(parse_and_run("((print (funcall (function div) 3 2)))"), "\n1\n");
 }
 
 #[test]
-#[ignore]
 fn eq_test_1() {
   assert_eq!(parse_and_run("((print (= 4)))"), "\nTrue\n");
 }
 
 #[test]
-#[ignore]
 fn eq_test_2() {
   assert_eq!(parse_and_run("((print (= 4 4)))"), "\nTrue\n");
 }
 
 #[test]
-#[ignore]
 fn eq_test_3() {
   assert_eq!(parse_and_run("((print (= 2 2 4)))"), "\nFalse\n");
 }
 
 #[test]
-#[ignore]
 fn eq_test_stateful_1() {
   assert_eq!(parse_and_run("((print (= (print 1))))"), "\n1\nTrue\n");
 }
 
 #[test]
-#[ignore]
 fn eq_test_stateful_2() {
   assert_eq!(parse_and_run("((print (= (print 1) (print 2) (print 3))))"), "\n1\n2\n3\nTrue\n");
 }
 
 #[test]
-#[ignore]
 fn eq_test_indirect_1() {
   assert_eq!(parse_and_run("((print (funcall (function =) 1)))"), "\nTrue\n");
 }
 
 #[test]
-#[ignore]
 fn eq_test_indirect_2() {
   assert_eq!(parse_and_run("((print (funcall (function =) 1 2)))"), "\nFalse\n");
 }
 
 #[test]
-#[ignore]
 fn eq_test_indirect_3() {
   assert_eq!(parse_and_run("((print (funcall (function =) 1 1 1)))"), "\nTrue\n");
 }
 
 #[test]
-#[ignore]
 fn lt_test_indirect() {
   assert_eq!(parse_and_run("((print (funcall (function <) 1 2 3)))"), "\nTrue\n");
 }
 
 #[test]
-#[ignore]
 fn gt_test_indirect() {
   assert_eq!(parse_and_run("((print (funcall (function >) 3 2 1)))"), "\nTrue\n");
 }
 
 #[test]
-#[ignore]
 fn le_test_indirect() {
   assert_eq!(parse_and_run("((print (funcall (function <=) 1 2 2 3)))"), "\nTrue\n");
 }
 
 #[test]
-#[ignore]
 fn ge_test_indirect() {
   assert_eq!(parse_and_run("((print (funcall (function >=) 3 2 2 1)))"), "\nTrue\n");
 }
 
 #[test]
-#[ignore]
 fn ne_test_1() {
   assert_eq!(parse_and_run("((print (/= 1 1 1)))"), "\nFalse\n");
 }
 
 #[test]
-#[ignore]
 fn ne_test_2() {
   assert_eq!(parse_and_run("((print (/= 1 3 2)))"), "\nTrue\n");
 }
 
 #[test]
-#[ignore]
 fn ne_test_3() {
   assert_eq!(parse_and_run("((print (/= 1 2 1)))"), "\nFalse\n");
 }
 
 #[test]
-#[ignore]
 fn not_test_1() {
   assert_eq!(parse_and_run("((print (not #t)))"), "\nFalse\n");
 }
 
 #[test]
-#[ignore]
 fn not_test_2() {
   assert_eq!(parse_and_run("((print (not #f)))"), "\nTrue\n");
 }
@@ -435,31 +384,26 @@ pub fn array_subscript_test() {
 }
 
 #[test]
-#[ignore]
 pub fn array_subscript_test_run() {
   assert_eq!(parse_and_run("((let ((x [10 20 30])) (print (elt x 2))))"), "\n30\n");
 }
 
 #[test]
-#[ignore]
 pub fn array_subscript_test_run_indirect() {
   assert_eq!(parse_and_run("((let ((x [10 20 30])) (print (funcall #'elt x 2))))"), "\n30\n");
 }
 
 #[test]
-#[ignore]
 pub fn array_subscript_assign_test_run_1() {
   assert_eq!(parse_and_run("((let ((x [10 20 30])) (set (elt x 1) 999) (print x)))"), "\n[10, 999, 30]\n");
 }
 
 #[test]
-#[ignore]
 pub fn array_subscript_assign_test_run_2() {
   assert_eq!(parse_and_run("((let ((x [10 20 30])) (set-elt 999 x 1) (print x)))"), "\n[10, 999, 30]\n");
 }
 
 #[test]
-#[ignore]
 pub fn array_subscript_assign_test_run_3() {
   assert_eq!(parse_and_run("((let ((x [10 20 30])) (funcall #'set-elt 999 x 1) (print x)))"), "\n[10, 999, 30]\n");
 }
@@ -510,7 +454,6 @@ pub fn return_test() {
 }
 
 #[test]
-#[ignore]
 pub fn yield_running_test() {
   let result = parse_and_run(r#"
     ((defn foo ()
@@ -529,7 +472,6 @@ pub fn yield_running_test() {
 }
 
 #[test]
-#[ignore]
 pub fn yield_star_running_test() {
   let result = parse_and_run(r#"
     ((defn foo ()
@@ -550,7 +492,6 @@ pub fn yield_star_running_test() {
 }
 
 #[test]
-#[ignore]
 pub fn map_test_1() {
   let result = parse_and_run(r#"
     ((print (map (lambda (x) (+ x 1)) [4 5 6])))
@@ -559,7 +500,6 @@ pub fn map_test_1() {
 }
 
 #[test]
-#[ignore]
 pub fn map_test_2() {
   let result = parse_and_run(r#"
     ((let ((x (map (lambda (x) (+ x 1)) '(4 5 6))))
@@ -572,7 +512,6 @@ pub fn map_test_2() {
 }
 
 #[test]
-#[ignore]
 pub fn filter_test_1() {
   let result = parse_and_run(r#"
     ((print (filter (lambda (x) (= (mod x 2) 0)) [1 2 3 4 5 6])))
@@ -581,7 +520,6 @@ pub fn filter_test_1() {
 }
 
 #[test]
-#[ignore]
 pub fn filter_test_2() {
   let result = parse_and_run(r#"
     ((let ((x (filter (lambda (x) (= (mod x 2) 0)) '(1 2 3 4 5 6))))
@@ -594,7 +532,6 @@ pub fn filter_test_2() {
 }
 
 #[test]
-#[ignore]
 pub fn filter_test_3() {
   let result = parse_and_run(r#"
     ((let ((x (filter (lambda (x) #f) '(1 2 3 4 5 6))))
@@ -604,7 +541,6 @@ pub fn filter_test_3() {
 }
 
 #[test]
-#[ignore]
 pub fn append_test_1() {
   let result = parse_and_run(r#"
     ((print (list->array (append))))
@@ -613,7 +549,6 @@ pub fn append_test_1() {
 }
 
 #[test]
-#[ignore]
 pub fn append_test_2() {
   let result = parse_and_run(r#"
     ((print (list->array (append '(1 2 3 4)))))
@@ -622,7 +557,6 @@ pub fn append_test_2() {
 }
 
 #[test]
-#[ignore]
 pub fn append_test_3() {
   let result = parse_and_run(r#"
     ((print (list->array (append '(1 2 3 4) '(5 6 7 8)))))
@@ -631,7 +565,6 @@ pub fn append_test_3() {
 }
 
 #[test]
-#[ignore]
 pub fn append_test_4() {
   let result = parse_and_run(r#"
     ((print (list->array (append '(1 2 3 4) () '(5 6 7 8) () ()))))

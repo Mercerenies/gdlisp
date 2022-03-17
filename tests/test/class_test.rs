@@ -439,7 +439,6 @@ static func run():
 }
 
 #[test]
-#[ignore]
 pub fn simple_self_run_class_test_1() {
   assert_eq!(parse_and_run(r#"
     ((defclass Foo (Reference)
@@ -456,7 +455,6 @@ pub fn simple_self_run_class_test_1() {
 }
 
 #[test]
-#[ignore]
 pub fn simple_self_run_class_test_2() {
   assert_eq!(parse_and_run(r#"
     ((defclass Foo (Reference)
@@ -473,7 +471,6 @@ pub fn simple_self_run_class_test_2() {
 }
 
 #[test]
-#[ignore]
 pub fn simple_self_run_class_test_3() {
   // Mixing self and @
   assert_eq!(parse_and_run(r#"
@@ -491,7 +488,6 @@ pub fn simple_self_run_class_test_3() {
 }
 
 #[test]
-#[ignore]
 pub fn self_with_closure_run_class_test() {
   assert_eq!(parse_and_run(r#"
     ((defclass Foo (Reference)
@@ -509,7 +505,6 @@ pub fn self_with_closure_run_class_test() {
 }
 
 #[test]
-#[ignore]
 pub fn macro_in_class_test_1() {
   assert_eq!(parse_compile_decl(r#"
     ((defmacro add-one (x)
@@ -533,7 +528,6 @@ static func run():
 }
 
 #[test]
-#[ignore]
 pub fn macro_in_class_test_2() {
   assert_eq!(parse_and_run(r#"
     ((defmacro declare-function (name)
@@ -548,7 +542,6 @@ pub fn macro_in_class_test_2() {
 }
 
 #[test]
-#[ignore]
 pub fn macro_in_class_test_3() {
   assert_eq!(parse_and_run(r#"
     ((defmacro declare-functions ()
@@ -562,7 +555,6 @@ pub fn macro_in_class_test_3() {
 }
 
 #[test]
-#[ignore]
 pub fn macro_uses_class_test() {
   assert_eq!(parse_and_run(r#"
     ((defclass Foo (Reference)
@@ -687,7 +679,6 @@ static func run():
 }
 
 #[test]
-#[ignore]
 pub fn macro_uses_main_class_test() {
   assert_eq!(parse_and_run(r#"
     ((defclass Foo (Reference) main
@@ -701,7 +692,6 @@ pub fn macro_uses_main_class_test() {
 }
 
 #[test]
-#[ignore]
 pub fn reference_to_const_in_class_test() {
   assert_eq!(parse_and_run(r#"
     ((defclass Foo (Reference)
@@ -712,7 +702,6 @@ pub fn reference_to_const_in_class_test() {
 }
 
 #[test]
-#[ignore]
 pub fn reference_to_static_in_class_test() {
   assert_eq!(parse_and_run(r#"
     ((defclass Foo (Reference)
@@ -723,7 +712,6 @@ pub fn reference_to_static_in_class_test() {
 }
 
 #[test]
-#[ignore]
 pub fn reference_to_outer_in_class_test_1() {
   let output = parse_and_run(r#"
     ((defn outer () 100)
@@ -734,7 +722,6 @@ pub fn reference_to_outer_in_class_test_1() {
 }
 
 #[test]
-#[ignore]
 pub fn reference_to_outer_in_class_test_2() {
   let output = parse_and_run(r#"
     ((defn outer () 100)
@@ -746,7 +733,6 @@ pub fn reference_to_outer_in_class_test_2() {
 }
 
 #[test]
-#[ignore]
 pub fn reference_to_outer_in_class_test_3() {
   let output = parse_and_run(r#"
     ((defn outer () 100)
@@ -757,7 +743,6 @@ pub fn reference_to_outer_in_class_test_3() {
 }
 
 #[test]
-#[ignore]
 pub fn reference_to_outer_in_class_test_4() {
   let output = parse_and_run(r#"
     ((defn outer () 100)
@@ -769,7 +754,6 @@ pub fn reference_to_outer_in_class_test_4() {
 }
 
 #[test]
-#[ignore]
 pub fn constructor_with_parent_class_test_1() {
   let output = parse_and_run(r#"
     ((defclass Foo (Reference) (defn _init (x) (print x)))
@@ -779,7 +763,6 @@ pub fn constructor_with_parent_class_test_1() {
 }
 
 #[test]
-#[ignore]
 pub fn constructor_with_parent_class_test_2() {
   let output = parse_and_run(r#"
     ((defclass Foo (Reference) (defn _init (x) (print x)))
@@ -790,7 +773,6 @@ pub fn constructor_with_parent_class_test_2() {
 }
 
 #[test]
-#[ignore]
 pub fn constructor_with_parent_class_test_3() {
   let output = parse_and_run(r#"
     ((defclass Foo (Reference) (defvar z) (defn _init (z) (set self:z z)))
@@ -802,7 +784,6 @@ pub fn constructor_with_parent_class_test_3() {
 }
 
 #[test]
-#[ignore]
 pub fn constructor_with_parent_class_test_4() {
   let output = parse_and_run(r#"
     ((defclass Foo (Reference) (defvar z) (defn _init (z) (set self:z z)))
@@ -814,7 +795,6 @@ pub fn constructor_with_parent_class_test_4() {
 }
 
 #[test]
-#[ignore]
 pub fn constructor_with_parent_class_test_5() {
   let output = parse_and_run(r#"
     ((defclass Foo (Reference) (defvar z) (defn _init (z) (set self:z z)))

@@ -28,7 +28,6 @@ pub fn mixed_enum_test() {
 }
 
 #[test]
-#[ignore]
 pub fn enum_runner_test() {
   let result = parse_and_run("((defenum MyEnum (A 1) (B 2) (C 3)) (print MyEnum:A) (print MyEnum:B) (print MyEnum:C))");
   assert_eq!(result, "\n1\n2\n3\n");

@@ -29,7 +29,6 @@ fn load_and_output_simple_file_err(input: &str) -> Result<String, PError> {
 }
 
 #[test]
-#[ignore]
 fn qualified_import_test() {
   assert_eq!(load_and_output_simple_file(r#"
     (use "res://example.lisp")
@@ -44,7 +43,6 @@ static func run():
 }
 
 #[test]
-#[ignore]
 fn aliased_import_test() {
   assert_eq!(load_and_output_simple_file(r#"
     (use "res://example.lisp" as example-name)
@@ -59,7 +57,6 @@ static func run():
 }
 
 #[test]
-#[ignore]
 fn restricted_import_test() {
   assert_eq!(load_and_output_simple_file(r#"
     (use "res://example.lisp" (one))
@@ -72,7 +69,6 @@ static func run():
 }
 
 #[test]
-#[ignore]
 fn restricted_import_test_failed() {
   assert_eq!(
     load_and_output_simple_file_err(r#"
@@ -84,7 +80,6 @@ fn restricted_import_test_failed() {
 }
 
 #[test]
-#[ignore]
 fn restricted_import_alias_test() {
   assert_eq!(load_and_output_simple_file(r#"
     (use "res://example.lisp" ((one as my-one)))
@@ -97,7 +92,6 @@ static func run():
 }
 
 #[test]
-#[ignore]
 fn restricted_import_alias_test_failed() {
   assert_eq!(
     load_and_output_simple_file_err(r#"
@@ -109,7 +103,6 @@ fn restricted_import_alias_test_failed() {
 }
 
 #[test]
-#[ignore]
 fn open_import_test() {
   assert_eq!(load_and_output_simple_file(r#"
     (use "res://example.lisp" open)
@@ -124,7 +117,6 @@ static func run():
 }
 
 #[test]
-#[ignore]
 fn nonexistent_import_test() {
   assert_eq!(
     load_and_output_simple_file_err(r#"
@@ -135,7 +127,6 @@ fn nonexistent_import_test() {
 }
 
 #[test]
-#[ignore]
 fn macro_uses_other_import_test() {
   let mut loader = MockFileLoader::new();
   loader.add_file("example.lisp", "(defn add-one (x) (+ x 1))");
@@ -156,7 +147,6 @@ static func run():
 }
 
 #[test]
-#[ignore]
 fn symbol_macro_uses_other_import_test() {
   let mut loader = MockFileLoader::new();
   loader.add_file("example.lisp", "(defn add-one (x) (+ x 1))");
@@ -177,7 +167,6 @@ static func run():
 }
 
 #[test]
-#[ignore]
 fn macro_from_other_file_import_test_1() {
   let mut loader = MockFileLoader::new();
   loader.add_file("example.lisp", "(defmacro add-one (x) (+ x 1))");
@@ -195,7 +184,6 @@ static func run():
 }
 
 #[test]
-#[ignore]
 fn macro_from_other_file_import_test_2() {
   let mut loader = MockFileLoader::new();
   loader.add_file("example.lisp", "(defn outer () 44) (defclass Foo (Reference) (defn go () (outer))) (defmacro go () ((Foo:new):go))");
@@ -213,7 +201,6 @@ static func run():
 }
 
 #[test]
-#[ignore]
 fn macro_from_other_file_import_test_3() {
   let mut loader = MockFileLoader::new();
   loader.add_file("example.lisp", "(defn outer () 44) (defclass Foo (Reference) (defn go () static (outer))) (defmacro go () (Foo:go))");
@@ -231,7 +218,6 @@ static func run():
 }
 
 #[test]
-#[ignore]
 fn symbol_macro_from_other_file_import_test_1() {
   let mut loader = MockFileLoader::new();
   loader.add_file("example.lisp", "(define-symbol-macro x 10)");
@@ -249,7 +235,6 @@ static func run():
 }
 
 #[test]
-#[ignore]
 fn symbol_macro_from_other_file_import_test_2() {
   let mut loader = MockFileLoader::new();
   loader.add_file("example.lisp", "(defn outer () 44) (defclass Foo (Reference) (defn go () (outer))) (define-symbol-macro go ((Foo:new):go))");
@@ -267,7 +252,6 @@ static func run():
 }
 
 #[test]
-#[ignore]
 fn symbol_macro_from_other_file_import_test_3() {
   let mut loader = MockFileLoader::new();
   loader.add_file("example.lisp", "(defn outer () 44) (defclass Foo (Reference) (defn go () static (outer))) (define-symbol-macro go (Foo:go))");
@@ -285,7 +269,6 @@ static func run():
 }
 
 #[test]
-#[ignore]
 fn macro_several_files_import_test() {
   let mut loader = MockFileLoader::new();
   loader.add_file("a.lisp", "(defn add-one-f (x) (+ x 1))");
@@ -305,7 +288,6 @@ static func run():
 }
 
 #[test]
-#[ignore]
 fn symbol_macro_several_files_import_test() {
   let mut loader = MockFileLoader::new();
   loader.add_file("a.lisp", "(defn add-one-f (x) (+ x 1))");
@@ -325,7 +307,6 @@ static func run():
 }
 
 #[test]
-#[ignore]
 fn main_class_import_test_1() {
   let mut loader = MockFileLoader::new();
   loader.add_file("a.lisp", "(defclass Foo (Reference) main)");
@@ -340,7 +321,6 @@ static func run():
 }
 
 #[test]
-#[ignore]
 fn main_class_import_test_2() {
   let mut loader = MockFileLoader::new();
   loader.add_file("a.lisp", "(defclass Foo (Reference) main) (defconst VALUE 1)");
@@ -355,7 +335,6 @@ static func run():
 }
 
 #[test]
-#[ignore]
 fn import_declare_test_failed_1() {
   let mut loader = MockFileLoader::new();
   loader.add_file("a.lisp", "(sys/declare value a)");
@@ -368,7 +347,6 @@ fn import_declare_test_failed_1() {
 }
 
 #[test]
-#[ignore]
 fn import_declare_test_failed_2() {
   let mut loader = MockFileLoader::new();
   loader.add_file("a.lisp", "(sys/declare value a)");
@@ -381,7 +359,6 @@ fn import_declare_test_failed_2() {
 }
 
 #[test]
-#[ignore]
 fn public_fn_import_test() {
   let mut loader = MockFileLoader::new();
   loader.add_file("a.lisp", "(defn foo () public 1)");
@@ -396,7 +373,6 @@ static func run():
 }
 
 #[test]
-#[ignore]
 fn private_fn_import_test_1() {
   let mut loader = MockFileLoader::new();
   loader.add_file("a.lisp", "(defn foo () private 1)");
@@ -411,7 +387,6 @@ static func run():
 }
 
 #[test]
-#[ignore]
 fn private_fn_import_test_2() {
   let mut loader = MockFileLoader::new();
   loader.add_file("a.lisp", "(defn foo () private 1)");
@@ -426,7 +401,6 @@ static func run():
 }
 
 #[test]
-#[ignore]
 fn private_fn_import_test_3() {
   let mut loader = MockFileLoader::new();
   loader.add_file("a.lisp", "(defn foo () private 1)");
@@ -439,7 +413,6 @@ fn private_fn_import_test_3() {
 }
 
 #[test]
-#[ignore]
 fn private_fn_import_test_4() {
   let mut loader = MockFileLoader::new();
   loader.add_file("a.lisp", "(defn foo () private 1)");
@@ -452,7 +425,6 @@ fn private_fn_import_test_4() {
 }
 
 #[test]
-#[ignore]
 fn public_macro_import_test() {
   let mut loader = MockFileLoader::new();
   loader.add_file("a.lisp", "(defmacro foo () public 1)");
@@ -467,7 +439,6 @@ static func run():
 }
 
 #[test]
-#[ignore]
 fn private_macro_import_test() {
   let mut loader = MockFileLoader::new();
   loader.add_file("a.lisp", "(defmacro foo () private 1)");
@@ -480,7 +451,6 @@ fn private_macro_import_test() {
 }
 
 #[test]
-#[ignore]
 fn public_const_import_test() {
   let mut loader = MockFileLoader::new();
   loader.add_file("a.lisp", "(defconst foo 1 public)");
@@ -495,7 +465,6 @@ static func run():
 }
 
 #[test]
-#[ignore]
 fn private_const_import_test() {
   let mut loader = MockFileLoader::new();
   loader.add_file("a.lisp", "(defconst foo 1 private)");
@@ -508,7 +477,6 @@ fn private_const_import_test() {
 }
 
 #[test]
-#[ignore]
 fn public_enum_import_test() {
   let mut loader = MockFileLoader::new();
   loader.add_file("a.lisp", "(defenum foo public A B)");
@@ -523,7 +491,6 @@ static func run():
 }
 
 #[test]
-#[ignore]
 fn private_enum_import_test() {
   let mut loader = MockFileLoader::new();
   loader.add_file("a.lisp", "(defenum foo private A B)");
@@ -536,7 +503,6 @@ fn private_enum_import_test() {
 }
 
 #[test]
-#[ignore]
 fn public_class_import_test_1() {
   let mut loader = MockFileLoader::new();
   loader.add_file("a.lisp", "(defclass foo (Node) public (defvar example 1))");
@@ -551,7 +517,6 @@ static func run():
 }
 
 #[test]
-#[ignore]
 fn public_class_import_test_2() {
   let mut loader = MockFileLoader::new();
   loader.add_file("a.lisp", "(defclass foo (Node) main public (defvar example 1))");
@@ -566,7 +531,6 @@ static func run():
 }
 
 #[test]
-#[ignore]
 fn private_class_import_test_1() {
   let mut loader = MockFileLoader::new();
   loader.add_file("a.lisp", "(defclass foo (Node) private (defvar example 1))");
@@ -579,7 +543,6 @@ fn private_class_import_test_1() {
 }
 
 #[test]
-#[ignore]
 fn private_class_import_test_2() {
   let mut loader = MockFileLoader::new();
   loader.add_file("a.lisp", "(defclass foo (Node) main private (defvar example 1))");
@@ -592,7 +555,6 @@ fn private_class_import_test_2() {
 }
 
 #[test]
-#[ignore]
 fn private_lazy_val_import_test() {
   let mut loader = MockFileLoader::new();
   loader.add_file("a.lisp", "(deflazy foo 10 private)");
@@ -605,7 +567,6 @@ fn private_lazy_val_import_test() {
 }
 
 #[test]
-#[ignore]
 fn private_symbol_macro_import_test() {
   let mut loader = MockFileLoader::new();
   loader.add_file("a.lisp", "(define-symbol-macro foo 10 private)");
@@ -618,7 +579,6 @@ fn private_symbol_macro_import_test() {
 }
 
 #[test]
-#[ignore]
 fn lazy_val_import_test() {
   let mut loader = MockFileLoader::new();
   loader.add_file("a.lisp", "(deflazy foo 10)");
@@ -633,7 +593,6 @@ static func run():
 }
 
 #[test]
-#[ignore]
 fn lazy_val_import_run_test() {
   let mut loader = MockFileLoader::new();
   loader.add_file("a.lisp", "(deflazy foo 10)");

@@ -6,7 +6,6 @@ use std::thread;
 // Mostly failed attempts at reproducing #44, but the test is still
 // technically good, so I'm leaving it.
 #[test]
-#[ignore]
 fn concurrent_runs_test() {
 
   fn thread_fn(_n: u32) {

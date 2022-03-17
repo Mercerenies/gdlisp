@@ -54,7 +54,6 @@ static func run():
 }
 
 #[test]
-#[ignore]
 pub fn simple_lazy_run_test_1() {
   assert_eq!(parse_and_run(r#"
     ((deflazy x 100)
@@ -63,7 +62,6 @@ pub fn simple_lazy_run_test_1() {
 }
 
 #[test]
-#[ignore]
 pub fn simple_lazy_run_test_2() {
   // The 3 should only print once
   assert_eq!(parse_and_run(r#"

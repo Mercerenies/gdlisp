@@ -103,7 +103,6 @@ return _cond_0
 }
 
 #[test]
-#[ignore]
 fn if_test_1() {
   let output = parse_and_run(r#"
   ((let ((x 1))
@@ -113,7 +112,6 @@ fn if_test_1() {
 }
 
 #[test]
-#[ignore]
 fn if_test_2() {
   let output = parse_and_run(r#"
   ((let ((x 0))

@@ -46,7 +46,6 @@ pub fn main_object_test() {
 }
 
 #[test]
-#[ignore]
 pub fn simple_self_run_object_test_1() {
   assert_eq!(parse_and_run(r#"
     ((defobject Foo (Reference)
@@ -62,7 +61,6 @@ pub fn simple_self_run_object_test_1() {
 }
 
 #[test]
-#[ignore]
 pub fn simple_self_run_object_test_2() {
   assert_eq!(parse_and_run(r#"
     ((defobject Foo Reference
@@ -78,7 +76,6 @@ pub fn simple_self_run_object_test_2() {
 }
 
 #[test]
-#[ignore]
 pub fn simple_self_run_object_test_3() {
   assert_eq!(parse_and_run(r#"
     ((defobject Foo (Reference) public
@@ -94,7 +91,6 @@ pub fn simple_self_run_object_test_3() {
 }
 
 #[test]
-#[ignore]
 pub fn simple_self_run_object_test_4() {
   assert_eq!(parse_and_run(r#"
     ((defobject Foo (Reference) private
@@ -110,7 +106,6 @@ pub fn simple_self_run_object_test_4() {
 }
 
 #[test]
-#[ignore]
 pub fn empty_object_run_test() {
   assert_eq!(parse_and_run(r#"
     ((defobject Foo (Reference)) Foo (print 1))
@@ -118,7 +113,6 @@ pub fn empty_object_run_test() {
 }
 
 #[test]
-#[ignore]
 pub fn self_with_closure_run_object_test() {
   assert_eq!(parse_and_run(r#"
     ((defobject Foo (Reference)
@@ -134,7 +128,6 @@ pub fn self_with_closure_run_object_test() {
 }
 
 #[test]
-#[ignore]
 pub fn macro_in_object_test_1() {
   assert_eq!(parse_and_run(r#"
     ((defmacro declare-fn (name)
@@ -148,7 +141,6 @@ pub fn macro_in_object_test_1() {
 }
 
 #[test]
-#[ignore]
 pub fn macro_in_object_test_2() {
   assert_eq!(parse_and_run(r#"
     ((defmacro my-value ()
@@ -160,7 +152,6 @@ pub fn macro_in_object_test_2() {
 }
 
 #[test]
-#[ignore]
 pub fn macro_in_object_test_3() {
   assert_eq!(parse_and_run(r#"
     ((defmacro declare-fns ()
@@ -174,7 +165,6 @@ pub fn macro_in_object_test_3() {
 
 /* /////
 #[test]
-#[ignore]
 pub fn macro_uses_object_test() {
   assert_eq!(parse_and_run(r#"
     ((defobject Foo (Reference)
@@ -189,7 +179,6 @@ pub fn macro_uses_object_test() {
 
 /* /////
 #[test]
-#[ignore]
 pub fn reference_to_outer_in_object_test_1() {
   // TODO This one raises an interesting point. An outer Reference
   // class and an inner Reference singleton object will instantly be
@@ -207,7 +196,6 @@ pub fn reference_to_outer_in_object_test_1() {
 */
 
 #[test]
-#[ignore]
 pub fn initialization_of_object_test() {
   // Make sure that a singleton object is only initialized once, even
   // if we reference it a couple of times.

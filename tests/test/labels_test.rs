@@ -2,49 +2,42 @@
 use super::common::{parse_compile_and_output_h, parse_and_run};
 
 #[test]
-#[ignore]
 fn simple_labels_test_1() {
   let output = parse_and_run("((labels ((f (x) x)) (print (f 1))))");
   assert_eq!(output, "\n1\n");
 }
 
 #[test]
-#[ignore]
 fn labels_test_outer_scope_static_1() {
   let output = parse_and_run("((defn foo (x) (+ x 10)) (labels ((f (x) (if #f (f x) (foo x)))) (print (f 1))))");
   assert_eq!(output, "\n11\n");
 }
 
 #[test]
-#[ignore]
 fn labels_test_outer_scope_static_2() {
   let output = parse_and_run("((defn foo (x) (+ x 10)) (labels ((f (x) (if #f (f x) (foo x)))) (print (funcall #'f 1))))");
   assert_eq!(output, "\n11\n");
 }
 
 #[test]
-#[ignore]
 fn labels_test_outer_scope_static_3() {
   let output = parse_and_run("((defn foo (x y) (+ x y)) (let ((y 1)) (labels ((f (x) (foo x y))) (print (f 5)))))");
   assert_eq!(output, "\n6\n");
 }
 
 #[test]
-#[ignore]
 fn labels_test_outer_scope_static_4() {
   let output = parse_and_run("((defn foo (x y) (+ x y)) (let ((y 1)) (labels ((f (x) (foo x y))) (print (funcall #'f 5)))))");
   assert_eq!(output, "\n6\n");
 }
 
 #[test]
-#[ignore]
 fn labels_test_outer_scope_static_5() {
   let output = parse_and_run("((defn foo (x y) (+ x y)) (labels ((f (x) (foo x 1))) (print (f 5))))");
   assert_eq!(output, "\n6\n");
 }
 
 #[test]
-#[ignore]
 fn labels_test_outer_scope_static_6() {
   let output = parse_and_run("((defn foo (x y) (+ x y)) (labels ((f (x) (foo x 1))) (print (funcall #'f 5))))");
   assert_eq!(output, "\n6\n");

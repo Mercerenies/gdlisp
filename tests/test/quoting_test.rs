@@ -87,13 +87,11 @@ pub fn quasiquote_nested_test() {
 }
 
 #[test]
-#[ignore]
 pub fn quasiquote_unquote_spliced_list_test_runner_1() {
   assert_eq!(parse_and_run("((let ((a [2 3])) (print (list->array `(1 ,.a 4)))))"), "\n[1, 2, 3, 4]\n");
 }
 
 #[test]
-#[ignore]
 pub fn quasiquote_unquote_spliced_list_test_runner_2() {
   assert_eq!(parse_and_run("((let ((a '(2 3))) (print (list->array `(1 ,.a 4)))))"), "\n[1, 2, 3, 4]\n");
 }
@@ -105,31 +103,26 @@ pub fn quasiquote_unquote_spliced_array_test() {
 }
 
 #[test]
-#[ignore]
 pub fn quasiquote_unquote_spliced_array_test_runner_1() {
   assert_eq!(parse_and_run("((let ((a [3 4])) (print `[1 2 ,.a 5 6])))"), "\n[1, 2, 3, 4, 5, 6]\n");
 }
 
 #[test]
-#[ignore]
 pub fn quasiquote_unquote_spliced_array_test_runner_2() {
   assert_eq!(parse_and_run("((let ((a '(3 4))) (print `[1 2 ,.a 5 6])))"), "\n[1, 2, 3, 4, 5, 6]\n");
 }
 
 #[test]
-#[ignore]
 pub fn quasiquote_unquote_spliced_array_test_runner_3() {
   assert_eq!(parse_and_run("((let ((a '(3 4))) (print `[1 2 ,.a])))"), "\n[1, 2, 3, 4]\n");
 }
 
 #[test]
-#[ignore]
 pub fn quasiquote_unquote_spliced_array_test_runner_4() {
   assert_eq!(parse_and_run("((let ((a '(3 4))) (print `[1 2 ,.a ,.a])))"), "\n[1, 2, 3, 4, 3, 4]\n");
 }
 
 #[test]
-#[ignore]
 pub fn quasiquote_unquote_spliced_array_test_runner_5() {
   assert_eq!(parse_and_run("((let ((a '(3 4))) (print `[,.a 10 ,.a])))"), "\n[3, 4, 10, 3, 4]\n");
 }

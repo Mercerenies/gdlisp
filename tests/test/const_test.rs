@@ -36,7 +36,6 @@ pub fn const_test_nonconst_in_enum() {
 }
 
 #[test]
-#[ignore]
 pub fn const_test_run() {
   let output = parse_and_run(r#"
   ((defconst A 100) (print A))
@@ -45,7 +44,6 @@ pub fn const_test_run() {
 }
 
 #[test]
-#[ignore]
 pub fn builtin_const_test() {
   // I don't care what this outputs; I just want to know that Godot
   // recognizes all of the constants I'm compiling these to.

@@ -2,7 +2,6 @@
 use super::common::parse_and_run;
 
 #[test]
-#[ignore]
 fn factorial_test_global() {
   let output = parse_and_run(r#"
   ((defn fact (x)
@@ -18,7 +17,6 @@ fn factorial_test_global() {
 }
 
 #[test]
-#[ignore]
 fn factorial_test_labels() {
   let output = parse_and_run(r#"
   ((labels ((fact (x)

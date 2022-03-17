@@ -134,7 +134,6 @@ pub fn assign_to_slot_test() {
 
 
 #[test]
-#[ignore]
 pub fn assign_to_cons_test() {
   assert_eq!(parse_and_run("((let ((x (cons nil nil))) (set (car x) 10) (set (cdr x) 20) (print (car x)) (print (cdr x))))"),
              "\n10\n20\n");
@@ -153,7 +152,6 @@ pub fn this_file_test() {
 }
 
 #[test]
-#[ignore]
 pub fn sys_this_file_run_test() {
   let output = parse_and_run(r#"
     ((defn foo (x) (* x 2))
@@ -163,7 +161,6 @@ pub fn sys_this_file_run_test() {
 }
 
 #[test]
-#[ignore]
 pub fn sys_this_file_run_in_macro_test() {
   let output = parse_and_run(r#"
     ((defn foo (x) (* x 2))
@@ -173,7 +170,6 @@ pub fn sys_this_file_run_in_macro_test() {
 }
 
 #[test]
-#[ignore]
 pub fn this_file_run_test() {
   let output = parse_and_run(r#"
     ((defn foo (x) (* x 2))
@@ -183,7 +179,6 @@ pub fn this_file_run_test() {
 }
 
 #[test]
-#[ignore]
 pub fn this_file_run_in_macro_test() {
   let output = parse_and_run(r#"
     ((defn foo (x) (* x 2))
@@ -193,7 +188,6 @@ pub fn this_file_run_in_macro_test() {
 }
 
 #[test]
-#[ignore]
 pub fn assign_to_vec_test_1() {
   let output = parse_and_run(r#"
     ((let ((v (vector 1 1 1)))
@@ -205,7 +199,6 @@ pub fn assign_to_vec_test_1() {
 }
 
 #[test]
-#[ignore]
 pub fn assign_to_vec_test_2() {
   let output = parse_and_run(r#"
     ((let ((v (vector 1 1 1)))

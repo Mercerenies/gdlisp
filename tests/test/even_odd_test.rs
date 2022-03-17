@@ -2,7 +2,6 @@
 use super::common::parse_and_run;
 
 #[test]
-#[ignore]
 fn even_odd_test_labels() {
   let output = parse_and_run(r#"
   ((labels ((is-even (x) (if (= x 0) #t (is-odd  (- x 1))))

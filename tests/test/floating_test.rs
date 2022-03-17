@@ -2,7 +2,6 @@
 use super::common::parse_and_run;
 
 #[test]
-#[ignore]
 fn floating_test() {
   // I'm using Rust's built-in to_string on f32 to get floating-point
   // output. I want to make sure nothing funny happens on the Godot

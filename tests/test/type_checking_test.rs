@@ -2,7 +2,6 @@
 use super::common::*;
 
 #[test]
-#[ignore]
 pub fn primitive_instance_check_test_1() {
   let result = parse_and_run(r#"
     ((print (instance? 1 Int))
@@ -17,7 +16,6 @@ pub fn primitive_instance_check_test_1() {
 }
 
 #[test]
-#[ignore]
 pub fn primitive_instance_check_test_2() {
   let result = parse_and_run(r#"
     ((print (instance? V{1 2} Vector3))
@@ -31,7 +29,6 @@ pub fn primitive_instance_check_test_2() {
 }
 
 #[test]
-#[ignore]
 pub fn object_instance_check_test() {
   let result = parse_and_run(r#"
     ((let ((my-node (Node:new)))
@@ -47,7 +44,6 @@ pub fn object_instance_check_test() {
 }
 
 #[test]
-#[ignore]
 pub fn reference_instance_check_test() {
   let result = parse_and_run(r#"
     ((let ((my-node (Node:new)))
@@ -63,7 +59,6 @@ pub fn reference_instance_check_test() {
 }
 
 #[test]
-#[ignore]
 pub fn node_instance_check_test() {
   let result = parse_and_run(r#"
     ((let ((my-node (Node:new)))
@@ -79,7 +74,6 @@ pub fn node_instance_check_test() {
 }
 
 #[test]
-#[ignore]
 pub fn custom_reference_instance_check_test() {
   let result = parse_and_run(r#"
     ((defclass Foo (Reference))
@@ -97,7 +91,6 @@ pub fn custom_reference_instance_check_test() {
 }
 
 #[test]
-#[ignore]
 pub fn custom_node_instance_check_test() {
   let result = parse_and_run(r#"
     ((defclass Foo (Node))
@@ -117,7 +110,6 @@ pub fn custom_node_instance_check_test() {
 }
 
 #[test]
-#[ignore]
 pub fn number_instance_check_test() {
   let result = parse_and_run(r#"
     ((let ((my-node (Node:new)))
@@ -134,7 +126,6 @@ pub fn number_instance_check_test() {
 }
 
 #[test]
-#[ignore]
 pub fn any_instance_check_test() {
   let result = parse_and_run(r#"
     ((let ((my-node (Node:new)))
@@ -151,7 +142,6 @@ pub fn any_instance_check_test() {
 }
 
 #[test]
-#[ignore]
 pub fn anyref_instance_check_test() {
   let result = parse_and_run(r#"
     ((let ((my-node (Node:new)))
@@ -168,7 +158,6 @@ pub fn anyref_instance_check_test() {
 }
 
 #[test]
-#[ignore]
 pub fn anyval_instance_check_test() {
   let result = parse_and_run(r#"
     ((let ((my-node (Node:new)))
@@ -185,7 +174,6 @@ pub fn anyval_instance_check_test() {
 }
 
 #[test]
-#[ignore]
 pub fn nothing_instance_check_test() {
   let result = parse_and_run(r#"
     ((let ((my-node (Node:new)))
@@ -202,7 +190,6 @@ pub fn nothing_instance_check_test() {
 }
 
 #[test]
-#[ignore]
 pub fn array_instance_check_test() {
   let result = parse_and_run(r#"
     ((print (instance? (Reference:new) Array))
@@ -214,7 +201,6 @@ pub fn array_instance_check_test() {
 }
 
 #[test]
-#[ignore]
 pub fn specific_array_instance_check_test() {
   let result = parse_and_run(r#"
     ((print (instance? (Reference:new) PoolIntArray))
@@ -226,7 +212,6 @@ pub fn specific_array_instance_check_test() {
 }
 
 #[test]
-#[ignore]
 pub fn base_array_instance_check_test() {
   let result = parse_and_run(r#"
     ((print (instance? (Reference:new) BaseArray))
@@ -238,7 +223,6 @@ pub fn base_array_instance_check_test() {
 }
 
 #[test]
-#[ignore]
 pub fn typeof_primitive_int_test() {
   let result = parse_and_run(r#"
     ((let ((t (typeof 100)))
@@ -251,7 +235,6 @@ pub fn typeof_primitive_int_test() {
 }
 
 #[test]
-#[ignore]
 pub fn typeof_primitive_string_test() {
   let result = parse_and_run(r#"
     ((let ((t (typeof "A")))
@@ -264,7 +247,6 @@ pub fn typeof_primitive_string_test() {
 }
 
 #[test]
-#[ignore]
 pub fn typeof_array_test() {
   let result = parse_and_run(r#"
     ((let ((t (typeof [])))
@@ -277,7 +259,6 @@ pub fn typeof_array_test() {
 }
 
 #[test]
-#[ignore]
 pub fn typeof_class_test() {
   let result = parse_and_run(r#"
     ((defclass Foo (Reference))
@@ -288,7 +269,6 @@ pub fn typeof_class_test() {
 }
 
 #[test]
-#[ignore]
 pub fn typeof_ref_test() {
   let result = parse_and_run(r#"
     ((let ((r (Reference:new)))
@@ -298,7 +278,6 @@ pub fn typeof_ref_test() {
 }
 
 #[test]
-#[ignore]
 pub fn typeof_node_test() {
   let result = parse_and_run(r#"
     ((let ((node (Node2D:new)))
