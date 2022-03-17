@@ -19,7 +19,7 @@ task run: :build do |t, args|
   sh 'cargo', 'run', *args
 end
 
-task :test do |t, args|
+task test: :build do |t, args|
   case args.to_a[0]
   when nil
     sh 'cargo', 'test'
