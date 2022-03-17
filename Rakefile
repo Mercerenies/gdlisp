@@ -11,7 +11,7 @@ task :clippy do |t, args|
 end
 
 task :build do |t, args|
-  sh 'cargo', 'build', *args
+  sh 'cargo', 'build'
   sh 'cargo', 'run', '--', '--compile-stdlib'
 end
 
