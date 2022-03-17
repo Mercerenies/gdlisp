@@ -1147,6 +1147,11 @@
 (defn funcall (f &rest args)
   (apply f args))
 
+;; funcall alias used in IIFEs. The user can shadow funcall (though
+;; it's a bad idea), but shadowing names in sys/ is undefined behavior.
+(defn sys/funcall (f &rest args)
+  (apply f args))
+
 (defn apply (f &rest args)
   (let ((args1 (init args))
         (args2 (tail args)))

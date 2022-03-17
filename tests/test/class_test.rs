@@ -59,7 +59,7 @@ class _LambdaBlock_3 extends GDLisp.Function:
         else:
             push_error("Too many arguments")
 class ClassName extends Node:
-    func _init(y_0).(GDLisp.funcall(_LambdaBlock_3.new(y_0), null)):
+    func _init(y_0).(GDLisp.sys_DIV_funcall(_LambdaBlock_3.new(y_0), null)):
         pass
     var x
     func foo():
@@ -67,6 +67,11 @@ class ClassName extends Node:
 static func run():
     return null
 "#);
+}
+
+#[test]
+pub fn parent_constructor_class_running_test() {
+  assert_eq!(parse_and_run("((defclass A (Reference) (defvar x) (defn _init (x) (set self:x x))) (defclass B (A) (defn _init (y) (super (if y 1 2)))) (print (B:new #t):x))"), "\n1\n");
 }
 
 #[test]
