@@ -131,6 +131,20 @@ impl<NS: Clone> IdLike for (NS, &str) {
 
 }
 
+impl<NS: Clone> IdLike for (NS, String) {
+
+  type NS = NS;
+
+  fn namespace(&self) -> NS {
+    self.0.clone()
+  }
+
+  fn name(&self) -> &str {
+    &self.1
+  }
+
+}
+
 impl<'a> Borrow<dyn IdLike<NS=Namespace> + 'a> for Id {
   fn borrow(&self) -> &(dyn IdLike<NS=Namespace> + 'a) {
     self
