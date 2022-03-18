@@ -28,6 +28,7 @@ pub enum DeclF {
   FnDecl(Static, FnDecl),
   EnumDecl(EnumDecl),
   SignalDecl(String, ArgList),
+  PassDecl,
 }
 
 /// GDScript declaration with its source offset. See [`Sourced`].
@@ -138,7 +139,8 @@ impl Decl {
       DeclF::InitFnDecl(_) => Some(&library::CONSTRUCTOR_NAME),
       DeclF::FnDecl(_, fdecl) => Some(&fdecl.name),
       DeclF::EnumDecl(edecl) => edecl.name.as_ref().map(|x| x.as_ref()),
-      DeclF::SignalDecl(n, _) => Some(&n)
+      DeclF::SignalDecl(n, _) => Some(&n),
+      DeclF::PassDecl => None,
     }
   }
 
@@ -218,6 +220,9 @@ impl Decl {
         }
         indent(w, ind)?;
         writeln!(w, "}}")
+      }
+      DeclF::PassDecl => {
+        writeln!(w, "pass")
       }
     }
   }
@@ -554,6 +559,9 @@ mod tests {
 
     let decl8 = d(DeclF::SignalDecl(String::from("signal_emitted"), ArgList::empty()));
     assert_eq!(decl8.name(), Some("signal_emitted"));
+
+    let decl9 = d(DeclF::PassDecl);
+    assert_eq!(decl9.name(), None);
   }
 
 }
