@@ -37,10 +37,6 @@ pub trait FunctionOptimization {
   fn run_on_init_function(&self, function: &mut decl::InitFnDecl) -> Result<(), Error>;
 }
 
-pub trait DeclarationLevelPass {
-  fn run_on_decl(&self, decl: &Decl) -> Result<Vec<Decl>, Error>;
-}
-
 pub trait FileOptimization {
   fn run_on_file(&self, file: &mut decl::TopLevelClass) -> Result<(), Error>;
 }
@@ -48,7 +44,7 @@ pub trait FileOptimization {
 // TODO Note that expression-level optimizations won't run on
 // ConstDecl, VarDecl, or EnumDecl expressions right now. Also on
 // super args in InitFnDecl.
-fn on_each_decl(decls: &[Decl], acc: &mut Vec<Decl>, block: &mut impl FnMut(&Decl) -> Result<Vec<Decl>, Error>) -> Result<(), Error> {
+fn on_each_decl_impl(decls: &[Decl], acc: &mut Vec<Decl>, block: &mut impl FnMut(&Decl) -> Result<Vec<Decl>, Error>) -> Result<(), Error> {
   for decl in decls {
     let mut new_decls = block(decl)?;
     for new_decl in &mut new_decls {
@@ -58,7 +54,7 @@ fn on_each_decl(decls: &[Decl], acc: &mut Vec<Decl>, block: &mut impl FnMut(&Dec
         }
         DeclF::ClassDecl(cdecl) => {
           let mut inner_acc: Vec<Decl> = Vec::new();
-          on_each_decl(&cdecl.body, &mut inner_acc, block)?;
+          on_each_decl_impl(&cdecl.body, &mut inner_acc, block)?;
           cdecl.body = inner_acc;
         }
       }
@@ -66,6 +62,22 @@ fn on_each_decl(decls: &[Decl], acc: &mut Vec<Decl>, block: &mut impl FnMut(&Dec
     acc.append(&mut new_decls);
   }
   Ok(())
+}
+
+/// Runs the block for each declaration, including those nested inside
+/// of classes. This is a pre-order traversal, so the block will be
+/// run on the outer declaration first and then on any inner
+/// declarations in the result.
+///
+/// For each declaration, the block is free to return zero or more
+/// declarations in its place. The resulting declarations will be
+/// concatenated together, with the original order preserved. Any
+/// errors during the block invocation are propagated to the caller of
+/// `on_each_decl`.
+pub fn on_each_decl(decls: &[Decl], mut block: impl FnMut(&Decl) -> Result<Vec<Decl>, Error>) -> Result<Vec<Decl>, Error> {
+  let mut acc: Vec<Decl> = Vec::new();
+  on_each_decl_impl(decls, &mut acc, &mut block)?;
+  Ok(acc)
 }
 
 fn on_decl(opt: &impl FunctionOptimization, decl: &Decl) -> Result<Vec<Decl>, Error> {
@@ -90,9 +102,7 @@ fn on_decl(opt: &impl FunctionOptimization, decl: &Decl) -> Result<Vec<Decl>, Er
 // each function in the file.
 impl<T> FileOptimization for T where T : FunctionOptimization {
   fn run_on_file(&self, file: &mut decl::TopLevelClass) -> Result<(), Error> {
-    let mut acc: Vec<Decl> = Vec::new();
-    on_each_decl(&file.body, &mut acc, &mut |d| on_decl(self, d))?;
-    file.body = acc;
+    file.body = on_each_decl(&file.body, |d| on_decl(self, d))?;
     Ok(())
   }
 }
