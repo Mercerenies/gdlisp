@@ -9,9 +9,12 @@ use crate::util::find_or_else_mut;
 use crate::pipeline::source::SourceOffset;
 use super::builder::{StmtBuilder, HasDecls};
 
-/// A builder for a class' `_init` method. This builder allows the
-/// caller to build up `_init` over the course of compilation and
-/// eventually build it into the resulting class at the end.
+/// A builder for a GDScript class.
+///
+/// This builder allows certain pieces of functionality for the class,
+/// such as `_init` and `_ready`, to build up over the course of
+/// compilation and eventually build it into the resulting class at
+/// the end.
 #[derive(Default, Clone)]
 pub struct ClassInitBuilder {
   /// The builder for `_init`.
