@@ -37,6 +37,10 @@ pub trait FunctionOptimization {
   fn run_on_init_function(&self, function: &mut decl::InitFnDecl) -> Result<(), Error>;
 }
 
+pub trait DeclarationLevelPass {
+  fn run_on_decl(&self, decl: &Decl) -> Result<Vec<Decl>, Error>;
+}
+
 pub trait FileOptimization {
   fn run_on_file(&self, file: &mut decl::TopLevelClass) -> Result<(), Error>;
 }
@@ -44,22 +48,40 @@ pub trait FileOptimization {
 // TODO Note that expression-level optimizations won't run on
 // ConstDecl, VarDecl, or EnumDecl expressions right now. Also on
 // super args in InitFnDecl.
-fn on_decl(opt: &impl FunctionOptimization, decl: &mut Decl) -> Result<(), Error> {
-  match &mut decl.value {
-    DeclF::FnDecl(_, fndecl) => {
-      opt.run_on_function(fndecl)
+fn on_each_decl(decls: &[Decl], acc: &mut Vec<Decl>, block: &mut impl FnMut(&Decl) -> Result<Vec<Decl>, Error>) -> Result<(), Error> {
+  for decl in decls {
+    let mut new_decls = block(decl)?;
+    for new_decl in &mut new_decls {
+      match &mut new_decl.value {
+        DeclF::FnDecl(_, _) | DeclF::InitFnDecl(_) | DeclF::VarDecl(_, _, _, _) | DeclF::ConstDecl(_, _) | DeclF::SignalDecl(_, _) | DeclF::EnumDecl(_) | DeclF::PassDecl => {
+          // Nothing to recurse on, so pass.
+        }
+        DeclF::ClassDecl(cdecl) => {
+          let mut inner_acc: Vec<Decl> = Vec::new();
+          on_each_decl(&cdecl.body, &mut inner_acc, block)?;
+          cdecl.body = inner_acc;
+        }
+      }
+    }
+    acc.append(&mut new_decls);
+  }
+  Ok(())
+}
+
+fn on_decl(opt: &impl FunctionOptimization, decl: &Decl) -> Result<Vec<Decl>, Error> {
+  match &decl.value {
+    DeclF::FnDecl(s, fndecl) => {
+      let mut fndecl = fndecl.clone();
+      opt.run_on_function(&mut fndecl)?;
+      Ok(vec!(Decl::new(DeclF::FnDecl(*s, fndecl), decl.pos)))
     }
     DeclF::InitFnDecl(fndecl) => {
-      opt.run_on_init_function(fndecl)
+      let mut fndecl = fndecl.clone();
+      opt.run_on_init_function(&mut fndecl)?;
+      Ok(vec!(Decl::new(DeclF::InitFnDecl(fndecl), decl.pos)))
     }
-    DeclF::ClassDecl(cdecl) => {
-      for d in &mut cdecl.body {
-        on_decl(opt, d)?;
-      }
-      Ok(())
-    }
-    DeclF::VarDecl(_, _, _, _) | DeclF::ConstDecl(_, _) | DeclF::SignalDecl(_, _) | DeclF::EnumDecl(_) | DeclF::PassDecl => {
-      Ok(())
+    DeclF::ClassDecl(_) | DeclF::VarDecl(_, _, _, _) | DeclF::ConstDecl(_, _) | DeclF::SignalDecl(_, _) | DeclF::EnumDecl(_) | DeclF::PassDecl => {
+      Ok(vec!(decl.clone()))
     }
   }
 }
@@ -68,9 +90,9 @@ fn on_decl(opt: &impl FunctionOptimization, decl: &mut Decl) -> Result<(), Error
 // each function in the file.
 impl<T> FileOptimization for T where T : FunctionOptimization {
   fn run_on_file(&self, file: &mut decl::TopLevelClass) -> Result<(), Error> {
-    for d in &mut file.body {
-      on_decl(self, d)?;
-    }
+    let mut acc: Vec<Decl> = Vec::new();
+    on_each_decl(&file.body, &mut acc, &mut |d| on_decl(self, d))?;
+    file.body = acc;
     Ok(())
   }
 }
