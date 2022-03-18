@@ -6,6 +6,7 @@ pub mod constant;
 pub mod variables;
 pub mod assignment;
 pub mod dead_code_elimination;
+pub mod dead_decl_elimination;
 pub mod constant_conditional_branch;
 pub mod else_then_if_fold;
 pub mod basic_math_ops;
@@ -161,6 +162,7 @@ pub fn run_standard_passes(file: &mut decl::TopLevelClass) -> Result<(), Error> 
     // Eliminate dead variables
     dead_var_elimination::DeadVarElimination.run_on_file(file)?;
     dead_code_elimination::DeadCodeElimination.run_on_file(file)?;
+    dead_decl_elimination::DeadDeclElimination.run_on_file(file)?;
 
   }
 
