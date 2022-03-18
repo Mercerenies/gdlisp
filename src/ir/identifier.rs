@@ -151,6 +151,12 @@ impl<'a> Borrow<dyn IdLike<NS=Namespace> + 'a> for Id {
   }
 }
 
+impl<'a, NS: Clone + 'a> Borrow<dyn IdLike<NS=NS> + 'a> for (NS, String) {
+  fn borrow(&self) -> &(dyn IdLike<NS=NS> + 'a) {
+    self
+  }
+}
+
 impl<'a, NS: Hash> Hash for (dyn IdLike<NS=NS> + 'a) {
   fn hash<H : Hasher>(&self, state: &mut H) {
     self.namespace().hash(state);
