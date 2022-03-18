@@ -6,7 +6,7 @@ use super::frame::CompilerFrame;
 use super::stateful::NeedsResult;
 use super::names::fresh::FreshNameGenerator;
 use super::body::builder::{StmtBuilder, CodeBuilder, HasDecls};
-use super::body::class_initializer::ClassInitBuilder;
+use super::body::class_initializer::ClassBuilder;
 use super::stmt_wrapper::{self, StmtWrapper};
 use super::symbol_table::{HasSymbolTable, ClassTablePair};
 use super::symbol_table::local_var::LocalVar;
@@ -147,7 +147,7 @@ pub fn declare_class(frame: &mut CompilerFrame<impl HasDecls>,
     outer_ref_name = frame.name_generator().generate_with(inner_class::OUTER_REFERENCE_NAME);
   }
 
-  let mut class_init_builder = ClassInitBuilder::new();
+  let mut class_init_builder = ClassBuilder::new();
   let mut instance_table = frame.table.clone();
   let mut static_table = frame.table.clone();
   instance_table.with_local_var::<Result<(), Error>, _>(String::from("self"), self_var, |instance_table| {

@@ -7,7 +7,7 @@ use crate::compile::CompilerFrame;
 use crate::compile::Compiler;
 use crate::compile::stateful::{StExpr, NeedsResult};
 use crate::compile::body::builder::{StmtBuilder, HasDecls};
-use crate::compile::body::class_initializer::ClassInitBuilder;
+use crate::compile::body::class_initializer::ClassBuilder;
 use crate::compile::symbol_table::{SymbolTable, ClassTablePair};
 use crate::compile::symbol_table::local_var::LocalVar;
 use crate::compile::symbol_table::function_call::OuterStaticRef;
@@ -80,7 +80,7 @@ pub fn compile_lambda_class(frame: &mut CompilerFrame<StmtBuilder>,
   let (constructor, constructor_helpers) = compile_lambda_class_constructor(&mut compiler.frame(pipeline, *builder, &mut lambda_table), &constructor, &gd_closure_vars, pos)?;
 
   // Build the class body for the lambda class.
-  let mut class_init_builder = ClassInitBuilder::new();
+  let mut class_init_builder = ClassBuilder::new();
   //#[allow(clippy::vec_init_then_push)] // For style consistency
   let class_body = {
     let mut class_body = vec!();

@@ -15,7 +15,7 @@ pub mod frame;
 
 use frame::CompilerFrame;
 use body::builder::{CodeBuilder, StmtBuilder, HasDecls};
-use body::class_initializer::{ClassInitBuilder, InitTime};
+use body::class_initializer::{ClassBuilder, InitTime};
 use names::fresh::FreshNameGenerator;
 use preload_resolver::PreloadResolver;
 use constant::MaybeConstant;
@@ -191,7 +191,7 @@ impl Compiler {
 
   pub fn compile_class_inner_decl(&mut self,
                                   pipeline: &mut Pipeline,
-                                  builder: &mut ClassInitBuilder,
+                                  builder: &mut ClassBuilder,
                                   tables: ClassTablePair<'_, '_>,
                                   decl: &ir::decl::ClassInnerDecl)
                                   -> Result<Decl, Error> {

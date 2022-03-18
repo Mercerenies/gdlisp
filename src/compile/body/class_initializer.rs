@@ -16,7 +16,7 @@ use super::builder::{StmtBuilder, HasDecls};
 /// compilation and eventually build it into the resulting class at
 /// the end.
 #[derive(Default, Clone)]
-pub struct ClassInitBuilder {
+pub struct ClassBuilder {
   /// The builder for `_init`.
   pub init_builder: StmtBuilder,
   /// The builder for `_ready`.
@@ -27,7 +27,7 @@ pub struct ClassInitBuilder {
   pub other_helpers: Vec<Decl>,
 }
 
-/// This is the eventual result of a [`ClassInitBuilder`]. It contains
+/// This is the eventual result of a [`ClassBuilder`]. It contains
 /// information that can be used to modify a [`ClassDecl`].
 #[derive(Default, Clone, Debug)]
 pub struct ClassInit {
@@ -48,12 +48,12 @@ pub enum InitTime {
   Ready,
 }
 
-impl ClassInitBuilder {
+impl ClassBuilder {
 
   /// A new, empty initializer builder. Equivalent to
-  /// `ClassInitBuilder::default()`.
-  pub fn new() -> ClassInitBuilder {
-    ClassInitBuilder::default()
+  /// `ClassBuilder::default()`.
+  pub fn new() -> ClassBuilder {
+    ClassBuilder::default()
   }
 
   pub fn builder_for(&mut self, init_time: InitTime) -> &mut StmtBuilder {
@@ -86,7 +86,7 @@ impl ClassInitBuilder {
   /// Builds the builder into a [`ClassInit`], passing any helper
   /// declarations onto the enclosing builder. See
   /// [`StmtBuilder::build_into`] for a summary of why this method
-  /// might be preferred over [`ClassInitBuilder::build`].
+  /// might be preferred over [`ClassBuilder::build`].
   pub fn build_into(self, other: &mut impl HasDecls) -> ClassInit {
     let (body, helpers) = self.build();
     for h in helpers {
@@ -97,7 +97,7 @@ impl ClassInitBuilder {
 
 }
 
-impl HasDecls for ClassInitBuilder {
+impl HasDecls for ClassBuilder {
 
   fn add_decl(&mut self, decl: Decl) {
     self.other_helpers.push(decl);
