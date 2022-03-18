@@ -18,13 +18,25 @@ pub struct NameTable<NS: Hash + Eq + Clone> {
 
 impl<NS: Hash + Eq + Clone> NameTable<NS> {
 
+  /// A new, empty `NameTable`.
   pub fn new() -> NameTable<NS> {
     NameTable::default()
   }
 
-  pub fn get_source_offset(&self, namespace: &NS, name: &str) -> Option<SourceOffset> {
-    let key = (namespace.clone(), name);
+  /// Given a namespace and a name, get the position in the source
+  /// code where the declaration for that name appears, if one exists.
+  pub fn get_source_offset(&self, namespace: NS, name: &str) -> Option<SourceOffset> {
+    let key = (namespace, name);
     self.data.get::<dyn IdLike<NS=NS>>((&key) as &(dyn IdLike<NS=NS>)).copied()
+  }
+
+  /// Adds a name to the name table, marking it as appearing at the
+  /// given source position. If that name already appears as a
+  /// declaration somewhere in the source code, this method overwrites
+  /// the existing one and returns it. Otherwise, this method inserts
+  /// the new name and returns `None`.
+  pub fn add_name(&mut self, namespace: NS, name: String, pos: SourceOffset) -> Option<SourceOffset> {
+    self.data.insert((namespace, name), pos)
   }
 
 }
