@@ -29,6 +29,22 @@ pub enum Namespace {
   Function,
 }
 
+/// While [`Namespace`] suffices for most of GDLisp, there is
+/// technically a third scope that sometimes applies, that of signals.
+/// Signals cannot be referenced by name at runtime, as they don't
+/// actually exist in GDScript in that form. But for the purposes of
+/// name resolution, there are occasions where we need to check them
+/// for correctness.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
+pub enum ClassNamespace {
+  /// See [`Namespace::Value`].
+  Value,
+  /// See [`Namespace::Function`].
+  Function,
+  /// A signal declaration, i.e. the result of a `defsignal` declaration.
+  Signal,
+}
+
 // This trait is a specialized version of KeyPair from this
 // StackOverflow answer. We specialize it to work on &str.
 //
@@ -52,6 +68,17 @@ pub trait IdLike {
   fn namespace(&self) -> Namespace;
   /// Gets the name for `self`, by reference.
   fn name(&self) -> &str;
+}
+
+impl From<Namespace> for ClassNamespace {
+
+  fn from(ns: Namespace) -> ClassNamespace {
+    match ns {
+      Namespace::Value => ClassNamespace::Value,
+      Namespace::Function => ClassNamespace::Function,
+    }
+  }
+
 }
 
 impl Id {
