@@ -62,12 +62,18 @@ pub enum ClassNamespace {
 /// IdLike` implements the necessary [`Borrow`] and [`ToOwned`] traits
 /// to be used to reference `Id` keys in a hashmap.
 pub trait IdLike {
+
+  /// The underlying namespace type.
+  type NS;
+
   /// Gets the namespace for `self`. [`Namespace`] is a [`Copy`] type,
   /// so we return by value here, since returning a `&Namespace` is
   /// pointless and verbose.
-  fn namespace(&self) -> Namespace;
+  fn namespace(&self) -> Self::NS;
+
   /// Gets the name for `self`, by reference.
   fn name(&self) -> &str;
+
 }
 
 impl From<Namespace> for ClassNamespace {
@@ -91,52 +97,62 @@ impl Id {
   /// A new [`IdLike`] value with the given name and namespace. This
   /// function does not take ownership of `name`, nor does it clone
   /// it.
-  pub fn build<'a>(namespace: Namespace, name: &'a str) -> Box<dyn IdLike + 'a> {
-    Box::new((namespace, name))
+  pub fn build<'a, NS: Clone + 'a>(namespace: NS, name: &'a str) -> Box<dyn IdLike<NS=NS> + 'a> {
+    Box::new((namespace.clone(), name))
   }
 
 }
 
 impl IdLike for Id {
+
+  type NS = Namespace;
+
   fn namespace(&self) -> Namespace {
     self.namespace
   }
+
   fn name(&self) -> &str {
     &self.name
   }
+
 }
 
-impl IdLike for (Namespace, &str) {
-  fn namespace(&self) -> Namespace {
-    self.0
+impl<NS: Clone> IdLike for (NS, &str) {
+
+  type NS = NS;
+
+  fn namespace(&self) -> NS {
+    self.0.clone()
   }
+
   fn name(&self) -> &str {
     self.1
   }
+
 }
 
-impl<'a> Borrow<dyn IdLike + 'a> for Id {
-  fn borrow(&self) -> &(dyn IdLike + 'a) {
+impl<'a> Borrow<dyn IdLike<NS=Namespace> + 'a> for Id {
+  fn borrow(&self) -> &(dyn IdLike<NS=Namespace> + 'a) {
     self
   }
 }
 
-impl<'a> Hash for (dyn IdLike + 'a) {
+impl<'a, NS: Hash> Hash for (dyn IdLike<NS=NS> + 'a) {
   fn hash<H : Hasher>(&self, state: &mut H) {
     self.namespace().hash(state);
     self.name().hash(state);
   }
 }
 
-impl<'a> PartialEq for (dyn IdLike + 'a) {
+impl<'a, NS: PartialEq> PartialEq for (dyn IdLike<NS=NS> + 'a) {
   fn eq(&self, other: &Self) -> bool {
     self.namespace() == other.namespace() && self.name() == other.name()
   }
 }
 
-impl<'a> Eq for (dyn IdLike + 'a) {}
+impl<'a, NS: PartialEq> Eq for (dyn IdLike<NS=NS> + 'a) {}
 
-impl<'a> ToOwned for (dyn IdLike + 'a) {
+impl<'a> ToOwned for (dyn IdLike<NS=Namespace> + 'a) {
   type Owned = Id;
   fn to_owned(&self) -> Id {
     Id::new(self.namespace(), self.name().to_owned())

@@ -19,7 +19,7 @@ pub enum DependencyError {
 
 impl Dependencies {
 
-  pub fn identify<'a>(table: &DeclarationTable, known_imports: &HashSet<Id>, id: &(dyn IdLike + 'a))
+  pub fn identify<'a>(table: &DeclarationTable, known_imports: &HashSet<Id>, id: &(dyn IdLike<NS=Namespace> + 'a))
                       -> Dependencies {
     let mut visited = HashSet::new();
     let mut imports = HashSet::new();
@@ -56,7 +56,7 @@ impl Dependencies {
   // TODO Rather than purge after the fact, we can use the imports
   // argument above to account for built-ins.
   pub fn purge_unknowns<'a, 'b, I>(&mut self, purge: I)
-  where I : Iterator<Item=&'a (dyn IdLike + 'b)>,
+  where I : Iterator<Item=&'a (dyn IdLike<NS=Namespace> + 'b)>,
         'b : 'a {
     for s in purge {
       self.unknown.remove(s);

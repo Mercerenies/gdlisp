@@ -3,7 +3,7 @@
 //! efficiently indexed by [`Id`].
 
 use super::Decl;
-use super::identifier::{Id, IdLike};
+use super::identifier::{Id, IdLike, Namespace};
 
 use std::collections::HashMap;
 
@@ -29,7 +29,7 @@ impl DeclarationTable {
   }
 
   /// Gets the declaration with the given identifier.
-  pub fn get<'a>(&self, id: &(dyn IdLike + 'a)) -> Option<&Decl> {
+  pub fn get<'a>(&self, id: &(dyn IdLike<NS=Namespace> + 'a)) -> Option<&Decl> {
     self.values.get(id).map(|idx| &self.in_order[*idx])
   }
 
@@ -52,7 +52,7 @@ impl DeclarationTable {
 
   /// Removes the declaration with identifier `id` from the table and
   /// returns it. Returns `None` if no matching declaration exists.
-  pub fn del<'a>(&mut self, id: &(dyn IdLike + 'a)) -> Option<Decl> {
+  pub fn del<'a>(&mut self, id: &(dyn IdLike<NS=Namespace> + 'a)) -> Option<Decl> {
     if let Some(idx) = self.values.remove(id) {
       let decl = self.in_order.remove(idx);
       for v in self.values.values_mut() {
@@ -70,7 +70,7 @@ impl DeclarationTable {
 
   /// Checks whether a declaration with the given identifier exists in
   /// the table. Equivalent to `self.get(id).is_some()`.
-  pub fn has<'a>(&self, id: &(dyn IdLike + 'a)) -> bool {
+  pub fn has<'a>(&self, id: &(dyn IdLike<NS=Namespace> + 'a)) -> bool {
     self.get(id).is_some()
   }
 

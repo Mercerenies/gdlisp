@@ -813,7 +813,7 @@ impl IncCompiler {
     // Now we need to find the dependencies and spawn up the
     // server for the macro itself.
     let mut deps = Dependencies::identify(table.borrow(), &imported_names, &*Id::build(namespace, &tmp_name));
-    deps.purge_unknowns(library::all_builtin_names(self.minimalist).iter().map(|x| x as &dyn IdLike));
+    deps.purge_unknowns(library::all_builtin_names(self.minimalist).iter().map(|x| x as &dyn IdLike<NS=Namespace>));
 
     // Aside from built-in functions, it must be the case that
     // all referenced functions are already defined.

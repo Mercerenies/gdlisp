@@ -549,7 +549,7 @@ where E : From<Error>,
   match macros.next() {
     None => func(icompiler, pipeline),
     Some(name) => {
-      let name: &(dyn IdLike + 'a) = &name;
+      let name: &(dyn IdLike<NS=Namespace> + 'a) = &name;
       if icompiler.has_macro(name) {
         icompiler.locally_save_macro(name, |icompiler| {
           let old_symbol_value = {

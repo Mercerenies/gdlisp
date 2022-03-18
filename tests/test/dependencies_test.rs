@@ -11,7 +11,7 @@ use std::collections::HashSet;
 
 // TODO Test some dependency analysis that involves importing multiple files.
 
-fn dependencies_of<'a>(input: &str, target_name: &(dyn IdLike + 'a)) -> Dependencies {
+fn dependencies_of<'a>(input: &str, target_name: &(dyn IdLike<NS=Namespace> + 'a)) -> Dependencies {
   let parser = parser::ASTParser::new();
   let ast = parser.parse(input).unwrap();
   let (toplevel, _macros) = ir::compile_toplevel(&mut dummy_pipeline(), &ast).unwrap();

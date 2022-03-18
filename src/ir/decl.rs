@@ -212,7 +212,7 @@ impl Decl {
     Id::new(self.namespace(), self.name().to_owned())
   }
 
-  pub fn id_like<'a>(&'a self) -> Box<dyn IdLike + 'a> {
+  pub fn id_like<'a>(&'a self) -> Box<dyn IdLike<NS=Namespace> + 'a> {
     Id::build(self.namespace(), self.name())
   }
 

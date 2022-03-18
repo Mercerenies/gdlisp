@@ -270,11 +270,11 @@ impl ImportName<Namespace> {
     Id::new(self.namespace, self.out_name)
   }
 
-  pub fn to_imported_id<'a>(&'a self) -> Box<dyn IdLike + 'a> {
+  pub fn to_imported_id<'a>(&'a self) -> Box<dyn IdLike<NS=Namespace> + 'a> {
     Id::build(self.namespace, &self.in_name)
   }
 
-  pub fn to_exported_id<'a>(&'a self) -> Box<dyn IdLike + 'a> {
+  pub fn to_exported_id<'a>(&'a self) -> Box<dyn IdLike<NS=Namespace> + 'a> {
     Id::build(self.namespace, &self.out_name)
   }
 
