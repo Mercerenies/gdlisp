@@ -98,7 +98,7 @@ impl Id {
   /// function does not take ownership of `name`, nor does it clone
   /// it.
   pub fn build<'a, NS: Clone + 'a>(namespace: NS, name: &'a str) -> Box<dyn IdLike<NS=NS> + 'a> {
-    Box::new((namespace.clone(), name))
+    Box::new((namespace, name))
   }
 
 }
