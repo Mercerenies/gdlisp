@@ -10,6 +10,7 @@ use super::name_table::builder::NameTableBuilder;
 use super::error::ScopeError;
 use crate::ir::identifier::{Namespace, ClassNamespace};
 use crate::ir::decl::{TopLevel, ClassDecl};
+use crate::ir::expr::LambdaClass;
 use crate::gdscript::library;
 
 use std::hash::Hash;
@@ -48,6 +49,27 @@ impl DeclScope<Namespace> for TopLevel {
 }
 
 impl DeclScope<ClassNamespace> for ClassDecl {
+
+  fn get_scope_names(&self) -> Result<NameTable<ClassNamespace>, ScopeError<ClassNamespace>> {
+    let mut builder = NameTableBuilder::new();
+
+    // Add the constructor as a special case
+    if let Some(constructor) = &self.constructor {
+      builder.add_name(ClassNamespace::Function, library::CONSTRUCTOR_NAME.to_owned(), constructor.body.pos)?;
+    }
+
+    for decl in &self.decls {
+      let namespace = decl.namespace();
+      let name = decl.name().to_owned();
+      builder.add_name(namespace, name, decl.pos)?;
+    }
+
+    Ok(builder.build())
+  }
+
+}
+
+impl DeclScope<ClassNamespace> for LambdaClass {
 
   fn get_scope_names(&self) -> Result<NameTable<ClassNamespace>, ScopeError<ClassNamespace>> {
     let mut builder = NameTableBuilder::new();
