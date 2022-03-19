@@ -2,6 +2,8 @@
 //! Defines the [`NameTable`] type, for keeping track of names in a
 //! given scope and namespace.
 
+pub mod builder;
+
 use crate::pipeline::source::SourceOffset;
 use crate::ir::identifier::IdLike;
 
