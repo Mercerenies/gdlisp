@@ -25,7 +25,7 @@ impl<NS: Hash + Eq + Clone> NameTable<NS> {
 
   /// Given a namespace and a name, get the position in the source
   /// code where the declaration for that name appears, if one exists.
-  pub fn get_source_offset(&self, namespace: NS, name: &str) -> Option<SourceOffset> {
+  pub fn get_name(&self, namespace: NS, name: &str) -> Option<SourceOffset> {
     let key = (namespace, name);
     self.data.get::<dyn IdLike<NS=NS>>((&key) as &(dyn IdLike<NS=NS>)).copied()
   }
@@ -39,12 +39,66 @@ impl<NS: Hash + Eq + Clone> NameTable<NS> {
     self.data.insert((namespace, name), pos)
   }
 
+  /// The number of names which are known to this name table.
+  pub fn len(&self) -> usize {
+    self.data.len()
+  }
+
 }
 
 impl<NS: Hash + Eq + Clone> Default for NameTable<NS> {
 
   fn default() -> NameTable<NS> {
     NameTable { data: HashMap::default() }
+  }
+
+}
+
+#[cfg(test)]
+mod tests {
+  use super::*;
+  use crate::ir::identifier::Namespace;
+
+  #[test]
+  fn empty_table() {
+    let table: NameTable<Namespace> = NameTable::new();
+    assert_eq!(table.len(), 0);
+  }
+
+  #[test]
+  fn table_insert_names() {
+    let mut table: NameTable<Namespace> = NameTable::new();
+    assert_eq!(table.add_name(Namespace::Value, String::from("VALUE"), SourceOffset(20)), None);
+    assert_eq!(table.add_name(Namespace::Function, String::from("FUNCTION"), SourceOffset(10)), None);
+    assert_eq!(table.get_name(Namespace::Value, "VALUE"), Some(SourceOffset(20)));
+    assert_eq!(table.get_name(Namespace::Function, "FUNCTION"), Some(SourceOffset(10)));
+    assert_eq!(table.len(), 2);
+  }
+
+  #[test]
+  fn table_crossed_namespaces() {
+    let mut table: NameTable<Namespace> = NameTable::new();
+    assert_eq!(table.add_name(Namespace::Value, String::from("VALUE"), SourceOffset(20)), None);
+    assert_eq!(table.add_name(Namespace::Function, String::from("FUNCTION"), SourceOffset(10)), None);
+    assert_eq!(table.get_name(Namespace::Function, "VALUE"), None);
+    assert_eq!(table.get_name(Namespace::Value, "FUNCTION"), None);
+    assert_eq!(table.len(), 2);
+  }
+
+  #[test]
+  fn table_duplicate_name_different_namespace() {
+    let mut table: NameTable<Namespace> = NameTable::new();
+    assert_eq!(table.add_name(Namespace::Value, String::from("NAME"), SourceOffset(20)), None);
+    assert_eq!(table.add_name(Namespace::Function, String::from("NAME"), SourceOffset(10)), None);
+    assert_eq!(table.len(), 2);
+  }
+
+  #[test]
+  fn table_duplicate_name_same_namespace() {
+    let mut table: NameTable<Namespace> = NameTable::new();
+    assert_eq!(table.add_name(Namespace::Value, String::from("NAME"), SourceOffset(20)), None);
+    assert_eq!(table.add_name(Namespace::Value, String::from("NAME"), SourceOffset(10)), Some(SourceOffset(20)));
+    assert_eq!(table.len(), 1);
   }
 
 }
