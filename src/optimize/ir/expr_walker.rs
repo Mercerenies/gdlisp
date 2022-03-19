@@ -339,4 +339,10 @@ pub fn walk_exprs_in_toplevel<'a, E>(decl: &decl::TopLevel, mut walker: impl FnM
   })
 }
 
+pub fn walk_exprs_in_toplevel_ok<'a>(decl: &decl::TopLevel, mut walker: impl FnMut(&Expr) -> Expr + 'a)
+                                     -> decl::TopLevel {
+  let result = walk_exprs_in_toplevel(decl, move |x| Ok(walker(x)));
+  extract_err(result)
+}
+
 // TODO Test me :)
