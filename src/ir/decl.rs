@@ -3,7 +3,7 @@ use super::arglist::{ArgList, SimpleArgList};
 use super::expr::{self, Expr, Locals, Functions};
 use super::literal::Literal;
 use super::import::ImportDecl;
-use super::identifier::{Namespace, Id, IdLike};
+use super::identifier::{Namespace, ClassNamespace, Id, IdLike};
 use super::export::Visibility;
 use crate::gdscript::decl::Static;
 use crate::pipeline::source::{SourceOffset, Sourced};
@@ -431,6 +431,15 @@ impl ClassInnerDecl {
       ClassInnerDeclF::ClassConstDecl(constant) => &constant.name,
       ClassInnerDeclF::ClassVarDecl(var) => &var.name,
       ClassInnerDeclF::ClassFnDecl(func) => &func.name,
+    }
+  }
+
+  pub fn namespace(&self) -> ClassNamespace {
+    match &self.value {
+      ClassInnerDeclF::ClassSignalDecl(_) => ClassNamespace::Signal,
+      ClassInnerDeclF::ClassConstDecl(_) => ClassNamespace::Value,
+      ClassInnerDeclF::ClassVarDecl(_) => ClassNamespace::Value,
+      ClassInnerDeclF::ClassFnDecl(_) => ClassNamespace::Function,
     }
   }
 
