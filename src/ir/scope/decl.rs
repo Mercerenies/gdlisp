@@ -15,6 +15,15 @@ use crate::gdscript::library;
 
 use std::hash::Hash;
 
+/// Any type which implements [`DeclScope`] for the namespace
+/// [`Namespace`] can also correctly implement it for
+/// [`ClassNamespace`] via a simple embedding (`From::from`). The
+/// `ClassNamespaceAdaptor` type takes a value which implements
+/// `DeclScope<Namespace>` and provides a value which implements
+/// `DeclScope<ClassNamespace>`.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ClassNamespaceAdaptor<'a, T>(pub &'a T);
+
 /// Trait for containers of declarations which can meaningfully
 /// enumerate the names declared in their scope. Implementors of this
 /// trait should only return a table of the names in the immediate
@@ -25,6 +34,17 @@ pub trait DeclScope<NS: Hash + Eq + Clone> {
   /// Returns a table of all names, or an appropriate [`ScopeError`]
   /// if a problem occurs during enumeration.
   fn get_scope_names(&self) -> Result<NameTable<NS>, ScopeError<NS>>;
+
+}
+
+impl<'a, T> DeclScope<ClassNamespace> for ClassNamespaceAdaptor<'a, T>
+where T: DeclScope<Namespace> {
+
+  fn get_scope_names(&self) -> Result<NameTable<ClassNamespace>, ScopeError<ClassNamespace>> {
+    self.0.get_scope_names()
+      .map_err(ScopeError::from)
+      .map(|table| table.map_ns(ClassNamespace::from))
+  }
 
 }
 
