@@ -1,6 +1,7 @@
 
 extern crate gdlisp;
 
+use gdlisp::ir::identifier::ClassNamespace;
 use gdlisp::ir::modifier::{ParseError as ModifierParseError, ParseErrorF as ModifierParseErrorF};
 use gdlisp::compile::error::{Error as GDError, ErrorF as GDErrorF};
 use gdlisp::pipeline::error::{Error as PError};
@@ -191,4 +192,127 @@ class Foo extends Reference:
 static func run():
     return null
 "#);
+}
+
+#[test]
+pub fn duplicate_const_test() {
+  assert_eq!(
+    parse_compile_decl_err(r#"((defconst A 1) (defconst A 1))"#),
+    Err(PError::from(GDError::new(GDErrorF::DuplicateName(ClassNamespace::Value, String::from("A")), SourceOffset(17)))),
+  );
+}
+
+#[test]
+pub fn duplicate_const_in_class_test() {
+  assert_eq!(
+    parse_compile_decl_err(r#"((defclass Foo () (defconst A 1) (defconst A 1)))"#),
+    Err(PError::from(GDError::new(GDErrorF::DuplicateName(ClassNamespace::Value, String::from("A")), SourceOffset(34)))),
+  );
+}
+
+#[test]
+pub fn duplicate_var_in_class_test() {
+  assert_eq!(
+    parse_compile_decl_err(r#"((defclass Foo () (defvar A 1) (defvar A 1)))"#),
+    Err(PError::from(GDError::new(GDErrorF::DuplicateName(ClassNamespace::Value, String::from("A")), SourceOffset(32)))),
+  );
+}
+
+#[test]
+pub fn duplicate_var_const_in_class_test() {
+  assert_eq!(
+    parse_compile_decl_err(r#"((defclass Foo () (defvar A 1) (defconst A 1)))"#),
+    Err(PError::from(GDError::new(GDErrorF::DuplicateName(ClassNamespace::Value, String::from("A")), SourceOffset(32)))),
+  );
+}
+
+#[test]
+pub fn duplicate_fn_in_class_test() {
+  assert_eq!(
+    parse_compile_decl_err(r#"((defclass Foo () (defn foo ()) (defn foo ())))"#),
+    Err(PError::from(GDError::new(GDErrorF::DuplicateName(ClassNamespace::Function, String::from("foo")), SourceOffset(33)))),
+  );
+}
+
+#[test]
+pub fn duplicate_signal_in_class_test() {
+  assert_eq!(
+    parse_compile_decl_err(r#"((defclass Foo () (defsignal foo) (defsignal foo ())))"#),
+    Err(PError::from(GDError::new(GDErrorF::DuplicateName(ClassNamespace::Signal, String::from("foo")), SourceOffset(35)))),
+  );
+}
+
+#[test]
+pub fn duplicate_fn_test() {
+  assert_eq!(
+    parse_compile_decl_err(r#"((defn foo () 1) (defn foo () 2))"#),
+    Err(PError::from(GDError::new(GDErrorF::DuplicateName(ClassNamespace::Function, String::from("foo")), SourceOffset(18)))),
+  );
+}
+
+#[test]
+pub fn overlapping_namespaces_test() {
+  assert_eq!(parse_compile_decl("((defn foo ()) (defconst foo 1))"),
+             r#"extends Reference
+static func foo():
+    return null
+const foo = 1
+static func run():
+    return null
+"#);
+}
+
+#[test]
+pub fn overlapping_namespaces_in_class_test() {
+  assert_eq!(parse_compile_decl("((defclass Foo () (defsignal foo) (defn foo ()) (defconst foo 1)))"),
+             r#"extends Reference
+class Foo extends Reference:
+    func _init():
+        pass
+    signal foo
+    func foo():
+        return null
+    const foo = 1
+static func run():
+    return null
+"#);
+}
+#[test]
+pub fn duplicate_const_in_lambda_class_test() {
+  assert_eq!(
+    parse_compile_decl_err(r#"((new Reference (defconst A 1) (defconst A 1)))"#),
+    Err(PError::from(GDError::new(GDErrorF::DuplicateName(ClassNamespace::Value, String::from("A")), SourceOffset(32)))),
+  );
+}
+
+#[test]
+pub fn duplicate_var_in_lambda_class_test() {
+  assert_eq!(
+    parse_compile_decl_err(r#"((new Reference (defvar A 1) (defvar A 1)))"#),
+    Err(PError::from(GDError::new(GDErrorF::DuplicateName(ClassNamespace::Value, String::from("A")), SourceOffset(30)))),
+  );
+}
+
+#[test]
+pub fn duplicate_var_const_in_lambda_class_test() {
+  assert_eq!(
+    parse_compile_decl_err(r#"((new Reference (defvar A 1) (defconst A 1)))"#),
+    Err(PError::from(GDError::new(GDErrorF::DuplicateName(ClassNamespace::Value, String::from("A")), SourceOffset(30)))),
+  );
+}
+
+#[test]
+pub fn duplicate_fn_in_lambda_class_test() {
+  assert_eq!(
+    parse_compile_decl_err(r#"((new Reference (defn foo ()) (defn foo ())))"#),
+    Err(PError::from(GDError::new(GDErrorF::DuplicateName(ClassNamespace::Function, String::from("foo")), SourceOffset(31)))),
+  );
+}
+
+#[test]
+pub fn duplicate_signal_in_lambda_class_test() {
+  assert_eq!(
+    parse_compile_decl_err(r#"((new Reference (defsignal foo) (defsignal foo ())))"#),
+    Err(PError::from(GDError::new(GDErrorF::DuplicateName(ClassNamespace::Signal, String::from("foo")), SourceOffset(33)))),
+  );
 }

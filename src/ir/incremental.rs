@@ -720,7 +720,7 @@ impl IncCompiler {
       self.imports.push(imp);
     } else if IncCompiler::is_decl(curr) {
       let d = self.compile_decl(pipeline, curr)?;
-      self.table.add(d.clone());
+      self.table.add_unless_exists(d.clone())?;
       if let DeclF::MacroDecl(mdecl) = d.value {
         self.bind_macro(pipeline, mdecl, d.pos, false, Namespace::Function)?;
       } else if let DeclF::SymbolMacroDecl(mdecl) = d.value {
@@ -798,11 +798,11 @@ impl IncCompiler {
       let mut table = self.table.clone();
       match namespace {
         Namespace::Function => {
-          table.add(Decl::new(DeclF::MacroDecl(decl.to_owned()), pos))
+          table.add_unless_exists(Decl::new(DeclF::MacroDecl(decl.to_owned()), pos))?;
         }
         Namespace::Value => {
           let symdecl = decl::SymbolMacroDecl { visibility: decl.visibility, name: decl.name.to_owned(), body: decl.body.clone() };
-          table.add(Decl::new(DeclF::SymbolMacroDecl(symdecl), pos))
+          table.add_unless_exists(Decl::new(DeclF::SymbolMacroDecl(symdecl), pos))?;
         }
       }
       Cow::Owned(table)

@@ -4,8 +4,10 @@
 
 use super::Decl;
 use super::identifier::{Id, IdLike, Namespace};
+use crate::compile::error::{Error as GDError, ErrorF as GDErrorF};
 
 use std::collections::HashMap;
+use std::mem;
 
 /// A `DeclarationTable` stores [`Decl`] declarations, indexed by
 /// their names. A `DeclarationTable` should be thought of as a
@@ -38,15 +40,32 @@ impl DeclarationTable {
   /// present in this table, then that declaration is replaced with
   /// `value`. Otherwise, `value` is added at the end of the table.
   #[allow(clippy::map_entry)] // Using the Entry API would require that value be cloned.
-  pub fn add(&mut self, value: Decl) {
+  pub fn add(&mut self, value: Decl) -> Option<Decl> {
     let id = value.to_id();
     let new_idx = self.in_order.len();
     if self.values.contains_key(&id) {
       let idx = *self.values.get(&id).unwrap();
-      self.in_order[idx] = value;
+      Some(mem::replace(&mut self.in_order[idx], value))
     } else {
       self.values.insert(id, new_idx);
       self.in_order.push(value);
+      None
+    }
+  }
+
+  /// Adds a [`Decl`] to the `DeclarationTable`, if no declaration
+  /// with that name already exists. If a declaration with the given
+  /// name already exists, an error is reported and the table is
+  /// unmodified.
+  pub fn add_unless_exists(&mut self, value: Decl) -> Result<(), GDError> {
+    if self.get(&*value.id_like()).is_some() {
+      Err(
+        GDError::new(GDErrorF::DuplicateName(value.namespace().into(), value.name().to_owned()), value.pos),
+      )
+    } else {
+      let result = self.add(value);
+      assert!(result.is_none(), "Internal error in DeclarationTable::add_unless_exists");
+      Ok(())
     }
   }
 
