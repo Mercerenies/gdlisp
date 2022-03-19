@@ -46,6 +46,11 @@ impl<NS: Hash + Eq + Clone> NameTable<NS> {
     self.data.len()
   }
 
+  /// Whether the table is currently empty, i.e. contains no names.
+  pub fn is_empty(&self) -> bool {
+    self.data.is_empty()
+  }
+
   /// Maps the namespace type of this name table, producing a new name
   /// table where the namespace of every known name has been
   /// transformed by the given function.
