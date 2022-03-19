@@ -149,6 +149,7 @@ pub fn parse_and_run_err(input: &str) -> Result<String, PError> {
   let mut pipeline = dummy_pipeline();
 
   let (decls, _macros) = ir::compile_toplevel(&mut pipeline, &value)?;
+  ir::scope::check_scopes(&decls)?;
   let mut builder = CodeBuilder::new(decl::ClassExtends::named(String::from("Reference")));
   compiler.compile_toplevel(&mut pipeline, &mut builder, &mut table, &decls)?;
 
@@ -232,6 +233,7 @@ pub fn parse_compile_decl_err(input: &str) -> Result<String, PError> {
 
   let mut builder = CodeBuilder::new(decl::ClassExtends::named("Reference".to_owned()));
   let (decls, _macros) = ir::compile_toplevel(&mut pipeline, &value)?;
+  ir::scope::check_scopes(&decls)?;
   compiler.compile_toplevel(&mut pipeline, &mut builder, &mut table, &decls)?;
   let class = builder.build();
 

@@ -15,6 +15,7 @@ fn dependencies_of<'a>(input: &str, target_name: &(dyn IdLike<NS=Namespace> + 'a
   let parser = parser::ASTParser::new();
   let ast = parser.parse(input).unwrap();
   let (toplevel, _macros) = ir::compile_toplevel(&mut dummy_pipeline(), &ast).unwrap();
+  ir::scope::check_scopes(&toplevel).unwrap();
   let table = DeclarationTable::from(toplevel.decls);
   Dependencies::identify(&table, &HashSet::new(), target_name)
 }
