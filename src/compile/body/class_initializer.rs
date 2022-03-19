@@ -8,6 +8,9 @@ use crate::gdscript::library::READY_NAME;
 use crate::util::find_or_else_mut;
 use crate::pipeline::source::SourceOffset;
 use super::builder::{StmtBuilder, HasDecls};
+use super::synthetic_field::{SyntheticField, Getter, Setter};
+
+use std::mem;
 
 /// A builder for a GDScript class.
 ///
@@ -18,13 +21,16 @@ use super::builder::{StmtBuilder, HasDecls};
 #[derive(Default, Clone)]
 pub struct ClassBuilder {
   /// The builder for `_init`.
-  pub init_builder: StmtBuilder,
+  init_builder: StmtBuilder,
   /// The builder for `_ready`.
-  pub ready_builder: StmtBuilder,
+  ready_builder: StmtBuilder,
+  /// The builder for any synthetic fields generated as a result of
+  /// `get` and `set` declarations.
+  synthetic_fields: Vec<SyntheticField>,
   /// Any declarations which have been absorbed by another builder.
   /// This field exists for compatibility with [`HasDecls`] so that
   /// this builder can be composed with others easily.
-  pub other_helpers: Vec<Decl>,
+  other_helpers: Vec<Decl>,
 }
 
 /// This is the eventual result of a [`ClassBuilder`]. It contains
@@ -35,6 +41,9 @@ pub struct ClassInit {
   pub init: Vec<Stmt>,
   /// Statements to be prepended to the class' `_ready` method.
   pub ready: Vec<Stmt>,
+  /// Proxy fields to be generated with appropriate `setget`
+  /// declarations.
+  pub synthetic_fields: Vec<SyntheticField>,
 }
 
 /// The time that an instance variable should be initialized.
@@ -56,11 +65,57 @@ impl ClassBuilder {
     ClassBuilder::default()
   }
 
+  /// Returns the builder object for either `_init` or `_ready`,
+  /// depending on the initialization time argument.
   pub fn builder_for(&mut self, init_time: InitTime) -> &mut StmtBuilder {
     match init_time {
       InitTime::Init => &mut self.init_builder,
       InitTime::Ready => &mut self.ready_builder,
     }
+  }
+
+  /// Declares a getter for the given proxy field. If a getter already
+  /// exists, this method overwrites it and returns the old one.
+  ///
+  /// Note: This method takes the field name as argument, not the
+  /// getter name. The field name will be prefixed appropriately (as
+  /// per [`Getter::method_name`]) to determine the field name.
+  pub fn declare_getter_for(&mut self, field_name: String) -> Option<String> {
+    let method_name = Getter::method_name(&field_name);
+    for field in &mut self.synthetic_fields {
+      if field.name == field_name {
+        return mem::replace(&mut field.getter, Some(method_name));
+      }
+    }
+    // Name wasn't found at all, so add a new one to the end.
+    self.synthetic_fields.push(SyntheticField {
+      name: field_name,
+      getter: Some(method_name),
+      setter: None,
+    });
+    None
+  }
+
+  /// Declares a setter for the given proxy field. If a setter already
+  /// exists, this method overwrites it and returns the old one.
+  ///
+  /// Note: This method takes the field name as argument, not the
+  /// setter name. The field name will be prefixed appropriately (as
+  /// per [`Setter::method_name`]) to determine the field name.
+  pub fn declare_setter_for(&mut self, field_name: String) -> Option<String> {
+    let method_name = Setter::method_name(&field_name);
+    for field in &mut self.synthetic_fields {
+      if field.name == field_name {
+        return mem::replace(&mut field.setter, Some(method_name));
+      }
+    }
+    // Name wasn't found at all, so add a new one to the end.
+    self.synthetic_fields.push(SyntheticField {
+      name: field_name,
+      getter: None,
+      setter: Some(method_name),
+    });
+    None
   }
 
   /// Builds the builder into a [`ClassInit`].
@@ -78,6 +133,7 @@ impl ClassBuilder {
     let initializer = ClassInit {
       init,
       ready,
+      synthetic_fields: self.synthetic_fields,
     };
 
     (initializer, helpers)
@@ -135,6 +191,8 @@ impl ClassInit {
       self.ready.append(&mut ready.body);
       ready.body = self.ready;
     }
+
+    /////
 
   }
 
