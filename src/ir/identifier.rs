@@ -103,6 +103,27 @@ impl Id {
 
 }
 
+impl Namespace {
+
+  pub fn name(self) -> &'static str {
+    ClassNamespace::from(self).name()
+  }
+
+}
+
+
+impl ClassNamespace {
+
+  pub fn name(self) -> &'static str {
+    match self {
+      ClassNamespace::Value => "value",
+      ClassNamespace::Function => "function",
+      ClassNamespace::Signal => "signal",
+    }
+  }
+
+}
+
 impl IdLike for Id {
 
   type NS = Namespace;

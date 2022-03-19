@@ -5,6 +5,7 @@ use crate::sxp::dotted::TryFromDottedExprError;
 use crate::ir::arglist::ArgListParseError;
 use crate::ir::modifier::{ParseError as ModifierParseError};
 use crate::ir::decl::DuplicateMainClassError;
+use crate::ir::scope::error::ScopeError;
 
 use lalrpop_util::ParseError;
 
@@ -153,6 +154,13 @@ impl From<ModifierParseError> for Error {
 
 impl From<DuplicateMainClassError> for Error {
   fn from(e: DuplicateMainClassError) -> Error {
+    Error::from(GDError::from(e))
+  }
+}
+
+impl<NS> From<ScopeError<NS>> for Error
+where GDError: From<ScopeError<NS>> {
+  fn from(e: ScopeError<NS>) -> Error {
     Error::from(GDError::from(e))
   }
 }

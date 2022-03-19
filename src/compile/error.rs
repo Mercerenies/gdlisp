@@ -5,10 +5,11 @@ use super::args::{Expecting, ExpectedShape};
 use crate::sxp;
 use crate::sxp::ast::AST;
 use crate::ir::arglist::{ArgListParseError, ArgListParseErrorF};
-use crate::ir::identifier::Namespace;
+use crate::ir::identifier::{Namespace, ClassNamespace};
 use crate::ir::decl::DuplicateMainClassError;
 use crate::ir::import::{ImportDeclParseError, ImportNameResolutionError};
 use crate::ir::modifier::{ParseError as ModifierParseError, ParseErrorF as ModifierParseErrorF};
+use crate::ir::scope::error::ScopeError;
 use crate::compile::symbol_table::local_var::VarNameIntoExtendsError;
 use crate::runner::path::RPathBuf;
 use crate::runner::macro_server::response;
@@ -215,6 +216,8 @@ pub enum ErrorF {
   /// Two or more constructors were defined in the same class or
   /// lambda class.
   DuplicateConstructor,
+  /// The same name was declared twice in the same namespace and scope.
+  DuplicateName(ClassNamespace, String),
 }
 
 /// Variant of [`ErrorF`] with source offset information. See
@@ -317,6 +320,7 @@ impl ErrorF {
       ErrorF::DuplicateMainClass => 39,
       ErrorF::ContextualFilenameUnresolved => 40,
       ErrorF::DuplicateConstructor => 41,
+      ErrorF::DuplicateName(_, _) => 42,
     }
   }
 
@@ -438,6 +442,9 @@ impl fmt::Display for ErrorF {
       ErrorF::DuplicateConstructor => {
         write!(f, "Class has two constructors")?; // TODO Would be nice to have the source offset of the *original* constructor here as well.
       }
+      ErrorF::DuplicateName(ns, name) => {
+        write!(f, "The {} '{}' was already declared in this scope", ns.name(), name)?; // TODO Would be nice to have the source offset of the *original* name here as well.
+      }
     }
     if self.is_internal() {
       write!(f, " ({})", INTERNAL_ERROR_NOTE)?;
@@ -541,5 +548,22 @@ impl From<ModifierParseError> for Error {
 impl From<DuplicateMainClassError> for Error {
   fn from(err: DuplicateMainClassError) -> Error {
     Error::new(ErrorF::DuplicateMainClass, err.0)
+  }
+}
+
+impl From<ScopeError<ClassNamespace>> for Error {
+  fn from(err: ScopeError<ClassNamespace>) -> Error {
+    match err {
+      ScopeError::DuplicateName(n, s, p) =>
+        Error::new(ErrorF::DuplicateName(n, s), p),
+    }
+  }
+}
+
+impl From<ScopeError<Namespace>> for Error {
+  fn from(err: ScopeError<Namespace>) -> Error {
+    Error::from(
+      ScopeError::<ClassNamespace>::from(err),
+    )
   }
 }
