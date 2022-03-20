@@ -194,7 +194,7 @@ impl Decl {
           write!(w, " = {}", value.to_gd())?;
         }
         let setget_str = setget.to_gd();
-        if setget_str != "" {
+        if !setget_str.is_empty() {
           write!(w, " {}", setget_str)?;
         }
         writeln!(w)

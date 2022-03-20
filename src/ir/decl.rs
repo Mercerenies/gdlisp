@@ -439,7 +439,7 @@ impl ClassInnerDecl {
     }
   }
 
-  pub fn name<'a>(&'a self) -> Cow<'a, str> {
+  pub fn name(&self) -> Cow<str> {
     match &self.value {
       ClassInnerDeclF::ClassSignalDecl(signal) => Cow::Borrowed(&signal.name),
       ClassInnerDeclF::ClassConstDecl(constant) => Cow::Borrowed(&constant.name),
@@ -503,7 +503,7 @@ impl InstanceFunctionName {
   /// [`InstanceFunctionName::Ordinary`], this is simply the declared
   /// name of the method. For other types of method names, specialized
   /// prefixes will be added to compute the runtime name.
-  pub fn method_name<'a>(&'a self) -> Cow<'a, str> {
+  pub fn method_name(&self) -> Cow<str> {
     match self {
       InstanceFunctionName::Ordinary(name) => Cow::Borrowed(name),
       InstanceFunctionName::Setter(field_name) => Cow::Owned(Setter::method_name(field_name)),
