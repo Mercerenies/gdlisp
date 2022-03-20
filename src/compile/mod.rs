@@ -32,8 +32,9 @@ use symbol_table::call_magic::CallMagic;
 use symbol_table::call_magic::table::MagicTable;
 use crate::ir;
 use crate::ir::import::{ImportName, ImportDecl, ImportDetails};
-use crate::ir::identifier::Namespace;
+use crate::ir::identifier::{Namespace, ClassNamespace};
 use crate::ir::access_type::AccessType;
+use crate::ir::decl::InstanceFunctionName;
 use crate::runner::path::RPathBuf;
 use crate::pipeline::error::{Error as PError};
 use crate::pipeline::Pipeline;
@@ -44,6 +45,7 @@ use resource_type::ResourceType;
 
 use std::ffi::OsStr;
 use std::convert::TryFrom;
+use std::borrow::Borrow;
 
 type IRDecl = ir::decl::Decl;
 type IRDeclF = ir::decl::DeclF;
@@ -233,7 +235,35 @@ impl Compiler {
         }), decl.pos))
       }
       ir::decl::ClassInnerDeclF::ClassFnDecl(f) => {
-        let gd_name = names::lisp_to_gd(&f.name);
+
+        // If we're dealing with a setter or a getter, inform the
+        // builder that we will need a synthetic field.
+        match &f.name {
+          InstanceFunctionName::Ordinary(_) => {
+            // No action required; there is no proxy field for
+            // ordinary methods.
+          }
+          InstanceFunctionName::Setter(field_name) => {
+            let conflicting_name = builder.declare_setter_for(field_name.to_owned());
+            if conflicting_name.is_some() {
+              return Err(Error::new(
+                ErrorF::DuplicateName(ClassNamespace::Value, field_name.to_owned()),
+                decl.pos,
+              ))
+            }
+          }
+          InstanceFunctionName::Getter(field_name) => {
+            let conflicting_name = builder.declare_getter_for(field_name.to_owned());
+            if conflicting_name.is_some() {
+              return Err(Error::new(
+                ErrorF::DuplicateName(ClassNamespace::Value, field_name.to_owned()),
+                decl.pos,
+              ))
+            }
+          }
+        }
+
+        let gd_name = names::lisp_to_gd(f.name.method_name().borrow());
         let func = factory::declare_function(&mut self.frame(pipeline, builder, table),
                                              gd_name,
                                              IRArgList::from(f.args.clone()),

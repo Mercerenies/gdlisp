@@ -95,7 +95,7 @@ pub fn compile_lambda_class(frame: &mut CompilerFrame<StmtBuilder>,
 
       if d.is_static() {
         // Static methods / constants are not allowed on lambda classes
-        return Err(Error::new(ErrorF::StaticOnLambdaClass(d.name().to_owned()), d.pos));
+        return Err(Error::new(ErrorF::StaticOnLambdaClass(d.name().into_owned()), d.pos));
       }
 
       // Nothing static is allowed in lambda classes (static methods

@@ -10,7 +10,7 @@ use super::import::{ImportDecl, ImportName};
 use super::expr::{Expr, ExprF};
 use super::special_form;
 use super::depends::Dependencies;
-use super::decl::{self, Decl, DeclF};
+use super::decl::{self, Decl, DeclF, InstanceFunctionName};
 use super::macros::{self, MacroData};
 use super::identifier::{Id, IdLike, Namespace};
 use super::modifier::{self, ParseRule};
@@ -636,7 +636,7 @@ impl IncCompiler {
               }
               let mut decl = decl::ClassFnDecl {
                 is_static: Static::NonStatic,
-                name: fname.to_owned(),
+                name: InstanceFunctionName::Ordinary(fname.to_owned()),
                 args,
                 body: Expr::progn(body, vec[0].pos),
               };

@@ -83,7 +83,7 @@ impl DeclScope<ClassNamespace> for ClassDecl {
 
     for decl in &self.decls {
       let namespace = decl.namespace();
-      let name = decl.name().to_owned();
+      let name = decl.name().into_owned();
       builder.add_name(namespace, name, decl.pos)?;
     }
 
@@ -104,7 +104,7 @@ impl DeclScope<ClassNamespace> for LambdaClass {
 
     for decl in &self.decls {
       let namespace = decl.namespace();
-      let name = decl.name().to_owned();
+      let name = decl.name().into_owned();
       builder.add_name(namespace, name, decl.pos)?;
     }
 

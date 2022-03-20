@@ -8,6 +8,7 @@ use super::export::Visibility;
 use crate::gdscript::decl::Static;
 use crate::pipeline::source::{SourceOffset, Sourced};
 use crate::compile::body::class_initializer::InitTime;
+use crate::compile::body::synthetic_field::{Getter, Setter};
 
 use std::collections::HashSet;
 use std::borrow::Cow;
@@ -128,7 +129,7 @@ pub struct ClassVarDecl {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ClassFnDecl {
   pub is_static: Static,
-  pub name: String,
+  pub name: InstanceFunctionName,
   pub args: SimpleArgList,
   pub body: Expr,
 }
@@ -155,6 +156,19 @@ pub enum DeclareType {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct Export {
   pub args: Vec<Expr>,
+}
+
+/// The name of an instance function in GDLisp, which can either be an
+/// ordinary string or a special accessor.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum InstanceFunctionName {
+  /// An ordinary string name, which will compile to an ordinary
+  /// method in GDScript.
+  Ordinary(String),
+  /// A setter for the field with the given name.
+  Setter(String),
+  /// A getter for the field with the given name.
+  Getter(String),
 }
 
 #[derive(Clone, Debug, Copy, Eq, PartialEq)]
@@ -425,12 +439,12 @@ impl ClassInnerDecl {
     }
   }
 
-  pub fn name(&self) -> &str {
+  pub fn name<'a>(&'a self) -> Cow<'a, str> {
     match &self.value {
-      ClassInnerDeclF::ClassSignalDecl(signal) => &signal.name,
-      ClassInnerDeclF::ClassConstDecl(constant) => &constant.name,
-      ClassInnerDeclF::ClassVarDecl(var) => &var.name,
-      ClassInnerDeclF::ClassFnDecl(func) => &func.name,
+      ClassInnerDeclF::ClassSignalDecl(signal) => Cow::Borrowed(&signal.name),
+      ClassInnerDeclF::ClassConstDecl(constant) => Cow::Borrowed(&constant.name),
+      ClassInnerDeclF::ClassVarDecl(var) => Cow::Borrowed(&var.name),
+      ClassInnerDeclF::ClassFnDecl(func) => func.name.method_name(),
     }
   }
 
@@ -476,6 +490,24 @@ impl DeclareType {
     match self {
       DeclareType::Value | DeclareType::Superglobal => Namespace::Value,
       DeclareType::Function(_) | DeclareType::SuperglobalFn(_) => Namespace::Function,
+    }
+  }
+
+}
+
+impl InstanceFunctionName {
+
+  /// The name of the method being defined, using the GDLisp naming
+  /// conventions (e.g., characters such as `-` will *not* be
+  /// converted in the returned value). For
+  /// [`InstanceFunctionName::Ordinary`], this is simply the declared
+  /// name of the method. For other types of method names, specialized
+  /// prefixes will be added to compute the runtime name.
+  pub fn method_name<'a>(&'a self) -> Cow<'a, str> {
+    match self {
+      InstanceFunctionName::Ordinary(name) => Cow::Borrowed(name),
+      InstanceFunctionName::Setter(field_name) => Cow::Owned(Setter::method_name(field_name)),
+      InstanceFunctionName::Getter(field_name) => Cow::Owned(Getter::method_name(field_name)),
     }
   }
 
