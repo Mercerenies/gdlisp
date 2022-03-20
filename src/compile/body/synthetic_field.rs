@@ -2,7 +2,7 @@
 //! Provides the [`SyntheticField`] type, for generating proxy fields
 //! on GDScript classes.
 
-use crate::gdscript::decl::{FnDecl};
+use crate::gdscript::decl::{FnDecl, VarDecl, Setget};
 use crate::gdscript::arglist::ArgList;
 use crate::gdscript::stmt::Stmt;
 
@@ -40,6 +40,16 @@ impl SyntheticField {
 
   pub fn new() -> SyntheticField {
     SyntheticField::default()
+  }
+
+  /// Converts the synthetic field into a variable declaration. The
+  /// resulting variable has no default value and no modifiers other
+  /// than the `setget` modifier.
+  pub fn into_field(self) -> VarDecl {
+    VarDecl::simple(self.name).setget(Setget {
+      setter: self.setter,
+      getter: self.getter,
+    })
   }
 
 }
