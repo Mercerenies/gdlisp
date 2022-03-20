@@ -17,7 +17,7 @@ use crate::compile::names::{self, NameTrans};
 use crate::compile::names::fresh::FreshNameGenerator;
 use crate::gdscript::stmt::{Stmt, StmtF};
 use crate::gdscript::expr::{Expr, ExprF};
-use crate::gdscript::decl::{self, Decl, DeclF};
+use crate::gdscript::decl::{self, Decl, DeclF, Setget};
 use crate::gdscript::arglist::ArgList;
 use crate::gdscript::library;
 use crate::gdscript::inner_class::{self, NeedsOuterClassRef};
@@ -119,7 +119,7 @@ pub fn compile_labels_scc(frame: &mut CompilerFrame<StmtBuilder>,
   };
   let mut class_body = vec!();
   for var in &gd_closure_vars {
-    class_body.push(Decl::new(DeclF::VarDecl(None, decl::Onready::No, var.clone(), None), pos));
+    class_body.push(Decl::new(DeclF::VarDecl(None, decl::Onready::No, var.clone(), None, Setget::default()), pos));
   }
   class_body.push(Decl::new(DeclF::FnDecl(decl::Static::NonStatic, constructor), pos));
   for func in functions {

@@ -15,7 +15,7 @@
 //! functionality of this module, [`add_outer_class_ref_named`] adds a
 //! reference to the outer class to the given scope.
 
-use super::decl::{self, Decl, DeclF};
+use super::decl::{self, Decl, DeclF, Setget};
 use crate::pipeline::can_load::CanLoad;
 use crate::pipeline::source::SourceOffset;
 use crate::compile::symbol_table::SymbolTable;
@@ -44,7 +44,7 @@ pub fn add_outer_class_ref_named(inner_class: &mut decl::ClassDecl, resolver: &d
   let current_filename = get_current_filename(current_file, resolver)
     .expect("Error identifying current file"); // TODO Expect
   let load_expr = VarName::load_expr(current_filename, pos);
-  let var_decl = Decl::new(DeclF::VarDecl(None, decl::Onready::No, var_name, Some(load_expr)), pos);
+  let var_decl = Decl::new(DeclF::VarDecl(None, decl::Onready::No, var_name, Some(load_expr), Setget::default()), pos);
   inner_class.body.push(var_decl);
 }
 

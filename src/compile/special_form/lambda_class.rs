@@ -11,7 +11,7 @@ use crate::compile::body::class_initializer::ClassBuilder;
 use crate::compile::symbol_table::{SymbolTable, ClassTablePair};
 use crate::compile::symbol_table::local_var::LocalVar;
 use crate::compile::symbol_table::function_call::OuterStaticRef;
-use crate::gdscript::decl::{self, Decl, DeclF};
+use crate::gdscript::decl::{self, Decl, DeclF, Setget};
 use crate::gdscript::inner_class::{self, NeedsOuterClassRef};
 use crate::pipeline::source::SourceOffset;
 use super::lambda;
@@ -89,7 +89,7 @@ pub fn compile_lambda_class(frame: &mut CompilerFrame<StmtBuilder>,
       class_body.push(Decl::new(DeclF::FnDecl(decl::Static::NonStatic, helper), pos));
     }
     for name in gd_closure_vars.iter() {
-      class_body.push(Decl::new(DeclF::VarDecl(None, decl::Onready::No, name.clone(), None), pos));
+      class_body.push(Decl::new(DeclF::VarDecl(None, decl::Onready::No, name.clone(), None, Setget::default()), pos));
     }
     for d in decls {
 
