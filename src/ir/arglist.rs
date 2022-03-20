@@ -242,6 +242,14 @@ impl SimpleArgList {
     })
   }
 
+  pub fn len(&self) -> usize {
+    self.args.len()
+  }
+
+  pub fn is_empty(&self) -> bool {
+    self.args.is_empty()
+  }
+
 }
 
 impl VarArg {

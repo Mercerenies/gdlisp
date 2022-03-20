@@ -218,6 +218,10 @@ pub enum ErrorF {
   DuplicateConstructor,
   /// The same name was declared twice in the same namespace and scope.
   DuplicateName(ClassNamespace, String),
+  /// A getter was declared with an invalid argument list or modifier.
+  BadGetterArguments(String),
+  /// A setter was declared with an invalid argument list or modifier.
+  BadSetterArguments(String),
 }
 
 /// Variant of [`ErrorF`] with source offset information. See
@@ -321,6 +325,8 @@ impl ErrorF {
       ErrorF::ContextualFilenameUnresolved => 40,
       ErrorF::DuplicateConstructor => 41,
       ErrorF::DuplicateName(_, _) => 42,
+      ErrorF::BadGetterArguments(_) => 43,
+      ErrorF::BadSetterArguments(_) => 44,
     }
   }
 
@@ -444,6 +450,12 @@ impl fmt::Display for ErrorF {
       }
       ErrorF::DuplicateName(ns, name) => {
         write!(f, "The {} '{}' was already declared in this scope", ns.name(), name)?; // TODO Would be nice to have the source offset of the *original* name here as well.
+      }
+      ErrorF::BadGetterArguments(field_name) => {
+        write!(f, "The getter '{}' has a bad signature; getters must be 0-ary non-static functions", field_name)?;
+      }
+      ErrorF::BadSetterArguments(field_name) => {
+        write!(f, "The setter '{}' has a bad signature; getters must be 1-ary non-static functions", field_name)?;
       }
     }
     if self.is_internal() {

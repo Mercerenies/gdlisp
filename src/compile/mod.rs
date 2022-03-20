@@ -237,22 +237,39 @@ impl Compiler {
       ir::decl::ClassInnerDeclF::ClassFnDecl(f) => {
 
         // If we're dealing with a setter or a getter, inform the
-        // builder that we will need a synthetic field.
-        match &f.name {
+        // builder that we will need a synthetic field and validate
+        // the argument list and modifiers.
+        match &f.name { ///// Getter / setter syntax
           InstanceFunctionName::Ordinary(_) => {
             // No action required; there is no proxy field for
             // ordinary methods.
           }
           InstanceFunctionName::Setter(field_name) => {
+
+            if f.is_static == decl::Static::IsStatic || f.args.len() != 1 {
+              return Err(Error::new(
+                ErrorF::BadSetterArguments(field_name.to_owned()),
+                decl.pos,
+              ));
+            }
+
             let conflicting_name = builder.declare_setter_for(field_name.to_owned());
             if conflicting_name.is_some() {
               return Err(Error::new(
                 ErrorF::DuplicateName(ClassNamespace::Value, field_name.to_owned()),
                 decl.pos,
-              ))
+              ));
             }
           }
           InstanceFunctionName::Getter(field_name) => {
+
+            if f.is_static == decl::Static::IsStatic || !f.args.is_empty() {
+              return Err(Error::new(
+                ErrorF::BadGetterArguments(field_name.to_owned()),
+                decl.pos,
+              ));
+            }
+
             let conflicting_name = builder.declare_getter_for(field_name.to_owned());
             if conflicting_name.is_some() {
               return Err(Error::new(
