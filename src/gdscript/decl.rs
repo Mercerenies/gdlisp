@@ -21,7 +21,7 @@ use std::fmt::{self, Write};
 pub enum DeclF {
   // TODO Five fields in an enum variant makes me uncomfortable.
   // Factor this into a struct.
-  VarDecl(Option<Export>, Onready, String, Option<Expr>, Setget), ///// test
+  VarDecl(Option<Export>, Onready, String, Option<Expr>, Setget),
   ConstDecl(String, Expr),
   ClassDecl(ClassDecl),
   InitFnDecl(InitFnDecl),
@@ -405,6 +405,29 @@ mod tests {
 
     let export4 = Export { args: vec!(Expr::var("int", SourceOffset::default()), Expr::from_value(1, SourceOffset::default()), Expr::from_value(10, SourceOffset::default())) };
     assert_eq!(d(DeclF::VarDecl(Some(export4), Onready::No, String::from("foo"), Some(expr.clone()), Setget::default())).to_gd(0), "export(int, 1, 10) var foo = 10\n");
+  }
+
+  #[test]
+  fn setget_var() {
+
+    let setget1 = Setget {
+      setter: Some(String::from("setter_name")),
+      getter: None,
+    };
+    assert_eq!(d(DeclF::VarDecl(None, Onready::No, String::from("foo"), None, setget1)).to_gd(0), "var foo setget setter_name\n");
+
+    let setget2 = Setget {
+      setter: None,
+      getter: Some(String::from("getter_name")),
+    };
+    assert_eq!(d(DeclF::VarDecl(None, Onready::No, String::from("foo"), None, setget2)).to_gd(0), "var foo setget ,getter_name\n");
+
+    let setget3 = Setget {
+      setter: Some(String::from("setter_name")),
+      getter: Some(String::from("getter_name")),
+    };
+    assert_eq!(d(DeclF::VarDecl(None, Onready::No, String::from("foo"), None, setget3)).to_gd(0), "var foo setget setter_name, getter_name\n");
+
   }
 
   #[test]
