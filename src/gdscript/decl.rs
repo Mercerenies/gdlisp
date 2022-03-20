@@ -21,7 +21,7 @@ use std::fmt::{self, Write};
 pub enum DeclF {
   // TODO Five fields in an enum variant makes me uncomfortable.
   // Factor this into a struct.
-  VarDecl(Option<Export>, Onready, String, Option<Expr>, Setget),
+  VarDecl(VarDecl),
   ConstDecl(String, Expr),
   ClassDecl(ClassDecl),
   InitFnDecl(InitFnDecl),
@@ -64,6 +64,19 @@ pub enum ClassExtends {
   /// represents the name `foo.bar.baz`.
   Qualified(Vec<String>),
   StringLit(String), // TODO Test this
+}
+
+/// A variable declaration in a GDScript class. This also includes
+/// variable declarations at the top-level (i.e. in the implied "main"
+/// class of the file) but does *not* include constant declarations.
+/// For the latter, [`ConstDecl`] should be used.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct VarDecl {
+  pub export: Option<Export>,
+  pub onready: Onready,
+  pub name: String,
+  pub value: Option<Expr>,
+  pub setget: Setget,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -141,7 +154,7 @@ impl Decl {
   /// have names.
   pub fn name(&self) -> Option<&str> {
     match &self.value {
-      DeclF::VarDecl(_, _, n, _, _) => Some(&n),
+      DeclF::VarDecl(vdecl) => Some(&vdecl.name),
       DeclF::ConstDecl(n, _) => Some(&n),
       DeclF::ClassDecl(cdecl) => Some(&cdecl.name),
       DeclF::InitFnDecl(_) => Some(&library::CONSTRUCTOR_NAME),
@@ -165,7 +178,7 @@ impl Decl {
   pub fn write_gd<W : fmt::Write>(&self, w: &mut W, ind: u32) -> Result<(), fmt::Error> {
     indent(w, ind)?;
     match &self.value {
-      DeclF::VarDecl(export, onready, name, value, setget) => {
+      DeclF::VarDecl(VarDecl { export, onready, name, value, setget }) => {
         if let Some(export) = export {
           if export.args.is_empty() {
             write!(w, "export ")?;
@@ -326,6 +339,48 @@ impl TopLevelClass {
 
 }
 
+impl VarDecl {
+
+  /// A new variable declaration with the given name and optional
+  /// initializer. The resulting variable will have no `export`
+  /// declaration, will not be declared `onready`, and will have no
+  /// `setget` modifiers.
+  pub fn new(name: String, value: Option<Expr>) -> VarDecl {
+    VarDecl {
+      export: None,
+      onready: Onready::No,
+      name: name,
+      value: value,
+      setget: Setget::default(),
+    }
+  }
+
+  /// A variable declaration without an initializer. Equivalent to
+  /// `VarDecl::new(name, None)`.
+  pub fn simple(name: String) -> VarDecl {
+    VarDecl::new(name, None)
+  }
+
+  /// Adds or removes an export clause from the variable declaration.
+  pub fn with_export(mut self, export: Option<Export>) -> VarDecl {
+    self.export = export;
+    self
+  }
+
+  /// Adds the `onready` flag to the variable declaration.
+  pub fn onready(mut self) -> VarDecl {
+    self.onready = Onready::Yes;
+    self
+  }
+
+  /// Changes the `setget` modifier to the given value.
+  pub fn setget(mut self, setget: Setget) -> VarDecl {
+    self.setget = setget;
+    self
+  }
+
+}
+
 impl Setget {
 
   /// Convert `self` to a string suitable for suffixing onto a
@@ -380,13 +435,19 @@ mod tests {
     Decl::new(decl, SourceOffset::default())
   }
 
+  // Helper function to match the "old" VarDecl interface, just for
+  // convenience purposes in testing.
+  fn var(export: Option<Export>, onready: Onready, name: String, value: Option<Expr>, setget: Setget) -> VarDecl {
+    VarDecl { export, onready, name, value, setget }
+  }
+
   #[test]
   fn var_and_const() {
     let expr = e(ExprF::from(10));
-    assert_eq!(d(DeclF::VarDecl(None, Onready::No, String::from("foo"), None, Setget::default())).to_gd(0), "var foo\n");
-    assert_eq!(d(DeclF::VarDecl(None, Onready::No, String::from("foo"), Some(expr.clone()), Setget::default())).to_gd(0), "var foo = 10\n");
-    assert_eq!(d(DeclF::VarDecl(None, Onready::Yes, String::from("foo"), None, Setget::default())).to_gd(0), "onready var foo\n");
-    assert_eq!(d(DeclF::VarDecl(None, Onready::Yes, String::from("foo"), Some(expr.clone()), Setget::default())).to_gd(0), "onready var foo = 10\n");
+    assert_eq!(d(DeclF::VarDecl(var(None, Onready::No, String::from("foo"), None, Setget::default()))).to_gd(0), "var foo\n");
+    assert_eq!(d(DeclF::VarDecl(var(None, Onready::No, String::from("foo"), Some(expr.clone()), Setget::default()))).to_gd(0), "var foo = 10\n");
+    assert_eq!(d(DeclF::VarDecl(var(None, Onready::Yes, String::from("foo"), None, Setget::default()))).to_gd(0), "onready var foo\n");
+    assert_eq!(d(DeclF::VarDecl(var(None, Onready::Yes, String::from("foo"), Some(expr.clone()), Setget::default()))).to_gd(0), "onready var foo = 10\n");
     assert_eq!(d(DeclF::ConstDecl(String::from("FOO"), expr.clone())).to_gd(0), "const FOO = 10\n");
   }
 
@@ -395,16 +456,16 @@ mod tests {
     let expr = e(ExprF::from(10));
 
     let export1 = Export { args: vec!(Expr::var("int", SourceOffset::default())) };
-    assert_eq!(d(DeclF::VarDecl(Some(export1), Onready::No, String::from("foo"), None, Setget::default())).to_gd(0), "export(int) var foo\n");
+    assert_eq!(d(DeclF::VarDecl(var(Some(export1), Onready::No, String::from("foo"), None, Setget::default()))).to_gd(0), "export(int) var foo\n");
 
     let export2 = Export { args: vec!() };
-    assert_eq!(d(DeclF::VarDecl(Some(export2), Onready::No, String::from("foo"), None, Setget::default())).to_gd(0), "export var foo\n");
+    assert_eq!(d(DeclF::VarDecl(var(Some(export2), Onready::No, String::from("foo"), None, Setget::default()))).to_gd(0), "export var foo\n");
 
     let export3 = Export { args: vec!() };
-    assert_eq!(d(DeclF::VarDecl(Some(export3), Onready::Yes, String::from("foo"), None, Setget::default())).to_gd(0), "export onready var foo\n");
+    assert_eq!(d(DeclF::VarDecl(var(Some(export3), Onready::Yes, String::from("foo"), None, Setget::default()))).to_gd(0), "export onready var foo\n");
 
     let export4 = Export { args: vec!(Expr::var("int", SourceOffset::default()), Expr::from_value(1, SourceOffset::default()), Expr::from_value(10, SourceOffset::default())) };
-    assert_eq!(d(DeclF::VarDecl(Some(export4), Onready::No, String::from("foo"), Some(expr.clone()), Setget::default())).to_gd(0), "export(int, 1, 10) var foo = 10\n");
+    assert_eq!(d(DeclF::VarDecl(var(Some(export4), Onready::No, String::from("foo"), Some(expr.clone()), Setget::default()))).to_gd(0), "export(int, 1, 10) var foo = 10\n");
   }
 
   #[test]
@@ -414,19 +475,19 @@ mod tests {
       setter: Some(String::from("setter_name")),
       getter: None,
     };
-    assert_eq!(d(DeclF::VarDecl(None, Onready::No, String::from("foo"), None, setget1)).to_gd(0), "var foo setget setter_name\n");
+    assert_eq!(d(DeclF::VarDecl(var(None, Onready::No, String::from("foo"), None, setget1))).to_gd(0), "var foo setget setter_name\n");
 
     let setget2 = Setget {
       setter: None,
       getter: Some(String::from("getter_name")),
     };
-    assert_eq!(d(DeclF::VarDecl(None, Onready::No, String::from("foo"), None, setget2)).to_gd(0), "var foo setget ,getter_name\n");
+    assert_eq!(d(DeclF::VarDecl(var(None, Onready::No, String::from("foo"), None, setget2))).to_gd(0), "var foo setget ,getter_name\n");
 
     let setget3 = Setget {
       setter: Some(String::from("setter_name")),
       getter: Some(String::from("getter_name")),
     };
-    assert_eq!(d(DeclF::VarDecl(None, Onready::No, String::from("foo"), None, setget3)).to_gd(0), "var foo setget setter_name, getter_name\n");
+    assert_eq!(d(DeclF::VarDecl(var(None, Onready::No, String::from("foo"), None, setget3))).to_gd(0), "var foo setget setter_name, getter_name\n");
 
   }
 
@@ -529,7 +590,7 @@ mod tests {
       name: String::from("MyClass"),
       extends: ClassExtends::named(String::from("ParentClass")),
       body: vec!(
-        d(DeclF::VarDecl(None, Onready::No, String::from("variable"), None, Setget::default())),
+        d(DeclF::VarDecl(var(None, Onready::No, String::from("variable"), None, Setget::default()))),
       ),
     }));
     assert_eq!(decl2.to_gd(0), "class MyClass extends ParentClass:\n    var variable\n");
@@ -538,7 +599,7 @@ mod tests {
       name: String::from("MyClass"),
       extends: ClassExtends::named(String::from("ParentClass")),
       body: vec!(
-        d(DeclF::VarDecl(None, Onready::No, String::from("variable"), None, Setget::default())),
+        d(DeclF::VarDecl(var(None, Onready::No, String::from("variable"), None, Setget::default()))),
         sample_function.clone(),
       ),
     }));
@@ -548,7 +609,7 @@ mod tests {
       name: String::from("MyClass"),
       extends: ClassExtends::named(String::from("ParentClass")),
       body: vec!(
-        d(DeclF::VarDecl(None, Onready::Yes, String::from("variable"), None, Setget::default())),
+        d(DeclF::VarDecl(var(None, Onready::Yes, String::from("variable"), None, Setget::default()))),
         sample_function.clone(),
       ),
     }));
@@ -585,7 +646,7 @@ mod tests {
 
   #[test]
   fn decl_names() {
-    let decl1 = d(DeclF::VarDecl(None, Onready::No, String::from("abc"), None, Setget::default()));
+    let decl1 = d(DeclF::VarDecl(var(None, Onready::No, String::from("abc"), None, Setget::default())));
     assert_eq!(decl1.name(), Some("abc"));
 
     let decl2 = d(DeclF::ConstDecl(String::from("MY_CONST"), e(ExprF::from(10))));

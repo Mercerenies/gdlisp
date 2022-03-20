@@ -50,7 +50,7 @@ fn on_each_decl_impl(decls: &[Decl], acc: &mut Vec<Decl>, block: &mut impl FnMut
     let mut new_decls = block(decl)?;
     for new_decl in &mut new_decls {
       match &mut new_decl.value {
-        DeclF::FnDecl(_, _) | DeclF::InitFnDecl(_) | DeclF::VarDecl(_, _, _, _, _) | DeclF::ConstDecl(_, _) | DeclF::SignalDecl(_, _) | DeclF::EnumDecl(_) | DeclF::PassDecl => {
+        DeclF::FnDecl(_, _) | DeclF::InitFnDecl(_) | DeclF::VarDecl(_) | DeclF::ConstDecl(_, _) | DeclF::SignalDecl(_, _) | DeclF::EnumDecl(_) | DeclF::PassDecl => {
           // Nothing to recurse on, so pass.
         }
         DeclF::ClassDecl(cdecl) => {
@@ -93,7 +93,7 @@ fn on_decl(opt: &impl FunctionOptimization, decl: &Decl) -> Result<Vec<Decl>, Er
       opt.run_on_init_function(&mut fndecl)?;
       Ok(vec!(Decl::new(DeclF::InitFnDecl(fndecl), decl.pos)))
     }
-    DeclF::ClassDecl(_) | DeclF::VarDecl(_, _, _, _, _) | DeclF::ConstDecl(_, _) | DeclF::SignalDecl(_, _) | DeclF::EnumDecl(_) | DeclF::PassDecl => {
+    DeclF::ClassDecl(_) | DeclF::VarDecl(_) | DeclF::ConstDecl(_, _) | DeclF::SignalDecl(_, _) | DeclF::EnumDecl(_) | DeclF::PassDecl => {
       Ok(vec!(decl.clone()))
     }
   }

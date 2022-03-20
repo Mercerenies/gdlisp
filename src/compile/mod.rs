@@ -210,10 +210,10 @@ impl Compiler {
         Ok(Decl::new(DeclF::ConstDecl(gd_name, value), decl.pos))
       }
       ir::decl::ClassInnerDeclF::ClassVarDecl(v) => {
-        let exports = v.export.as_ref().map(|export| {
+        let export = v.export.as_ref().map(|export| {
           export.args.iter().map(|expr| self.compile_export(pipeline, table, expr)).collect::<Result<Vec<_>, _>>()
         }).transpose()?;
-        let exports = exports.map(|args| decl::Export { args });
+        let export = export.map(|args| decl::Export { args });
         let name = names::lisp_to_gd(&v.name);
         // Note: immediate_value is *only* values which will be
         // compiled directly into the declaration. Initializers added
@@ -224,7 +224,13 @@ impl Compiler {
           Compiler::compile_inner_var_value(&name, v.value.as_ref(), &mut local_frame, decl.pos)?
         };
         let onready = Onready::from(immediate_value.is_some() && v.init_time == InitTime::Ready);
-        Ok(Decl::new(DeclF::VarDecl(exports, onready, name, immediate_value, Setget::default()), decl.pos))
+        Ok(Decl::new(DeclF::VarDecl(decl::VarDecl {
+          export,
+          onready,
+          name,
+          value: immediate_value,
+          setget: Setget::default(),
+        }), decl.pos))
       }
       ir::decl::ClassInnerDeclF::ClassFnDecl(f) => {
         let gd_name = names::lisp_to_gd(&f.name);

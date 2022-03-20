@@ -2,7 +2,7 @@
 //! Provides the [`SyntheticField`] type, for generating proxy fields
 //! on GDScript classes.
 
-use crate::gdscript::decl::FnDecl;
+use crate::gdscript::decl::{FnDecl};
 use crate::gdscript::arglist::ArgList;
 use crate::gdscript::stmt::Stmt;
 

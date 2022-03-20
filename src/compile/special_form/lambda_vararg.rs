@@ -1,7 +1,7 @@
 
 use crate::ir::arglist::VarArg;
 use crate::compile::symbol_table::function_call::FnSpecs;
-use crate::gdscript::decl::{self, Decl, DeclF, Setget};
+use crate::gdscript::decl::{self, Decl, DeclF, VarDecl};
 use crate::gdscript::expr::{Expr, ExprF};
 use crate::gdscript::stmt::{self, Stmt};
 use crate::gdscript::op;
@@ -118,7 +118,7 @@ pub fn generate_lambda_class(class_name: String,
     };
   let mut class_body = vec!();
   for var in closed_vars {
-    class_body.push(Decl::new(DeclF::VarDecl(None, decl::Onready::No, var.to_owned(), None, Setget::default()), pos));
+    class_body.push(Decl::new(DeclF::VarDecl(VarDecl::simple(var.to_owned())), pos));
   }
   class_body.append(&mut vec!(
     Decl::new(DeclF::FnDecl(decl::Static::NonStatic, constructor), pos),
