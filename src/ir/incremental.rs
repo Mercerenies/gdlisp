@@ -597,7 +597,7 @@ impl IncCompiler {
           if vec.len() < 3 {
             return Err(PError::from(Error::new(ErrorF::InvalidDecl(curr.clone()), curr.pos)));
           }
-          if let ASTF::Symbol(fname) = &vec[1].value {
+          if let Some(fname) = IncCompiler::compile_instance_function_name(&vec[1]) {
             let args: Vec<_> = DottedExpr::new(vec[2]).try_into()?;
             let args = SimpleArgList::parse(args, vec[2].pos)?;
 
@@ -613,7 +613,7 @@ impl IncCompiler {
             }).transpose()?;
 
             let body = body.iter().map(|expr| self.compile_expr(pipeline, expr)).collect::<Result<Vec<_>, _>>()?;
-            if fname == library::CONSTRUCTOR_NAME {
+            if IncCompiler::is_constructor_function(&fname) {
               // Constructor
 
               // There can only be one constructor defined in the class
@@ -636,7 +636,7 @@ impl IncCompiler {
               }
               let mut decl = decl::ClassFnDecl {
                 is_static: Static::NonStatic,
-                name: InstanceFunctionName::Ordinary(fname.to_owned()),
+                name: fname,
                 args,
                 body: Expr::progn(body, vec[0].pos),
               };
@@ -673,6 +673,41 @@ impl IncCompiler {
       }
     } else {
       Err(PError::from(Error::new(ErrorF::UnknownDecl(curr.clone()), curr.pos)))
+    }
+  }
+
+  fn compile_instance_function_name(ast: &AST) -> Option<InstanceFunctionName> {
+    if let ASTF::Symbol(name) = &ast.value {
+      Some(InstanceFunctionName::Ordinary(name.to_owned()))
+    } else {
+      let list: Vec<_> = DottedExpr::new(ast).try_into().ok()?;
+      if let [accessor_type, field_name] = &*list {
+        if let ASTF::Symbol(field_name) = &field_name.value {
+          match &accessor_type.value {
+            ASTF::Symbol(set) if set == "set" => {
+              Some(InstanceFunctionName::Setter(field_name.to_owned()))
+            }
+            ASTF::Symbol(get) if get == "get" => {
+              Some(InstanceFunctionName::Getter(field_name.to_owned()))
+            }
+            _ => {
+              None
+            }
+          }
+        } else {
+          None
+        }
+      } else {
+        None
+      }
+    }
+  }
+
+  fn is_constructor_function(fname: &InstanceFunctionName) -> bool {
+    if let InstanceFunctionName::Ordinary(fname) = fname {
+      fname == library::CONSTRUCTOR_NAME
+    } else {
+      false
     }
   }
 
