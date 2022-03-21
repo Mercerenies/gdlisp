@@ -190,7 +190,7 @@ pub fn declare_class(frame: &mut CompilerFrame<impl HasDecls>,
   }
 
   let class_init = class_init_builder.build_into(frame.builder);
-  class_init.apply(&mut decl);
+  class_init.apply(&mut decl, pos)?;
 
   Ok(decl)
 }

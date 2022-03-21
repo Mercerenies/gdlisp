@@ -5,12 +5,14 @@ use crate::gdscript::decl::{Decl, DeclF, ClassDecl, InitFnDecl, FnDecl, Static};
 use crate::gdscript::stmt::Stmt;
 use crate::gdscript::arglist::ArgList;
 use crate::gdscript::library::READY_NAME;
+use crate::compile::error::{Error, ErrorF};
 use crate::util::find_or_else_mut;
 use crate::pipeline::source::SourceOffset;
 use super::builder::{StmtBuilder, HasDecls};
 use super::synthetic_field::{SyntheticField, Getter, Setter};
 
 use std::mem;
+use std::collections::HashMap;
 
 /// A builder for a GDScript class.
 ///
@@ -176,7 +178,12 @@ impl ClassInit {
   // TODO Is it possible for variables to be shadowed by the
   // initializer arguments here? Should we throw an error in that
   // case?
-  pub fn apply(mut self, class: &mut ClassDecl) {
+
+  /// Applies the initializer information to the given class
+  /// declaration. The class declaration is mutated in-place. If an
+  /// error occurs, then the class declaration is left in a valid but
+  /// unspecified state.
+  pub fn apply(mut self, class: &mut ClassDecl, pos: SourceOffset) -> Result<(), Error> {
 
     // Initializer
     if !self.init.is_empty() {
@@ -192,8 +199,40 @@ impl ClassInit {
       ready.body = self.ready;
     }
 
-    /////
+    // Proxy fields for getters and setters
+    ClassInit::apply_proxy_fields(self.synthetic_fields, class, pos)?;
 
+    Ok(())
+  }
+
+  /// Generates all of the proxy fields associated with the synthetic
+  /// field collection. In case of a conflict with an existing (non-proxy)
+  /// field, an error is raised. In that case, the class declaration
+  /// is left in a valid but unspecified state.
+  fn apply_proxy_fields(fields: Vec<SyntheticField>, class: &mut ClassDecl, pos: SourceOffset) -> Result<(), Error> {
+    let existing_fields = ClassInit::all_var_decls(class);
+
+    for field in fields {
+      let var_decl = field.into_field();
+      if let Some(pos) = existing_fields.get(&*var_decl.name) {
+        return Err(Error::new(ErrorF::FieldAccessorConflict(var_decl.name), *pos));
+      }
+      class.body.push(Decl::new(DeclF::VarDecl(var_decl), pos));
+    }
+
+    Ok(())
+  }
+
+  /// Returns a collection of all of the variable declaration names in
+  /// the given class.
+  fn all_var_decls(class: &ClassDecl) -> HashMap<String, SourceOffset> {
+    let mut acc = HashMap::new();
+    for decl in &class.body {
+      if let DeclF::VarDecl(var_decl) = &decl.value {
+        acc.insert(var_decl.name.to_owned(), decl.pos);
+      }
+    }
+    acc
   }
 
   /// Find the initializer function defined on the current class. If

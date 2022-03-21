@@ -121,7 +121,7 @@ pub fn compile_lambda_class(frame: &mut CompilerFrame<StmtBuilder>,
   }
 
   let class_init = class_init_builder.build_into(*builder);
-  class_init.apply(&mut class);
+  class_init.apply(&mut class, pos)?;
 
   builder.add_helper(Decl::new(DeclF::ClassDecl(class), pos));
 
