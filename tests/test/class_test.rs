@@ -1,6 +1,7 @@
 
 extern crate gdlisp;
 
+use gdlisp::ir::identifier::ClassNamespace;
 use gdlisp::ir::modifier::{ParseError as ModifierParseError, ParseErrorF as ModifierParseErrorF};
 use gdlisp::compile::error::{Error as GDError, ErrorF as GDErrorF};
 use gdlisp::pipeline::error::{Error as PError};
@@ -894,4 +895,175 @@ pub fn duplicate_constructor_test() {
     parse_compile_decl_err("((defclass Foo (Node) (defn _init ()) (defn _init ())))"),
     Err(PError::from(GDError::new(GDErrorF::DuplicateConstructor, SourceOffset(39)))),
   );
+}
+
+#[test]
+pub fn class_setget_test_1() {
+  assert_eq!(parse_compile_decl(r#"((defclass ClassName (Node)
+                                      (defvar x)))"#),
+             r#"extends Reference
+class ClassName extends Node:
+    func _init():
+        pass
+    var x
+static func run():
+    return null
+"#);
+}
+
+#[test]
+pub fn class_setget_test_2() {
+  assert_eq!(parse_compile_decl(r#"((defclass ClassName (Node)
+                                      (defn (get x) () 10)))"#),
+             r#"extends Reference
+class ClassName extends Node:
+    func _init():
+        pass
+    func __gdlisp_get_x():
+        return 10
+    var x setget ,__gdlisp_get_x
+static func run():
+    return null
+"#);
+}
+
+#[test]
+pub fn class_setget_test_3() {
+  assert_eq!(parse_compile_decl(r#"((defclass ClassName (Node)
+                                      (defn (set x) (a))))"#),
+             r#"extends Reference
+class ClassName extends Node:
+    func _init():
+        pass
+    func __gdlisp_set_x(a_0):
+        return null
+    var x setget __gdlisp_set_x
+static func run():
+    return null
+"#);
+}
+
+#[test]
+pub fn class_setget_test_4() {
+  assert_eq!(parse_compile_decl(r#"((defclass ClassName (Node)
+                                      (defn (set x) (a))
+                                      (defn (get x) () 10)))"#),
+             r#"extends Reference
+class ClassName extends Node:
+    func _init():
+        pass
+    func __gdlisp_set_x(a_0):
+        return null
+    func __gdlisp_get_x():
+        return 10
+    var x setget __gdlisp_set_x, __gdlisp_get_x
+static func run():
+    return null
+"#);
+}
+
+#[test]
+pub fn class_setget_test_5() {
+  assert_eq!(parse_compile_decl(r#"((defclass ClassName (Node) main
+                                      (defn (set x) (a))
+                                      (defn (get x) () 10)))"#),
+             r#"extends Node
+func _init():
+    pass
+func __gdlisp_set_x(a_0):
+    return null
+func __gdlisp_get_x():
+    return 10
+var x setget __gdlisp_set_x, __gdlisp_get_x
+static func run():
+    return null
+"#);
+}
+
+#[test]
+pub fn class_setget_conflict_test_1() {
+  assert_eq!(parse_compile_decl_err(r#"((defclass ClassName (Node)
+                                         (defn (set x) (a))
+                                         (defn (set x) (b))))"#),
+             Err(PError::from(GDError::new(GDErrorF::DuplicateName(ClassNamespace::Function, String::from("__gdlisp_set_x")), SourceOffset(130)))));
+}
+
+#[test]
+pub fn class_setget_conflict_test_2() {
+  assert_eq!(parse_compile_decl_err(r#"((defclass ClassName (Node)
+                                         (defn (get x) ())
+                                         (defn (get x) ())))"#),
+             Err(PError::from(GDError::new(GDErrorF::DuplicateName(ClassNamespace::Function, String::from("__gdlisp_get_x")), SourceOffset(129)))));
+}
+
+#[test]
+pub fn class_setget_conflict_test_3() {
+  assert_eq!(parse_compile_decl_err(r#"((defclass ClassName (Node)
+                                         (defvar x)
+                                         (defn (get x) ())))"#),
+             Err(PError::from(GDError::new(GDErrorF::FieldAccessorConflict(String::from("x")), SourceOffset(70)))));
+}
+
+#[test]
+pub fn class_setget_conflict_test_4() {
+  assert_eq!(parse_compile_decl_err(r#"((defclass ClassName (Node)
+                                         (defvar x)
+                                         (defn (set x) (a))))"#),
+             Err(PError::from(GDError::new(GDErrorF::FieldAccessorConflict(String::from("x")), SourceOffset(70)))));
+}
+
+#[test]
+pub fn class_setget_bad_signature_1() {
+  assert_eq!(parse_compile_decl_err(r#"((defclass ClassName (Node)
+                                         (defn (get x) (a))))"#),
+             Err(PError::from(GDError::new(GDErrorF::BadGetterArguments(String::from("x")), SourceOffset(70)))));
+}
+
+#[test]
+pub fn class_setget_bad_signature_2() {
+  assert_eq!(parse_compile_decl_err(r#"((defclass ClassName (Node)
+                                         (defn (get x) () static)))"#),
+             Err(PError::from(GDError::new(GDErrorF::BadGetterArguments(String::from("x")), SourceOffset(70)))));
+}
+
+#[test]
+pub fn class_setget_bad_signature_3() {
+  assert_eq!(parse_compile_decl_err(r#"((defclass ClassName (Node)
+                                         (defn (set x) (a) static)))"#),
+             Err(PError::from(GDError::new(GDErrorF::BadSetterArguments(String::from("x")), SourceOffset(70)))));
+}
+
+#[test]
+pub fn class_setget_bad_signature_4() {
+  assert_eq!(parse_compile_decl_err(r#"((defclass ClassName (Node)
+                                         (defn (set x) ())))"#),
+             Err(PError::from(GDError::new(GDErrorF::BadSetterArguments(String::from("x")), SourceOffset(70)))));
+}
+
+#[test]
+pub fn class_setget_runner_test_1() {
+  assert_eq!(parse_and_run(r#"((defclass ClassName (Reference)
+                                 (defvar private-field)
+                                 (defn _init ()
+                                   (set @private-field 1))
+                                 (defn (set x) (a) (set @private-field a))
+                                 (defn (get x) () @private-field))
+                               (let ((foo (ClassName:new)))
+                                 (set foo:x 92)
+                                 (print foo:x)))"#),
+             "\n92\n");
+}
+
+#[test]
+pub fn class_setget_runner_test_2() {
+  assert_eq!(parse_and_run(r#"((defclass ClassName (Reference) main
+                                 (defvar private-field)
+                                 (defn _init ()
+                                   (set @private-field 1))
+                                 (defn (set x) (a) (set @private-field a))
+                                 (defn (get x) () @private-field))
+                               (let ((foo (ClassName:new)))
+                                 (set foo:x 92)
+                                 (print foo:x)))"#),
+             "\n92\n");
 }
