@@ -222,6 +222,9 @@ pub enum ErrorF {
   BadGetterArguments(String),
   /// A setter was declared with an invalid argument list or modifier.
   BadSetterArguments(String),
+  /// A field and either a getter or setter with the same name were
+  /// declared in the same scope.
+  FieldAccessorConflict(String),
 }
 
 /// Variant of [`ErrorF`] with source offset information. See
@@ -327,6 +330,7 @@ impl ErrorF {
       ErrorF::DuplicateName(_, _) => 42,
       ErrorF::BadGetterArguments(_) => 43,
       ErrorF::BadSetterArguments(_) => 44,
+      ErrorF::FieldAccessorConflict(_) => 45,
     }
   }
 
@@ -456,6 +460,9 @@ impl fmt::Display for ErrorF {
       }
       ErrorF::BadSetterArguments(field_name) => {
         write!(f, "The setter '{}' has a bad signature; getters must be 1-ary non-static functions", field_name)?;
+      }
+      ErrorF::FieldAccessorConflict(field_name) => {
+        write!(f, "The value '{}' was declared as both an instance variable and either a getter or a setter", field_name)?;
       }
     }
     if self.is_internal() {
