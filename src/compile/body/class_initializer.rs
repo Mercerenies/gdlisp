@@ -38,12 +38,12 @@ pub struct ClassBuilder {
 #[derive(Default, Clone, Debug)]
 pub struct ClassInit {
   /// Statements to be prepended to the class' `_init` method.
-  pub init: Vec<Stmt>,
+  init: Vec<Stmt>,
   /// Statements to be prepended to the class' `_ready` method.
-  pub ready: Vec<Stmt>,
+  ready: Vec<Stmt>,
   /// Proxy fields to be generated with appropriate `setget`
   /// declarations.
-  pub synthetic_fields: Vec<SyntheticField>,
+  synthetic_fields: Vec<SyntheticField>,
 }
 
 /// The time that an instance variable should be initialized.
