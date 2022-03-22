@@ -169,10 +169,6 @@ impl Expr {
         acc_vars.visit(s.to_owned(), AccessType::Read);
       }
       ExprF::Literal(_) => {}
-//      ExprF::Subscript(a, b) => {
-//        a.walk_locals(acc_vars, acc_fns);
-//        b.walk_locals(acc_vars, acc_fns);
-//      }
       ExprF::Progn(exprs) => {
         for expr in exprs {
           expr.walk_locals(acc_vars, acc_fns);
