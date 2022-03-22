@@ -10,7 +10,7 @@ use crate::pipeline::source::{SourceOffset, Sourced};
 use crate::compile::body::class_initializer::InitTime;
 use crate::compile::body::synthetic_field::{Getter, Setter};
 
-use std::collections::HashSet;
+use std::collections::HashMap;
 use std::borrow::Cow;
 
 #[derive(Clone, Debug, Eq, PartialEq, Default)]
@@ -243,17 +243,17 @@ impl Decl {
   }
 
   // Gets the direct dependencies required by the declaration.
-  pub fn dependencies(&self) -> HashSet<Id> {
+  pub fn dependencies(&self) -> HashMap<Id, SourceOffset> {
     match &self.value {
       DeclF::FnDecl(f) => {
-        let mut ids: HashSet<Id> = f.body.get_ids().collect();
+        let mut ids: HashMap<Id, SourceOffset> = f.body.get_ids().collect();
         for name in f.args.iter_vars() {
           ids.remove(&*Id::build(Namespace::Value, name));
         }
         ids
       }
       DeclF::MacroDecl(m) => {
-        let mut ids: HashSet<Id> = m.body.get_ids().collect();
+        let mut ids: HashMap<Id, SourceOffset> = m.body.get_ids().collect();
         for name in m.args.iter_vars() {
           ids.remove(&*Id::build(Namespace::Value, name));
         }
@@ -266,8 +266,8 @@ impl Decl {
         c.value.get_ids().collect()
       }
       DeclF::ClassDecl(c) => {
-        let mut ids = HashSet::new();
-        ids.insert(Id::new(Namespace::Value, c.extends.to_owned()));
+        let mut ids = HashMap::new();
+        ids.insert(Id::new(Namespace::Value, c.extends.to_owned()), self.pos);
         ids.extend(c.constructor_or_default(SourceOffset::from(0)).dependencies());
         for d in &c.decls {
           ids.extend(d.dependencies());
@@ -276,7 +276,7 @@ impl Decl {
         ids
       }
       DeclF::EnumDecl(enum_decl) => {
-        let mut ids = HashSet::new();
+        let mut ids = HashMap::new();
         for (_, expr) in &enum_decl.clauses {
           if let Some(expr) = expr {
             ids.extend(expr.get_ids());
@@ -285,7 +285,9 @@ impl Decl {
         ids
       }
       DeclF::DeclareDecl(_) => {
-        HashSet::new()
+        // Declare declarations have no dependencies; they are
+        // assertions to the compiler.
+        HashMap::new()
       }
     }
   }
@@ -382,11 +384,11 @@ impl ConstructorDecl {
     }
   }
 
-  pub fn dependencies(&self) -> HashSet<Id> {
-    let mut ids: HashSet<Id> = self.body.get_ids().collect();
+  pub fn dependencies(&self) -> HashMap<Id, SourceOffset> {
+    let mut ids: HashMap<Id, SourceOffset> = self.body.get_ids().collect();
     for expr in &self.super_call.call {
-      for id in expr.get_ids() {
-        ids.insert(id);
+      for (id, pos) in expr.get_ids() {
+        ids.insert(id, pos);
       }
     }
     for name in self.args.iter_vars() {
@@ -423,13 +425,13 @@ impl ClassInnerDecl {
     ClassInnerDecl { value, pos }
   }
 
-  pub fn dependencies(&self) -> HashSet<Id> {
+  pub fn dependencies(&self) -> HashMap<Id, SourceOffset> {
     match &self.value {
-      ClassInnerDeclF::ClassSignalDecl(_) => HashSet::new(),
-      ClassInnerDeclF::ClassConstDecl(_) => HashSet::new(),
-      ClassInnerDeclF::ClassVarDecl(_) => HashSet::new(),
+      ClassInnerDeclF::ClassSignalDecl(_) => HashMap::new(),
+      ClassInnerDeclF::ClassConstDecl(_) => HashMap::new(),
+      ClassInnerDeclF::ClassVarDecl(_) => HashMap::new(),
       ClassInnerDeclF::ClassFnDecl(func) => {
-        let mut ids: HashSet<Id> = func.body.get_ids().collect();
+        let mut ids: HashMap<Id, SourceOffset> = func.body.get_ids().collect();
         for name in func.args.iter_vars() {
           ids.remove(&*Id::build(Namespace::Value, name));
         }

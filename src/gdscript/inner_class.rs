@@ -98,13 +98,13 @@ impl NeedsOuterClassRef for ir::decl::ClassInnerDecl {
       // inaccessible from static scope.
       return false;
     }
-    check_dependencies_for_outer_class_ref(self.dependencies().into_iter(), table)
+    check_dependencies_for_outer_class_ref(self.dependencies().into_iter().map(|(k, _)| k), table)
   }
 }
 
 impl NeedsOuterClassRef for ir::decl::ConstructorDecl {
   fn needs_outer_class_ref(&self, table: &SymbolTable) -> bool {
-    check_dependencies_for_outer_class_ref(self.dependencies().into_iter(), table)
+    check_dependencies_for_outer_class_ref(self.dependencies().into_iter().map(|(k, _)| k), table)
   }
 }
 

@@ -1,55 +1,65 @@
 
 use super::declaration_table::DeclarationTable;
 use super::identifier::{IdLike, Id, Namespace};
-use crate::compile::error::ErrorF;
+use crate::pipeline::source::SourceOffset;
 
-use std::collections::HashSet;
+use std::collections::{HashSet, HashMap};
 
+// TODO Make these fields private
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub struct Dependencies { // TODO Consider storing where we saw the identifiers
-  pub known: HashSet<Id>,
-  pub imports: HashSet<Id>,
-  pub unknown: HashSet<Id>,
+pub struct Dependencies {
+  pub known: HashMap<Id, SourceOffset>,
+  pub imports: HashMap<Id, SourceOffset>,
+  pub unknown: HashMap<Id, SourceOffset>,
 }
 
 #[derive(Debug)]
 pub enum DependencyError {
-  UnknownName(Id),
+  UnknownName(Id, SourceOffset),
 }
 
 impl Dependencies {
 
-  pub fn identify<'a>(table: &DeclarationTable, known_imports: &HashSet<Id>, id: &(dyn IdLike<NS=Namespace> + 'a))
+  pub fn identify<'a>(table: &DeclarationTable,
+                      known_imports: &HashSet<Id>,
+                      id: &(dyn IdLike<NS=Namespace> + 'a),
+                      pos: SourceOffset)
                       -> Dependencies {
-    let mut visited = HashSet::new();
-    let mut imports = HashSet::new();
-    let mut unknown = HashSet::new();
+    let mut visited = HashMap::new();
+    let mut imports = HashMap::new();
+    let mut unknown = HashMap::new();
     match table.get(id) {
       None => {
         // No traversal necessary.
-        unknown.insert(id.to_owned());
+        unknown.insert(id.to_owned(), pos);
       }
       Some(initial) => {
-        let mut frontier = vec!(initial);
-        while let Some(current) = frontier.pop() {
-          if visited.contains(&*current.id_like()) {
+        let mut frontier = vec!((initial, pos));
+        while let Some((current, pos)) = frontier.pop() {
+          if visited.contains_key(&*current.id_like()) {
+            visited.entry(current.to_id()).and_modify(|old_pos: &mut SourceOffset| {
+              *old_pos = (*old_pos).min(pos);
+            });
             continue;
           }
           let deps = current.dependencies();
-          for dep in deps {
+          for (dep, pos) in deps {
             if let Some(next) = table.get(&dep) {
-              frontier.push(next);
+              frontier.push((next, pos));
             } else if known_imports.contains(&dep) {
-              imports.insert(dep);
+              imports.insert(dep, pos);
             } else {
-              unknown.insert(dep);
+              unknown.insert(dep, pos);
             }
           }
-          visited.insert(current.to_id());
+          visited.insert(current.to_id(), pos);
       }
       }
     }
-    let known = &visited - &imports;
+    let mut known = visited;
+    for imported_name in imports.keys() {
+      known.remove(imported_name);
+    }
     Dependencies { known, imports, unknown }
   }
 
@@ -68,24 +78,11 @@ impl Dependencies {
     // all names are either knowns or imports (and there are no
     // unknowns), then we can safely discard the imports and keep only
     // the knowns, as the imports are already loaded elsewhere.
-    if let Some(unknown) = self.unknown.into_iter().next() {
-      Err(DependencyError::UnknownName(unknown))
+    if let Some((unknown, pos)) = self.unknown.into_iter().next() {
+      Err(DependencyError::UnknownName(unknown, pos))
     } else {
-      Ok(self.known)
+      Ok(self.known.into_iter().map(|(k, _)| k).collect())
     }
   }
 
-}
-
-impl From<DependencyError> for ErrorF {
-  fn from(e: DependencyError) -> ErrorF {
-    match e {
-      DependencyError::UnknownName(id) => {
-        match id.namespace {
-          Namespace::Function => ErrorF::NoSuchFn(id.name),
-          Namespace::Value => ErrorF::NoSuchVar(id.name),
-        }
-      }
-    }
-  }
 }

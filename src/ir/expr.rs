@@ -166,7 +166,7 @@ impl Expr {
   fn walk_locals(&self, acc_vars: &mut Locals, acc_fns: &mut Functions) {
     match &self.value {
       ExprF::LocalVar(s) => {
-        acc_vars.visit(s.to_owned(), AccessType::Read);
+        acc_vars.visit(s.to_owned(), AccessType::Read, self.pos);
       }
       ExprF::Literal(_) => {}
       ExprF::Progn(exprs) => {
@@ -194,7 +194,7 @@ impl Expr {
         acc_vars.merge_with(local_vars);
       }
       ExprF::Call(name, args) => {
-        acc_fns.visit(name.to_owned(), ());
+        acc_fns.visit(name.to_owned(), (), self.pos);
         for expr in args {
           expr.walk_locals(acc_vars, acc_fns);
         }
@@ -207,11 +207,9 @@ impl Expr {
         }
         let mut local_scope = Locals::new();
         body.walk_locals(&mut local_scope, acc_fns);
-        for var in local_scope.names() {
-          if !vars.contains(var) {
-            if let Some(access_type) = local_scope.get(var) {
-              acc_vars.visit(var.to_owned(), *access_type);
-            }
+        for (var, access_type, pos) in local_scope.into_iter_with_offset() {
+          if !vars.contains(&var) {
+            acc_vars.visit(var, access_type, pos);
           }
         }
       }
@@ -225,9 +223,9 @@ impl Expr {
         }
         let mut local_scope = Functions::new();
         body.walk_locals(acc_vars, &mut local_scope);
-        for func in local_scope.names() {
-          if !fns.contains(func) {
-            acc_fns.visit(func.to_owned(), ());
+        for (func, (), pos) in local_scope.into_iter_with_offset() {
+          if !fns.contains(&func) {
+            acc_fns.visit(func, (), pos);
           }
         }
       }
@@ -247,9 +245,9 @@ impl Expr {
           Expr::new(lambda_body, self.pos).walk_locals(acc_vars, acc_fns);
         }
         body.walk_locals(acc_vars, &mut local_scope);
-        for func in local_scope.names() {
-          if !fns.contains(func) {
-            acc_fns.visit(func.to_owned(), ());
+        for (func, (), pos) in local_scope.into_iter_with_offset() {
+          if !fns.contains(&func) {
+            acc_fns.visit(func, (), pos);
           }
         }
       }
@@ -257,18 +255,16 @@ impl Expr {
         let vars: HashSet<_, RandomState> = args.iter_vars().map(|x| x.to_owned()).collect();
         let mut local_scope = Locals::new();
         body.walk_locals(&mut local_scope, acc_fns);
-        for var in local_scope.names() {
-          if !vars.contains(var) {
-            if let Some(access_type) = local_scope.get(var) {
-              acc_vars.visit(var.to_owned(), access_type.closed());
-            }
+        for (var, access_type, pos) in local_scope.into_iter_with_offset() {
+          if !vars.contains(&var) {
+            acc_vars.visit(var, access_type.closed(), pos);
           }
         }
       }
       ExprF::Assign(target, expr) => {
         match target {
-          AssignTarget::Variable(_, s) => {
-            acc_vars.visit(s.to_owned(), AccessType::RW);
+          AssignTarget::Variable(pos, s) => {
+            acc_vars.visit(s.to_owned(), AccessType::RW, *pos);
           }
           AssignTarget::InstanceField(_, lhs, _) => {
             lhs.walk_locals(acc_vars, acc_fns);
@@ -276,7 +272,7 @@ impl Expr {
             // variable also becomes RW, since it might contain a COW
             // value.
             if let ExprF::LocalVar(v) = &lhs.value {
-              acc_vars.visit(v.to_owned(), AccessType::RW);
+              acc_vars.visit(v.to_owned(), AccessType::RW, lhs.pos);
             }
           }
         }
@@ -284,7 +280,7 @@ impl Expr {
       }
       ExprF::FuncRef(target) => {
         match target {
-          FuncRefTarget::SimpleName(name) => acc_fns.visit(name.to_owned(), ()),
+          FuncRefTarget::SimpleName(name) => acc_fns.visit(name.to_owned(), (), self.pos),
         }
       }
       ExprF::Array(vec) => {
@@ -313,7 +309,7 @@ impl Expr {
         for arg in args {
           arg.walk_locals(acc_vars, acc_fns);
         }
-        acc_vars.visit(extends.to_owned(), AccessType::ClosedRead);
+        acc_vars.visit(extends.to_owned(), AccessType::ClosedRead, self.pos);
 
         let (mut con_vars, con_fns) =
           constructor.as_ref().map_or_else(|| (ClosureNames::new(), ClosureNames::new()),
@@ -379,10 +375,10 @@ impl Expr {
     (vars, fns)
   }
 
-  pub fn get_ids(&self) -> impl Iterator<Item=Id> {
+  pub fn get_ids(&self) -> impl Iterator<Item=(Id, SourceOffset)> {
     let (vars, fns) = self.get_names();
-    let vars = vars.into_names().map(|x| Id::new(Namespace::Value, x));
-    let fns = fns.into_names().map(|x| Id::new(Namespace::Function, x));
+    let vars = vars.into_iter_with_offset().map(|(name, _, pos)| (Id::new(Namespace::Value, name), pos));
+    let fns = fns.into_iter_with_offset().map(|(name, (), pos)| (Id::new(Namespace::Function, name), pos));
     Iterator::chain(vars, fns)
   }
 
@@ -416,15 +412,15 @@ mod tests {
   use literal::Literal;
 
   fn lhash(vec: Vec<String>) -> Locals {
-    Locals::from_hashmap(vec.into_iter().map(|x| (x, AccessType::Read)).collect())
+    Locals::from_hashmap(vec.into_iter().map(|x| (x, (AccessType::Read, SourceOffset(0)))).collect())
   }
 
   fn lhash_rw(vec: Vec<(String, AccessType)>) -> Locals {
-    Locals::from_hashmap(vec.into_iter().collect())
+    Locals::from_hashmap(vec.into_iter().map(|(x, t)| (x, (t, SourceOffset(0)))).collect())
   }
 
   fn fhash(vec: Vec<String>) -> Functions {
-    Functions::from_hashset(vec.into_iter().collect())
+    Functions::from_hashmap(vec.into_iter().map(|x| (x, ((), SourceOffset(0)))).collect())
   }
 
   fn lvc(name: &str, value: Expr) -> LocalVarClause {

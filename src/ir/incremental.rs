@@ -847,12 +847,12 @@ impl IncCompiler {
 
     // Now we need to find the dependencies and spawn up the
     // server for the macro itself.
-    let mut deps = Dependencies::identify(table.borrow(), &imported_names, &*Id::build(namespace, &tmp_name));
+    let mut deps = Dependencies::identify(table.borrow(), &imported_names, &*Id::build(namespace, &tmp_name), pos);
     deps.purge_unknowns(library::all_builtin_names(self.minimalist).iter().map(|x| x as &dyn IdLike<NS=Namespace>));
 
     // Aside from built-in functions, it must be the case that
     // all referenced functions are already defined.
-    let names = deps.try_into_knowns().map_err(|x| Error::from_value(x, pos))?;
+    let names = deps.try_into_knowns()?;
     let tmpfile = macros::create_macro_file(pipeline, self.imports.clone(), table.borrow(), names, pos, self.minimalist)?;
     let m_id = pipeline.get_server_mut().stand_up_macro(tmp_name, decl.args, tmpfile).map_err(|err| IOError::new(err, pos))?;
     self.macros.insert(Id::new(namespace, orig_name), MacroData { id: m_id, imported: false });

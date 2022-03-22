@@ -10,6 +10,7 @@ use crate::ir::decl::DuplicateMainClassError;
 use crate::ir::import::{ImportDeclParseError, ImportNameResolutionError};
 use crate::ir::modifier::{ParseError as ModifierParseError, ParseErrorF as ModifierParseErrorF};
 use crate::ir::scope::error::ScopeError;
+use crate::ir::depends::DependencyError;
 use crate::compile::symbol_table::local_var::VarNameIntoExtendsError;
 use crate::runner::path::RPathBuf;
 use crate::runner::macro_server::response;
@@ -584,5 +585,19 @@ impl From<ScopeError<Namespace>> for Error {
     Error::from(
       ScopeError::<ClassNamespace>::from(err),
     )
+  }
+}
+
+impl From<DependencyError> for Error {
+  fn from(e: DependencyError) -> Error {
+    match e {
+      DependencyError::UnknownName(id, pos) => {
+        let error_value = match id.namespace {
+          Namespace::Function => ErrorF::NoSuchFn(id.name),
+          Namespace::Value => ErrorF::NoSuchVar(id.name),
+        };
+        Error::new(error_value, pos)
+      }
+    }
   }
 }

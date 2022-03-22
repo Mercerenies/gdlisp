@@ -6,6 +6,7 @@ use crate::ir::arglist::ArgListParseError;
 use crate::ir::modifier::{ParseError as ModifierParseError};
 use crate::ir::decl::DuplicateMainClassError;
 use crate::ir::scope::error::ScopeError;
+use crate::ir::depends::DependencyError;
 
 use lalrpop_util::ParseError;
 
@@ -161,6 +162,12 @@ impl From<DuplicateMainClassError> for Error {
 impl<NS> From<ScopeError<NS>> for Error
 where GDError: From<ScopeError<NS>> {
   fn from(e: ScopeError<NS>) -> Error {
+    Error::from(GDError::from(e))
+  }
+}
+
+impl From<DependencyError> for Error {
+  fn from(e: DependencyError) -> Error {
     Error::from(GDError::from(e))
   }
 }
