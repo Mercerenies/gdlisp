@@ -217,6 +217,9 @@ pub fn wrapped_misc_functions_test() {
   assert_eq!(parse_compile_and_output("(get-stack)"), "return get_stack()\n");
   assert_eq!(parse_compile_and_output("(print-stack)"), "return print_stack()\n");
   assert_eq!(parse_compile_and_output("(is-instance-valid (Reference:new))"), "return is_instance_valid(Reference.new())\n");
+  assert_eq!(parse_compile_and_output("(parse-json nil)"), "return parse_json(GDLisp.nil)\n");
+  assert_eq!(parse_compile_and_output("(to-json \"{}\")"), "return to_json(\"{}\")\n");
+  assert_eq!(parse_compile_and_output("(validate-json \"{}\")"), "return validate_json(\"{}\")\n");
 }
 
 #[test]
@@ -229,6 +232,21 @@ pub fn convert_function_test() {
 pub fn convert_function_run_test() {
   assert_eq!(parse_and_run("((print (convert 1.5 Int)))"), "\n1\n");
   assert_eq!(parse_and_run("((print (convert 1.5 TYPE_INT)))"), "\n1\n");
+}
+
+#[test]
+pub fn instance_from_id_function_test() {
+  assert_eq!(parse_compile_and_output("(instance-from-id 9)"), "return instance_from_id(9)\n");
+}
+
+#[test]
+pub fn instance_from_id_function_run_test() {
+  assert_eq!(parse_and_run(r#"((defclass Foo ()
+                                 (defvar foo "mystring"))
+                               (let* ((x (Foo:new))
+                                      (id (x:get-instance-id)))
+                                 (print (instance-from-id id):foo)))"#),
+             "\nmystring\n");
 }
 
 // TODO Test gensym at runtime once we can pretty-print symbols

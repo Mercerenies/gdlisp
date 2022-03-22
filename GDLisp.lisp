@@ -1518,6 +1518,10 @@
 (sys/declare superfunction range-lerp (a b c d e) public)
 (sys/declare superfunction move-toward (a b c) public)
 (sys/declare superfunction nearest-po2 (a) public)
+(sys/declare superfunction instance-from-id (a) public)
+(sys/declare superfunction parse-json (a) public)
+(sys/declare superfunction to-json (a) public)
+(sys/declare superfunction validate-json (a) public)
 
 (define-symbol-macro PI '(literally PI))
 (define-symbol-macro TAU '(literally TAU))
