@@ -224,6 +224,7 @@ pub fn wrapped_misc_functions_test() {
   assert_eq!(parse_compile_and_output("(inst2dict (Reference:new))"), "return inst2dict(Reference.new())\n");
   assert_eq!(parse_compile_and_output("(str2var \"{}\")"), "return str2var(\"{}\")\n");
   assert_eq!(parse_compile_and_output("(var2str (Reference:new))"), "return var2str(Reference.new())\n");
+  assert_eq!(parse_compile_and_output("(weakref (Reference:new))"), "return weakref(Reference.new())\n");
 }
 
 #[test]

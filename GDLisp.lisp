@@ -1526,6 +1526,7 @@
 (sys/declare superfunction inst2dict (a) public)
 (sys/declare superfunction str2var (a) public)
 (sys/declare superfunction var2str (a) public)
+(sys/declare superfunction weakref (a) public)
 
 (define-symbol-macro PI '(literally PI))
 (define-symbol-macro TAU '(literally TAU))
