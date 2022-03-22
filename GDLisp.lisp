@@ -1216,6 +1216,30 @@
   (sys/call-magic MODULO)
   (mod x y))
 
+(defn min (&rest args)
+  (sys/call-magic MIN-FUNCTION)
+  (cond
+    ((sys/instance-direct? args Cons)
+     (let ((result args:car))
+       (set args args:cdr)
+       (while (sys/instance-direct? args Cons)
+         (set result (min result args:car))
+         (set args args:cdr))
+       result))
+    (#t (literally INF))))
+
+(defn max (&rest args)
+  (sys/call-magic MAX-FUNCTION)
+  (cond
+    ((sys/instance-direct? args Cons)
+     (let ((result args:car))
+       (set args args:cdr)
+       (while (sys/instance-direct? args Cons)
+         (set result (max result args:car))
+         (set args args:cdr))
+       result))
+    (#t (- (literally INF)))))
+
 (defn = (x &rest args)
   (sys/call-magic EQUAL)
   (while (sys/instance-direct? args Cons)
@@ -1454,8 +1478,6 @@
 (sys/declare superfunction char (a) public)
 (sys/declare superfunction exp (a) public)
 (sys/declare superfunction floor (a) public)
-(sys/declare superfunction max (a b) public)
-(sys/declare superfunction min (a b) public)
 
 (define-symbol-macro PI '(literally PI))
 (define-symbol-macro TAU '(literally TAU))

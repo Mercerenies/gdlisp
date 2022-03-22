@@ -55,6 +55,12 @@ pub fn bind_magic(table: &mut MagicTable) {
   // Modulo Division (mod)
   table.set(String::from("MODULO"), CallMagic::ModOperation);
 
+  // Min function (min)
+  table.set(String::from("MIN-FUNCTION"), CallMagic::MinFunction);
+
+  // Max function (max)
+  table.set(String::from("MAX-FUNCTION"), CallMagic::MaxFunction);
+
   // Equality (=)
   table.set(String::from("EQUAL"), CallMagic::CompileToTransCmp(op::BinaryOp::Eq));
 

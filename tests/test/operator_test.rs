@@ -367,3 +367,33 @@ pub fn array_subscript_assign_test_run_2() {
 pub fn array_subscript_assign_test_run_3() {
   assert_eq!(parse_and_run("((let ((x [10 20 30])) (funcall #'set-elt 999 x 1) (print x)))"), "\n[10, 999, 30]\n");
 }
+
+#[test]
+pub fn min_max_test_1() {
+  assert_eq!(parse_compile_and_output("(min 0 1)"), "return min(0, 1)\n");
+  assert_eq!(parse_compile_and_output("(max 0 1)"), "return max(0, 1)\n");
+}
+
+#[test]
+pub fn min_max_test_2() {
+  assert_eq!(parse_compile_and_output("(min 0)"), "return 0\n");
+  assert_eq!(parse_compile_and_output("(max 0)"), "return 0\n");
+}
+
+#[test]
+pub fn min_max_test_3() {
+  assert_eq!(parse_compile_and_output("(min)"), "return INF\n");
+  assert_eq!(parse_compile_and_output("(max)"), "return -INF\n");
+}
+
+#[test]
+pub fn min_max_test_4() {
+  assert_eq!(parse_compile_and_output("(min 1 2 3)"), "return min(min(1, 2), 3)\n");
+  assert_eq!(parse_compile_and_output("(max 1 2 3)"), "return max(max(1, 2), 3)\n");
+}
+
+#[test]
+pub fn min_max_run_test() {
+  assert_eq!(parse_and_run("((print (min 1 2 3)))"), "\n1\n");
+  assert_eq!(parse_and_run("((print (max 1 2 3)))"), "\n3\n");
+}

@@ -71,6 +71,10 @@ pub enum CallMagic {
   IntDivOperation,
   /// [Call magic](CallMagic) for the mathematical modulo operator.
   ModOperation,
+  /// [Call magic](CallMagic) for the `min` function.
+  MinFunction,
+  /// [Call magic](CallMagic) for the `max` function.
+  MaxFunction,
   /// [`CallMagic`] for the inequality `/=` operator. `NEqOperation`
   /// only provides special behavior if two or fewer arguments are
   /// given. If more than two arguments are given, `NEqOperation` will
@@ -350,6 +354,28 @@ impl CallMagic {
         Expecting::exactly(2).validate(&call.function, pos, &args)?;
         let (x, y) = args::two(args);
         Ok(Expr::new(ExprF::Binary(Box::new(x), op::BinaryOp::Mod, Box::new(y)), pos))
+      }
+      CallMagic::MinFunction => {
+        let args = strip_st(args);
+        if args.is_empty() {
+          let expr = Expr::var("INF", pos);
+          Ok(expr)
+        } else {
+          Ok(
+            util::fold1(args.into_iter(), |x, y| Expr::simple_call("min", vec!(x, y), pos)).unwrap(),
+          )
+        }
+      }
+      CallMagic::MaxFunction => {
+        let args = strip_st(args);
+        if args.is_empty() {
+          let expr = Expr::var("INF", pos).unary(op::UnaryOp::Negate, pos);
+          Ok(expr)
+        } else {
+          Ok(
+            util::fold1(args.into_iter(), |x, y| Expr::simple_call("max", vec!(x, y), pos)).unwrap(),
+          )
+        }
       }
       CallMagic::NEqOperation(fallback) => {
         // We only optimize for the 0, 1, and 2 argument cases. Any more
