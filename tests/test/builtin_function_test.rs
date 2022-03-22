@@ -219,4 +219,16 @@ pub fn wrapped_misc_functions_test() {
   assert_eq!(parse_compile_and_output("(is-instance-valid (Reference:new))"), "return is_instance_valid(Reference.new())\n");
 }
 
+#[test]
+pub fn convert_function_test() {
+  assert_eq!(parse_compile_and_output("(convert 1 Int)"), "return GDLisp.convert(1, GDLisp.Int)\n");
+  assert_eq!(parse_compile_and_output("(convert 1 TYPE_INT)"), "return GDLisp.convert(1, TYPE_INT)\n");
+}
+
+#[test]
+pub fn convert_function_run_test() {
+  assert_eq!(parse_and_run("((print (convert 1.5 Int)))"), "\n1\n");
+  assert_eq!(parse_and_run("((print (convert 1.5 TYPE_INT)))"), "\n1\n");
+}
+
 // TODO Test gensym at runtime once we can pretty-print symbols

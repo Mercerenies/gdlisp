@@ -1370,6 +1370,11 @@
 
 (sys/declare function typeof (value) public)
 
+(defn convert (what type)
+  (cond
+    ((sys/instance-direct? type PrimitiveType) ((literally convert) what type:primitive-value))
+    (#t ((literally convert) what type))))
+
 (defn gensym (&opt prefix)
   (cond
     ((= prefix ()) (Symbol:new (GDLisp:global_name_generator:generate)))
@@ -1628,7 +1633,7 @@
 (sys/declare value PoolVector3Array public)
 (sys/declare superglobal TYPE_COLOR_ARRAY public)
 (sys/declare value PoolColorArray public)
-(sys/declare superglobal TYPE_MAX public) ; (Note: We actually do want to expose this TYPE_* constant)
+(sys/declare superglobal TYPE_MAX public)
 
 ;; BUILT-IN MACROS
 
