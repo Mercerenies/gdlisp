@@ -29,4 +29,5 @@ pub mod operator_test;
 pub mod quoting_test;
 pub mod simple_expr_test;
 pub mod type_checking_test;
+pub mod typecast_test;
 pub mod while_test;

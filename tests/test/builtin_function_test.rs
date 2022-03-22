@@ -133,4 +133,35 @@ return GDLisp.car(GDLisp.car(GDLisp.car(_split_0)))
 "#);
 }
 
+#[test]
+pub fn wrapped_random_functions_test() {
+  assert_eq!(parse_compile_and_output("(randomize)"), "return randomize()\n");
+  assert_eq!(parse_compile_and_output("(randi)"), "return randi()\n");
+  assert_eq!(parse_compile_and_output("(randf)"), "return randf()\n");
+  assert_eq!(parse_compile_and_output("(rand-range 0 1)"), "return rand_range(0, 1)\n");
+}
+
+#[test]
+pub fn wrapped_math_functions_test() {
+  assert_eq!(parse_compile_and_output("(clamp 0 1 2)"), "return clamp(0, 1, 2)\n");
+  assert_eq!(parse_compile_and_output("(abs 0)"), "return abs(0)\n");
+}
+
+#[test]
+pub fn wrapped_list_functions_test() {
+  assert_eq!(parse_compile_and_output("(len [1 2])"), "return len([1, 2])\n");
+  assert_eq!(parse_compile_and_output("(len [])"), "return len([])\n");
+}
+
+#[test]
+pub fn wrapped_error_functions_test() {
+  assert_eq!(parse_compile_and_output("(push-error \"A\")"), "return push_error(\"A\")\n");
+  assert_eq!(parse_compile_and_output("(push-warning \"A\")"), "return push_warning(\"A\")\n");
+}
+
+#[test]
+pub fn wrapped_load_functions_test() {
+  assert_eq!(parse_compile_and_output("(load \"A\")"), "return load(\"A\")\n");
+}
+
 // TODO Test gensym at runtime once we can pretty-print symbols
