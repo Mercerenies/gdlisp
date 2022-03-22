@@ -41,3 +41,13 @@ impl Lattice for () {
     ()
   }
 }
+
+/// An implementation of the binary product lattice.
+impl<A: Lattice, B: Lattice> Lattice for (A, B) {
+  fn join(self, other: (A, B)) -> (A, B) {
+    (self.0.join(other.0), self.1.join(other.1))
+  }
+  fn meet(self, other: (A, B)) -> (A, B) {
+    (self.0.meet(other.0), self.1.meet(other.1))
+  }
+}
