@@ -1458,7 +1458,9 @@
 (sys/declare superfunction min (a b) public)
 
 (define-symbol-macro PI '(literally PI))
+(define-symbol-macro TAU '(literally TAU))
 (define-symbol-macro SPKEY '(literally SPKEY))
+(define-symbol-macro INF '(literally INF))
 
 ;; TYPE_* Constants
 
