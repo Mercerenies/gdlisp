@@ -145,6 +145,16 @@ pub fn wrapped_random_functions_test() {
 pub fn wrapped_math_functions_test() {
   assert_eq!(parse_compile_and_output("(clamp 0 1 2)"), "return clamp(0, 1, 2)\n");
   assert_eq!(parse_compile_and_output("(abs 0)"), "return abs(0)\n");
+  assert_eq!(parse_compile_and_output("(acos 0)"), "return acos(0)\n");
+  assert_eq!(parse_compile_and_output("(asin 0)"), "return asin(0)\n");
+  assert_eq!(parse_compile_and_output("(atan 0)"), "return atan(0)\n");
+  assert_eq!(parse_compile_and_output("(atan2 0 1)"), "return atan2(0, 1)\n");
+  assert_eq!(parse_compile_and_output("(cos 0)"), "return cos(0)\n");
+  assert_eq!(parse_compile_and_output("(cosh 0)"), "return cosh(0)\n");
+  assert_eq!(parse_compile_and_output("(sin 0)"), "return sin(0)\n");
+  assert_eq!(parse_compile_and_output("(sinh 0)"), "return sinh(0)\n");
+  assert_eq!(parse_compile_and_output("(tan 0)"), "return tan(0)\n");
+  assert_eq!(parse_compile_and_output("(tanh 0)"), "return tanh(0)\n");
 }
 
 #[test]
