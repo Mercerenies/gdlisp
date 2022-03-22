@@ -155,11 +155,6 @@ pub enum ErrorF {
   /// file, as they are used for interfacing with existing Godot
   /// tooling which assumes the class is the main class.
   ExportOnInnerClassVar(String),
-  /// This error type is no longer relevant and should not be used. It
-  /// has been superseded by [`ErrorF::NoSuchFile`] and
-  /// [`ErrorF::InvalidImportOnResource`].
-  #[deprecated]
-  ResourceDoesNotExist(String),
   /// This error is issued if the type of import declaration was
   /// incorrect for the given file. Namely, explicit and open import
   /// lists are only allowed for GDLisp source files, not for GDScript
@@ -310,8 +305,8 @@ impl ErrorF {
       ErrorF::CannotAssignTo(_) => 26,
       ErrorF::CannotExtend(_) => 27,
       ErrorF::ExportOnInnerClassVar(_) => 28,
-      #[allow(deprecated)]
-      ErrorF::ResourceDoesNotExist(_) => 29,
+      // NOTE: 29 belongs to the removed ResourceDoesNotExist, which
+      // has been replaced by NoSuchFile and InvalidImportOnResource.
       ErrorF::InvalidImportOnResource(_) => 30,
       ErrorF::GodotServerError(_) => 31,
       ErrorF::StaticConstructor => 32,
@@ -418,10 +413,6 @@ impl fmt::Display for ErrorF {
       }
       ErrorF::ExportOnInnerClassVar(v) => {
         write!(f, "Export declarations can only be used on a file's main class, but one was found on {}", v)?;
-      }
-      #[allow(deprecated)]
-      ErrorF::ResourceDoesNotExist(s) => {
-        write!(f, "Resource {} does not exist", s)?;
       }
       ErrorF::InvalidImportOnResource(s) => {
         write!(f, "Cannot use restricted or open import lists on resource import at {}", s)?;
