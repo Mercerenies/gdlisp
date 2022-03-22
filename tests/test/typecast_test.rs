@@ -1,8 +1,4 @@
 
-use gdlisp::compile::error::{Error as GDError, ErrorF as GDErrorF};
-use gdlisp::pipeline::error::{Error as PError};
-use gdlisp::pipeline::source::SourceOffset;
-
 use super::common::*;
 
 #[test]
