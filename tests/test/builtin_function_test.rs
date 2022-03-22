@@ -176,6 +176,13 @@ pub fn wrapped_math_functions_test() {
   assert_eq!(parse_compile_and_output("(rad2deg PI)"), "return rad2deg(PI)\n");
   assert_eq!(parse_compile_and_output("(linear2db 0)"), "return linear2db(0)\n");
   assert_eq!(parse_compile_and_output("(db2linear 0)"), "return db2linear(0)\n");
+  assert_eq!(parse_compile_and_output("(log 10)"), "return log(10)\n");
+  assert_eq!(parse_compile_and_output("(round 10)"), "return round(10)\n");
+  assert_eq!(parse_compile_and_output("(wrapf 10 20 15)"), "return wrapf(10, 20, 15)\n");
+  assert_eq!(parse_compile_and_output("(wrapi 10 20 15)"), "return wrapi(10, 20, 15)\n");
+  assert_eq!(parse_compile_and_output("(cartesian2polar 10 10)"), "return cartesian2polar(10, 10)\n");
+  assert_eq!(parse_compile_and_output("(polar2cartesian 10 PI)"), "return polar2cartesian(10, PI)\n");
+  assert_eq!(parse_compile_and_output("(nearest-po2 17)"), "return nearest_po2(17)\n");
 }
 
 #[test]
@@ -200,12 +207,15 @@ pub fn wrapped_range_functions_test() {
   assert_eq!(parse_compile_and_output("(inverse-lerp 0 10 6)"), "return inverse_lerp(0, 10, 6)\n");
   assert_eq!(parse_compile_and_output("(lerp 0 10 0.4)"), "return lerp(0, 10, 4e-1)\n");
   assert_eq!(parse_compile_and_output("(lerp-angle 0 10 0.4)"), "return lerp_angle(0, 10, 4e-1)\n");
+  assert_eq!(parse_compile_and_output("(range-lerp 5 0 10 -10 -20)"), "return range_lerp(5, 0, 10, -10, -20)\n");
+  assert_eq!(parse_compile_and_output("(move-toward 10 5 1)"), "return move_toward(10, 5, 1)\n");
 }
 
 #[test]
 pub fn wrapped_misc_functions_test() {
   assert_eq!(parse_compile_and_output("(hash \"A\")"), "return hash(\"A\")\n");
   assert_eq!(parse_compile_and_output("(get-stack)"), "return get_stack()\n");
+  assert_eq!(parse_compile_and_output("(print-stack)"), "return print_stack()\n");
   assert_eq!(parse_compile_and_output("(is-instance-valid (Reference:new))"), "return is_instance_valid(Reference.new())\n");
 }
 
