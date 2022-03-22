@@ -155,6 +155,11 @@ pub fn wrapped_math_functions_test() {
   assert_eq!(parse_compile_and_output("(sinh 0)"), "return sinh(0)\n");
   assert_eq!(parse_compile_and_output("(tan 0)"), "return tan(0)\n");
   assert_eq!(parse_compile_and_output("(tanh 0)"), "return tanh(0)\n");
+  assert_eq!(parse_compile_and_output("(ceil 0)"), "return ceil(0)\n");
+  assert_eq!(parse_compile_and_output("(exp 0)"), "return exp(0)\n");
+  assert_eq!(parse_compile_and_output("(floor 0)"), "return floor(0)\n");
+  assert_eq!(parse_compile_and_output("(min 0 1)"), "return min(0, 1)\n");
+  assert_eq!(parse_compile_and_output("(max 0 1)"), "return max(0, 1)\n");
 }
 
 #[test]

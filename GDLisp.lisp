@@ -1450,6 +1450,12 @@
 (sys/declare superfunction sinh (a) public)
 (sys/declare superfunction tan (a) public)
 (sys/declare superfunction tanh (a) public)
+(sys/declare superfunction ceil (a) public)
+(sys/declare superfunction char (a) public)
+(sys/declare superfunction exp (a) public)
+(sys/declare superfunction floor (a) public)
+(sys/declare superfunction max (a b) public)
+(sys/declare superfunction min (a b) public)
 
 (define-symbol-macro PI '(literally PI))
 (define-symbol-macro SPKEY '(literally SPKEY))

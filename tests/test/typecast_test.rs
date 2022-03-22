@@ -29,3 +29,8 @@ pub fn str_running_test() {
 pub fn bool_test() {
   assert_eq!(parse_compile_and_output("(bool 10)"), "return bool(10)\n");
 }
+
+#[test]
+pub fn char_test() {
+  assert_eq!(parse_compile_and_output("(char 10)"), "return char(10)\n");
+}
