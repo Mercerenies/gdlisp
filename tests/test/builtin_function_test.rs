@@ -139,6 +139,8 @@ pub fn wrapped_random_functions_test() {
   assert_eq!(parse_compile_and_output("(randi)"), "return randi()\n");
   assert_eq!(parse_compile_and_output("(randf)"), "return randf()\n");
   assert_eq!(parse_compile_and_output("(rand-range 0 1)"), "return rand_range(0, 1)\n");
+  assert_eq!(parse_compile_and_output("(seed 999)"), "return seed(999)\n");
+  assert_eq!(parse_compile_and_output("(rand-seed 999)"), "return rand_seed(999)\n");
 }
 
 #[test]
@@ -158,6 +160,22 @@ pub fn wrapped_math_functions_test() {
   assert_eq!(parse_compile_and_output("(ceil 0)"), "return ceil(0)\n");
   assert_eq!(parse_compile_and_output("(exp 0)"), "return exp(0)\n");
   assert_eq!(parse_compile_and_output("(floor 0)"), "return floor(0)\n");
+  assert_eq!(parse_compile_and_output("(sqrt 10)"), "return sqrt(10)\n");
+  assert_eq!(parse_compile_and_output("(pow 10 2)"), "return pow(10, 2)\n");
+  assert_eq!(parse_compile_and_output("(fmod 10 2)"), "return fmod(10, 2)\n");
+  assert_eq!(parse_compile_and_output("(fposmod 10 2)"), "return fposmod(10, 2)\n");
+  assert_eq!(parse_compile_and_output("(posmod 10 2)"), "return posmod(10, 2)\n");
+  assert_eq!(parse_compile_and_output("(sign 10)"), "return sign(10)\n");
+  assert_eq!(parse_compile_and_output("(is-nan 10)"), "return is_nan(10)\n");
+  assert_eq!(parse_compile_and_output("(is-inf 10)"), "return is_inf(10)\n");
+  assert_eq!(parse_compile_and_output("(is-equal-approx 10 10)"), "return is_equal_approx(10, 10)\n");
+  assert_eq!(parse_compile_and_output("(is-zero-approx 10)"), "return is_zero_approx(10)\n");
+  assert_eq!(parse_compile_and_output("(stepify 0.5 2)"), "return stepify(5e-1, 2)\n");
+  assert_eq!(parse_compile_and_output("(step-decimals 0.5)"), "return step_decimals(5e-1)\n");
+  assert_eq!(parse_compile_and_output("(deg2rad 60)"), "return deg2rad(60)\n");
+  assert_eq!(parse_compile_and_output("(rad2deg PI)"), "return rad2deg(PI)\n");
+  assert_eq!(parse_compile_and_output("(linear2db 0)"), "return linear2db(0)\n");
+  assert_eq!(parse_compile_and_output("(db2linear 0)"), "return db2linear(0)\n");
 }
 
 #[test]
@@ -175,6 +193,20 @@ pub fn wrapped_error_functions_test() {
 #[test]
 pub fn wrapped_load_functions_test() {
   assert_eq!(parse_compile_and_output("(load \"A\")"), "return load(\"A\")\n");
+}
+
+#[test]
+pub fn wrapped_range_functions_test() {
+  assert_eq!(parse_compile_and_output("(inverse-lerp 0 10 6)"), "return inverse_lerp(0, 10, 6)\n");
+  assert_eq!(parse_compile_and_output("(lerp 0 10 0.4)"), "return lerp(0, 10, 4e-1)\n");
+  assert_eq!(parse_compile_and_output("(lerp-angle 0 10 0.4)"), "return lerp_angle(0, 10, 4e-1)\n");
+}
+
+#[test]
+pub fn wrapped_misc_functions_test() {
+  assert_eq!(parse_compile_and_output("(hash \"A\")"), "return hash(\"A\")\n");
+  assert_eq!(parse_compile_and_output("(get-stack)"), "return get_stack()\n");
+  assert_eq!(parse_compile_and_output("(is-instance-valid (Reference:new))"), "return is_instance_valid(Reference.new())\n");
 }
 
 // TODO Test gensym at runtime once we can pretty-print symbols

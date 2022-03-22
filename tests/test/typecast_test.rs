@@ -34,3 +34,8 @@ pub fn bool_test() {
 pub fn char_test() {
   assert_eq!(parse_compile_and_output("(char 10)"), "return char(10)\n");
 }
+
+#[test]
+pub fn ord_test() {
+  assert_eq!(parse_compile_and_output("(ord \"A\")"), "return ord(\"A\")\n");
+}
