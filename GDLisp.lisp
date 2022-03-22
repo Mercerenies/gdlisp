@@ -1522,6 +1522,10 @@
 (sys/declare superfunction parse-json (a) public)
 (sys/declare superfunction to-json (a) public)
 (sys/declare superfunction validate-json (a) public)
+(sys/declare superfunction dict2inst (a) public)
+(sys/declare superfunction inst2dict (a) public)
+(sys/declare superfunction str2var (a) public)
+(sys/declare superfunction var2str (a) public)
 
 (define-symbol-macro PI '(literally PI))
 (define-symbol-macro TAU '(literally TAU))
