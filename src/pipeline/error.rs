@@ -34,7 +34,7 @@ pub struct IOError {
 /// [`Error`] is [`Sourced`] in a somewhat trivial way. It's not a
 /// recursive data type, so it doesn't "contain" a separate value in
 /// the same sense as other implementors like [`GDError`] (which
-/// contains [`GDErrorF`](crate::compile::error::ErrorF)). But An
+/// contains [`GDErrorF`](crate::compile::error::ErrorF)). But an
 /// `Error` always has its `SourceOffset` nonetheless.
 impl Sourced for Error {
   type Item = Error;

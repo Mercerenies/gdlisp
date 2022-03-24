@@ -921,6 +921,11 @@ impl From<IncCompiler> for (decl::TopLevel, HashMap<Id, MacroData>) {
 mod tests {
   use super::*;
   use crate::parser;
+  use crate::pipeline::Pipeline;
+  use crate::pipeline::config::ProjectConfig;
+  use crate::pipeline::resolver::PanickingNameResolver;
+
+  use std::path::PathBuf;
 
   fn parse_ast(input: &str) -> AST {
     let parser = parser::ASTParser::new();
@@ -948,6 +953,40 @@ mod tests {
     assert!(!IncCompiler::is_decl(&parse_ast("(progn 1 2 3)")));
     assert!(!IncCompiler::is_decl(&parse_ast("(progn (defconst MY_CONST 3))")));
     assert!(!IncCompiler::is_decl(&parse_ast("#t")));
+  }
+
+  fn dummy_config() -> ProjectConfig {
+    ProjectConfig {
+      root_directory: PathBuf::from(r"."),
+      optimizations: false,
+    }
+  }
+
+  fn dummy_pipeline() -> Pipeline {
+    Pipeline::with_resolver(dummy_config(), Box::new(PanickingNameResolver))
+  }
+
+  #[test]
+  fn bad_call_test() {
+
+    let mut icompiler = IncCompiler::new(vec!());
+    icompiler.mark_as_minimalist();
+
+    let mut pipeline = dummy_pipeline();
+
+    let ast = AST::list(
+      vec!(
+        AST::from_value(5, SourceOffset(500)),
+        AST::from_value(6, SourceOffset(600)),
+      ),
+      SourceOffset(0),
+    );
+
+    assert_eq!(
+      icompiler.compile_expr(&mut pipeline, &ast),
+      Err(PError::from(Error::new(ErrorF::CannotCall(AST::from_value(5, SourceOffset(500))), SourceOffset(500)))),
+    );
+
   }
 
 }

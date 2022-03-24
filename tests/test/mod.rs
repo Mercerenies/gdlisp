@@ -1,5 +1,6 @@
 
 pub mod common;
+
 pub mod builtin_function_test;
 pub mod class_test;
 pub mod collection_conversion_test;
@@ -10,6 +11,7 @@ pub mod declaration_test;
 pub mod dependencies_test;
 pub mod dictionary_test;
 pub mod enum_test;
+pub mod error_test;
 pub mod even_odd_test;
 pub mod factorial_test;
 pub mod flet_test;

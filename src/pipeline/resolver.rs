@@ -16,6 +16,14 @@ use std::fs::File;
 #[derive(Clone, Debug)]
 pub struct DefaultNameResolver;
 
+/// A [`NameResolver`] which always fails. The resolver methods will
+/// unconditionally panic if called on this object.
+///
+/// This is mainly provided for testing purposes, to assert that a
+/// given test case should *not* invoke the name resolver.
+#[derive(Clone, Debug)]
+pub struct PanickingNameResolver;
+
 /// A `NameResolver` specifies to a [`Pipeline`](super::Pipeline) how
 /// it should read and write data before and after the compilation
 /// process.
@@ -53,6 +61,18 @@ impl NameResolver for DefaultNameResolver {
   fn resolve_output_path(&self, filename: &Path) -> io::Result<Box<dyn Write>> {
     let output_file = BufWriter::new(File::create(filename)?);
     Ok(Box::new(output_file))
+  }
+
+}
+
+impl NameResolver for PanickingNameResolver {
+
+  fn resolve_input_path(&self, _filename: &Path) -> io::Result<Box<dyn Read>> {
+    panic!("PanickingNameResolver.resolve_input_path")
+  }
+
+  fn resolve_output_path(&self, _filename: &Path) -> io::Result<Box<dyn Write>> {
+    panic!("PanickingNameResolver.resolve_output_path")
   }
 
 }
