@@ -512,3 +512,89 @@ impl fmt::Display for VarNameIntoExtendsError {
     }
   }
 }
+
+#[cfg(test)]
+mod tests {
+  use super::*;
+  use crate::gdscript::decl::ClassExtends;
+
+  // TODO More
+
+  fn qualified(name: Vec<&'static str>) -> ClassExtends {
+    let name: Vec<_> = name.into_iter().map(String::from).collect();
+    ClassExtends::Qualified(name)
+  }
+
+  #[test]
+  fn extends_constant() {
+    assert_eq!(
+      ClassExtends::try_from(VarName::file_constant("Abc")),
+      Ok(qualified(vec!("Abc"))),
+    );
+  }
+
+  #[test]
+  fn extends_superglobal() {
+    assert_eq!(
+      ClassExtends::try_from(VarName::superglobal("Node")),
+      Ok(qualified(vec!("Node"))),
+    );
+  }
+
+  #[test]
+  fn extends_imported() {
+    assert_eq!(
+      ClassExtends::try_from(VarName::imported_constant(VarName::file_constant("Foo"), "MyClass")),
+      Ok(qualified(vec!("Foo", "MyClass"))),
+    );
+  }
+
+  #[test]
+  fn cannot_extend_local() {
+    assert_eq!(
+      ClassExtends::try_from(VarName::local("abc")),
+      Err(VarNameIntoExtendsError::CannotExtendLocal(String::from("abc"))),
+    );
+  }
+
+  #[test]
+  fn cannot_extend_subscripted() {
+    assert_eq!(
+      ClassExtends::try_from(VarName::SubscriptedConstant(Box::new(VarName::file_constant("abc")), 10)),
+      Err(VarNameIntoExtendsError::CannotExtendSubscript(Box::new(VarName::file_constant("abc")), 10)),
+    );
+  }
+
+  #[test]
+  fn cannot_extend_current_file() {
+    assert_eq!(
+      ClassExtends::try_from(VarName::CurrentFile(String::from("Filename.gd"))),
+      Err(VarNameIntoExtendsError::CannotExtendCurrentFile(String::from("Filename.gd"))),
+    );
+  }
+
+  #[test]
+  fn cannot_extend_lazy_value() {
+    assert_eq!(
+      ClassExtends::try_from(VarName::LazyValue(String::from("lazy-val"))),
+      Err(VarNameIntoExtendsError::CannotExtendLazyValue(String::from("lazy-val"))),
+    );
+  }
+
+  #[test]
+  fn cannot_extend_imported_lazy_value() {
+    assert_eq!(
+      ClassExtends::try_from(VarName::ImportedLazyValue(Box::new(VarName::file_constant("Abc")), String::from("lazy-val"))),
+      Err(VarNameIntoExtendsError::CannotExtendLazyValue(String::from("lazy-val"))),
+    );
+  }
+
+  #[test]
+  fn cannot_extend_null_value() {
+    assert_eq!(
+      ClassExtends::try_from(VarName::Null),
+      Err(VarNameIntoExtendsError::CannotExtendNull),
+    );
+  }
+
+}
