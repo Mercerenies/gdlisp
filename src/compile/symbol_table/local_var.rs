@@ -61,12 +61,6 @@ pub enum VarName {
   /// case, as `VarName::CurrentFile` is required to compile to a
   /// `load(...)` call rather than a simple name.
   CurrentFile(String),
-  /// A lazy evaluated value, implemented as a 0-ary function call on
-  /// the current file.
-  LazyValue(String),
-  /// A lazy evaluated value, implemented as a 0-ary function call on
-  /// an imported file constant.
-  ImportedLazyValue(Box<VarName>, String),
   /// A null value. This is used as a placeholder for things in the
   /// value namespace that don't have runtime presence, such as symbol
   /// macros.
@@ -89,11 +83,6 @@ pub enum VarNameIntoExtendsError {
   /// It is not permitted to have a class extend the currently loading
   /// file. This would cause a cyclic load error in Godot.
   CannotExtendCurrentFile(String),
-  /// It is not permitted to extend lazy-constructed values, as lazy
-  /// values are implemented as 0-ary function calls, and function
-  /// calls cannot be made in the "extends" clause of a class
-  /// declaration.
-  CannotExtendLazyValue(String),
   /// The null [`VarName`] is used in some places as a placeholder for
   /// values that don't exist at runtime (i.e. those fully handled
   /// during the IR macro expansion phase). Needless to say, we can't
@@ -232,19 +221,6 @@ impl LocalVar {
     }
   }
 
-  /// A file-level lazy value. File-level values are treated as
-  /// constant, are always [`AccessType::Read`], and are never
-  /// `assignable`.
-  pub fn lazy_value(name: String) -> LocalVar {
-    LocalVar {
-      name: VarName::LazyValue(name),
-      access_type: AccessType::Read,
-      scope: VarScope::GlobalVar,
-      assignable: false,
-      value_hint: None,
-    }
-  }
-
   /// A `LocalVar` referencing the special GDScript `self` variable.
   /// `self` is a local, non-assignable variable. We give it access
   /// type [`AccessType::ClosedRead`], as the broadest possible access
@@ -346,8 +322,6 @@ impl VarName {
       VarName::ImportedConstant(_, _) => None,
       VarName::SubscriptedConstant(_, _) => None,
       VarName::CurrentFile(_) => None,
-      VarName::LazyValue(_) => None,
-      VarName::ImportedLazyValue(_, _) => None,
       VarName::Null => None,
     }
   }
@@ -388,15 +362,6 @@ impl VarName {
         // The current file imports as the name of the import itself.
         VarName::FileConstant(import_name)
       }
-      VarName::LazyValue(s) => {
-        // Import the value by qualifying the name.
-        VarName::ImportedLazyValue(Box::new(VarName::FileConstant(import_name)), s)
-      }
-      VarName::ImportedLazyValue(lhs, s) => {
-        // Import the value transitively.
-        let lhs = Box::new(lhs.into_imported(import_name));
-        VarName::ImportedLazyValue(lhs, s)
-      }
       VarName::Null => {
         // Null is already available everywhere.
         VarName::Null
@@ -415,8 +380,6 @@ impl VarName {
       VarName::ImportedConstant(lhs, s) => Expr::new(ExprF::Attribute(Box::new(lhs.into_expr(pos)), s), pos),
       VarName::SubscriptedConstant(lhs, n) => Expr::new(ExprF::Subscript(Box::new(lhs.into_expr(pos)), Box::new(Expr::from_value(n, pos))), pos),
       VarName::CurrentFile(filename) => VarName::load_expr(filename, pos),
-      VarName::LazyValue(s) => Expr::call(None, &s, vec!(), pos),
-      VarName::ImportedLazyValue(lhs, s) => Expr::call(Some(lhs.into_expr(pos)), &s, vec!(), pos),
       VarName::Null => Expr::null(pos),
     }
   }
@@ -465,12 +428,6 @@ impl TryFrom<VarName> for decl::ClassExtends {
       VarName::CurrentFile(s) => {
         Err(VarNameIntoExtendsError::CannotExtendCurrentFile(s))
       }
-      VarName::LazyValue(s) => {
-        Err(VarNameIntoExtendsError::CannotExtendLazyValue(s))
-      }
-      VarName::ImportedLazyValue(_, s) => {
-        Err(VarNameIntoExtendsError::CannotExtendLazyValue(s))
-      }
       VarName::Null => {
         Err(VarNameIntoExtendsError::CannotExtendNull)
       }
@@ -502,9 +459,6 @@ impl fmt::Display for VarNameIntoExtendsError {
       }
       VarNameIntoExtendsError::CannotExtendCurrentFile(s) => {
         write!(f, "Cannot extend reference to current file {}", s)
-      }
-      VarNameIntoExtendsError::CannotExtendLazyValue(s) => {
-        write!(f, "Cannot extend lazy-initialized value {}", s)
       }
       VarNameIntoExtendsError::CannotExtendNull => {
         write!(f, "Cannot extend null value")
@@ -570,22 +524,6 @@ mod tests {
     assert_eq!(
       ClassExtends::try_from(VarName::CurrentFile(String::from("Filename.gd"))),
       Err(VarNameIntoExtendsError::CannotExtendCurrentFile(String::from("Filename.gd"))),
-    );
-  }
-
-  #[test]
-  fn cannot_extend_lazy_value() {
-    assert_eq!(
-      ClassExtends::try_from(VarName::LazyValue(String::from("lazy-val"))),
-      Err(VarNameIntoExtendsError::CannotExtendLazyValue(String::from("lazy-val"))),
-    );
-  }
-
-  #[test]
-  fn cannot_extend_imported_lazy_value() {
-    assert_eq!(
-      ClassExtends::try_from(VarName::ImportedLazyValue(Box::new(VarName::file_constant("Abc")), String::from("lazy-val"))),
-      Err(VarNameIntoExtendsError::CannotExtendLazyValue(String::from("lazy-val"))),
     );
   }
 
