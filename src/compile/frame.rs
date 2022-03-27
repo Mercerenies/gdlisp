@@ -16,15 +16,18 @@ use super::symbol_table::local_var::{LocalVar, ValueHint, VarName};
 use super::names::fresh::FreshNameGenerator;
 use super::error::{Error, ErrorF};
 use super::stateful::{StExpr, NeedsResult, SideEffects};
-use super::body::builder::{StmtBuilder, HasDecls};
+use super::body::builder::{StmtBuilder, CodeBuilder, HasDecls};
 use super::stmt_wrapper::{self, StmtWrapper};
+use super::constant::MaybeConstant;
 use crate::pipeline::Pipeline;
+use crate::pipeline::error::{Error as PError};
 use crate::pipeline::source::SourceOffset;
 use crate::ir;
 use crate::ir::expr::{FuncRefTarget, AssignTarget};
 use crate::ir::special_ref::SpecialRef;
 use crate::gdscript::expr::{Expr, ExprF};
 use crate::gdscript::stmt::Stmt;
+use crate::gdscript::decl::{self, Decl, DeclF};
 use crate::gdscript::inner_class;
 use crate::sxp::reify::pretty::reify_pretty_expr;
 
@@ -32,6 +35,9 @@ use std::cmp::max;
 
 type IRExpr = ir::expr::Expr;
 type IRExprF = ir::expr::ExprF;
+type IRDecl = ir::decl::Decl;
+type IRDeclF = ir::decl::DeclF;
+type IRArgList = ir::arglist::ArgList;
 
 /// Quoted S-expressions which are nested deeper than this constant
 /// will be split into several local variables, for efficiency
@@ -201,6 +207,112 @@ impl<'a, 'b, 'c, 'd, B: HasDecls> CompilerFrame<'a, 'b, 'c, 'd, B> {
   where F : FnOnce(&mut CompilerFrame<StmtBuilder>) {
     let ((), vec) = self.with_local_builder_value(block);
     vec
+  }
+
+}
+
+impl<'a, 'b, 'c, 'd> CompilerFrame<'a, 'b, 'c, 'd, CodeBuilder> {
+
+  pub fn compile_toplevel(&mut self, toplevel: &ir::decl::TopLevel) -> Result<(), PError> {
+
+    // Special check to make sure there is only one main class.
+    let _ = toplevel.find_main_class()?;
+
+    for imp in &toplevel.imports {
+      self.compiler.resolve_import(&mut self.pipeline, &mut self.builder, &mut self.table, imp)?;
+    }
+    let result = self.compile_decls(&toplevel.decls)?;
+
+    Ok(result)
+  }
+
+  pub fn compile_decls(&mut self, decls: &[IRDecl]) -> Result<(), Error> {
+    for decl in decls {
+      Compiler::bind_decl(&self.compiler.magic_table, &mut self.pipeline, &mut self.table, decl)?;
+    }
+    for decl in decls {
+      self.compile_decl(decl)?;
+    }
+    Ok(())
+  }
+
+  pub fn compile_decl(&mut self, decl: &IRDecl) -> Result<(), Error> {
+    match &decl.value {
+      IRDeclF::FnDecl(ir::decl::FnDecl { visibility: _, call_magic: _, name, args, body }) => {
+        let gd_name = names::lisp_to_gd(&name);
+        let function = factory::declare_function(self, gd_name, args.clone(), body, &stmt_wrapper::Return)?;
+        self.builder.add_decl(Decl::new(DeclF::FnDecl(decl::Static::IsStatic, function), decl.pos));
+        Ok(())
+      }
+      IRDeclF::MacroDecl(ir::decl::MacroDecl { visibility: _, name, args, body }) => {
+        // Note: Macros compile identically to functions, as far as
+        // this stage of compilation is concerned. They'll be resolved
+        // and then purged during the IR phase.
+        let gd_name = names::lisp_to_gd(&name);
+        let function = factory::declare_function(self, gd_name, args.clone(), body, &stmt_wrapper::Return)?;
+        self.builder.add_decl(Decl::new(DeclF::FnDecl(decl::Static::IsStatic, function), decl.pos));
+        Ok(())
+      }
+      IRDeclF::SymbolMacroDecl(ir::decl::SymbolMacroDecl { visibility: _, name, body }) => {
+        // Note: Macros compile identically to functions, as far as
+        // this stage of compilation is concerned. They'll be resolved
+        // and then purged during the IR phase.
+        let gd_name = names::lisp_to_gd(&name);
+        let function = factory::declare_function(self, gd_name, IRArgList::empty(), body, &stmt_wrapper::Return)?;
+        self.builder.add_decl(Decl::new(DeclF::FnDecl(decl::Static::IsStatic, function), decl.pos));
+        Ok(())
+      }
+      IRDeclF::ConstDecl(ir::decl::ConstDecl { visibility: _, name, value }) => {
+        let gd_name = names::lisp_to_gd(&name);
+        let value = self.compile_simple_expr(name, value, NeedsResult::Yes)?;
+        value.validate_const_expr(&name, self.table)?;
+        self.builder.add_decl(Decl::new(DeclF::ConstDecl(gd_name, value), decl.pos));
+        Ok(())
+      }
+      IRDeclF::ClassDecl(ir::decl::ClassDecl { visibility: _, name, extends, main_class, constructor, decls }) => {
+        let gd_name = names::lisp_to_gd(&name);
+        let extends = Compiler::resolve_extends(&mut self.table, &extends, decl.pos)?;
+
+        // Synthesize default constructor if needed
+        let default_constructor: ir::decl::ConstructorDecl;
+        let constructor = match constructor {
+          None => {
+            default_constructor = ir::decl::ConstructorDecl::empty(decl.pos);
+            &default_constructor
+          }
+          Some(c) => {
+            &c
+          }
+        };
+
+        let class = factory::declare_class(self, gd_name, extends, *main_class, &constructor, decls, decl.pos)?;
+        if *main_class {
+          factory::flatten_class_into_main(&mut self.builder, class);
+          Ok(())
+        } else {
+          self.builder.add_decl(Decl::new(DeclF::ClassDecl(class), decl.pos));
+          Ok(())
+        }
+      }
+      IRDeclF::EnumDecl(ir::decl::EnumDecl { visibility: _, name, clauses }) => {
+        let gd_name = names::lisp_to_gd(&name);
+        let gd_clauses = clauses.iter().map(|(const_name, const_value)| {
+          let gd_const_name = names::lisp_to_gd(const_name);
+          let gd_const_value = const_value.as_ref().map(|x| self.compile_simple_expr(const_name, x, NeedsResult::Yes)).transpose()?;
+          if let Some(gd_const_value) = &gd_const_value {
+            gd_const_value.validate_const_expr(const_name, self.table)?;
+          }
+          Ok((gd_const_name, gd_const_value))
+        }).collect::<Result<_, Error>>()?;
+        self.builder.add_decl(Decl::new(DeclF::EnumDecl(decl::EnumDecl { name: Some(gd_name), clauses: gd_clauses }), decl.pos));
+        Ok(())
+      }
+      IRDeclF::DeclareDecl(_) => {
+        // (sys/declare ...) statements have no runtime presence and do
+        // nothing here.
+        Ok(())
+      }
+    }
   }
 
 }

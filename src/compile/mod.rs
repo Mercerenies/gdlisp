@@ -88,91 +88,6 @@ impl Compiler {
     CompilerFrame::new(self, pipeline, builder, table)
   }
 
-  // TODO To CompilerFrame
-  pub fn compile_decl(&mut self,
-                      pipeline: &mut Pipeline,
-                      builder: &mut CodeBuilder,
-                      table: &mut SymbolTable,
-                      decl: &IRDecl)
-                      -> Result<(), Error> {
-    match &decl.value {
-      IRDeclF::FnDecl(ir::decl::FnDecl { visibility: _, call_magic: _, name, args, body }) => {
-        let gd_name = names::lisp_to_gd(&name);
-        let function = factory::declare_function(&mut self.frame(pipeline, builder, table), gd_name, args.clone(), body, &stmt_wrapper::Return)?;
-        builder.add_decl(Decl::new(DeclF::FnDecl(decl::Static::IsStatic, function), decl.pos));
-        Ok(())
-      }
-      IRDeclF::MacroDecl(ir::decl::MacroDecl { visibility: _, name, args, body }) => {
-        // Note: Macros compile identically to functions, as far as
-        // this stage of compilation is concerned. They'll be resolved
-        // and then purged during the IR phase.
-        let gd_name = names::lisp_to_gd(&name);
-        let function = factory::declare_function(&mut self.frame(pipeline, builder, table), gd_name, args.clone(), body, &stmt_wrapper::Return)?;
-        builder.add_decl(Decl::new(DeclF::FnDecl(decl::Static::IsStatic, function), decl.pos));
-        Ok(())
-      }
-      IRDeclF::SymbolMacroDecl(ir::decl::SymbolMacroDecl { visibility: _, name, body }) => {
-        // Note: Macros compile identically to functions, as far as
-        // this stage of compilation is concerned. They'll be resolved
-        // and then purged during the IR phase.
-        let gd_name = names::lisp_to_gd(&name);
-        let function = factory::declare_function(&mut self.frame(pipeline, builder, table), gd_name, IRArgList::empty(), body, &stmt_wrapper::Return)?;
-        builder.add_decl(Decl::new(DeclF::FnDecl(decl::Static::IsStatic, function), decl.pos));
-        Ok(())
-      }
-      IRDeclF::ConstDecl(ir::decl::ConstDecl { visibility: _, name, value }) => {
-        let gd_name = names::lisp_to_gd(&name);
-        let value = self.frame(pipeline, &mut (), table).compile_simple_expr(name, value, NeedsResult::Yes)?;
-        value.validate_const_expr(&name, table)?;
-        builder.add_decl(Decl::new(DeclF::ConstDecl(gd_name, value), decl.pos));
-        Ok(())
-      }
-      IRDeclF::ClassDecl(ir::decl::ClassDecl { visibility: _, name, extends, main_class, constructor, decls }) => {
-        let gd_name = names::lisp_to_gd(&name);
-        let extends = Compiler::resolve_extends(table, &extends, decl.pos)?;
-
-        // Synthesize default constructor if needed
-        let default_constructor: ir::decl::ConstructorDecl;
-        let constructor = match constructor {
-          None => {
-            default_constructor = ir::decl::ConstructorDecl::empty(decl.pos);
-            &default_constructor
-          }
-          Some(c) => {
-            &c
-          }
-        };
-
-        let class = factory::declare_class(&mut self.frame(pipeline, builder, table), gd_name, extends, *main_class, &constructor, decls, decl.pos)?;
-        if *main_class {
-          factory::flatten_class_into_main(builder, class);
-          Ok(())
-        } else {
-          builder.add_decl(Decl::new(DeclF::ClassDecl(class), decl.pos));
-          Ok(())
-        }
-      }
-      IRDeclF::EnumDecl(ir::decl::EnumDecl { visibility: _, name, clauses }) => {
-        let gd_name = names::lisp_to_gd(&name);
-        let gd_clauses = clauses.iter().map(|(const_name, const_value)| {
-          let gd_const_name = names::lisp_to_gd(const_name);
-          let gd_const_value = const_value.as_ref().map(|x| self.frame(pipeline, &mut (), table).compile_simple_expr(const_name, x, NeedsResult::Yes)).transpose()?;
-          if let Some(gd_const_value) = &gd_const_value {
-            gd_const_value.validate_const_expr(const_name, table)?;
-          }
-          Ok((gd_const_name, gd_const_value))
-        }).collect::<Result<_, Error>>()?;
-        builder.add_decl(Decl::new(DeclF::EnumDecl(decl::EnumDecl { name: Some(gd_name), clauses: gd_clauses }), decl.pos));
-        Ok(())
-      }
-      IRDeclF::DeclareDecl(_) => {
-        // (sys/declare ...) statements have no runtime presence and do
-        // nothing here.
-        Ok(())
-      }
-    }
-  }
-
   fn compile_export(&mut self,
                     pipeline: &mut Pipeline,
                     table: &mut SymbolTable,
@@ -191,6 +106,7 @@ impl Compiler {
     }
   }
 
+  // TODO To CompilerFrame (???)
   pub fn compile_class_inner_decl(&mut self,
                                   pipeline: &mut Pipeline,
                                   builder: &mut ClassBuilder,
@@ -544,38 +460,6 @@ impl Compiler {
     }
 
     Ok(())
-  }
-
-  pub fn compile_decls(&mut self,
-                       pipeline: &mut Pipeline,
-                       builder: &mut CodeBuilder,
-                       table: &mut SymbolTable,
-                       decls: &[IRDecl])
-                       -> Result<(), PError> {
-    for decl in decls {
-      Compiler::bind_decl(&self.magic_table, pipeline, table, decl)?;
-    }
-    for decl in decls {
-      self.compile_decl(pipeline, builder, table, decl)?;
-    }
-    Ok(())
-  }
-
-  pub fn compile_toplevel(&mut self,
-                          pipeline: &mut Pipeline,
-                          builder: &mut CodeBuilder,
-                          table: &mut SymbolTable,
-                          toplevel: &ir::decl::TopLevel)
-                          -> Result<(), PError> {
-
-    // Special check to make sure there is only one main class.
-    let _ = toplevel.find_main_class()?;
-
-    for imp in &toplevel.imports {
-      self.resolve_import(pipeline, builder, table, imp)?;
-    }
-    self.compile_decls(pipeline, builder, table, &toplevel.decls)
-
   }
 
 }

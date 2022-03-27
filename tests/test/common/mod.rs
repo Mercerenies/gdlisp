@@ -151,7 +151,7 @@ pub fn parse_and_run_err(input: &str) -> Result<String, PError> {
   let (decls, _macros) = ir::compile_toplevel(&mut pipeline, &value)?;
   ir::scope::check_scopes(&decls)?;
   let mut builder = CodeBuilder::new(decl::ClassExtends::named(String::from("Reference")));
-  compiler.compile_toplevel(&mut pipeline, &mut builder, &mut table, &decls)?;
+  compiler.frame(&mut pipeline, &mut builder, &mut table).compile_toplevel(&decls)?;
 
   let mut temp_dir = Builder::new().prefix("__gdlisp_test").rand_bytes(5).tempdir().map_err(|err| IOError::new(err, SourceOffset(0)))?;
   let code_output = builder.build();
@@ -234,7 +234,7 @@ pub fn parse_compile_decl_err(input: &str) -> Result<String, PError> {
   let mut builder = CodeBuilder::new(decl::ClassExtends::named("Reference".to_owned()));
   let (decls, _macros) = ir::compile_toplevel(&mut pipeline, &value)?;
   ir::scope::check_scopes(&decls)?;
-  compiler.compile_toplevel(&mut pipeline, &mut builder, &mut table, &decls)?;
+  compiler.frame(&mut pipeline, &mut builder, &mut table).compile_toplevel(&decls)?;
   let class = builder.build();
 
   Ok(class.to_gd())

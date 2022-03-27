@@ -71,7 +71,7 @@ pub fn create_macro_file(pipeline: &mut Pipeline, imports: Vec<ImportDecl>, src_
   };
 
   let mut builder = CodeBuilder::new(decl::ClassExtends::named("Node".to_owned()));
-  compiler.compile_toplevel(pipeline, &mut builder, &mut table, &toplevel)?;
+  compiler.frame(pipeline, &mut builder, &mut table).compile_toplevel(&toplevel)?;
   let result = builder.build();
 
   result.write_to_gd(&mut tmp_file).map_err(|err| IOError::new(err, pos))?;

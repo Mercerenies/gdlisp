@@ -79,7 +79,7 @@ impl Pipeline {
     library::bind_builtins(&mut table, ir.minimalist_flag);
 
     let mut builder = CodeBuilder::new(decl::ClassExtends::named("Node".to_owned()));
-    compiler.compile_toplevel(self, &mut builder, &mut table, &ir)?;
+    compiler.frame(self, &mut builder, &mut table).compile_toplevel(&ir)?;
     let mut result = builder.build();
     if self.config.optimizations {
       run_standard_passes(&mut result)?;
@@ -128,7 +128,7 @@ impl Pipeline {
     library::bind_builtins(&mut table, unit.ir.minimalist_flag);
 
     let mut builder = CodeBuilder::new(decl::ClassExtends::named("Node".to_owned()));
-    compiler.compile_toplevel(self, &mut builder, &mut table, &unit.ir)?;
+    compiler.frame(self, &mut builder, &mut table).compile_toplevel(&unit.ir)?;
     let mut tmpresult = builder.build();
     if self.config.optimizations {
       run_standard_passes(&mut tmpresult)?;
