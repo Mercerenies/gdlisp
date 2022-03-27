@@ -239,7 +239,7 @@ impl Compiler {
         // If we're dealing with a setter or a getter, inform the
         // builder that we will need a synthetic field and validate
         // the argument list and modifiers.
-        match &f.name { ///// Getter / setter syntax
+        match &f.name {
           InstanceFunctionName::Ordinary(_) => {
             // No action required; there is no proxy field for
             // ordinary methods.
