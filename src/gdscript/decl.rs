@@ -19,8 +19,6 @@ use std::fmt::{self, Write};
 /// The type of GDScript declarations.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum DeclF {
-  // TODO Five fields in an enum variant makes me uncomfortable.
-  // Factor this into a struct.
   VarDecl(VarDecl),
   ConstDecl(String, Expr),
   ClassDecl(ClassDecl),
