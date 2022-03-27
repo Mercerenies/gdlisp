@@ -126,6 +126,11 @@ impl Expr {
     Expr::call(None, name, args, pos)
   }
 
+  /// A super-method call expression.
+  pub fn super_call(name: &str, args: Vec<Expr>, pos: SourceOffset) -> Expr {
+    Expr::new(ExprF::SuperCall(name.to_owned(), args), pos)
+  }
+
   /// A GDScript `yield` call.
   ///
   /// `yield` takes either zero or two arguments, so this function can
