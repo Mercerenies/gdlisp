@@ -6,10 +6,12 @@ use crate::gdscript::stmt::Stmt;
 use crate::gdscript::arglist::ArgList;
 use crate::gdscript::library::READY_NAME;
 use crate::compile::error::{Error, ErrorF};
+use crate::compile::names::fresh::FreshNameGenerator;
 use crate::util::find_or_else_mut;
 use crate::pipeline::source::SourceOffset;
 use super::builder::{StmtBuilder, HasDecls};
 use super::synthetic_field::{SyntheticField, Getter, Setter};
+use super::super_proxy::SuperProxy;
 
 use std::mem;
 use std::collections::HashMap;
@@ -29,6 +31,12 @@ pub struct ClassBuilder {
   /// The builder for any synthetic fields generated as a result of
   /// `get` and `set` declarations.
   synthetic_fields: Vec<SyntheticField>,
+  /// The builder for any supermethod proxies generated as a result of
+  /// `super` method calls. Note that a `super` constructor call is an
+  /// entirely different mechanism which is parsed into the syntax
+  /// earlier than other `super` method calls and is not included
+  /// here.
+  super_proxies: Vec<SuperProxy>,
   /// Any declarations which have been absorbed by another builder.
   /// This field exists for compatibility with [`HasDecls`] so that
   /// this builder can be composed with others easily.
@@ -46,6 +54,8 @@ pub struct ClassInit {
   /// Proxy fields to be generated with appropriate `setget`
   /// declarations.
   synthetic_fields: Vec<SyntheticField>,
+  /// Proxy methods to be generated for supermethod calls.
+  super_proxies: Vec<SuperProxy>,
 }
 
 /// The time that an instance variable should be initialized.
@@ -120,6 +130,16 @@ impl ClassBuilder {
     None
   }
 
+  /// Declares a supermethod proxy which will delegate to the
+  /// supermethod with the given name. Returns the name of the new
+  /// proxy method we've generated.
+  pub fn declare_super_proxy(&mut self, gen: &mut FreshNameGenerator, super_name: String, args: usize, pos: SourceOffset) -> String {
+    let proxy = SuperProxy::generate(gen, super_name, args, pos);
+    let name = proxy.name.clone();
+    self.super_proxies.push(proxy);
+    name
+  }
+
   /// Builds the builder into a [`ClassInit`].
   pub fn build(self) -> (ClassInit, Vec<Decl>) {
     let mut helpers = self.other_helpers;
@@ -136,6 +156,7 @@ impl ClassBuilder {
       init,
       ready,
       synthetic_fields: self.synthetic_fields,
+      super_proxies: self.super_proxies,
     };
 
     (initializer, helpers)
@@ -201,6 +222,12 @@ impl ClassInit {
 
     // Proxy fields for getters and setters
     ClassInit::apply_proxy_fields(self.synthetic_fields, class, pos)?;
+
+    // Super-call proxy methods
+    for method in self.super_proxies {
+      let fn_decl = FnDecl::from(method);
+      class.body.push(Decl::new(DeclF::FnDecl(Static::NonStatic, fn_decl), pos));
+    }
 
     Ok(())
   }
