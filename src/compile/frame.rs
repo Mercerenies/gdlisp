@@ -221,9 +221,9 @@ impl<'a, 'b, 'c, 'd> CompilerFrame<'a, 'b, 'c, 'd, CodeBuilder> {
     for imp in &toplevel.imports {
       self.compiler.resolve_import(&mut self.pipeline, &mut self.builder, &mut self.table, imp)?;
     }
-    let result = self.compile_decls(&toplevel.decls)?;
+    self.compile_decls(&toplevel.decls)?;
 
-    Ok(result)
+    Ok(())
   }
 
   pub fn compile_decls(&mut self, decls: &[IRDecl]) -> Result<(), Error> {
@@ -271,7 +271,7 @@ impl<'a, 'b, 'c, 'd> CompilerFrame<'a, 'b, 'c, 'd, CodeBuilder> {
       }
       IRDeclF::ClassDecl(ir::decl::ClassDecl { visibility: _, name, extends, main_class, constructor, decls }) => {
         let gd_name = names::lisp_to_gd(&name);
-        let extends = Compiler::resolve_extends(&mut self.table, &extends, decl.pos)?;
+        let extends = Compiler::resolve_extends(&self.table, &extends, decl.pos)?;
 
         // Synthesize default constructor if needed
         let default_constructor: ir::decl::ConstructorDecl;
