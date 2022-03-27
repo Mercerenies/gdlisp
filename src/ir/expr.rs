@@ -36,6 +36,7 @@ pub enum ExprF {
   Quote(AST),
   FieldAccess(Box<Expr>, String),
   MethodCall(Box<Expr>, String, Vec<Expr>),
+  SuperCall(String, Vec<Expr>),
   LambdaClass(Box<LambdaClass>),
   Yield(Option<(Box<Expr>, Box<Expr>)>),
   Return(Box<Expr>),
@@ -300,6 +301,11 @@ impl Expr {
       }
       ExprF::MethodCall(lhs, _, args) => {
         lhs.walk_locals(acc_vars, acc_fns);
+        for expr in args {
+          expr.walk_locals(acc_vars, acc_fns);
+        }
+      }
+      ExprF::SuperCall(_, args) => {
         for expr in args {
           expr.walk_locals(acc_vars, acc_fns);
         }

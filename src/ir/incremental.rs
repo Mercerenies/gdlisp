@@ -183,6 +183,10 @@ impl IncCompiler {
               let args = tail.iter().map(|x| self.compile_expr(pipeline, x)).collect::<Result<Vec<_>, _>>()?;
               Ok(Expr::new(ExprF::AtomicCall(head, args), expr.pos))
             }
+            CallName::SuperName(head) => {
+              let args = tail.iter().map(|x| self.compile_expr(pipeline, x)).collect::<Result<Vec<_>, _>>()?;
+              Ok(Expr::new(ExprF::SuperCall(head, args), expr.pos))
+            }
           }
         }
       }

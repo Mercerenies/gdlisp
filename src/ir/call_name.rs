@@ -22,6 +22,9 @@ pub enum CallName {
   MethodName(Box<Expr>, String),
   /// A `literally` call.
   AtomicName(String),
+  /// A call on the special `super` keyword, to invoke the superclass
+  /// method with the given name.
+  SuperName(String),
 }
 
 impl CallName {
@@ -34,8 +37,13 @@ impl CallName {
                            ast: &AST)
                            -> Result<CallName, PError> {
     if let Some((lhs, name)) = CallName::try_resolve_method_name(ast) {
-      let lhs = icompiler.compile_expr(pipeline, lhs)?;
-      Ok(CallName::MethodName(Box::new(lhs), name.to_owned()))
+      // Might be a super call; check for that first.
+      if lhs.value == ASTF::symbol("super") {
+        Ok(CallName::SuperName(name.to_owned()))
+      } else {
+        let lhs = icompiler.compile_expr(pipeline, lhs)?;
+        Ok(CallName::MethodName(Box::new(lhs), name.to_owned()))
+      }
     } else if let Some(name) = CallName::try_resolve_atomic_name(ast) {
       Ok(CallName::AtomicName(name.to_owned()))
     } else {

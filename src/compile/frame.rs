@@ -354,6 +354,9 @@ impl<'a, 'b, 'c, 'd> CompilerFrame<'a, 'b, 'c, 'd, StmtBuilder> {
           side_effects: SideEffects::ModifiesState
         })
       }
+      IRExprF::SuperCall(sym, args) => {
+        unimplemented!() ////
+      }
       IRExprF::LambdaClass(cls) => {
         lambda_class::compile_lambda_class(self, cls, expr.pos)
       }

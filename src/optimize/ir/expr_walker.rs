@@ -158,6 +158,12 @@ impl<'a, E> ExprWalker<'a, E> {
           self.walk_exprs(args)?,
         )
       }
+      ExprF::SuperCall(name, args) => {
+        ExprF::SuperCall(
+          name.clone(),
+          self.walk_exprs(args)?,
+        )
+      }
       ExprF::LambdaClass(cls) => {
         ExprF::LambdaClass(
           Box::new(self.walk_lambda_class(cls)?),
