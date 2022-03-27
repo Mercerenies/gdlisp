@@ -14,7 +14,7 @@ use crate::pipeline::error::{Error as PError};
 /// are allowed as the subject of a call. Excluding special forms and
 /// other quoted constructs, an `AST` appearing in evaluation context
 /// must have a car of one of the forms permitted by `CallName`.
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub enum CallName {
   /// A simple [`ASTF::Symbol`] name.
   SimpleName(String),
@@ -78,6 +78,75 @@ impl CallName {
       }
     }
     None
+  }
+
+}
+
+#[cfg(test)]
+mod tests {
+  use super::*;
+  use crate::parser;
+  use crate::pipeline::Pipeline;
+  use crate::pipeline::source::SourceOffset;
+  use crate::pipeline::config::ProjectConfig;
+  use crate::pipeline::resolver::PanickingNameResolver;
+  use crate::ir::expr::ExprF;
+
+  use std::path::PathBuf;
+
+  fn parse_ast(input: &str) -> AST {
+    let parser = parser::ASTParser::new();
+    parser.parse(input).unwrap()
+  }
+
+  fn dummy_config() -> ProjectConfig {
+    ProjectConfig {
+      root_directory: PathBuf::from(r"."),
+      optimizations: false,
+    }
+  }
+
+  fn dummy_pipeline() -> Pipeline {
+    Pipeline::with_resolver(dummy_config(), Box::new(PanickingNameResolver))
+  }
+
+  fn resolve_call(input: &str) -> Result<CallName, PError> {
+    let ast = parse_ast(input);
+    let mut icompiler = IncCompiler::new(vec!());
+    CallName::resolve_call_name(&mut icompiler, &mut dummy_pipeline(), &ast)
+  }
+
+  #[test]
+  fn simple_call_name() {
+    assert_eq!(resolve_call("foobar"), Ok(CallName::SimpleName(String::from("foobar"))));
+    assert_eq!(resolve_call("some-complicated-name"), Ok(CallName::SimpleName(String::from("some-complicated-name"))));
+
+    // Built-in names are still ordinary calls according to CallName.
+    assert_eq!(resolve_call("if"), Ok(CallName::SimpleName(String::from("if"))));
+
+    // `self` is just a name like any other.
+    assert_eq!(resolve_call("self"), Ok(CallName::SimpleName(String::from("self"))));
+
+    // Although probably a user mistake, `super` is a valid function
+    // name.
+    assert_eq!(resolve_call("super"), Ok(CallName::SimpleName(String::from("super"))));
+
+  }
+
+  #[test]
+  fn method_name() {
+    assert_eq!(resolve_call("foo:bar"), Ok(CallName::MethodName(Box::new(Expr::new(ExprF::LocalVar(String::from("foo")), SourceOffset(0))), String::from("bar"))));
+    assert_eq!(resolve_call("self:bar"), Ok(CallName::MethodName(Box::new(Expr::new(ExprF::LocalVar(String::from("self")), SourceOffset(0))), String::from("bar"))));
+  }
+
+  #[test]
+  fn super_name() {
+    assert_eq!(resolve_call("super:bar"), Ok(CallName::SuperName(String::from("bar"))));
+  }
+
+  #[test]
+  fn atomic_name() {
+    assert_eq!(resolve_call("(literally bar)"), Ok(CallName::AtomicName(String::from("bar"))));
   }
 
 }
