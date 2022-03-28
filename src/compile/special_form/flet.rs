@@ -98,18 +98,18 @@ pub fn compile_labels(frame: &mut CompilerFrame<StmtBuilder>,
   alg.compile_labels_rec()
 }
 
-struct CompileLabelsRecAlgorithm<'a, 'b, 'c, 'd, 'e, 'f, 'g, 'h, 'i, 'j, I> {
-  frame: &'a mut CompilerFrame<'b, 'c, 'd, 'e, StmtBuilder>,
-  body: &'f IRExpr,
+struct CompileLabelsRecAlgorithm<'a, 'b, 'c, 'd, 'e, 'f, 'g, 'h, 'i, 'j, 'k, I> {
+  frame: &'a mut CompilerFrame<'b, 'c, 'd, 'e, 'f, StmtBuilder>,
+  body: &'g IRExpr,
   needs_result: NeedsResult,
   pos: SourceOffset,
-  clauses: &'g [LocalFnClause],
-  full_graph: &'h Graph<String>,
-  sccs: &'i tarjan::SCCSummary<'j, String>,
+  clauses: &'h [LocalFnClause],
+  full_graph: &'i Graph<String>,
+  sccs: &'j tarjan::SCCSummary<'k, String>,
   ordering: I,
 }
 
-impl<'a, 'b, 'c, 'd, 'e, 'f, 'g, 'h, 'i, 'j, I : Iterator<Item=usize>> CompileLabelsRecAlgorithm<'a, 'b, 'c, 'd, 'e, 'f, 'g, 'h, 'i, 'j, I> {
+impl<'a, 'b, 'c, 'd, 'e, 'f, 'g, 'h, 'i, 'j, 'k, I : Iterator<Item=usize>> CompileLabelsRecAlgorithm<'a, 'b, 'c, 'd, 'e, 'f, 'g, 'h, 'i, 'j, 'k, I> {
 
   fn compile_labels_rec(&mut self) -> Result<StExpr, Error> {
     if let Some(current_scc_idx) = self.ordering.next() {
@@ -149,7 +149,7 @@ impl<'a, 'b, 'c, 'd, 'e, 'f, 'g, 'h, 'i, 'j, I : Iterator<Item=usize>> CompileLa
 
 }
 
-impl<'a, 'b, 'c, 'd, 'e, 'f, 'g, 'h, 'i, 'j, I> HasSymbolTable for CompileLabelsRecAlgorithm<'a, 'b, 'c, 'd, 'e, 'f, 'g, 'h, 'i, 'j, I> {
+impl<'a, 'b, 'c, 'd, 'e, 'f, 'g, 'h, 'i, 'j, 'k, I> HasSymbolTable for CompileLabelsRecAlgorithm<'a, 'b, 'c, 'd, 'e, 'f, 'g, 'h, 'i, 'j, 'k, I> {
 
   fn get_symbol_table(&self) -> &SymbolTable {
     self.frame.get_symbol_table()

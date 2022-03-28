@@ -42,7 +42,9 @@ pub fn compile_labels_scc(frame: &mut CompilerFrame<StmtBuilder>,
   // this function is currently written, we need access to both
   // frame.table and lambda_table throughout most of the computation.
   // Perhaps there's a way to refactor it, but it won't be easy.
-  let CompilerFrame { compiler, pipeline, table, builder } = frame;
+  let CompilerFrame { compiler, pipeline, table, builder, class_scope } = frame;
+
+  let mut class_scope = class_scope.closure_mut();
 
   let closure = {
     let mut closure = ClosureData::from(LabelsComponent(clauses));
@@ -90,7 +92,7 @@ pub fn compile_labels_scc(frame: &mut CompilerFrame<StmtBuilder>,
       lambda_table.set_var(arg.to_owned(), LocalVar::local(gd_arg.to_owned(), access_type));
       wrap_in_cell_if_needed(arg, gd_arg, &closure.all_vars, &mut lambda_builder, pos);
     }
-    compiler.frame(pipeline, &mut lambda_builder, &mut lambda_table).compile_stmt(&stmt_wrapper::Return, &clause.body)?;
+    compiler.frame(pipeline, &mut lambda_builder, &mut lambda_table, &mut *class_scope).compile_stmt(&stmt_wrapper::Return, &clause.body)?;
     let lambda_body = lambda_builder.build_into(*builder);
     let func_name = func_name.to_owned();
     let func = decl::FnDecl {
@@ -284,7 +286,9 @@ pub fn compile_lambda_stmt(frame: &mut CompilerFrame<StmtBuilder>,
   // this function is currently written, we need access to both
   // frame.table and lambda_table throughout most of the computation.
   // Perhaps there's a way to refactor it, but it won't be easy.
-  let CompilerFrame { compiler, pipeline, table, builder } = frame;
+  let CompilerFrame { compiler, pipeline, table, builder, class_scope } = frame;
+
+  let mut class_scope = class_scope.closure_mut();
 
   let (arglist, gd_args) = args.clone().into_gd_arglist(&mut compiler.name_generator());
 
@@ -331,7 +335,7 @@ pub fn compile_lambda_stmt(frame: &mut CompilerFrame<StmtBuilder>,
     }
 
     // Compile the lambda body.
-    compiler.frame(pipeline, &mut lambda_builder, &mut lambda_table).compile_stmt(&stmt_wrapper::Return, body)?;
+    compiler.frame(pipeline, &mut lambda_builder, &mut lambda_table, &mut *class_scope).compile_stmt(&stmt_wrapper::Return, body)?;
     lambda_builder.build_into(*builder)
   };
 

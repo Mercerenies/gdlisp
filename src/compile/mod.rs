@@ -16,6 +16,7 @@ pub mod frame;
 use frame::CompilerFrame;
 use body::builder::{CodeBuilder, StmtBuilder, HasDecls};
 use body::class_initializer::{ClassBuilder, InitTime};
+use body::class_scope::{ClassScope, OutsideOfClass, DirectClassScope};
 use names::fresh::FreshNameGenerator;
 use preload_resolver::PreloadResolver;
 use constant::MaybeConstant;
@@ -80,12 +81,13 @@ impl Compiler {
     &*self.resolver
   }
 
-  pub fn frame<'a, 'b, 'c, 'd, B>(&'a mut self,
-                                  pipeline: &'b mut Pipeline,
-                                  builder: &'c mut B,
-                                  table: &'d mut SymbolTable)
-                                  -> CompilerFrame<'a, 'b, 'c, 'd, B> {
-    CompilerFrame::new(self, pipeline, builder, table)
+  pub fn frame<'a, 'b, 'c, 'd, 'e, B>(&'a mut self,
+                                      pipeline: &'b mut Pipeline,
+                                      builder: &'c mut B,
+                                      table: &'d mut SymbolTable,
+                                      class_scope: &'e mut dyn ClassScope)
+                                      -> CompilerFrame<'a, 'b, 'c, 'd, 'e, B> {
+    CompilerFrame::new(self, pipeline, builder, table, class_scope)
   }
 
   fn compile_export(&mut self,
@@ -99,7 +101,8 @@ impl Compiler {
     match &expr.value {
       IRExprF::LocalVar(s) => Ok(Expr::new(ExprF::Var(s.to_owned()), expr.pos)),
       _ => {
-        let expr = self.frame(pipeline, &mut (), table).compile_simple_expr("export", expr, NeedsResult::Yes)?;
+        let mut class_scope = OutsideOfClass;
+        let expr = self.frame(pipeline, &mut (), table, &mut class_scope).compile_simple_expr("export", expr, NeedsResult::Yes)?;
         expr.validate_const_expr("export", table)?;
         Ok(expr)
       }
@@ -111,6 +114,7 @@ impl Compiler {
                                   pipeline: &mut Pipeline,
                                   builder: &mut ClassBuilder,
                                   tables: ClassTablePair<'_, '_>,
+                                  class_scope: &mut DirectClassScope,
                                   decl: &ir::decl::ClassInnerDecl)
                                   -> Result<Decl, Error> {
     let table = tables.into_table(decl.is_static());
@@ -123,7 +127,7 @@ impl Compiler {
       ir::decl::ClassInnerDeclF::ClassConstDecl(c) => {
         // TODO Merge this with IRDecl::ConstDecl above
         let gd_name = names::lisp_to_gd(&c.name);
-        let value = self.frame(pipeline, &mut (), table).compile_simple_expr(&c.name, &c.value, NeedsResult::Yes)?;
+        let value = self.frame(pipeline, &mut (), table, class_scope).compile_simple_expr(&c.name, &c.value, NeedsResult::Yes)?;
         value.validate_const_expr(&c.name, table)?;
         Ok(Decl::new(DeclF::ConstDecl(gd_name, value), decl.pos))
       }
@@ -138,7 +142,7 @@ impl Compiler {
         // to _init or _ready are not included in this return value
         // (they are added to the mutable builder frame instead).
         let immediate_value = {
-          let mut local_frame = self.frame(pipeline, builder.builder_for(v.init_time), table);
+          let mut local_frame = self.frame(pipeline, builder.builder_for(v.init_time), table, class_scope);
           Compiler::compile_inner_var_value(&name, v.value.as_ref(), &mut local_frame, decl.pos)?
         };
         let onready = Onready::from(immediate_value.is_some() && v.init_time == InitTime::Ready);
@@ -197,7 +201,7 @@ impl Compiler {
         }
 
         let gd_name = names::lisp_to_gd(f.name.method_name().borrow());
-        let func = factory::declare_function(&mut self.frame(pipeline, builder, table),
+        let func = factory::declare_function(&mut self.frame(pipeline, builder, table, class_scope),
                                              gd_name,
                                              IRArgList::from(f.args.clone()),
                                              &f.body,
@@ -531,7 +535,8 @@ mod tests {
       icompiler.compile_expr(&mut pipeline, ast)
     }?;
     {
-      let mut frame = compiler.frame(&mut pipeline, &mut builder, &mut table);
+      let mut class_scope = OutsideOfClass;
+      let mut frame = compiler.frame(&mut pipeline, &mut builder, &mut table, &mut class_scope);
       let () = frame.compile_stmt(&mut stmt_wrapper::Return, &expr)?;
     }
     Ok(builder.build())

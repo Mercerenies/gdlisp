@@ -8,6 +8,7 @@ use crate::compile::Compiler;
 use crate::compile::stateful::{StExpr, NeedsResult};
 use crate::compile::body::builder::{StmtBuilder, HasDecls};
 use crate::compile::body::class_initializer::ClassBuilder;
+use crate::compile::body::class_scope::DirectClassScope;
 use crate::compile::symbol_table::{SymbolTable, ClassTablePair};
 use crate::compile::symbol_table::local_var::LocalVar;
 use crate::compile::symbol_table::function_call::OuterStaticRef;
@@ -26,8 +27,15 @@ pub fn compile_lambda_class(frame: &mut CompilerFrame<StmtBuilder>,
   // this function is currently written, we need access to both
   // frame.table and lambda_table throughout most of the computation.
   // Perhaps there's a way to refactor it, but it won't be easy.
-  let CompilerFrame { compiler, pipeline, table, builder } = frame;
+  let CompilerFrame { compiler, pipeline, table, builder, class_scope: original_class_scope } = frame;
   let LambdaClass { extends, args: constructor_args, constructor, decls } = class;
+
+  // Note: We construct a new class scope here, since we're now inside
+  // of a newly-declared class. We use the original_class_scope to
+  // compile the constructor arguments, since super calls to the scope
+  // enclosing the class declaration are still valid in that syntactic
+  // position.
+  let mut class_scope = DirectClassScope::new();
 
   // Validate the extends declaration (must be a global variable)
   let extends = Compiler::resolve_extends(table, &extends, pos)?;
@@ -77,7 +85,7 @@ pub fn compile_lambda_class(frame: &mut CompilerFrame<StmtBuilder>,
       &c
     }
   };
-  let (constructor, constructor_helpers) = compile_lambda_class_constructor(&mut compiler.frame(pipeline, *builder, &mut lambda_table), &constructor, &gd_closure_vars, pos)?;
+  let (constructor, constructor_helpers) = compile_lambda_class_constructor(&mut compiler.frame(pipeline, *builder, &mut lambda_table, &mut class_scope), &constructor, &gd_closure_vars, pos)?;
 
   // Build the class body for the lambda class.
   let mut class_init_builder = ClassBuilder::new();
@@ -104,7 +112,7 @@ pub fn compile_lambda_class(frame: &mut CompilerFrame<StmtBuilder>,
       // in the above code that the declaration is non-static.
       let mut dummy_table = SymbolTable::new();
       let tables = ClassTablePair { instance_table: &mut lambda_table, static_table: &mut dummy_table };
-      class_body.push(compiler.compile_class_inner_decl(pipeline, &mut class_init_builder, tables, d)?);
+      class_body.push(compiler.compile_class_inner_decl(pipeline, &mut class_init_builder, tables, &mut class_scope, d)?);
 
     }
     class_body
@@ -120,12 +128,14 @@ pub fn compile_lambda_class(frame: &mut CompilerFrame<StmtBuilder>,
     inner_class::add_outer_class_ref_named(&mut class, compiler.preload_resolver(), *pipeline, outer_ref_name, pos);
   }
 
+  class_init_builder.declare_proxies_from_scope(class_scope);
+
   let class_init = class_init_builder.build_into(*builder);
   class_init.apply(&mut class, pos)?;
 
   builder.add_helper(Decl::new(DeclF::ClassDecl(class), pos));
 
-  let constructor_args = constructor_args.iter().map(|expr| compiler.frame(pipeline, *builder, table).compile_expr(expr, NeedsResult::Yes)).collect::<Result<Vec<_>, _>>()?;
+  let constructor_args = constructor_args.iter().map(|expr| compiler.frame(pipeline, *builder, table, *original_class_scope).compile_expr(expr, NeedsResult::Yes)).collect::<Result<Vec<_>, _>>()?;
   let expr = lambda::make_constructor_call(gd_class_name, gd_src_closure_vars, constructor_args, pos);
   Ok(expr)
 }

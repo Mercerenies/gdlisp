@@ -12,6 +12,7 @@ use crate::pipeline::source::SourceOffset;
 use super::builder::{StmtBuilder, HasDecls};
 use super::synthetic_field::{SyntheticField, Getter, Setter};
 use super::super_proxy::SuperProxy;
+use super::class_scope::DirectClassScope;
 
 use std::mem;
 use std::collections::HashMap;
@@ -138,6 +139,12 @@ impl ClassBuilder {
     let name = proxy.name.clone();
     self.super_proxies.push(proxy);
     name
+  }
+
+  /// Incorporates all of the supermethod proxies from the given
+  /// direct class scope.
+  pub fn declare_proxies_from_scope(&mut self, scope: DirectClassScope) {
+    self.super_proxies.extend(scope.into_proxies());
   }
 
   /// Builds the builder into a [`ClassInit`].

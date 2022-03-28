@@ -5,6 +5,8 @@
 // TODO Not a fan of all of the `dyn ClassScope` in this file. Can we
 // remove at least *some* of the indirection?
 
+///// TEST TEST TEST TEST TEST TEST IT ALL TEST TEST TEST TEST IT MORE
+
 use crate::compile::error::{Error as GDError, ErrorF as GDErrorF};
 use crate::compile::symbol_table::local_var::LocalVar;
 use crate::compile::names::fresh::FreshNameGenerator;

@@ -17,6 +17,7 @@ use super::names::fresh::FreshNameGenerator;
 use super::error::{Error, ErrorF};
 use super::stateful::{StExpr, NeedsResult, SideEffects};
 use super::body::builder::{StmtBuilder, CodeBuilder, HasDecls};
+use super::body::class_scope::ClassScope;
 use super::stmt_wrapper::{self, StmtWrapper};
 use super::constant::MaybeConstant;
 use crate::pipeline::Pipeline;
@@ -71,7 +72,7 @@ pub const MAX_QUOTE_REIFY_DEPTH: u32 = 4;
 ///
 /// * Some methods are only available when `B` is the concrete type
 ///   [`StmtBuilder`].
-pub struct CompilerFrame<'a, 'b, 'c, 'd, B> {
+pub struct CompilerFrame<'a, 'b, 'c, 'd, 'e, B> {
   /// The compiler for the file. The compiler is mutable, but it is
   /// unlikely to be completely replaced in local scopes.
   pub compiler: &'a mut Compiler,
@@ -94,17 +95,26 @@ pub struct CompilerFrame<'a, 'b, 'c, 'd, B> {
   /// implements [`HasSymbolTable`], so methods such as
   /// [`HasSymbolTable::with_local_var`] will work on `CompilerFrame`.
   pub table: &'d mut SymbolTable,
+  /// The scope for the class we're currently conceptually inside of,
+  /// including information about whether we're in a closure. This is
+  /// important, because when we're in a closure, we're still
+  /// conceptually within the class as far as GDLisp is concerned, but
+  /// we're compiling to something outside of the class, so special
+  /// care needs to be taken when referencing information on the
+  /// current class.
+  pub class_scope: &'e mut dyn ClassScope,
 }
 
-impl<'a, 'b, 'c, 'd, B> CompilerFrame<'a, 'b, 'c, 'd, B> {
+impl<'a, 'b, 'c, 'd, 'e, B> CompilerFrame<'a, 'b, 'c, 'd, 'e, B> {
 
   /// Convenience function to construct a `CompilerFrame`.
   pub fn new(compiler: &'a mut Compiler,
              pipeline: &'b mut Pipeline,
              builder: &'c mut B,
-             table: &'d mut SymbolTable)
+             table: &'d mut SymbolTable,
+             class_scope: &'e mut dyn ClassScope)
              -> Self {
-    CompilerFrame { compiler, pipeline, builder, table }
+    CompilerFrame { compiler, pipeline, builder, table, class_scope }
   }
 
   /// Gets the [`FreshNameGenerator`] from the frame's [`Compiler`].
@@ -123,7 +133,7 @@ impl<'a, 'b, 'c, 'd, B> CompilerFrame<'a, 'b, 'c, 'd, B> {
   /// returned.
   pub fn with_builder<B1, R, F>(&mut self, new_builder: &mut B1, block: F) -> R
   where F : FnOnce(&mut CompilerFrame<B1>) -> R {
-    let mut new_frame = CompilerFrame::new(self.compiler, self.pipeline, new_builder, self.table);
+    let mut new_frame = CompilerFrame::new(self.compiler, self.pipeline, new_builder, self.table, self.class_scope);
     block(&mut new_frame)
   }
 
@@ -155,7 +165,7 @@ impl<'a, 'b, 'c, 'd, B> CompilerFrame<'a, 'b, 'c, 'd, B> {
 
 }
 
-impl<'a, 'b, 'c, 'd, B: HasDecls> CompilerFrame<'a, 'b, 'c, 'd, B> {
+impl<'a, 'b, 'c, 'd, 'e, B: HasDecls> CompilerFrame<'a, 'b, 'c, 'd, 'e, B> {
 
   /// This method allows a block of code to run, given access to a
   /// compiler frame identical to `self` but with a new
@@ -211,7 +221,7 @@ impl<'a, 'b, 'c, 'd, B: HasDecls> CompilerFrame<'a, 'b, 'c, 'd, B> {
 
 }
 
-impl<'a, 'b, 'c, 'd> CompilerFrame<'a, 'b, 'c, 'd, CodeBuilder> {
+impl<'a, 'b, 'c, 'd, 'e> CompilerFrame<'a, 'b, 'c, 'd, 'e, CodeBuilder> {
 
   pub fn compile_toplevel(&mut self, toplevel: &ir::decl::TopLevel) -> Result<(), PError> {
 
@@ -317,7 +327,7 @@ impl<'a, 'b, 'c, 'd> CompilerFrame<'a, 'b, 'c, 'd, CodeBuilder> {
 
 }
 
-impl<'a, 'b, 'c, 'd> CompilerFrame<'a, 'b, 'c, 'd, StmtBuilder> {
+impl<'a, 'b, 'c, 'd, 'e> CompilerFrame<'a, 'b, 'c, 'd, 'e, StmtBuilder> {
 
   /// Compiles the sequence of statements into the current frame's
   /// builder.
@@ -467,7 +477,15 @@ impl<'a, 'b, 'c, 'd> CompilerFrame<'a, 'b, 'c, 'd, StmtBuilder> {
         })
       }
       IRExprF::SuperCall(sym, args) => {
-        unimplemented!() ////
+        let args = args.iter()
+          .map(|arg| self.compile_expr(arg, NeedsResult::Yes).map(|x| x.expr))
+          .collect::<Result<Vec<_>, _>>()?;
+        let self_binding = self.table.get_var("self").ok_or_else(|| Error::new(ErrorF::NoSuchVar(String::from("self")), expr.pos))?;
+        let expr = self.class_scope.super_call(self.compiler.name_generator(), self_binding, sym.to_owned(), args, expr.pos)?;
+        Ok(StExpr {
+          expr: expr,
+          side_effects: SideEffects::ModifiesState,
+        })
       }
       IRExprF::LambdaClass(cls) => {
         lambda_class::compile_lambda_class(self, cls, expr.pos)
@@ -646,7 +664,7 @@ impl<'a, 'b, 'c, 'd> CompilerFrame<'a, 'b, 'c, 'd, StmtBuilder> {
 
 }
 
-impl<'a, 'b, 'c, 'd, B> HasSymbolTable for CompilerFrame<'a, 'b, 'c, 'd, B> {
+impl<'a, 'b, 'c, 'd, 'e, B> HasSymbolTable for CompilerFrame<'a, 'b, 'c, 'd, 'e, B> {
 
   fn get_symbol_table(&self) -> &SymbolTable {
     self.table

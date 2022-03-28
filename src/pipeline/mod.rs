@@ -18,6 +18,7 @@ use crate::ir;
 use crate::compile::Compiler;
 use crate::compile::names::fresh::FreshNameGenerator;
 use crate::compile::body::builder::CodeBuilder;
+use crate::compile::body::class_scope::OutsideOfClass;
 use crate::compile::symbol_table::SymbolTable;
 use crate::compile::preload_resolver::{DefaultPreloadResolver, LookupPreloadResolver};
 use crate::gdscript::library;
@@ -79,7 +80,7 @@ impl Pipeline {
     library::bind_builtins(&mut table, ir.minimalist_flag);
 
     let mut builder = CodeBuilder::new(decl::ClassExtends::named("Node".to_owned()));
-    compiler.frame(self, &mut builder, &mut table).compile_toplevel(&ir)?;
+    compiler.frame(self, &mut builder, &mut table, &mut OutsideOfClass).compile_toplevel(&ir)?;
     let mut result = builder.build();
     if self.config.optimizations {
       run_standard_passes(&mut result)?;
@@ -128,7 +129,7 @@ impl Pipeline {
     library::bind_builtins(&mut table, unit.ir.minimalist_flag);
 
     let mut builder = CodeBuilder::new(decl::ClassExtends::named("Node".to_owned()));
-    compiler.frame(self, &mut builder, &mut table).compile_toplevel(&unit.ir)?;
+    compiler.frame(self, &mut builder, &mut table, &mut OutsideOfClass).compile_toplevel(&unit.ir)?;
     let mut tmpresult = builder.build();
     if self.config.optimizations {
       run_standard_passes(&mut tmpresult)?;

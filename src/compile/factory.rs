@@ -7,6 +7,7 @@ use super::stateful::NeedsResult;
 use super::names::fresh::FreshNameGenerator;
 use super::body::builder::{StmtBuilder, CodeBuilder, HasDecls};
 use super::body::class_initializer::ClassBuilder;
+use super::body::class_scope::DirectClassScope;
 use super::stmt_wrapper::{self, StmtWrapper};
 use super::symbol_table::{HasSymbolTable, ClassTablePair};
 use super::symbol_table::local_var::LocalVar;
@@ -137,6 +138,8 @@ pub fn declare_class(frame: &mut CompilerFrame<impl HasDecls>,
                      pos: SourceOffset)
                      -> Result<decl::ClassDecl, Error> {
 
+  let mut class_scope = DirectClassScope::new();
+
   let self_var = LocalVar::self_var();
 
   let mut body = vec!();
@@ -165,7 +168,7 @@ pub fn declare_class(frame: &mut CompilerFrame<impl HasDecls>,
       }
     }
 
-    let (constructor, constructor_helpers) = declare_constructor(&mut CompilerFrame::new(frame.compiler, frame.pipeline, frame.builder, instance_table), constructor)?;
+    let (constructor, constructor_helpers) = declare_constructor(&mut CompilerFrame::new(frame.compiler, frame.pipeline, frame.builder, instance_table, &mut class_scope), constructor)?;
     body.push(Decl::new(DeclF::InitFnDecl(constructor), pos));
     for helper in constructor_helpers {
       body.push(Decl::new(DeclF::FnDecl(decl::Static::NonStatic, helper), pos));
@@ -173,7 +176,7 @@ pub fn declare_class(frame: &mut CompilerFrame<impl HasDecls>,
 
     for d in decls {
       let tables = ClassTablePair { instance_table, static_table: &mut static_table };
-      body.push(frame.compiler.compile_class_inner_decl(frame.pipeline, &mut class_init_builder, tables, d)?);
+      body.push(frame.compiler.compile_class_inner_decl(frame.pipeline, &mut class_init_builder, tables, &mut class_scope, d)?);
     }
 
     Ok(())
@@ -188,6 +191,8 @@ pub fn declare_class(frame: &mut CompilerFrame<impl HasDecls>,
   if needs_outer_ref && !main_class {
     inner_class::add_outer_class_ref_named(&mut decl, frame.preload_resolver(), frame.pipeline, outer_ref_name, pos);
   }
+
+  class_init_builder.declare_proxies_from_scope(class_scope);
 
   let class_init = class_init_builder.build_into(frame.builder);
   class_init.apply(&mut decl, pos)?;
