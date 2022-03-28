@@ -76,6 +76,126 @@ pub fn parent_constructor_class_running_test() {
 }
 
 #[test]
+pub fn super_call_in_class_test_1() {
+  assert_eq!(parse_compile_decl(r#"((defclass Foo () (defn foo () (super:foo))))"#),
+             r#"extends Reference
+class Foo extends Reference:
+    func _init():
+        pass
+    func foo():
+        return .foo()
+static func run():
+    return null
+"#);
+}
+
+#[test]
+pub fn super_call_in_class_test_2() {
+  assert_eq!(parse_compile_decl(r#"((defclass Foo () (defn foo () (super:bar)) (defn bar () (super:foo))))"#),
+             r#"extends Reference
+class Foo extends Reference:
+    func _init():
+        pass
+    func foo():
+        return .bar()
+    func bar():
+        return .foo()
+static func run():
+    return null
+"#);
+}
+
+#[test]
+pub fn super_call_in_class_test_3() {
+  assert_eq!(parse_compile_decl(r#"((defclass Foo () main (defn foo () (super:foo)) (defn bar () (super:foo))))"#),
+             r#"extends Reference
+func _init():
+    pass
+func foo():
+    return .foo()
+func bar():
+    return .foo()
+static func run():
+    return null
+"#);
+}
+
+#[test]
+pub fn super_call_in_class_test_4() {
+  assert_eq!(parse_compile_decl(r#"((defclass Foo () (defn _init () (super:foo))))"#),
+             r#"extends Reference
+class Foo extends Reference:
+    func _init():
+        .foo()
+static func run():
+    return null
+"#);
+}
+
+#[test]
+pub fn super_call_closed_in_class_test_1() {
+  assert_eq!(parse_compile_decl(r#"((defclass Foo () (defn foo () (lambda () (super:foo)))))"#),
+             r#"extends Reference
+class _LambdaBlock_2 extends GDLisp.Function:
+    var _self_0
+    func _init(_self_0):
+        self._self_0 = _self_0
+        self.__gdlisp_required = 0
+        self.__gdlisp_optional = 0
+        self.__gdlisp_rest = 0
+    func call_func():
+        return _self_0.__gdlisp_super_1()
+    func call_funcv(args):
+        if args == null:
+            return call_func()
+        else:
+            push_error("Too many arguments")
+class Foo extends Reference:
+    func _init():
+        pass
+    func foo():
+        return _LambdaBlock_2.new(self)
+    func __gdlisp_super_1():
+        return .foo()
+static func run():
+    return null
+"#);
+}
+
+#[test]
+pub fn super_call_closed_in_class_test_2() {
+  assert_eq!(parse_compile_decl(r#"((defclass Foo () (defn foo () (lambda () (super:foo) (super:bar)))))"#),
+             r#"extends Reference
+class _LambdaBlock_3 extends GDLisp.Function:
+    var _self_0
+    func _init(_self_0):
+        self._self_0 = _self_0
+        self.__gdlisp_required = 0
+        self.__gdlisp_optional = 0
+        self.__gdlisp_rest = 0
+    func call_func():
+        _self_0.__gdlisp_super_1()
+        return _self_0.__gdlisp_super_2()
+    func call_funcv(args):
+        if args == null:
+            return call_func()
+        else:
+            push_error("Too many arguments")
+class Foo extends Reference:
+    func _init():
+        pass
+    func foo():
+        return _LambdaBlock_3.new(self)
+    func __gdlisp_super_1():
+        return .foo()
+    func __gdlisp_super_2():
+        return .bar()
+static func run():
+    return null
+"#);
+}
+
+#[test]
 pub fn member_var_class_test_1() {
   assert_eq!(parse_compile_decl("((defclass ClassName (Node) (defvar x) (defn get-x () self:x)))"),
              r#"extends Reference
@@ -1066,4 +1186,64 @@ pub fn class_setget_runner_test_2() {
                                  (set foo:x 92)
                                  (print foo:x)))"#),
              "\n92\n");
+}
+
+#[test]
+pub fn super_call_runner_test_1() {
+  assert_eq!(parse_and_run(r#"((defclass Foo (Reference)
+                                 (defn foo ()
+                                   99))
+                               (defclass Bar (Foo)
+                                 (defn foo ()
+                                   101)
+                                 (defn call-foo ()
+                                   (super:foo)))
+                               (let ((bar (Bar:new)))
+                                 (print (bar:foo))
+                                 (print (bar:call-foo))))"#),
+             "\n101\n99\n");
+}
+
+#[test]
+pub fn super_call_runner_test_2() {
+  assert_eq!(parse_and_run(r#"((defclass Foo (Reference)
+                                 (defn foo ()
+                                   99))
+                               (defclass Bar (Foo)
+                                 (defn foo ()
+                                   101)
+                                 (defn call-foo ()
+                                   (lambda () (super:foo))))
+                               (let* ((bar (Bar:new))
+                                      (delegator (bar:call-foo)))
+                                 (print (bar:foo))
+                                 (print (funcall delegator))))"#),
+             "\n101\n99\n");
+}
+
+#[test]
+pub fn super_call_runner_test_3() {
+  assert_eq!(parse_and_run(r#"((defclass Foo (Reference)
+                                 (defvar x)
+                                 (defn _init (x)
+                                   (set @x x))
+                                 (defn foo ()
+                                   99))
+                               (defclass Bar (Foo)
+                                 (defn _init ()
+                                   (super (lambda () (super:foo))))
+                                 (defn foo ()
+                                   101))
+                               (let* ((bar (Bar:new)))
+                                 (print (bar:foo))
+                                 (print (funcall bar:x))))"#),
+             "\n101\n99\n");
+}
+
+#[test]
+pub fn bad_super_call_test() {
+  assert_eq!(
+    parse_compile_decl_err("((defn foo () (super:foo)))"),
+    Err(PError::from(GDError::new(GDErrorF::BadSuperCall(String::from("foo")), SourceOffset(14)))),
+  );
 }
