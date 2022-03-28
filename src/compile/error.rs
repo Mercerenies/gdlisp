@@ -221,6 +221,9 @@ pub enum ErrorF {
   /// A field and either a getter or setter with the same name were
   /// declared in the same scope.
   FieldAccessorConflict(String),
+  /// A `super` call was attempted in a situation where it makes no
+  /// sense (such as outside of class scope).
+  BadSuperCall(String),
 }
 
 /// Variant of [`ErrorF`] with source offset information. See
@@ -327,6 +330,7 @@ impl ErrorF {
       ErrorF::BadGetterArguments(_) => 43,
       ErrorF::BadSetterArguments(_) => 44,
       ErrorF::FieldAccessorConflict(_) => 45,
+      ErrorF::BadSuperCall(_) => 46,
     }
   }
 
@@ -455,6 +459,9 @@ impl fmt::Display for ErrorF {
       }
       ErrorF::FieldAccessorConflict(field_name) => {
         write!(f, "The value '{}' was declared as both an instance variable and either a getter or a setter", field_name)?;
+      }
+      ErrorF::BadSuperCall(super_method) => {
+        write!(f, "Cannot call superclass method '{}'; there is no superclass in the current scope", super_method)?;
       }
     }
     if self.is_internal() {
