@@ -306,6 +306,7 @@ impl Expr {
         }
       }
       ExprF::SuperCall(_, args) => {
+        acc_vars.visit(String::from("self"), AccessType::Read, self.pos);
         for expr in args {
           expr.walk_locals(acc_vars, acc_fns);
         }
@@ -457,6 +458,12 @@ mod tests {
     let progn = e(ExprF::Progn(vec!(e(ExprF::LocalVar(String::from("aa"))),
                                     e(ExprF::LocalVar(String::from("bb"))))));
     assert_eq!(progn.get_locals(), lhash(vec!("aa".to_owned(), "bb".to_owned())));
+  }
+
+  #[test]
+  fn test_locals_super_call() {
+    let super_call = e(ExprF::SuperCall(String::from("foobar"), vec!(e(ExprF::LocalVar(String::from("aa"))))));
+    assert_eq!(super_call.get_locals(), lhash(vec!("aa".to_owned(), "self".to_owned())));
   }
 
   #[test]
