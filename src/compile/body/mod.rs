@@ -3,5 +3,6 @@
 
 pub mod builder;
 pub mod class_initializer;
+pub mod class_scope;
 pub mod synthetic_field;
 pub mod super_proxy;
