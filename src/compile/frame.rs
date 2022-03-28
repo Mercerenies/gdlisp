@@ -480,7 +480,7 @@ impl<'a, 'b, 'c, 'd, 'e> CompilerFrame<'a, 'b, 'c, 'd, 'e, StmtBuilder> {
         let args = args.iter()
           .map(|arg| self.compile_expr(arg, NeedsResult::Yes).map(|x| x.expr))
           .collect::<Result<Vec<_>, _>>()?;
-        let self_binding = self.table.get_var("self").ok_or_else(|| Error::new(ErrorF::NoSuchVar(String::from("self")), expr.pos))?;
+        let self_binding = self.table.get_var("self").ok_or_else(|| Error::new(ErrorF::BadSuperCall(String::from(sym)), expr.pos))?;
         let expr = self.class_scope.super_call(self.compiler.name_generator(), self_binding, sym.to_owned(), args, expr.pos)?;
         Ok(StExpr {
           expr: expr,
