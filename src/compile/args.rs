@@ -71,6 +71,10 @@ pub enum ExpectedShape {
   /// supplied then the other becomes required. This special value
   /// provides an error message specific to that unique case.
   YieldArg,
+  /// A valid instance function name, either a symbol or an expression
+  /// of the form `(set name)` or `(get name)`, where `name` is an
+  /// arbitrary symbol.
+  InstanceFnName,
 }
 
 impl Expecting {
@@ -216,6 +220,7 @@ impl fmt::Display for ExpectedShape {
       ExpectedShape::NonemptyList => write!(f, "nonempty list"),
       ExpectedShape::SingletonList => write!(f, "singleton list"),
       ExpectedShape::YieldArg => write!(f, "additional argument (yield takes 0 or 2 arguments)"),
+      ExpectedShape::InstanceFnName => write!(f, "instance function name"),
     }
   }
 }

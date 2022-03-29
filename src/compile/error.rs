@@ -95,13 +95,6 @@ pub enum ErrorF {
   /// attempted, so if you were expecting to call a macro, then
   /// consider double-checking the name of the macro.
   UnknownDecl(AST),
-  /// A declaration was incorrectly formatted.
-  ///
-  /// This is a *very* general-purpose catch-all error type, and other
-  /// error types should always be favored if a more appropriate one
-  /// exists. (TODO Reduce the use of this error, and even potentially
-  /// remove it altogether)
-  InvalidDecl(AST),
   /// An `unquote` expression appeared outside of a `quasiquote`.
   UnquoteOutsideQuasiquote,
   /// An `unquote-spliced` expression appeared outside of a
@@ -313,7 +306,9 @@ impl ErrorF {
       ErrorF::NoSuchEnumValue(_, _) => 16,
       ErrorF::NoSuchMagic(_) => 17,
       ErrorF::UnknownDecl(_) => 18,
-      ErrorF::InvalidDecl(_) => 19,
+      // NOTE: 19 belongs to the removed InvalidDecl, which has been
+      // split into several different error types: InvalidArg,
+      // BadExtendsClause, BadEnumClause, and BadSysDeclare.
       ErrorF::UnquoteOutsideQuasiquote => 20,
       ErrorF::UnquoteSplicedOutsideQuasiquote => 21,
       ErrorF::BadUnquoteSpliced(_) => 22,
@@ -405,9 +400,6 @@ impl fmt::Display for ErrorF {
       }
       ErrorF::UnknownDecl(ast) => {
         write!(f, "Unknown declaration {}", ast)?;
-      }
-      ErrorF::InvalidDecl(ast) => {
-        write!(f, "Invalid declaration {}", ast)?;
       }
       ErrorF::UnquoteOutsideQuasiquote => {
         write!(f, "Unquote (,) can only be used inside quasiquote (`)")?;

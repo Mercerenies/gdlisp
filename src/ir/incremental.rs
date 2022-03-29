@@ -450,7 +450,7 @@ impl IncCompiler {
         }
       }
       _ => {
-        Err(PError::from(Error::new(ErrorF::InvalidDecl(decl.clone()), decl.pos)))
+        Err(PError::from(Error::new(ErrorF::InvalidArg(String::from("(declaration)"), vec[0].clone(), ExpectedShape::Symbol), decl.pos)))
       }
     }
   }
@@ -472,7 +472,7 @@ impl IncCompiler {
 
     let vec = Vec::try_from(DottedExpr::new(curr)).map_err(|x| Error::from_value(x, curr.pos))?;
     if vec.is_empty() {
-      return Err(PError::from(Error::new(ErrorF::InvalidDecl(curr.clone()), curr.pos)));
+      return Err(PError::from(Error::new(ErrorF::InvalidArg(String::from("(declaration)"), curr.clone(), ExpectedShape::NonemptyList), curr.pos)));
     }
     if let ASTF::Symbol(s) = &vec[0].value {
       match s.as_str() {
@@ -493,53 +493,49 @@ impl IncCompiler {
         }
         "defvar" => {
           Expecting::at_least(1).validate("defvar", curr.pos, &vec[1..])?;
-          if let ASTF::Symbol(vname) = &vec[1].value {
-            let name = vname.to_owned();
+          let name = ExpectedShape::extract_symbol("defvar", vec[1].clone())?;
 
-            // Parse value and export
-            let mut value = None;
-            let mut export = None;
-            let mut idx = 2;
-            // Value
-            if let Some(v) = vec.get(idx) {
-              if !(matches!(&v.value, ASTF::Cons(car, _) if car.value == ASTF::Symbol(String::from("export")))) {
-                let e = self.compile_expr(pipeline, v)?;
-                value = Some(e);
+          // Parse value and export
+          let mut value = None;
+          let mut export = None;
+          let mut idx = 2;
+          // Value
+          if let Some(v) = vec.get(idx) {
+            if !(matches!(&v.value, ASTF::Cons(car, _) if car.value == ASTF::Symbol(String::from("export")))) {
+              let e = self.compile_expr(pipeline, v)?;
+              value = Some(e);
+              idx += 1;
+            }
+          };
+          // Export
+          if let Some(v) = vec.get(idx) {
+            if let DottedExpr { elements, terminal: AST { value: ASTF::Nil, pos: _ } } = DottedExpr::new(v) {
+              if elements.get(0).map(|x| &x.value) == Some(&ASTF::Symbol(String::from("export"))) {
+                let args = elements[1..].iter().map(|x| self.compile_expr(pipeline, x)).collect::<Result<_, _>>()?;
+                export = Some(decl::Export { args });
                 idx += 1;
               }
-            };
-            // Export
-            if let Some(v) = vec.get(idx) {
-              if let DottedExpr { elements, terminal: AST { value: ASTF::Nil, pos: _ } } = DottedExpr::new(v) {
-                if elements.get(0).map(|x| &x.value) == Some(&ASTF::Symbol(String::from("export"))) {
-                  let args = elements[1..].iter().map(|x| self.compile_expr(pipeline, x)).collect::<Result<_, _>>()?;
-                  export = Some(decl::Export { args });
-                  idx += 1;
-                }
-              }
             }
-            // Modifiers
-            let (mods, body) = modifier::var::parser().parse(&vec[idx..])?;
-            // (Extra)
-            ExpectedShape::validate_end_of_list("defvar", body, curr.pos)?;
-
-            // Exports are only allowed on the main class
-            if export.is_some() && !acc.main_class {
-              return Err(PError::from(Error::new(ErrorF::ExportOnInnerClassVar(vname.clone()), curr.pos)));
-            }
-
-            let decl = {
-              let mut decl = decl::ClassVarDecl { export, name, value, init_time: InitTime::default() };
-              for m in mods {
-                m.apply(&mut decl);
-              }
-              decl
-            };
-            acc.decls.push(decl::ClassInnerDecl::new(decl::ClassInnerDeclF::ClassVarDecl(decl), vec[0].pos));
-            Ok(())
-          } else {
-            Err(PError::from(Error::new(ErrorF::InvalidDecl(curr.clone()), curr.pos)))
           }
+          // Modifiers
+          let (mods, body) = modifier::var::parser().parse(&vec[idx..])?;
+          // (Extra)
+          ExpectedShape::validate_end_of_list("defvar", body, curr.pos)?;
+
+          // Exports are only allowed on the main class
+          if export.is_some() && !acc.main_class {
+            return Err(PError::from(Error::new(ErrorF::ExportOnInnerClassVar(name), curr.pos)));
+          }
+
+          let decl = {
+            let mut decl = decl::ClassVarDecl { export, name, value, init_time: InitTime::default() };
+            for m in mods {
+              m.apply(&mut decl);
+            }
+            decl
+          };
+          acc.decls.push(decl::ClassInnerDecl::new(decl::ClassInnerDeclF::ClassVarDecl(decl), vec[0].pos));
+          Ok(())
         }
         "defn" => {
           // TODO Unify some of this with the equivalent code from compile_decl?
@@ -576,7 +572,8 @@ impl IncCompiler {
               acc.constructor = Some(constructor);
 
             } else {
-              // Ordinary functions cannot have super
+              // Ordinary functions cannot have init super calls (The
+              // `(super:foo)` syntax is handled separately).
 
               if let Some(super_call) = &super_call {
                 return Err(PError::from(Error::new(ErrorF::NoSuchFn(String::from("super")), super_call.pos)));
@@ -595,7 +592,7 @@ impl IncCompiler {
             }
             Ok(())
           } else {
-            Err(PError::from(Error::new(ErrorF::InvalidDecl(curr.clone()), curr.pos)))
+            Err(PError::from(Error::new(ErrorF::InvalidArg(String::from("defn"), vec[1].clone(), ExpectedShape::InstanceFnName), vec[1].pos)))
           }
         }
         "defsignal" => {
@@ -610,7 +607,7 @@ impl IncCompiler {
           Ok(())
         }
         _ => {
-          Err(PError::from(Error::new(ErrorF::InvalidDecl(curr.clone()), curr.pos)))
+          Err(PError::from(Error::new(ErrorF::InvalidArg(String::from("(declaration)"), vec[0].clone(), ExpectedShape::Symbol), curr.pos)))
         }
       }
     } else {
