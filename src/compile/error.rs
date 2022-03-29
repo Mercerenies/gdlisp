@@ -66,13 +66,13 @@ pub enum ErrorF {
   /// This error includes the name of the callable object, the faulty
   /// argument that was passed, and a freeform text description of the
   /// sort of argument that was expected.
-  InvalidArg(String, AST, ExpectedShape),
+  InvalidArg(String, AST, ExpectedShape), // TODO Audit usage
   /// A name was referenced in the variable namespace, but no such
   /// name was found in the symbol table.
-  NoSuchVar(String),
+  NoSuchVar(String), // TODO Audit usage
   /// A name was referenced in the function namespace, but no such
   /// name was found in the symbol table.
-  NoSuchFn(String),
+  NoSuchFn(String), // TODO Audit usage
   /// An enumeration constant was subscripted, but the subscripted
   /// name does not exist in the enumeration.
   ///
