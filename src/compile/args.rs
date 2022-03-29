@@ -64,6 +64,8 @@ pub enum ExpectedShape {
   EndOfList,
   /// A nonempty list literal.
   NonemptyList,
+  /// A list literal containing a single element.
+  SingletonList,
   /// A second argument to `yield`. The GDScript `yield` function is
   /// unique in that it has two optional arguments, but if one is
   /// supplied then the other becomes required. This special value
@@ -212,6 +214,7 @@ impl fmt::Display for ExpectedShape {
       ExpectedShape::EmptyList => write!(f, "empty list"),
       ExpectedShape::EndOfList => write!(f, "end of list"),
       ExpectedShape::NonemptyList => write!(f, "nonempty list"),
+      ExpectedShape::SingletonList => write!(f, "singleton list"),
       ExpectedShape::YieldArg => write!(f, "additional argument (yield takes 0 or 2 arguments)"),
     }
   }
