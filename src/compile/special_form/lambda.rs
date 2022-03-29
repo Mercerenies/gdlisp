@@ -216,7 +216,7 @@ where I : Iterator<Item=&'a U>,
   for func in closure_fns {
     // Ensure the function actually exists
     match table.get_fn(func.borrow()) {
-      None => { return Err(Error::new(ErrorF::NoSuchFn(func.borrow().to_owned()), pos)) }
+      None => { return Err(Error::new(ErrorF::NoSuchFn(func.borrow().to_owned()), pos)) } // TODO Better error pos
       Some((call, magic)) => {
         let mut call = call.clone();
         call.object.update_for_inner_scope(outer_static_ref, compiler.preload_resolver(), pipeline);

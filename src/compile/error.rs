@@ -69,10 +69,10 @@ pub enum ErrorF {
   InvalidArg(String, AST, ExpectedShape), // TODO Audit usage
   /// A name was referenced in the variable namespace, but no such
   /// name was found in the symbol table.
-  NoSuchVar(String), // TODO Audit usage
+  NoSuchVar(String),
   /// A name was referenced in the function namespace, but no such
   /// name was found in the symbol table.
-  NoSuchFn(String), // TODO Audit usage
+  NoSuchFn(String),
   /// An enumeration constant was subscripted, but the subscripted
   /// name does not exist in the enumeration.
   ///

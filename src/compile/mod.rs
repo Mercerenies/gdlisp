@@ -429,6 +429,10 @@ impl Compiler {
       let exports = &unit.exports;
       let names = import.names(&unit.exports);
       for imp in names {
+        // TODO Can these situations happen? It seems like
+        // ImportNameResolutionError should've already caught any
+        // nonexistent names. Review this and see if we can turn these
+        // into panic! calls.
         let ImportName { namespace: namespace, in_name: import_name, out_name: export_name } = imp;
         match namespace {
           Namespace::Function => {
