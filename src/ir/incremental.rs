@@ -20,7 +20,7 @@ use crate::sxp::ast::{AST, ASTF};
 use crate::sxp::reify::pretty::reify_pretty_expr;
 use crate::compile::error::{Error, ErrorF};
 use crate::compile::resource_type::ResourceType;
-use crate::compile::args::Expecting;
+use crate::compile::args::{Expecting, ExpectedShape};
 use crate::compile::names;
 use crate::compile::names::fresh::FreshNameGenerator;
 use crate::compile::frame::MAX_QUOTE_REIFY_DEPTH;
@@ -282,10 +282,7 @@ impl IncCompiler {
         match s.borrow() {
           "defn" => {
             Expecting::at_least(2).validate("defn", decl.pos, &vec[1..])?;
-            let name = match &vec[1].value {
-              ASTF::Symbol(s) => s,
-              _ => return Err(PError::from(Error::new(ErrorF::InvalidDecl(decl.clone()), decl.pos))),
-            };
+            let name = ExpectedShape::extract_symbol("defn", vec[1].clone())?;
             let args: Vec<_> = DottedExpr::new(vec[2]).try_into()?;
             let args = ArgList::parse(args)?;
             let (mods, body) = modifier::function::parser().parse(&vec[3..])?;
@@ -293,7 +290,7 @@ impl IncCompiler {
             let mut decl = decl::FnDecl {
               visibility: Visibility::FUNCTION,
               call_magic: None,
-              name: name.to_owned(),
+              name: name,
               args: args,
               body: Expr::progn(body, vec[0].pos),
             };
@@ -304,17 +301,14 @@ impl IncCompiler {
           }
           "defmacro" => {
             Expecting::at_least(2).validate("defmacro", decl.pos, &vec[1..])?;
-            let name = match &vec[1].value {
-              ASTF::Symbol(s) => s,
-              _ => return Err(PError::from(Error::new(ErrorF::InvalidDecl(decl.clone()), decl.pos))),
-            };
+            let name = ExpectedShape::extract_symbol("defmacro", vec[1].clone())?;
             let args: Vec<_> = DottedExpr::new(vec[2]).try_into()?;
             let args = ArgList::parse(args)?;
             let (mods, body) = modifier::macros::parser().parse(&vec[3..])?;
             let body = body.iter().map(|expr| self.compile_expr(pipeline, expr)).collect::<Result<Vec<_>, _>>()?;
             let mut decl = decl::MacroDecl {
               visibility: Visibility::MACRO,
-              name: name.to_owned(),
+              name: name,
               args: args,
               body: Expr::progn(body, vec[0].pos),
             };
@@ -325,10 +319,7 @@ impl IncCompiler {
           }
           "define-symbol-macro" => {
             Expecting::at_least(2).validate("define-symbol-macro", decl.pos, &vec[1..])?;
-            let name = match &vec[1].value {
-              ASTF::Symbol(s) => s,
-              _ => return Err(PError::from(Error::new(ErrorF::InvalidDecl(decl.clone()), decl.pos))),
-            };
+            let name = ExpectedShape::extract_symbol("define-symbol-macro", vec[1].clone())?;
             let value = self.compile_expr(pipeline, vec[2])?;
             let (mods, body) = modifier::macros::parser().parse(&vec[3..])?;
             if !body.is_empty() {
@@ -336,7 +327,7 @@ impl IncCompiler {
             }
             let mut decl = decl::SymbolMacroDecl {
               visibility: Visibility::SYMBOL_MACRO,
-              name: name.to_owned(),
+              name: name,
               body: value,
             };
             for m in mods {
@@ -346,10 +337,7 @@ impl IncCompiler {
           }
           "defconst" => {
             Expecting::at_least(2).validate("defconst", decl.pos, &vec[1..])?;
-            let name = match &vec[1].value {
-              ASTF::Symbol(s) => s.to_owned(),
-              _ => return Err(PError::from(Error::new(ErrorF::InvalidDecl(decl.clone()), decl.pos))),
-            };
+            let name = ExpectedShape::extract_symbol("defconst", vec[1].clone())?;
             let value = self.compile_expr(pipeline, vec[2])?;
             let (mods, body) = modifier::constant::parser().parse(&vec[3..])?;
             if !body.is_empty() {
@@ -363,10 +351,7 @@ impl IncCompiler {
           }
           "defclass" => {
             Expecting::at_least(2).validate("defclass", decl.pos, &vec[1..])?;
-            let name = match &vec[1].value {
-              ASTF::Symbol(s) => s.to_owned(),
-              _ => return Err(PError::from(Error::new(ErrorF::InvalidDecl(decl.clone()), decl.pos))),
-            };
+            let name = ExpectedShape::extract_symbol("defclass", vec[1].clone())?;
             let superclass = match &vec[2].value {
               ASTF::Nil =>
                 library::REFERENCE_NAME.to_owned(),
@@ -389,10 +374,7 @@ impl IncCompiler {
           }
           "defenum" => {
             Expecting::at_least(1).validate("defenum", decl.pos, &vec[1..])?;
-            let name = match &vec[1].value {
-              ASTF::Symbol(s) => s.to_owned(),
-              _ => return Err(PError::from(Error::new(ErrorF::InvalidDecl(decl.clone()), decl.pos))),
-            };
+            let name = ExpectedShape::extract_symbol("defenum", vec[1].clone())?;
             let (mods, body) = modifier::enums::parser().parse(&vec[2..])?;
             let clauses = body.iter().map(|clause| {
               let clause = match &clause.value {
@@ -405,10 +387,7 @@ impl IncCompiler {
                 [name, value] => (name, Some(value)),
                 _ => return Err(PError::from(Error::new(ErrorF::InvalidDecl(decl.clone()), decl.pos))),
               };
-              let name = match &name.value {
-                ASTF::Symbol(s) => s.to_owned(),
-                _ => return Err(PError::from(Error::new(ErrorF::InvalidDecl(decl.clone()), decl.pos))),
-              };
+              let name = ExpectedShape::extract_symbol("defenum", (*name).to_owned())?;
               let value = value.map(|v| self.compile_expr(pipeline, v)).transpose()?;
               Ok((name, value))
             }).collect::<Result<_, _>>()?;
@@ -424,10 +403,7 @@ impl IncCompiler {
             Expecting::at_least(2).validate("sys/declare", decl.pos, &vec[1..])?;
             let (mut declare, body) = match &vec[1].value {
               ASTF::Symbol(value) if value == "value" || value == "superglobal" => {
-                let name = match &vec[2].value {
-                  ASTF::Symbol(s) => s.to_owned(),
-                  _ => return Err(PError::from(Error::new(ErrorF::InvalidDecl(decl.clone()), decl.pos))),
-                };
+                let name = ExpectedShape::extract_symbol("sys/declare", vec[2].clone())?;
                 let declare_type =
                   if value == "superglobal" {
                     decl::DeclareType::Superglobal
@@ -445,10 +421,7 @@ impl IncCompiler {
                 if vec.len() < 4 {
                   return Err(PError::from(Error::new(ErrorF::InvalidDecl(decl.clone()), decl.pos)));
                 }
-                let name = match &vec[2].value {
-                  ASTF::Symbol(s) => s.to_owned(),
-                  _ => return Err(PError::from(Error::new(ErrorF::InvalidDecl(decl.clone()), decl.pos))),
-                };
+                let name = ExpectedShape::extract_symbol("sys/declare", vec[2].clone())?;
                 let args: Vec<_> = DottedExpr::new(vec[3]).try_into()?;
                 let args = ArgList::parse(args)?;
                 let declare_type =
@@ -519,10 +492,7 @@ impl IncCompiler {
         "defconst" => {
           // TODO Combine this with the other defconst in a helper function
           Expecting::exactly(2).validate("defconst", curr.pos, &vec[1..])?;
-          let name = match &vec[1].value {
-            ASTF::Symbol(s) => s.to_owned(),
-            _ => return Err(PError::from(Error::new(ErrorF::InvalidDecl(curr.clone()), curr.pos))),
-          };
+          let name = ExpectedShape::extract_symbol("defconst", vec[1].clone())?;
           let value = self.compile_expr(pipeline, vec[2])?;
           acc.decls.push(decl::ClassInnerDecl::new(decl::ClassInnerDeclF::ClassConstDecl(decl::ConstDecl { visibility: Visibility::CONST, name, value }), vec[0].pos));
           Ok(())
@@ -638,10 +608,7 @@ impl IncCompiler {
         }
         "defsignal" => {
           Expecting::between(1, 2).validate("defsignal", curr.pos, &vec[1..])?;
-          let name = match &vec[1].value {
-            ASTF::Symbol(s) => s.to_owned(),
-            _ => return Err(PError::from(Error::new(ErrorF::InvalidDecl(curr.clone()), curr.pos))),
-          };
+          let name = ExpectedShape::extract_symbol("defsignal", vec[1].clone())?;
           let nil = AST::new(ASTF::Nil, vec[0].pos);
           let args = vec.get(2).map_or(&nil, |x| *x);
           let args_pos = args.pos;
