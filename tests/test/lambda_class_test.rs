@@ -214,11 +214,11 @@ pub fn lambda_class_access_static_fn_test_2() {
 #[test]
 pub fn lambda_class_super_test_1() {
   let output = parse_and_run(r#"
-    (defclass Foo (Reference)
-      (defn foo ()
-        99))
-    (let ((x (new Foo (defn foo (+ (super:foo) 2)))))
-      (print (x:foo)))
+    ((defclass Foo (Reference)
+       (defn foo ()
+         99))
+     (let ((x (new Foo (defn foo () (+ (super:foo) 2)))))
+       (print (x:foo))))
   "#);
   assert_eq!(output, "\n101\n");
 }
@@ -226,11 +226,11 @@ pub fn lambda_class_super_test_1() {
 #[test]
 pub fn lambda_class_super_test_2() {
   let output = parse_and_run(r#"
-    (defclass Foo (Reference)
-      (defn foo ()
-        99))
-    (let ((x (new Foo (defn foo (lambda () (+ 2 (super:foo)))))))
-      (print (funcall (x:foo))))
+    ((defclass Foo (Reference)
+       (defn foo ()
+         99))
+     (let ((x (new Foo (defn foo () (lambda () (+ 2 (super:foo)))))))
+       (print (funcall (x:foo)))))
   "#);
   assert_eq!(output, "\n101\n");
 }
