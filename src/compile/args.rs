@@ -13,6 +13,7 @@
 
 use super::error::{Error, ErrorF};
 use crate::pipeline::source::SourceOffset;
+use crate::sxp::ast::{AST, ASTF};
 
 use std::fmt;
 
@@ -113,6 +114,30 @@ impl Expecting {
   /// Equivalent to `self.validate_amount(name, pos, slice.len())`.
   pub fn validate<T>(&self, name: &str, pos: SourceOffset, slice: &[T]) -> Result<(), Error> {
     self.validate_amount(name, pos, slice.len())
+  }
+
+}
+
+impl ExpectedShape {
+
+  /// Extracts an [`ASTF::Symbol`], or reports an error if the [`AST`]
+  /// is not a symbol.
+  pub fn extract_symbol(form_name: &str, ast: AST) -> Result<String, Error> {
+    let pos = ast.pos;
+    match ast.value {
+      ASTF::Symbol(s) => Ok(s),
+      _ => Err(Error::new(ErrorF::InvalidArg(form_name.to_owned(), ast, ExpectedShape::Symbol), pos)),
+    }
+  }
+
+  /// Extracts an [`ASTF::String`], or reports an error if the [`AST`]
+  /// is not a string literal.
+  pub fn extract_string(form_name: &str, ast: AST) -> Result<String, Error> {
+    let pos = ast.pos;
+    match ast.value {
+      ASTF::String(s) => Ok(s),
+      _ => Err(Error::new(ErrorF::InvalidArg(form_name.to_owned(), ast, ExpectedShape::String), pos)),
+    }
   }
 
 }
