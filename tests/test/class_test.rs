@@ -417,7 +417,7 @@ pub fn bad_super_in_instance_function_test() {
   // Can't have super in non-constructor method
   assert_eq!(
     parse_compile_decl_err("((defclass ClassName (Node) (defn foo () (super 1))))"),
-    Err(PError::from(GDError::new(GDErrorF::NoSuchFn(String::from("super")), SourceOffset(42)))),
+    Err(PError::from(GDError::new(GDErrorF::BadSuperCall(String::from("(init)")), SourceOffset(42)))),
   );
 }
 

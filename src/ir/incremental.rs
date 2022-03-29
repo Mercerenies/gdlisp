@@ -574,7 +574,7 @@ impl IncCompiler {
               // `(super:foo)` syntax is handled separately).
 
               if let Some(super_call) = &super_call {
-                return Err(PError::from(Error::new(ErrorF::NoSuchFn(String::from("super")), super_call.pos)));
+                return Err(PError::from(Error::new(ErrorF::BadSuperCall(String::from("(init)")), super_call.pos)));
               }
               let mut decl = decl::ClassFnDecl {
                 is_static: Static::NonStatic,
