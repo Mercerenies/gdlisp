@@ -31,6 +31,7 @@ use crate::pipeline::error::{Error as PError, IOError};
 use crate::pipeline::Pipeline;
 use crate::pipeline::translation_unit::TranslationUnit;
 use crate::pipeline::source::SourceOffset;
+use crate::runner::macro_server::named_file_server::MacroID;
 
 use std::convert::{TryFrom, TryInto};
 use std::borrow::{Cow, Borrow};
@@ -74,55 +75,49 @@ impl IncCompiler {
     }
   }
 
-  fn resolve_macro_call<K: IdLike>(&mut self, pipeline: &mut Pipeline, head: &K, tail: &[&AST], pos: SourceOffset)
-                           -> Result<AST, PError>
+  fn resolve_macro_call<K: IdLike>(&mut self,
+                                   pipeline: &mut Pipeline,
+                                   head: &K,
+                                   tail: &[&AST],
+                                   macro_id: MacroID,
+                                   pos: SourceOffset)
+                                   -> Result<AST, PError>
   where Id : Borrow<K>,
         K : Hash + Eq + ToOwned<Owned=Id> + ?Sized {
-    match self.macros.get(head) {
-      Some(MacroData { id, .. }) => {
-        // If we're in a minimalist file, then macro expansion is automatically an error
-        if self.minimalist {
-          let head = head.to_owned().name;
-          return Err(PError::from(Error::new(ErrorF::MacroInMinimalistError(head), pos)));
-        }
-
-        // Local name generator that will be shared among the
-        // arguments but not used outside of this function.
-        let mut local_gen = FreshNameGenerator::new(vec!());
-
-        let mut prelude = vec!();
-        let mut args = vec!();
-        for arg in tail {
-          let (stmts, expr) = reify_pretty_expr(arg, MAX_QUOTE_REIFY_DEPTH, &mut local_gen);
-          prelude.extend(stmts.into_iter());
-          args.push(expr);
-        }
-        let server = pipeline.get_server_mut();
-        server.set_global_name_generator(&self.names).map_err(|err| IOError::new(err, pos))?;
-
-        let ast = server.run_server_file(*id, prelude, args, pos);
-
-        server.reset_global_name_generator().map_err(|err| IOError::new(err, pos))?;
-
-        // Set the source position for the entire macro expansion to
-        // be the source of the macro call (TODO A long-term solution
-        // for this is to make SourceOffset unbelievably complex, so
-        // we can do cool errors that say "error occured at line 6,
-        // which is line 8 of macro expansion for blah blah blah, but
-        // that's very involved)
-        let mut ast = ast?;
-        ast.each_source_mut(|_| pos);
-
-        Ok(ast)
-      }
-      _ => {
-        let head = head.to_owned();
-        match head.namespace {
-          Namespace::Function => Err(PError::from(Error::new(ErrorF::NoSuchFn(head.name), pos))),
-          Namespace::Value => Err(PError::from(Error::new(ErrorF::NoSuchVar(head.name), pos))),
-        }
-      }
+    // If we're in a minimalist file, then macro expansion is automatically an error
+    if self.minimalist {
+      let head = head.to_owned().name;
+      return Err(PError::from(Error::new(ErrorF::MacroInMinimalistError(head), pos)));
     }
+
+    // Local name generator that will be shared among the
+    // arguments but not used outside of this function.
+    let mut local_gen = FreshNameGenerator::new(vec!());
+
+    let mut prelude = vec!();
+    let mut args = vec!();
+    for arg in tail {
+      let (stmts, expr) = reify_pretty_expr(arg, MAX_QUOTE_REIFY_DEPTH, &mut local_gen);
+      prelude.extend(stmts.into_iter());
+      args.push(expr);
+    }
+    let server = pipeline.get_server_mut();
+    server.set_global_name_generator(&self.names).map_err(|err| IOError::new(err, pos))?;
+
+    let ast = server.run_server_file(macro_id, prelude, args, pos);
+
+    server.reset_global_name_generator().map_err(|err| IOError::new(err, pos))?;
+
+    // Set the source position for the entire macro expansion to
+    // be the source of the macro call (TODO A long-term solution
+    // for this is to make SourceOffset unbelievably complex, so
+    // we can do cool errors that say "error occured at line 6,
+    // which is line 8 of macro expansion for blah blah blah, but
+    // that's very involved)
+    let mut ast = ast?;
+    ast.each_source_mut(|_| pos);
+
+    Ok(ast)
   }
 
   fn try_resolve_macro_call(&mut self, pipeline: &mut Pipeline, ast: &AST) -> Result<Option<AST>, PError> {
@@ -134,8 +129,9 @@ impl IncCompiler {
       let head = CallName::resolve_call_name(self, pipeline, vec[0])?;
       if let CallName::SimpleName(head) = head {
         let tail = &vec[1..];
-        if self.macros.get(&*Id::build(Namespace::Function, &head)).is_some() {
-          return self.resolve_macro_call(pipeline, &*Id::build(Namespace::Function, &head), tail, ast.pos).map(Some);
+        if let Some(MacroData { id, imported: _ }) = self.macros.get(&*Id::build(Namespace::Function, &head)) {
+          let id = *id;
+          return self.resolve_macro_call(pipeline, &*Id::build(Namespace::Function, &head), tail, id, ast.pos).map(Some);
         }
       }
     }
@@ -143,8 +139,9 @@ impl IncCompiler {
   }
 
   fn try_resolve_symbol_macro_call(&mut self, pipeline: &mut Pipeline, head: &str, pos: SourceOffset) -> Result<Option<AST>, PError> {
-    if self.macros.get(&*Id::build(Namespace::Value, &head)).is_some() {
-      return self.resolve_macro_call(pipeline, &*Id::build(Namespace::Value, &head), &[], pos).map(Some);
+    if let Some(MacroData { id, imported: _ }) = self.macros.get(&*Id::build(Namespace::Value, &head)) {
+      let id = *id;
+      return self.resolve_macro_call(pipeline, &*Id::build(Namespace::Value, &head), &[], id, pos).map(Some);
     }
     Ok(None)
   }
@@ -153,8 +150,9 @@ impl IncCompiler {
                              -> Result<Expr, PError> {
     if let Some(sf) = special_form::dispatch_form(self, pipeline, head, tail, pos)? {
       Ok(sf)
-    } else if self.macros.get(&*Id::build(Namespace::Function, head)).is_some() {
-      let result = self.resolve_macro_call(pipeline, &*Id::build(Namespace::Function, head), tail, pos)?;
+    } else if let Some(MacroData { id, imported: _ }) = self.macros.get(&*Id::build(Namespace::Function, head)) {
+      let id = *id;
+      let result = self.resolve_macro_call(pipeline, &*Id::build(Namespace::Function, head), tail, id, pos)?;
       self.compile_expr(pipeline, &result)
     } else {
       let args = tail.iter().map(|x| self.compile_expr(pipeline, x)).collect::<Result<Vec<_>, _>>()?;

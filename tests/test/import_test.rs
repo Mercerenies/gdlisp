@@ -4,8 +4,9 @@ extern crate gdlisp;
 use super::common::import::MockFileLoader;
 use super::common::dummy_config;
 
-use gdlisp::pipeline::Pipeline;
+use gdlisp::ir::identifier::{Id, Namespace};
 use gdlisp::compile::error::{Error as GDError, ErrorF as GDErrorF};
+use gdlisp::pipeline::Pipeline;
 use gdlisp::pipeline::error::{Error as PError};
 use gdlisp::pipeline::source::SourceOffset;
 
@@ -120,7 +121,9 @@ fn nonexistent_import_test() {
     load_and_output_simple_file_err(r#"
       (use "res://example.lisp" (nonexistent-function-name))
     "#),
-    Err(PError::from(GDError::new(GDErrorF::NoSuchFn(String::from("nonexistent-function-name")), SourceOffset(12)))),
+    Err(PError::from(GDError::new(GDErrorF::UnknownImportedName(Id { namespace: Namespace::Function,
+                                                                     name: String::from("nonexistent-function-name") }),
+                                  SourceOffset(12)))),
   );
 }
 
@@ -352,7 +355,7 @@ fn import_declare_test_failed_2() {
   let mut pipeline = Pipeline::with_resolver(dummy_config(), Box::new(loader));
   assert_eq!(
     pipeline.load_file("main.lisp").map(|_| ()),
-    Err(PError::from(GDError::new(GDErrorF::NoSuchFn(String::from("a")), SourceOffset(5)))),
+    Err(PError::from(GDError::new(GDErrorF::UnknownImportedName(Id { namespace: Namespace::Function, name: String::from("a") }), SourceOffset(5)))),
   );
 }
 
@@ -418,7 +421,7 @@ fn private_fn_import_test_4() {
   let mut pipeline = Pipeline::with_resolver(dummy_config(), Box::new(loader));
   assert_eq!(
     pipeline.load_file("main.lisp").map(|_| ()),
-    Err(PError::from(GDError::new(GDErrorF::NoSuchFn(String::from("foo")), SourceOffset(5)))),
+    Err(PError::from(GDError::new(GDErrorF::UnknownImportedName(Id { namespace: Namespace::Function, name: String::from("foo") }), SourceOffset(5)))),
   );
 }
 
@@ -444,7 +447,7 @@ fn private_macro_import_test() {
   let mut pipeline = Pipeline::with_resolver(dummy_config(), Box::new(loader));
   assert_eq!(
     pipeline.load_file("main.lisp").map(|_| ()),
-    Err(PError::from(GDError::new(GDErrorF::NoSuchFn(String::from("foo")), SourceOffset(5)))),
+    Err(PError::from(GDError::new(GDErrorF::UnknownImportedName(Id { namespace: Namespace::Function, name: String::from("foo") }), SourceOffset(5)))),
   );
 }
 
@@ -470,7 +473,7 @@ fn private_const_import_test() {
   let mut pipeline = Pipeline::with_resolver(dummy_config(), Box::new(loader));
   assert_eq!(
     pipeline.load_file("main.lisp").map(|_| ()),
-    Err(PError::from(GDError::new(GDErrorF::NoSuchFn(String::from("foo")), SourceOffset(5)))),
+    Err(PError::from(GDError::new(GDErrorF::UnknownImportedName(Id { namespace: Namespace::Function, name: String::from("foo") }), SourceOffset(5)))),
   );
 }
 
@@ -496,7 +499,7 @@ fn private_enum_import_test() {
   let mut pipeline = Pipeline::with_resolver(dummy_config(), Box::new(loader));
   assert_eq!(
     pipeline.load_file("main.lisp").map(|_| ()),
-    Err(PError::from(GDError::new(GDErrorF::NoSuchFn(String::from("foo")), SourceOffset(5)))),
+    Err(PError::from(GDError::new(GDErrorF::UnknownImportedName(Id { namespace: Namespace::Function, name: String::from("foo") }), SourceOffset(5)))),
   );
 }
 
@@ -536,7 +539,7 @@ fn private_class_import_test_1() {
   let mut pipeline = Pipeline::with_resolver(dummy_config(), Box::new(loader));
   assert_eq!(
     pipeline.load_file("main.lisp").map(|_| ()),
-    Err(PError::from(GDError::new(GDErrorF::NoSuchFn(String::from("foo")), SourceOffset(5)))),
+    Err(PError::from(GDError::new(GDErrorF::UnknownImportedName(Id { namespace: Namespace::Function, name: String::from("foo") }), SourceOffset(5)))),
   );
 }
 
@@ -548,7 +551,7 @@ fn private_class_import_test_2() {
   let mut pipeline = Pipeline::with_resolver(dummy_config(), Box::new(loader));
   assert_eq!(
     pipeline.load_file("main.lisp").map(|_| ()),
-    Err(PError::from(GDError::new(GDErrorF::NoSuchFn(String::from("foo")), SourceOffset(5)))),
+    Err(PError::from(GDError::new(GDErrorF::UnknownImportedName(Id { namespace: Namespace::Function, name: String::from("foo") }), SourceOffset(5)))),
   );
 }
 
@@ -560,7 +563,7 @@ fn private_lazy_val_import_test() {
   let mut pipeline = Pipeline::with_resolver(dummy_config(), Box::new(loader));
   assert_eq!(
     pipeline.load_file("main.lisp").map(|_| ()),
-    Err(PError::from(GDError::new(GDErrorF::NoSuchFn(String::from("foo")), SourceOffset(5)))),
+    Err(PError::from(GDError::new(GDErrorF::UnknownImportedName(Id { namespace: Namespace::Function, name: String::from("foo") }), SourceOffset(5)))),
   );
 }
 
@@ -572,7 +575,7 @@ fn private_symbol_macro_import_test() {
   let mut pipeline = Pipeline::with_resolver(dummy_config(), Box::new(loader));
   assert_eq!(
     pipeline.load_file("main.lisp").map(|_| ()),
-    Err(PError::from(GDError::new(GDErrorF::NoSuchFn(String::from("foo")), SourceOffset(5)))),
+    Err(PError::from(GDError::new(GDErrorF::UnknownImportedName(Id { namespace: Namespace::Function, name: String::from("foo") }), SourceOffset(5)))),
   );
 }
 

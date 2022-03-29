@@ -5,7 +5,7 @@ use super::args::{Expecting, ExpectedShape};
 use crate::sxp;
 use crate::sxp::ast::AST;
 use crate::ir::arglist::{ArgListParseError, ArgListParseErrorF};
-use crate::ir::identifier::{Namespace, ClassNamespace};
+use crate::ir::identifier::{Id, Namespace, ClassNamespace};
 use crate::ir::decl::DuplicateMainClassError;
 use crate::ir::import::{ImportDeclParseError, ImportNameResolutionError};
 use crate::ir::modifier::{ParseError as ModifierParseError, ParseErrorF as ModifierParseErrorF};
@@ -232,6 +232,9 @@ pub enum ErrorF {
   /// `sys/declare` should be 'value', 'superglobal', 'function', or
   /// 'superfunction'.
   BadSysDeclare(String),
+  /// An attempt was made to import a name from another file, but that
+  /// name was not (publicly) declared in that file.
+  UnknownImportedName(Id),
 }
 
 /// Variant of [`ErrorF`] with source offset information. See
@@ -344,6 +347,7 @@ impl ErrorF {
       ErrorF::BadExtendsClause => 47,
       ErrorF::BadEnumClause => 48,
       ErrorF::BadSysDeclare(_) => 49,
+      ErrorF::UnknownImportedName(_) => 50,
     }
   }
 
@@ -482,6 +486,9 @@ impl fmt::Display for ErrorF {
       ErrorF::BadSysDeclare(v) => {
         write!(f, "Bad 'sys/declare' type; expected 'value', 'superglobal', 'function', or 'superfunction', got {}", v)?;
       }
+      ErrorF::UnknownImportedName(id) => {
+        write!(f, "Unknown {} name '{}' in import", id.namespace.name(), &id.name)?;
+      }
     }
     if self.is_internal() {
       write!(f, " ({})", INTERNAL_ERROR_NOTE)?;
@@ -545,10 +552,7 @@ impl From<ImportNameResolutionError> for ErrorF {
   fn from(err: ImportNameResolutionError) -> ErrorF {
     match err {
       ImportNameResolutionError::UnknownName(id) => {
-        match id.namespace {
-          Namespace::Function => ErrorF::NoSuchFn(id.name),
-          Namespace::Value => ErrorF::NoSuchVar(id.name),
-        }
+        ErrorF::UnknownImportedName(id)
       }
       ImportNameResolutionError::AmbiguousNamespace(s) => {
         ErrorF::AmbiguousNamespace(s)
