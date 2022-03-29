@@ -67,7 +67,7 @@ pub enum ClassExtends {
 /// A variable declaration in a GDScript class. This also includes
 /// variable declarations at the top-level (i.e. in the implied "main"
 /// class of the file) but does *not* include constant declarations.
-/// For the latter, [`ConstDecl`] should be used.
+/// For the latter, [`ConstDecl`](DeclF::ConstDecl) should be used.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct VarDecl {
   pub export: Option<Export>,
