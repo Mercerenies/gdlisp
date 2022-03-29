@@ -18,6 +18,9 @@ use crate::pipeline::source::{SourceOffset, Sourced};
 
 use std::fmt;
 
+// TODO Rename this to GDError and the pipeline one to PError, to be
+// completely unambiguous.
+
 /// This type captures all errors that can occur during compilation of
 /// GDLisp code.
 ///
