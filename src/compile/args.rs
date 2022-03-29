@@ -55,6 +55,13 @@ pub enum ExpectedShape {
   Symbol,
   /// A string literal.
   String,
+  /// The empty list, as a literal.
+  EmptyList,
+  /// Equivalent to `EmptyList` but issues an error message of the
+  /// form "expected end of list". This shape should be used in cases
+  /// where the full list is not syntactically empty but the tail is
+  /// expected to be, for clarity.
+  EndOfList,
   /// A nonempty list literal.
   NonemptyList,
   /// A second argument to `yield`. The GDScript `yield` function is
@@ -140,6 +147,40 @@ impl ExpectedShape {
     }
   }
 
+  /// Validates that the vector is in fact empty. If it is, this
+  /// function returns `()` harmlessly. If it is nonempty, then this
+  /// function produces an appropriate error about the expected shape
+  /// with [`ExpectedShape::EmptyList`].
+  ///
+  /// This function takes a `&[&AST]` to be compatible with the output
+  /// of [`DottedExpr`](crate::sxp::dotted::DottedExpr).
+  pub fn validate_empty(form_name: &str, lst: &[&AST], pos: SourceOffset) -> Result<(), Error> {
+    if lst.is_empty() {
+      Ok(())
+    } else {
+      // Note: Report error as `lst[0].pos`, since that's where the proof of nonempty-ness started.
+      let err_pos = lst[0].pos;
+      let lst: Vec<_> = lst.iter().map(|x| (*x).to_owned()).collect();
+      Err(Error::new(ErrorF::InvalidArg(form_name.to_owned(), AST::list(lst, pos), ExpectedShape::EmptyList), err_pos))
+    }
+  }
+
+  /// Equivalent to [`validate_empty`](ExpectedShape::validate_empty)
+  /// but produces [`ExpectedShape::EndOfList`] as error instead.
+  ///
+  /// This function takes a `&[&AST]` to be compatible with the output
+  /// of [`DottedExpr`](crate::sxp::dotted::DottedExpr).
+  pub fn validate_end_of_list(form_name: &str, lst: &[&AST], pos: SourceOffset) -> Result<(), Error> {
+    if lst.is_empty() {
+      Ok(())
+    } else {
+      // Note: Report error as `lst[0].pos`, since that's where the proof of nonempty-ness started.
+      let err_pos = lst[0].pos;
+      let lst: Vec<_> = lst.iter().map(|x| (*x).to_owned()).collect();
+      Err(Error::new(ErrorF::InvalidArg(form_name.to_owned(), AST::list(lst, pos), ExpectedShape::EndOfList), err_pos))
+    }
+  }
+
 }
 
 impl fmt::Display for Expecting {
@@ -168,6 +209,8 @@ impl fmt::Display for ExpectedShape {
       ExpectedShape::SpecialRefValue => write!(f, "special reference value"),
       ExpectedShape::Symbol => write!(f, "symbol"),
       ExpectedShape::String => write!(f, "string"),
+      ExpectedShape::EmptyList => write!(f, "empty list"),
+      ExpectedShape::EndOfList => write!(f, "end of list"),
       ExpectedShape::NonemptyList => write!(f, "nonempty list"),
       ExpectedShape::YieldArg => write!(f, "additional argument (yield takes 0 or 2 arguments)"),
     }
