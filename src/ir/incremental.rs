@@ -354,9 +354,10 @@ impl IncCompiler {
               ASTF::Cons(car, cdr) =>
                 match (&car.value, &cdr.value) {
                   (ASTF::Symbol(superclass_name), ASTF::Nil) => superclass_name.to_owned(),
-                  _ => return Err(PError::from(Error::new(ErrorF::InvalidDecl(decl.clone()), decl.pos))),
+                  (_, ASTF::Nil) => return Err(PError::from(Error::new(ErrorF::BadExtendsClause, vec[2].pos))),
+                  _ => return Err(PError::from(Error::new(ErrorF::BadExtendsClause, vec[2].pos))),
                 },
-              _ => return Err(PError::from(Error::new(ErrorF::InvalidDecl(decl.clone()), decl.pos))),
+              _ => return Err(PError::from(Error::new(ErrorF::BadExtendsClause, decl.pos))),
             };
             let (mods, decl_body) = modifier::class::parser().parse(&vec[3..])?;
             let mut class = decl::ClassDecl::new(name, superclass);
@@ -381,7 +382,7 @@ impl IncCompiler {
               let (name, value) = match &clause[..] {
                 [name] => (name, None),
                 [name, value] => (name, Some(value)),
-                _ => return Err(PError::from(Error::new(ErrorF::InvalidDecl(decl.clone()), decl.pos))),
+                _ => return Err(PError::from(Error::new(ErrorF::BadEnumClause, decl.pos))),
               };
               let name = ExpectedShape::extract_symbol("defenum", (*name).to_owned())?;
               let value = value.map(|v| self.compile_expr(pipeline, v)).transpose()?;
@@ -397,11 +398,12 @@ impl IncCompiler {
             // (sys/declare value name)
             // (sys/declare function name (args...))
             Expecting::at_least(2).validate("sys/declare", decl.pos, &vec[1..])?;
-            let (mut declare, body) = match &vec[1].value {
-              ASTF::Symbol(value) if value == "value" || value == "superglobal" => {
+            let value_type = ExpectedShape::extract_symbol("sys/declare", vec[1].clone())?;
+            let (mut declare, body) = match &*value_type {
+              "value" | "superglobal" => {
                 let name = ExpectedShape::extract_symbol("sys/declare", vec[2].clone())?;
                 let declare_type =
-                  if value == "superglobal" {
+                  if value_type == "superglobal" {
                     decl::DeclareType::Superglobal
                   } else {
                     decl::DeclareType::Value
@@ -413,15 +415,13 @@ impl IncCompiler {
                 };
                 (decl, &vec[3..])
               }
-              ASTF::Symbol(function) if function == "function" || function == "superfunction" => {
-                if vec.len() < 4 {
-                  return Err(PError::from(Error::new(ErrorF::InvalidDecl(decl.clone()), decl.pos)));
-                }
+              "function" | "superfunction" => {
+                Expecting::at_least(3).validate("sys/declare", decl.pos, &vec[1..])?;
                 let name = ExpectedShape::extract_symbol("sys/declare", vec[2].clone())?;
                 let args: Vec<_> = DottedExpr::new(vec[3]).try_into()?;
                 let args = ArgList::parse(args)?;
                 let declare_type =
-                  if function == "superfunction" {
+                  if value_type == "superfunction" {
                     decl::DeclareType::SuperglobalFn(args)
                   } else {
                     decl::DeclareType::Function(args)
@@ -433,8 +433,8 @@ impl IncCompiler {
                 };
                 (decl, &vec[4..])
               }
-              _ => {
-                return Err(PError::from(Error::new(ErrorF::InvalidDecl(decl.clone()), decl.pos)))
+              value_type => {
+                return Err(PError::from(Error::new(ErrorF::BadSysDeclare(value_type.to_owned()), decl.pos)))
               }
             };
             let (mods, body) = modifier::declare::parser().parse(&body)?;

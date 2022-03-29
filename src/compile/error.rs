@@ -227,6 +227,18 @@ pub enum ErrorF {
   /// A `super` call was attempted in a situation where it makes no
   /// sense (such as outside of class scope).
   BadSuperCall(String),
+  /// The "extends" clause for a `defclass` was incorrectly formatted.
+  /// A `defclass` extends clause should be either a singleton list or
+  /// an empty list.
+  BadExtendsClause,
+  /// A clause of `defenum` was incorrectly formatted. A `defenum`
+  /// clause shall be a list of length either 1 or 2, indicating
+  /// either a name or a name together with a value.
+  BadEnumClause,
+  /// The type of a `sys/declare` was invalid. The type of a
+  /// `sys/declare` should be 'value', 'superglobal', 'function', or
+  /// 'superfunction'.
+  BadSysDeclare(String),
 }
 
 /// Variant of [`ErrorF`] with source offset information. See
@@ -334,6 +346,9 @@ impl ErrorF {
       ErrorF::BadSetterArguments(_) => 44,
       ErrorF::FieldAccessorConflict(_) => 45,
       ErrorF::BadSuperCall(_) => 46,
+      ErrorF::BadExtendsClause => 47,
+      ErrorF::BadEnumClause => 48,
+      ErrorF::BadSysDeclare(_) => 49,
     }
   }
 
@@ -465,6 +480,15 @@ impl fmt::Display for ErrorF {
       }
       ErrorF::BadSuperCall(super_method) => {
         write!(f, "Cannot call superclass method '{}'; there is no superclass in the current scope", super_method)?;
+      }
+      ErrorF::BadExtendsClause => {
+        write!(f, "Bad 'extends' clause; a class 'extends' clause should either be the empty list or a singleton list")?;
+      }
+      ErrorF::BadEnumClause => {
+        write!(f, "Bad 'defenum' clause; expected a list of one or two elements")?;
+      }
+      ErrorF::BadSysDeclare(v) => {
+        write!(f, "Bad 'sys/declare' type; expected 'value', 'superglobal', 'function', or 'superfunction', got {}", v)?;
       }
     }
     if self.is_internal() {
