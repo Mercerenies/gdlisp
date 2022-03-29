@@ -20,6 +20,7 @@ use crate::sxp::ast::{AST, ASTF};
 use crate::sxp::reify::pretty::reify_pretty_expr;
 use crate::compile::error::{Error, ErrorF};
 use crate::compile::resource_type::ResourceType;
+use crate::compile::args::Expecting;
 use crate::compile::names;
 use crate::compile::names::fresh::FreshNameGenerator;
 use crate::compile::frame::MAX_QUOTE_REIFY_DEPTH;
@@ -280,9 +281,7 @@ impl IncCompiler {
       ASTF::Symbol(s) => {
         match s.borrow() {
           "defn" => {
-            if vec.len() < 3 {
-              return Err(PError::from(Error::new(ErrorF::InvalidDecl(decl.clone()), decl.pos)));
-            }
+            Expecting::at_least(2).validate("defn", decl.pos, &vec[1..])?;
             let name = match &vec[1].value {
               ASTF::Symbol(s) => s,
               _ => return Err(PError::from(Error::new(ErrorF::InvalidDecl(decl.clone()), decl.pos))),
@@ -304,9 +303,7 @@ impl IncCompiler {
             Ok(Decl::new(DeclF::FnDecl(decl), vec[0].pos))
           }
           "defmacro" => {
-            if vec.len() < 3 {
-              return Err(PError::from(Error::new(ErrorF::InvalidDecl(decl.clone()), decl.pos)));
-            }
+            Expecting::at_least(2).validate("defmacro", decl.pos, &vec[1..])?;
             let name = match &vec[1].value {
               ASTF::Symbol(s) => s,
               _ => return Err(PError::from(Error::new(ErrorF::InvalidDecl(decl.clone()), decl.pos))),
@@ -327,9 +324,7 @@ impl IncCompiler {
             Ok(Decl::new(DeclF::MacroDecl(decl), vec[0].pos))
           }
           "define-symbol-macro" => {
-            if vec.len() < 3 {
-              return Err(PError::from(Error::new(ErrorF::InvalidDecl(decl.clone()), decl.pos)));
-            }
+            Expecting::at_least(2).validate("define-symbol-macro", decl.pos, &vec[1..])?;
             let name = match &vec[1].value {
               ASTF::Symbol(s) => s,
               _ => return Err(PError::from(Error::new(ErrorF::InvalidDecl(decl.clone()), decl.pos))),
@@ -350,9 +345,7 @@ impl IncCompiler {
             Ok(Decl::new(DeclF::SymbolMacroDecl(decl), vec[0].pos))
           }
           "defconst" => {
-            if vec.len() < 3 {
-              return Err(PError::from(Error::new(ErrorF::InvalidDecl(decl.clone()), decl.pos)));
-            }
+            Expecting::at_least(2).validate("defconst", decl.pos, &vec[1..])?;
             let name = match &vec[1].value {
               ASTF::Symbol(s) => s.to_owned(),
               _ => return Err(PError::from(Error::new(ErrorF::InvalidDecl(decl.clone()), decl.pos))),
@@ -369,9 +362,7 @@ impl IncCompiler {
             Ok(Decl::new(DeclF::ConstDecl(decl), vec[0].pos))
           }
           "defclass" => {
-            if vec.len() < 3 {
-              return Err(PError::from(Error::new(ErrorF::InvalidDecl(decl.clone()), decl.pos)));
-            }
+            Expecting::at_least(2).validate("defclass", decl.pos, &vec[1..])?;
             let name = match &vec[1].value {
               ASTF::Symbol(s) => s.to_owned(),
               _ => return Err(PError::from(Error::new(ErrorF::InvalidDecl(decl.clone()), decl.pos))),
@@ -397,9 +388,7 @@ impl IncCompiler {
             Ok(Decl::new(DeclF::ClassDecl(class), vec[0].pos))
           }
           "defenum" => {
-            if vec.len() < 2 {
-              return Err(PError::from(Error::new(ErrorF::InvalidDecl(decl.clone()), decl.pos)));
-            }
+            Expecting::at_least(1).validate("defenum", decl.pos, &vec[1..])?;
             let name = match &vec[1].value {
               ASTF::Symbol(s) => s.to_owned(),
               _ => return Err(PError::from(Error::new(ErrorF::InvalidDecl(decl.clone()), decl.pos))),
@@ -432,9 +421,7 @@ impl IncCompiler {
           "sys/declare" => {
             // (sys/declare value name)
             // (sys/declare function name (args...))
-            if vec.len() < 3 {
-              return Err(PError::from(Error::new(ErrorF::InvalidDecl(decl.clone()), decl.pos)));
-            }
+            Expecting::at_least(2).validate("sys/declare", decl.pos, &vec[1..])?;
             let (mut declare, body) = match &vec[1].value {
               ASTF::Symbol(value) if value == "value" || value == "superglobal" => {
                 let name = match &vec[2].value {
@@ -531,9 +518,7 @@ impl IncCompiler {
         }
         "defconst" => {
           // TODO Combine this with the other defconst in a helper function
-          if vec.len() != 3 {
-            return Err(PError::from(Error::new(ErrorF::InvalidDecl(curr.clone()), curr.pos)));
-          }
+          Expecting::exactly(2).validate("defconst", curr.pos, &vec[1..])?;
           let name = match &vec[1].value {
             ASTF::Symbol(s) => s.to_owned(),
             _ => return Err(PError::from(Error::new(ErrorF::InvalidDecl(curr.clone()), curr.pos))),
@@ -543,9 +528,7 @@ impl IncCompiler {
           Ok(())
         }
         "defvar" => {
-          if vec.len() < 2 {
-            return Err(PError::from(Error::new(ErrorF::InvalidDecl(curr.clone()), curr.pos)));
-          }
+          Expecting::at_least(1).validate("defvar", curr.pos, &vec[1..])?;
           if let ASTF::Symbol(vname) = &vec[1].value {
             let name = vname.to_owned();
 
@@ -598,9 +581,7 @@ impl IncCompiler {
         }
         "defn" => {
           // TODO Unify some of this with the equivalent code from compile_decl?
-          if vec.len() < 3 {
-            return Err(PError::from(Error::new(ErrorF::InvalidDecl(curr.clone()), curr.pos)));
-          }
+          Expecting::at_least(2).validate("defn", curr.pos, &vec[1..])?;
           if let Some(fname) = IncCompiler::compile_instance_function_name(&vec[1]) {
             let args: Vec<_> = DottedExpr::new(vec[2]).try_into()?;
             let args = SimpleArgList::parse(args, vec[2].pos)?;
@@ -656,9 +637,7 @@ impl IncCompiler {
           }
         }
         "defsignal" => {
-          if vec.len() < 2 || vec.len() > 3 {
-            return Err(PError::from(Error::new(ErrorF::InvalidDecl(curr.clone()), curr.pos)));
-          }
+          Expecting::between(1, 2).validate("defsignal", curr.pos, &vec[1..])?;
           let name = match &vec[1].value {
             ASTF::Symbol(s) => s.to_owned(),
             _ => return Err(PError::from(Error::new(ErrorF::InvalidDecl(curr.clone()), curr.pos))),

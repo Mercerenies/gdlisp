@@ -3,6 +3,7 @@ extern crate gdlisp;
 
 use gdlisp::ir::identifier::ClassNamespace;
 use gdlisp::ir::modifier::{ParseError as ModifierParseError, ParseErrorF as ModifierParseErrorF};
+use gdlisp::compile::args::Expecting;
 use gdlisp::compile::error::{Error as GDError, ErrorF as GDErrorF};
 use gdlisp::pipeline::error::{Error as PError};
 use gdlisp::pipeline::source::SourceOffset;
@@ -396,13 +397,9 @@ pub fn bad_self_static_ref_class_test() {
 pub fn bad_member_const_class_test() {
   // Consts must be initialized
   let result = parse_compile_decl_err("((defclass ClassName (Node) (defconst x)))");
-  assert!(
-    matches!(
-      result,
-      Err(PError::GDError(GDError { value: GDErrorF::InvalidDecl(_), pos: SourceOffset(28) })),
-    ),
-    "{:?}",
+  assert_eq!(
     result,
+    Err(PError::GDError(GDError::new(GDErrorF::WrongNumberArgs(String::from("defconst"), Expecting::exactly(2), 1), SourceOffset(28)))),
   );
 }
 
