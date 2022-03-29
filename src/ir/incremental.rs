@@ -322,9 +322,7 @@ impl IncCompiler {
             let name = ExpectedShape::extract_symbol("define-symbol-macro", vec[1].clone())?;
             let value = self.compile_expr(pipeline, vec[2])?;
             let (mods, body) = modifier::macros::parser().parse(&vec[3..])?;
-            if !body.is_empty() {
-              return Err(PError::from(Error::new(ErrorF::InvalidDecl(decl.clone()), decl.pos)));
-            }
+            ExpectedShape::validate_end_of_list("define-symbol-macro", body, decl.pos)?;
             let mut decl = decl::SymbolMacroDecl {
               visibility: Visibility::SYMBOL_MACRO,
               name: name,
@@ -340,9 +338,7 @@ impl IncCompiler {
             let name = ExpectedShape::extract_symbol("defconst", vec[1].clone())?;
             let value = self.compile_expr(pipeline, vec[2])?;
             let (mods, body) = modifier::constant::parser().parse(&vec[3..])?;
-            if !body.is_empty() {
-              return Err(PError::from(Error::new(ErrorF::InvalidDecl(decl.clone()), decl.pos)));
-            }
+            ExpectedShape::validate_end_of_list("defconst", body, decl.pos)?;
             let mut decl = decl::ConstDecl { visibility: Visibility::CONST, name, value };
             for m in mods {
               m.apply(&mut decl);
@@ -442,9 +438,7 @@ impl IncCompiler {
               }
             };
             let (mods, body) = modifier::declare::parser().parse(&body)?;
-            if !body.is_empty() {
-              return Err(PError::from(Error::new(ErrorF::InvalidDecl(decl.clone()), decl.pos)));
-            }
+            ExpectedShape::validate_end_of_list("sys/declare", body, decl.pos)?;
             for m in mods {
               m.apply(&mut declare);
             }
@@ -527,9 +521,7 @@ impl IncCompiler {
             // Modifiers
             let (mods, body) = modifier::var::parser().parse(&vec[idx..])?;
             // (Extra)
-            if !body.is_empty() {
-              return Err(PError::from(Error::new(ErrorF::InvalidDecl(curr.clone()), curr.pos)));
-            }
+            ExpectedShape::validate_end_of_list("defvar", body, curr.pos)?;
 
             // Exports are only allowed on the main class
             if export.is_some() && !acc.main_class {
