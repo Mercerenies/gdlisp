@@ -112,10 +112,7 @@ pub fn for_form(icompiler: &mut IncCompiler,
                 pos: SourceOffset)
                 -> Result<Expr, Error> {
   Expecting::at_least(2).validate("for", pos, tail)?;
-  let name = match &tail[0].value {
-    ASTF::Symbol(s) => s.to_owned(),
-    _ => return Err(Error::from(GDError::new(GDErrorF::InvalidArg(String::from("for"), (*tail[0]).clone(), ExpectedShape::Symbol), pos))),
-  };
+  let name = ExpectedShape::extract_symbol("for", tail[0].clone())?;
   let iter = icompiler.compile_expr(pipeline, tail[1])?;
   let body = tail[2..].iter().map(|x| icompiler.compile_expr(pipeline, x)).collect::<Result<Vec<_>, _>>()?;
   Ok(Expr::for_stmt(name, iter, Expr::progn(body, pos), pos))
@@ -164,14 +161,8 @@ pub fn function_form(tail: &[&AST],
                      pos: SourceOffset)
                      -> Result<Expr, Error> {
   Expecting::exactly(1).validate("function", pos, tail)?;
-  match &tail[0].value {
-    ASTF::Symbol(s) => {
-      Ok(Expr::new(ExprF::FuncRef(FuncRefTarget::SimpleName(s.clone())), pos))
-    }
-    _ => {
-      Err(Error::from(GDError::new(GDErrorF::InvalidArg(String::from("function"), tail[0].clone(), ExpectedShape::Symbol), pos)))
-    }
-  }
+  let s = ExpectedShape::extract_symbol("function", tail[0].clone())?;
+  Ok(Expr::new(ExprF::FuncRef(FuncRefTarget::SimpleName(s)), pos))
 }
 
 pub fn assign_form(icompiler: &mut IncCompiler,
@@ -191,14 +182,13 @@ pub fn assign_form(icompiler: &mut IncCompiler,
         if let ExprF::FieldAccess(lhs, slot_name) = access_slot_form(icompiler, pipeline, &inner[1..], pos)?.value {
           AssignmentForm::Simple(AssignTarget::InstanceField(inner[0].pos, lhs, slot_name))
         } else {
-          return Err(Error::from(GDError::new(GDErrorF::InvalidArg(String::from("set"), x.clone(), ExpectedShape::Symbol), pos)));
+          return Err(Error::from(GDError::new(GDErrorF::InvalidArg(String::from("set"), x.clone(), ExpectedShape::Symbol), pos))); // TODO Is this possible? I think we can prove that this never happens with a bit of refactoring.
         }
-      } else if let ASTF::Symbol(s) = &inner[0].value {
-        let head = AssignmentForm::str_to_setter_prefix(s);
+      } else {
+        let s = ExpectedShape::extract_symbol("set", inner[0].clone())?;
+        let head = AssignmentForm::str_to_setter_prefix(&s);
         let args = inner[1..].iter().map(|x| icompiler.compile_expr(pipeline, x)).collect::<Result<_, _>>()?;
         AssignmentForm::SetterCall(head, args)
-      } else {
-        return Err(Error::from(GDError::new(GDErrorF::InvalidArg(String::from("set"), x.clone(), ExpectedShape::Symbol), pos)));
       }
     }
   };
@@ -223,10 +213,8 @@ pub fn flet_form(icompiler: &mut IncCompiler,
     if func.len() < 2 {
       return Err(Error::from(GDError::new(GDErrorF::InvalidArg(String::from("flet"), (*clause).clone(), ExpectedShape::FnDecl), pos)));
     }
-    match &func[0].value {
-      ASTF::Symbol(s) => Ok(s.clone()),
-      _ => Err(Error::from(GDError::new(GDErrorF::InvalidArg(String::from("flet"), (*clause).clone(), ExpectedShape::FnDecl), pos))),
-    }
+    let result = ExpectedShape::extract_symbol("flet", func[0].clone())?;
+    Ok(result)
   }).collect::<Result<_, _>>()?;
 
   // If the recursive binding rule is in effect (i.e. for labels),
@@ -283,10 +271,7 @@ pub fn access_slot_form(icompiler: &mut IncCompiler,
                         -> Result<Expr, Error> {
   Expecting::exactly(2).validate("access-slot", pos, tail)?;
   let lhs = icompiler.compile_expr(pipeline, tail[0])?;
-  let slot_name = match &tail[1].value {
-    ASTF::Symbol(s) => s.to_owned(),
-    _ => return Err(Error::from(GDError::new(GDErrorF::InvalidArg(String::from("access-slot"), tail[1].clone(), ExpectedShape::Symbol), pos))),
-  };
+  let slot_name = ExpectedShape::extract_symbol("access-slot", tail[1].clone())?;
   Ok(Expr::new(ExprF::FieldAccess(Box::new(lhs), slot_name), pos))
 }
 
@@ -464,24 +449,18 @@ pub fn context_filename_form(_icompiler: &mut IncCompiler,
                              pos: SourceOffset)
                              -> Result<Expr, Error> {
   Expecting::exactly(1).validate("sys/context-filename", pos, tail)?;
-  if let ASTF::String(s) = &tail[0].value {
-    let path = ImportDecl::parse_path_param(s).ok_or_else(|| {
-      let err = ImportDeclParseError::InvalidPath(s.clone());
-      Error::from(GDError::from_value(err, pos))
-    })?;
-    Ok(Expr::new(ExprF::ContextualFilename(path), pos))
-  } else {
-    Err(Error::from(GDError::new(GDErrorF::InvalidArg(String::from("sys/context-filename"), tail[0].clone(), ExpectedShape::String), pos)))
-  }
+  let s = ExpectedShape::extract_string("sys/context-filename", tail[0].clone())?;
+  let path = ImportDecl::parse_path_param(&s).ok_or_else(|| {
+    let err = ImportDeclParseError::InvalidPath(s.clone());
+    Error::from(GDError::from_value(err, pos))
+  })?;
+  Ok(Expr::new(ExprF::ContextualFilename(path), pos))
 }
 
 pub fn literally_form(tail: &[&AST], pos: SourceOffset) -> Result<Expr, Error> {
   Expecting::exactly(1).validate("literally", pos, tail)?;
-  if let ASTF::Symbol(s) = &tail[0].value {
-    Ok(Expr::new(ExprF::AtomicName(s.clone()), pos))
-  } else {
-    Err(Error::from(GDError::new(GDErrorF::InvalidArg(String::from("literally"), tail[0].clone(), ExpectedShape::Symbol), pos)))
-  }
+  let name = ExpectedShape::extract_symbol("literally", tail[0].clone())?;
+  Ok(Expr::new(ExprF::AtomicName(name), pos))
 }
 
 pub fn split_form(icompiler: &mut IncCompiler,
