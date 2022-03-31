@@ -1,4 +1,9 @@
 
+//! Argument list types as supported by the IR.
+//!
+//! See [`crate::gdscript::arglist`] for the companion module on the
+//! GDScript side.
+
 use crate::gdscript::arglist::ArgList as GDArgList;
 use crate::compile::names::fresh::FreshNameGenerator;
 use crate::compile::names::{self, NameTrans};
@@ -13,45 +18,106 @@ use std::borrow::Borrow;
 use std::cmp::Ordering;
 use std::fmt;
 
+/// An argument list in GDLisp consists of a sequence of zero or more
+/// required arguments, followed by zero or more optional arguments,
+/// followed by (optionally) a "rest" argument.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct ArgList {
+  /// The list of required argument names.
   pub required_args: Vec<String>,
+  /// The list of optional argument names. Note that optional
+  /// arguments in GDLisp always default to `nil`, so no default value
+  /// is explicitly mentioned here.
   pub optional_args: Vec<String>,
+  /// The "rest" argument. If present, this indicates the name of the
+  /// argument and the type of "rest" argument.
   pub rest_arg: Option<(String, VarArg)>,
 }
 
+/// A simple argument list consists only of required arguments and
+/// nothing more. This is required in contexts where GDLisp cannot
+/// determine the arity of a call, such as when invoking instance
+/// methods on an unknown object in GDLisp.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct SimpleArgList {
+  /// The list of required arguments.
   pub args: Vec<String>,
 }
 
+/// The type of "rest" argument which accumulates any extra arguments
+/// to a function call.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
-pub enum VarArg { RestArg, ArrArg }
+pub enum VarArg {
+  /// A `&rest` argument accumulates the arguments into a GDLisp list.
+  RestArg,
+  /// An `&arr` argument accumulates the arguments into a Godot array.
+  ArrArg,
+}
 
+/// `ArgListParseErrorF` describes the types of errors that can occur
+/// when parsing an [`AST`] argument list.
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub enum ArgListParseErrorF {
+  /// An argument of some specific type was expected but something
+  /// else was provided. (TODO Remove this in favor of more specific
+  /// errors)
   InvalidArgument(AST),
+  /// An `&` directive was provided but the name was unknown.
   UnknownDirective(String),
+  /// An `&` directive appeared in the wrong place in an argument
+  /// list, such as attempting to specify `&opt` arguments after
+  /// `&rest`.
   DirectiveOutOfOrder(String),
+  /// A simple argument list with no directives was expected, but
+  /// directives were used.
   SimpleArgListExpected,
 }
 
+/// An [`ArgListParseErrorF`] together with [`SourceOffset`] data.
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub struct ArgListParseError {
   pub value: ArgListParseErrorF,
   pub pos: SourceOffset,
 }
 
+/// The current type of argument we're looking for when parsing an
+/// argument list.
+///
+/// This is an internal type to this module and, generally, callers
+/// from outside the module should not need to interface with it.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum ParseState {
-  Required, Optional, Rest, Arr, RestInvalid
+  /// We're expecting required arguments. This is the state we begin
+  /// in.
+  Required,
+  /// We're expecting optional arguments. This is the state following
+  /// `&opt`.
+  Optional,
+  /// We're expecting the single `&rest` argument.
+  Rest,
+  /// We're expecting the single `&arr` argument.
+  Arr,
+  /// We have passed the "rest" argument and are expecting the end of
+  /// an argument list. If *any* arguments occur in this state, an
+  /// error will be issued.
+  RestInvalid,
 }
 
+/// `ParseState` implements `PartialOrd` to indicate valid orderings
+/// in which the argument type directives can occur. Specifically, we
+/// can transition from a state `u` to a state `v` if and only if `u
+/// <= v` is true. If we attempt a state transition where that is not
+/// true, then an [`ArgListParseErrorF::DirectiveOutOfOrder`] error
+/// will be issued.
+///
+/// There are two chains in this ordering:
+///
+/// * `Required < Optional < Rest < RestInvalid`
+///
+/// * `Required < Optional < Arr < RestInvalid`
+///
+/// The two states `Rest` and `Arr` are incomparable.
 impl PartialOrd for ParseState {
-  // There are two chains in this ordering.
-  // Required < Optional < Rest < RestInvalid
-  // Required < Optional < Arr  < RestInvalid
-  // Rest and Arr are incomparable
   fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
     if *self == *other {
       return Some(Ordering::Equal);
@@ -80,6 +146,8 @@ impl PartialOrd for ParseState {
 
 impl ArgList {
 
+  /// An empty argument list, taking no required or optional arguments
+  /// and having no "rest" argument.
   pub fn empty() -> ArgList {
     ArgList {
       required_args: vec!(),
@@ -88,6 +156,9 @@ impl ArgList {
     }
   }
 
+  /// An argument list consisting only of a single [`VarArg::RestArg`]
+  /// argument with a default name.
+  #[deprecated(note="Directly construct the arglist with an explicit rest name instead")]
   pub fn rest() -> ArgList {
     ArgList {
       required_args: vec!(),
@@ -96,6 +167,8 @@ impl ArgList {
     }
   }
 
+  /// An argument list consisting only of required arguments with the
+  /// given names.
   pub fn required(args: Vec<String>) -> ArgList {
     ArgList {
       required_args: args,
@@ -104,6 +177,12 @@ impl ArgList {
     }
   }
 
+  /// Converts an [`FnSpecs`] to an [`ArgList`] with dummy names for
+  /// the variables.
+  ///
+  /// The names of the generated arguments may change and should not
+  /// be relied upon; only the shape and lengths should be considered
+  /// stable.
   pub fn from_specs(specs: FnSpecs) -> ArgList {
     // Uses dummy names for variables.
     let required_args = (0..specs.required).into_iter().map(|i| format!("required_arg{}", i)).collect();
@@ -112,6 +191,8 @@ impl ArgList {
     ArgList { required_args, optional_args, rest_arg }
   }
 
+  /// Parse an argument list from an iterator of `AST` values. Returns
+  /// either the [`ArgList`] or an appropriate error.
   pub fn parse<'a>(args: impl IntoIterator<Item = &'a AST>)
                    -> Result<ArgList, ArgListParseError> {
     let mut state = ParseState::Required;
@@ -194,6 +275,18 @@ impl ArgList {
     })
   }
 
+  /// Converts the argument list into a GDScript argument list, using
+  /// the given name generator to produce unique GDScript names.
+  ///
+  /// * Each required argument will be translated into a GDScript
+  /// argument.
+  ///
+  /// * Each optional argument, likewise, will be translated into a
+  /// GDScript argument. On the GDScript side, required and optional
+  /// arguments are indistinguishable.
+  ///
+  /// * If there is a "rest" argument of any kind, it is translated to
+  /// a single GDScript argument as well.
   pub fn into_gd_arglist(self, gen: &mut FreshNameGenerator) -> (GDArgList, Vec<NameTrans>) {
     let cap = 1 + self.required_args.len() + self.optional_args.len();
     let mut name_translations = Vec::with_capacity(cap);
@@ -216,6 +309,8 @@ impl ArgList {
     (GDArgList::required(args), name_translations)
   }
 
+  /// An iterator over all variable names mentioned in the argument
+  /// list, in order.
   pub fn iter_vars(&self) -> impl Iterator<Item = &str> {
     self.required_args.iter()
       .chain(self.optional_args.iter())
@@ -227,14 +322,23 @@ impl ArgList {
 
 impl SimpleArgList {
 
+  /// Converts the argument list into a GDScript argument list, using
+  /// the given name generator to produce unique names, similar to
+  /// [`ArgList::into_gd_arglist`].
   pub fn into_gd_arglist(self, gen: &mut FreshNameGenerator) -> (GDArgList, Vec<NameTrans>) {
     ArgList::from(self).into_gd_arglist(gen)
   }
 
+  /// An iterator over all variable names mentioned in the argument
+  /// list, in order.
   pub fn iter_vars(&self) -> impl Iterator<Item = &str> {
     self.args.iter().map(|x| x.borrow())
   }
 
+  /// Attempts to parse a simple argument list from the iterator, as
+  /// though by [`ArgList::parse`], and then attempts to convert that
+  /// argument list into a [`SimpleArgList`]. If either step fails, an
+  /// error is reported.
   pub fn parse<'a>(args: impl IntoIterator<Item = &'a AST>, pos: SourceOffset)
                    -> Result<SimpleArgList, ArgListParseError> {
     ArgList::parse(args).and_then(|arglist| {
@@ -242,10 +346,12 @@ impl SimpleArgList {
     })
   }
 
+  /// The length of the argument list.
   pub fn len(&self) -> usize {
     self.args.len()
   }
 
+  /// Whether the argument list consists of zero arguments.
   pub fn is_empty(&self) -> bool {
     self.args.is_empty()
   }
@@ -277,6 +383,9 @@ impl VarArg {
 
 impl From<ArgList> for FnSpecs {
 
+  /// [`FnSpecs`] is simply an [`ArgList`] without the argument names;
+  /// it merely preserves the shape. From an `ArgList` we can always
+  /// construct an `FnSpecs` in a canonical way.
   fn from(arglist: ArgList) -> FnSpecs {
     // TODO We need to define an upper limit on argument list length
     // (and check if Godot already has one we need to respect)

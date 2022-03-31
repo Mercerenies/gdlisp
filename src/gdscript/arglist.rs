@@ -3,6 +3,9 @@
 //!
 //! The type [`ArgList`] defines a list of arguments as GDScript sees
 //! them.
+//!
+//! See [`crate::ir::arglist`] for the companion module used during IR
+//! analysis.
 
 /// A list of arguments in a function declaration.
 ///
