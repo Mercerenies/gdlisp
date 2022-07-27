@@ -15,7 +15,7 @@ use crate::compile::symbol_table::SymbolTable;
 /// conflicts are only detected in one namespace. Whenever a name is
 /// generated, it is also stored as a synthetic name in the symbol
 /// table. For a variant of this type which does *not* modify the
-/// symbol table, see [`super::contextual::RegisteredNameGenerator`].
+/// symbol table, see [`super::contextual::ContextualNameGenerator`].
 #[derive(Debug)]
 pub struct RegisteredNameGenerator<'a> {
   context: &'a mut SymbolTable,

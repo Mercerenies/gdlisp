@@ -145,7 +145,7 @@ pub fn compile_labels_scc(frame: &mut CompilerFrame<StmtBuilder>,
   builder.add_helper(Decl::new(DeclF::ClassDecl(class), pos));
   let constructor_args: Vec<_> = gd_src_closure_vars.into_iter().map(|x| Expr::new(ExprF::Var(x), pos)).collect();
   let expr = Expr::call(Some(Expr::new(ExprF::Var(class_name), pos)), "new", constructor_args, pos);
-  builder.append(Stmt::new(StmtF::VarDecl(local_var_name.clone(), expr), pos));
+  builder.append(Stmt::new(StmtF::VarDecl(local_var_name, expr), pos));
 
   Ok(bound_calls)
 }
