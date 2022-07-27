@@ -28,10 +28,19 @@ use std::borrow::Borrow;
 /// the current scope, in either namespace.
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
 pub struct SymbolTable {
+  /// A mapping from GDLisp names to [`LocalVar`] instances, which can
+  /// be local variables, file-level constants, GDScript constants, or
+  /// several other types of values.
   locals: HashMap<String, LocalVar>,
-  reverse_locals: HashMap<String, String>, // key: GDScript name, value: GDLisp name (to use in locals)
+  /// A mapping from GDScript names to GDLisp names. The values in
+  /// this map shall always be valid keys in `locals`.
+  reverse_locals: HashMap<String, String>,
+  /// A mapping from GDLisp names to [`FnCall`] and corresponding
+  /// [`CallMagic`] instances.
   functions: HashMap<String, (FnCall, CallMagic)>,
-  reverse_functions: HashMap<String, String>, // key: GDScript name, value: GDLisp name (to use in locals)
+  /// A mapping from GDScript names to GDLisp names. The values in
+  /// this map shall always be valid keys in `functions`.
+  reverse_functions: HashMap<String, String>,
 }
 
 /// When we move into a class scope, we need to keep two symbol
