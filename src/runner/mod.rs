@@ -138,15 +138,7 @@ where T : IntoGDFile + ?Sized,
 mod tests {
   use super::*;
 
-  // Note: These tests are ignored by default right now, since there's
-  // no way to run Godot windowless on Linux yet, so running these
-  // pops up with a Godot window, which is annoying when just
-  // routinely trying to run through the tests. If
-  // https://github.com/godotengine/godot/pull/42276 gets merged into
-  // Godot, I'll be able to start running these all the time.
-
   #[test]
-  #[ignore]
   fn run_minimal_test() {
     run_with_temporary(r#"
 extends SceneTree
@@ -157,7 +149,6 @@ func _init():
   }
 
   #[test]
-  #[ignore]
   fn run_printing_test() {
     let out = run_with_temporary(r#"
 extends SceneTree

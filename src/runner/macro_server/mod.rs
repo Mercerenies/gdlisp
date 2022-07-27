@@ -188,13 +188,11 @@ mod tests {
   }
 
   #[test]
-  #[ignore]
   fn spawn_server_simple_test() {
     MacroServer::new().unwrap().shutdown().unwrap();
   }
 
   #[test]
-  #[ignore]
   fn spawn_server_ping_pong_test() {
     let mut server1 = MacroServer::new().unwrap();
     let response1 = issue_command_and_unwrap(&mut server1, &ServerCommand::Ping);
@@ -203,7 +201,6 @@ mod tests {
   }
 
   #[test]
-  #[ignore]
   fn spawn_server_test() {
     let mut server2 = MacroServer::new().unwrap();
     let response2_1 = issue_command_and_unwrap(&mut server2, &ServerCommand::Ping);
@@ -227,7 +224,6 @@ mod tests {
   }
 
   #[test]
-  #[ignore]
   fn spawn_server_exec_test() {
     let mut server = MacroServer::new().unwrap();
     let command = ServerCommand::Exec(String::from("    var tmp_var = 1 + 1\n    return tmp_var"));
