@@ -92,7 +92,7 @@ impl SymbolTable {
       }
     }
     if let Some(new_gd_name) = new_gd_name {
-      self.reverse_locals.insert(new_gd_name.to_owned(), name);
+      self.reverse_locals.insert(new_gd_name, name);
     }
     old_value
   }
