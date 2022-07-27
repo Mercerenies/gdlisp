@@ -257,10 +257,10 @@ pub fn flet_global_macro_shadowing_test() {
   assert_eq!(result, r#"extends Reference
 static func foo():
     return 100
-static func _flet_0():
+static func _flet():
     return 99
 static func run():
-    return [100, _flet_0(), 100]
+    return [100, _flet(), 100]
 "#);
 }
 

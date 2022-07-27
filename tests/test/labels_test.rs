@@ -47,8 +47,8 @@ fn labels_test_outer_scope_static_6() {
 pub fn semiglobal_labels_test() {
 
   let result0 = parse_compile_and_output_h("(labels ((f (x) (+ x 1))) (f 10))");
-  assert_eq!(result0.0, "return _flet_0(10)\n");
-  assert_eq!(result0.1, "static func _flet_0(x):\n    return x + 1\n");
+  assert_eq!(result0.0, "return _flet(10)\n");
+  assert_eq!(result0.1, "static func _flet(x):\n    return x + 1\n");
 
 }
 
@@ -57,7 +57,7 @@ pub fn semiglobal_labels_test_indirect() {
 
   let result0 = parse_compile_and_output_h("(labels ((f (x) (+ x 1))) (funcall (function f) 10))");
   assert_eq!(result0.0, "return GDLisp.funcall(_FunctionRefBlock.new(), GDLisp.Cons.new(10, null))\n");
-  assert_eq!(result0.1, r#"static func _flet_0(x):
+  assert_eq!(result0.1, r#"static func _flet(x):
     return x + 1
 class _FunctionRefBlock extends GDLisp.Function:
     func _init():
@@ -65,7 +65,7 @@ class _FunctionRefBlock extends GDLisp.Function:
         self.__gdlisp_optional = 0
         self.__gdlisp_rest = 0
     func call_func(arg0):
-        return load("res://TEST.gd")._flet_0(arg0)
+        return load("res://TEST.gd")._flet(arg0)
     func call_funcv(args):
         var required_0 = null
         if args == null:
@@ -129,15 +129,15 @@ pub fn recursive_double_labels_test() {
 #[test]
 pub fn recursive_single_with_extra_beginning_labels_test() {
   let result0 = parse_compile_and_output_h("(labels ((f (x) (f (g x))) (g (x) 10)) (f 1))");
-  assert_eq!(result0.0, "var _locals = _Labels.new()\nreturn _locals._fn_f_2(1)\n");
-  assert_eq!(result0.1, r#"static func _flet_0(x):
+  assert_eq!(result0.0, "var _locals = _Labels.new()\nreturn _locals._fn_f_1(1)\n");
+  assert_eq!(result0.1, r#"static func _flet(x):
     return 10
 class _Labels extends Reference:
     func _init():
         pass
-    func _fn_f_2(x):
-        return _fn_f_2(__gdlisp_outer_class_1._flet_0(x))
-    var __gdlisp_outer_class_1 = load("res://TEST.gd")
+    func _fn_f_1(x):
+        return _fn_f_1(__gdlisp_outer_class_0._flet(x))
+    var __gdlisp_outer_class_0 = load("res://TEST.gd")
 "#);
 }
 

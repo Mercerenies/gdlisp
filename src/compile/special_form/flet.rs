@@ -47,7 +47,7 @@ fn compile_flet_call(frame: &mut CompilerFrame<StmtBuilder>,
   if is_declaration_semiglobal(&args, body, frame.table) {
     // No closure vars and any closure fns (if there are any) are
     // free of closures, so we can compile to SemiGlobal.
-    let gd_name = frame.name_generator().generate_with("_flet");
+    let gd_name = RegisteredNameGenerator::new_fn(frame.table).generate_with("_flet");
     let func = factory::declare_function(frame, gd_name.clone(), args.clone(), body, &stmt_wrapper::Return)?;
     frame.builder.add_helper(Decl::new(DeclF::FnDecl(decl::Static::IsStatic, func), pos));
     let specs = FnSpecs::from(args);

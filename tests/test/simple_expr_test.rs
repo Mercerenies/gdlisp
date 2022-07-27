@@ -127,9 +127,9 @@ pub fn assign_to_slot_test() {
   assert_eq!(parse_compile_and_output("(let ((x 1)) (set x:foo 100))"),
              "var x = 1\nx.foo = 100\nreturn 100\n");
   assert_eq!(parse_compile_and_output("(flet ((f () 1)) (set (f):foo 100) 2)"),
-             "_flet_0().foo = 100\nreturn 2\n");
+             "_flet().foo = 100\nreturn 2\n");
   assert_eq!(parse_compile_and_output("(flet ((f () 1)) (set (f):foo 100))"),
-             "_flet_0().foo = 100\nreturn 100\n");
+             "_flet().foo = 100\nreturn 100\n");
 }
 
 

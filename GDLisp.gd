@@ -685,8 +685,8 @@ static func list_to_array(list):
 static func array_to_list(arr):
     var outer = cons(null, null)
     var curr = outer
-    for elem_1 in arr:
-        curr.cdr = cons(elem_1, null)
+    for elem in arr:
+        curr.cdr = cons(elem, null)
         curr = curr.cdr
     return outer.cdr
 static func elt(arr, n):
@@ -725,8 +725,8 @@ static func map(f, xs):
         _cond = outer.cdr
     else:
         var result = []
-        for i_2 in len(xs):
-            result.push_back(funcall(f, GDLisp.Cons.new(xs[i_2], null)))
+        for i in len(xs):
+            result.push_back(funcall(f, GDLisp.Cons.new(xs[i], null)))
         _cond = result
     return _cond
 static func filter(p, xs):
@@ -743,9 +743,9 @@ static func filter(p, xs):
         _cond = outer.cdr
     else:
         var result = []
-        for i_3 in len(xs):
-            if funcall(p, GDLisp.Cons.new(xs[i_3], null)):
-                result.push_back(xs[i_3])
+        for i_0 in len(xs):
+            if funcall(p, GDLisp.Cons.new(xs[i_0], null)):
+                result.push_back(xs[i_0])
         _cond = result
     return _cond
 static func reverse(arg):
@@ -790,7 +790,7 @@ class PrimitiveType extends GDLispSpecialType:
     var primitive_value
     func is_satisfies(value):
         return typeof(value) == self.primitive_value
-    var __gdlisp_outer_class_4 = load("res://GDLisp.gd")
+    var __gdlisp_outer_class_1 = load("res://GDLisp.gd")
 class AnyType extends GDLispSpecialType:
     func _init():
         pass
@@ -801,13 +801,13 @@ class AnyRefType extends GDLispSpecialType:
         pass
     func is_satisfies(value):
         return typeof(value) == TYPE_OBJECT
-    var __gdlisp_outer_class_5 = load("res://GDLisp.gd")
+    var __gdlisp_outer_class_2 = load("res://GDLisp.gd")
 class AnyValType extends GDLispSpecialType:
     func _init():
         pass
     func is_satisfies(value):
         return typeof(value) != TYPE_OBJECT
-    var __gdlisp_outer_class_6 = load("res://GDLisp.gd")
+    var __gdlisp_outer_class_3 = load("res://GDLisp.gd")
 class NumberType extends GDLispSpecialType:
     func _init():
         pass
@@ -815,14 +815,14 @@ class NumberType extends GDLispSpecialType:
         var t = typeof(value)
         var _cond = true if t == TYPE_INT else true if t == TYPE_REAL else false
         return _cond
-    var __gdlisp_outer_class_7 = load("res://GDLisp.gd")
+    var __gdlisp_outer_class_4 = load("res://GDLisp.gd")
 class BaseArrayType extends GDLispSpecialType:
     func _init():
         pass
     func is_satisfies(value):
         var _cmp = typeof(value)
         return TYPE_ARRAY <= _cmp && _cmp <= TYPE_COLOR_ARRAY
-    var __gdlisp_outer_class_8 = load("res://GDLisp.gd")
+    var __gdlisp_outer_class_5 = load("res://GDLisp.gd")
 class NothingType extends GDLispSpecialType:
     func _init():
         pass
