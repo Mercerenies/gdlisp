@@ -144,7 +144,7 @@ class _Labels extends Reference:
 #[test]
 pub fn recursive_single_with_extra_end_labels_test() {
   let result0 = parse_compile_and_output_h("(labels ((f (x) (f x)) (g (x) (f x))) (g 1))");
-  assert_eq!(result0.0, "var _locals = _Labels.new()\nvar _flet_2 = _LambdaBlock.new(_locals)\nreturn _flet_2.call_func(1)\n");
+  assert_eq!(result0.0, "var _locals = _Labels.new()\nvar _flet_1 = _LambdaBlock.new(_locals)\nreturn _flet_1.call_func(1)\n");
   assert_eq!(result0.1, r#"class _Labels extends Reference:
     func _init():
         pass
@@ -157,8 +157,8 @@ class _LambdaBlock extends GDLisp.Function:
         self.__gdlisp_required = 1
         self.__gdlisp_optional = 0
         self.__gdlisp_rest = 0
-    func call_func(x_1):
-        return _locals._fn_f_0(x_1)
+    func call_func(x):
+        return _locals._fn_f_0(x)
     func call_funcv(args):
         var required_0 = null
         if args == null:

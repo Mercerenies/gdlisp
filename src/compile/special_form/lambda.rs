@@ -294,8 +294,6 @@ pub fn compile_lambda_stmt(frame: &mut CompilerFrame<StmtBuilder>,
 
   let mut class_scope = class_scope.closure_mut();
 
-  let (arglist, gd_args) = args.clone().into_gd_arglist(compiler.name_generator());
-
   let closure = {
     let mut closure = ClosureData::from(Function::new(args, body));
     // No need to close around global variables, as they're available
@@ -308,6 +306,8 @@ pub fn compile_lambda_stmt(frame: &mut CompilerFrame<StmtBuilder>,
   let class_name = RegisteredNameGenerator::new_global_var(table).generate_with("_LambdaBlock");
 
   let mut lambda_table = SymbolTable::with_synthetics_from(table);
+
+  let (arglist, gd_args) = args.clone().into_gd_arglist(&mut RegisteredNameGenerator::new_local_var(&mut lambda_table));
 
   // Bind the arguments to the lambda in the new lambda table.
   for arg in &gd_args {
