@@ -31,6 +31,7 @@ pub struct SymbolTable {
   locals: HashMap<String, LocalVar>,
   reverse_locals: HashMap<String, String>, // key: GDScript name, value: GDLisp name (to use in locals)
   functions: HashMap<String, (FnCall, CallMagic)>,
+  reverse_functions: HashMap<String, String>, // key: GDScript name, value: GDLisp name (to use in locals)
 }
 
 /// When we move into a class scope, we need to keep two symbol
@@ -61,16 +62,30 @@ impl SymbolTable {
   /// are indexed by both names, so this access is as efficient as
   /// [`SymbolTable::get_var`].
   pub fn get_var_by_gd_name(&self, gd_name: &str) -> Option<&LocalVar> {
-    self.reverse_locals.get(gd_name).and_then(|name| self.locals.get(name))
+    self.reverse_locals.get(gd_name).and_then(|name| self.get_var(name))
+  }
+
+  /// Gets the function with the given local GDScript name. Functions
+  /// are indexed by both names, so this access is as efficient as
+  /// [`SymbolTable::get_fn`].
+  pub fn get_fn_by_gd_name(&self, gd_name: &str) -> Option<(&FnCall, &CallMagic)> {
+    self.reverse_functions.get(gd_name).and_then(|name| self.get_fn(name))
   }
 
   /// Sets the variable with the given GDLisp name, returning the old
   /// value if one existed.
   pub fn set_var(&mut self, name: String, value: LocalVar) -> Option<LocalVar> {
-    if let Some(gd_name) = value.simple_name() {
-      self.reverse_locals.insert(gd_name.to_owned(), name.clone());
+    let new_gd_name = value.simple_name().map(|x| x.to_owned());
+    let old_value = self.locals.insert(name.clone(), value);
+    if let Some(old_value) = &old_value {
+      if let Some(old_gd_name) = old_value.simple_name() {
+        self.reverse_locals.remove(old_gd_name);
+      }
     }
-    self.locals.insert(name, value)
+    if let Some(new_gd_name) = new_gd_name {
+      self.reverse_locals.insert(new_gd_name.to_owned(), name);
+    }
+    old_value
   }
 
   /// Removes the variable with the given GDLisp name. If no such
@@ -95,13 +110,21 @@ impl SymbolTable {
   /// Sets the function call and call magic associated with the given
   /// function name.
   pub fn set_fn(&mut self, name: String, value: FnCall, magic: CallMagic) {
-    self.functions.insert(name, (value, magic));
+    let new_gd_name = value.function.clone();
+    let old_function = self.functions.insert(name.clone(), (value, magic));
+    if let Some((old_function, _)) = old_function {
+      self.reverse_functions.remove(&old_function.function);
+    }
+    self.reverse_functions.insert(new_gd_name, name);
   }
 
   /// Deletes any function call info and call magic associated with
   /// the given function name.
   pub fn del_fn(&mut self, name: &str) {
-    self.functions.remove(name);
+    let old_function = self.functions.remove(name);
+    if let Some((old_function, _)) = old_function {
+      self.reverse_locals.remove(&old_function.function);
+    }
   }
 
   /// An iterator over the variable namespace of this table.
@@ -136,6 +159,18 @@ impl SymbolTable {
     for (name, call, magic) in other.fns() {
       self.set_fn(name.to_owned(), call.to_owned(), magic.to_owned());
     }
+  }
+
+  /// Returns true if the symbol table has a variable with the given
+  /// GDScript name.
+  pub fn has_var_with_gd_name(&self, name: &str) -> bool {
+    self.reverse_locals.contains_key(name)
+  }
+
+  /// Returns true if the symbol table has a function with the given
+  /// GDScript name.
+  pub fn has_fn_with_gd_name(&self, name: &str) -> bool {
+    self.reverse_functions.contains_key(name)
   }
 
 }
@@ -271,12 +306,28 @@ mod tests {
   fn test_vars() {
     let mut table = SymbolTable::new();
     assert_eq!(table.get_var("foo"), None);
+    assert_eq!(table.get_var_by_gd_name("foo"), None);
+    assert_eq!(table.get_var_by_gd_name("bar"), None);
+    assert_eq!(table.get_var_by_gd_name("baz"), None);
+
     assert_eq!(table.set_var("foo".to_owned(), LocalVar::read("bar".to_owned())), None);
     assert_eq!(table.get_var("foo"), Some(&LocalVar::read("bar".to_owned())));
+    assert_eq!(table.get_var_by_gd_name("foo"), None);
+    assert_eq!(table.get_var_by_gd_name("bar"), Some(&LocalVar::read("bar".to_owned())));
+    assert_eq!(table.get_var_by_gd_name("baz"), None);
+
     assert_eq!(table.set_var("foo".to_owned(), LocalVar::read("baz".to_owned())),
                Some(LocalVar::read("bar".to_owned())));
+    assert_eq!(table.get_var_by_gd_name("foo"), None);
+    assert_eq!(table.get_var_by_gd_name("bar"), None);
+    assert_eq!(table.get_var_by_gd_name("baz"), Some(&LocalVar::read("baz".to_owned())));
+
     table.del_var("foo");
     assert_eq!(table.get_var("foo"), None);
+    assert_eq!(table.get_var_by_gd_name("foo"), None);
+    assert_eq!(table.get_var_by_gd_name("bar"), None);
+    assert_eq!(table.get_var_by_gd_name("baz"), None);
+
   }
 
   #[test]
@@ -297,12 +348,20 @@ mod tests {
   #[test]
   fn test_fns() {
     let mut table = SymbolTable::new();
+
     assert_eq!(table.get_fn("foo").map(|x| x.0), None);
+
     table.set_fn("foo".to_owned(), sample_fn(), CallMagic::DefaultCall);
     assert_eq!(table.get_fn("foo").map(|x| x.0), Some(&sample_fn()));
+    assert_eq!(table.get_fn_by_gd_name("foo").map(|x| x.0), None);
+    assert_eq!(table.get_fn_by_gd_name("foobar").map(|x| x.0), Some(&sample_fn()));
+
     table.set_fn("foo".to_owned(), sample_fn(), CallMagic::DefaultCall);
     table.del_fn("foo");
     assert_eq!(table.get_fn("foo").map(|x| x.0), None);
+    assert_eq!(table.get_fn_by_gd_name("foo").map(|x| x.0), None);
+    assert_eq!(table.get_fn_by_gd_name("foobar").map(|x| x.0), None);
+
   }
 
   #[test]
