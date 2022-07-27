@@ -3,6 +3,7 @@ use crate::util::unzip_err;
 use crate::ir;
 use crate::ir::expr::{Locals, LocalFnClause};
 use crate::ir::access_type::AccessType;
+use crate::ir::identifier::Namespace;
 use crate::compile::{Compiler, StExpr};
 use crate::compile::frame::CompilerFrame;
 use crate::compile::body::builder::StmtBuilder;
@@ -15,6 +16,7 @@ use crate::compile::error::{Error, ErrorF};
 use crate::compile::stateful::SideEffects;
 use crate::compile::names::{self, NameTrans};
 use crate::compile::names::fresh::FreshNameGenerator;
+use crate::compile::names::contextual::ContextualNameGenerator;
 use crate::compile::names::generator::NameGenerator;
 use crate::gdscript::stmt::{Stmt, StmtF};
 use crate::gdscript::expr::{Expr, ExprF};
@@ -73,7 +75,7 @@ pub fn compile_labels_scc(frame: &mut CompilerFrame<StmtBuilder>,
   let gd_closure_vars = closure.to_gd_closure_vars(&lambda_table);
   let gd_src_closure_vars = closure.to_gd_closure_vars(table);
 
-  let local_var_name = compiler.name_generator().generate_with("_locals");
+  let local_var_name = ContextualNameGenerator::new(&table, Namespace::Value).generate_with("_locals");
 
   // Bind the functions themselves
   let named_clauses = generate_names_for_scc_clauses(clauses.iter().copied(), compiler.name_generator());
@@ -142,7 +144,8 @@ pub fn compile_labels_scc(frame: &mut CompilerFrame<StmtBuilder>,
   builder.add_helper(Decl::new(DeclF::ClassDecl(class), pos));
   let constructor_args: Vec<_> = gd_src_closure_vars.into_iter().map(|x| Expr::new(ExprF::Var(x), pos)).collect();
   let expr = Expr::call(Some(Expr::new(ExprF::Var(class_name), pos)), "new", constructor_args, pos);
-  builder.append(Stmt::new(StmtF::VarDecl(local_var_name, expr), pos));
+  builder.append(Stmt::new(StmtF::VarDecl(local_var_name.clone(), expr), pos));
+  table.add_synthetic_var(local_var_name, true);
 
   Ok(bound_calls)
 }
