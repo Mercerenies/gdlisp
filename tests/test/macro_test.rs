@@ -286,13 +286,13 @@ pub fn labels_global_macro_shadowing_test() {
   assert_eq!(result, r#"extends Reference
 static func foo():
     return 100
-class _Labels_1 extends Reference:
+class _Labels extends Reference:
     func _init():
         pass
     func _fn_foo_0():
         return _fn_foo_0()
 static func run():
-    var _locals = _Labels_1.new()
+    var _locals = _Labels.new()
     return [100, _locals._fn_foo_0(), 100]
 "#);
 }

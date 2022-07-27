@@ -64,6 +64,10 @@ pub fn compile_labels_scc(frame: &mut CompilerFrame<StmtBuilder>,
     outer_ref_name = compiler.name_generator().generate_with(inner_class::OUTER_REFERENCE_NAME);
   }
 
+  // Determine a name for the global class to represent the labels.
+  let class_name = ContextualNameGenerator::new(table, Namespace::Value).generate_with("_Labels");
+  table.add_synthetic_var(class_name.clone(), false);
+
   // Bind all of the closure variables, closure functions, and global
   // variables inside.
   let mut lambda_table = SymbolTable::with_synthetics_from(table);
@@ -130,7 +134,6 @@ pub fn compile_labels_scc(frame: &mut CompilerFrame<StmtBuilder>,
   for func in functions {
     class_body.push(Decl::new(DeclF::FnDecl(decl::Static::NonStatic, func), pos));
   }
-  let class_name = compiler.name_generator().generate_with("_Labels");
   let mut class = decl::ClassDecl {
     name: class_name.clone(),
     extends: decl::ClassExtends::named(String::from("Reference")),

@@ -544,7 +544,7 @@ static func run():
 pub fn labels_self_closure_class_test() {
   assert_eq!(parse_compile_decl("((defclass Foo (Node) (defn test () (labels ((foo (x) (foo self))) (foo 76)))))"),
              r#"extends Reference
-class _Labels_3 extends Reference:
+class _Labels extends Reference:
     var _self_0
     func _init(_self_0):
         self._self_0 = _self_0
@@ -554,7 +554,29 @@ class Foo extends Node:
     func _init():
         pass
     func test():
-        var _locals = _Labels_3.new(self)
+        var _locals = _Labels.new(self)
+        return _locals._fn_foo_1(76)
+static func run():
+    return null
+"#);
+}
+
+#[test]
+pub fn labels_self_closure_class_with_contrived_const_test() {
+  assert_eq!(parse_compile_decl("((defconst _Labels 10) (defclass Foo (Node) (defn test () (labels ((foo (x) (foo self))) (foo 76)))))"),
+             r#"extends Reference
+const _Labels = 10
+class _Labels_0 extends Reference:
+    var _self_0
+    func _init(_self_0):
+        self._self_0 = _self_0
+    func _fn_foo_1(x_2):
+        return _fn_foo_1(_self_0)
+class Foo extends Node:
+    func _init():
+        pass
+    func test():
+        var _locals = _Labels_0.new(self)
         return _locals._fn_foo_1(76)
 static func run():
     return null
