@@ -32,8 +32,3 @@ jobs:
         PATH="$PWD/godot-build/:$PATH"
         echo "$PATH"
         rake 'test[--verbose]'
-    - name: Run Full Test Suite
-      run: |
-        PATH="$PWD/godot-build/:$PATH"
-        echo "$PATH"
-        rake 'test[--verbose,--,--ignored]'
