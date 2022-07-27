@@ -19,6 +19,7 @@ use local_var::{LocalVar, ValueHint, ValueHintsTable};
 use serde::{Serialize, Deserialize};
 
 use std::collections::HashMap;
+use std::collections::HashSet;
 use std::borrow::Borrow;
 
 /// GDLisp has two separate namespaces when it comes to name
@@ -28,19 +29,33 @@ use std::borrow::Borrow;
 /// the current scope, in either namespace.
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
 pub struct SymbolTable {
+
   /// A mapping from GDLisp names to [`LocalVar`] instances, which can
   /// be local variables, file-level constants, GDScript constants, or
   /// several other types of values.
   locals: HashMap<String, LocalVar>,
+
   /// A mapping from GDScript names to GDLisp names. The values in
   /// this map shall always be valid keys in `locals`.
   reverse_locals: HashMap<String, String>,
+
+  /// A mapping of GDScript variables that were
+  /// synthetically-generated and do not have a GDLisp name
+  /// corresponding to them.
+  synthetic_locals: HashSet<String>,
+
   /// A mapping from GDLisp names to [`FnCall`] and corresponding
   /// [`CallMagic`] instances.
   functions: HashMap<String, (FnCall, CallMagic)>,
+
   /// A mapping from GDScript names to GDLisp names. The values in
   /// this map shall always be valid keys in `functions`.
   reverse_functions: HashMap<String, String>,
+
+  /// A mapping of GDScript functions that were
+  /// synthetically-generated and do not have a GDLisp name
+  /// corresponding to them.
+  synthetic_functions: HashSet<String>,
 }
 
 /// When we move into a class scope, we need to keep two symbol
@@ -108,6 +123,19 @@ impl SymbolTable {
     }
   }
 
+  /// Adds a synthetic GDScript variable to the symbol table.
+  /// Synthetic GDScript variables do not appear in the symbol table's
+  /// maps but will respond to [`has_var_with_gd_name`].
+  pub fn add_synthetic_var(&mut self, name: String) {
+    self.synthetic_locals.insert(name);
+  }
+
+  /// Removes a synthetic GDScript variable. See
+  /// [`add_synthetic_var`].
+  pub fn remove_synthetic_var(&mut self, name: &str) {
+    self.synthetic_locals.remove(name);
+  }
+
   /// Gets the function call and call magic associated with the given
   /// GDLisp function name.
   pub fn get_fn(&self, name: &str) -> Option<(&FnCall, &CallMagic)> {
@@ -134,6 +162,19 @@ impl SymbolTable {
     if let Some((old_function, _)) = old_function {
       self.reverse_locals.remove(&old_function.function);
     }
+  }
+
+  /// Adds a synthetic GDScript function to the symbol table.
+  /// Synthetic GDScript functions do not appear in the symbol table's
+  /// maps but will respond to [`has_fn_with_gd_name`].
+  pub fn add_synthetic_fn(&mut self, name: String) {
+    self.synthetic_functions.insert(name);
+  }
+
+  /// Removes a synthetic GDScript function. See
+  /// [`add_synthetic_fn`].
+  pub fn remove_synthetic_fn(&mut self, name: &str) {
+    self.synthetic_functions.remove(name);
   }
 
   /// An iterator over the variable namespace of this table.
@@ -173,13 +214,15 @@ impl SymbolTable {
   /// Returns true if the symbol table has a variable with the given
   /// GDScript name.
   pub fn has_var_with_gd_name(&self, name: &str) -> bool {
-    self.reverse_locals.contains_key(name)
+    self.reverse_locals.contains_key(name) ||
+      self.synthetic_locals.contains(name)
   }
 
   /// Returns true if the symbol table has a function with the given
   /// GDScript name.
   pub fn has_fn_with_gd_name(&self, name: &str) -> bool {
-    self.reverse_functions.contains_key(name)
+    self.reverse_functions.contains_key(name) ||
+      self.synthetic_functions.contains(name)
   }
 
 }
