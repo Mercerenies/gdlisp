@@ -443,7 +443,8 @@ impl<'a, 'b, 'c, 'd, 'e> CompilerFrame<'a, 'b, 'c, 'd, 'e, StmtBuilder> {
         self.compile_dictionary(vec.iter(), expr.pos)
       }
       IRExprF::Quote(ast) => {
-        let (stmts, result) = reify_pretty_expr(ast, MAX_QUOTE_REIFY_DEPTH, self.name_generator());
+        let mut gen = RegisteredNameGenerator::new_local_var(self.table);
+        let (stmts, result) = reify_pretty_expr(ast, MAX_QUOTE_REIFY_DEPTH, &mut gen);
         self.builder.append_all(&mut stmts.into_iter());
         Ok(StExpr { expr: result, side_effects: SideEffects::None })
       }

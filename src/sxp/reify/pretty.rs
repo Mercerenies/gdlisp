@@ -5,7 +5,6 @@
 use crate::gdscript::expr::{Expr, ExprF};
 use crate::gdscript::stmt::Stmt;
 use crate::gdscript::library;
-use crate::compile::names::fresh::FreshNameGenerator;
 use crate::compile::names::generator::NameGenerator;
 use crate::compile::stmt_wrapper::StmtWrapper;
 use crate::pipeline::source::Sourced;
@@ -29,7 +28,7 @@ use crate::sxp::ast::{AST, ASTF};
 /// expression should be used in GDScript only after all of the
 /// statements have been run. If you know how the expression will be
 /// used, then [`reify_pretty`] may be more convenient.
-pub fn reify_pretty_expr(value: &AST, max_depth: u32, gen: &mut FreshNameGenerator) -> (Vec<Stmt>, Expr) {
+pub fn reify_pretty_expr(value: &AST, max_depth: u32, gen: &mut impl NameGenerator) -> (Vec<Stmt>, Expr) {
   let mut printer = PrettyPrinter::new(gen, max_depth);
   let expr = printer.reify_pretty_rec(value, 0);
   (printer.build(), expr)
@@ -38,22 +37,22 @@ pub fn reify_pretty_expr(value: &AST, max_depth: u32, gen: &mut FreshNameGenerat
 /// As [`reify_pretty_expr`], but the final expression is wrapped
 /// using the statement wrapper `wrapper` and appended to the
 /// statements vector.
-pub fn reify_pretty<W>(value: &AST, max_depth: u32, gen: &mut FreshNameGenerator, wrapper: &W) -> Vec<Stmt>
+pub fn reify_pretty<W>(value: &AST, max_depth: u32, gen: &mut impl NameGenerator, wrapper: &W) -> Vec<Stmt>
 where W : StmtWrapper + ?Sized {
   let (mut stmts, expr) = reify_pretty_expr(value, max_depth, gen);
   stmts.push(wrapper.wrap_expr(expr));
   stmts
 }
 
-struct PrettyPrinter<'a> {
-  gen: &'a mut FreshNameGenerator,
+struct PrettyPrinter<'a, G: NameGenerator> {
+  gen: &'a mut G,
   builder: Vec<Stmt>,
   max_depth: u32,
 }
 
-impl<'a> PrettyPrinter<'a> {
+impl<'a, G: NameGenerator> PrettyPrinter<'a, G> {
 
-  fn new(gen: &'a mut FreshNameGenerator, max_depth: u32) -> Self {
+  fn new(gen: &'a mut G, max_depth: u32) -> Self {
     PrettyPrinter { gen, max_depth, builder: Vec::new() }
   }
 
@@ -112,6 +111,7 @@ impl<'a> PrettyPrinter<'a> {
 mod tests {
   use super::*;
   use crate::pipeline::source::SourceOffset;
+  use crate::compile::names::fresh::FreshNameGenerator;
 
   fn cons(a: AST, b: AST) -> AST {
     AST::new(ASTF::cons(a, b), SourceOffset::default())
