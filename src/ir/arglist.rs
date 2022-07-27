@@ -5,7 +5,6 @@
 //! GDScript side.
 
 use crate::gdscript::arglist::ArgList as GDArgList;
-use crate::compile::names::fresh::FreshNameGenerator;
 use crate::compile::names::{self, NameTrans};
 use crate::compile::names::generator::NameGenerator;
 use crate::compile::symbol_table::function_call::FnSpecs;
@@ -288,7 +287,7 @@ impl ArgList {
   ///
   /// * If there is a "rest" argument of any kind, it is translated to
   /// a single GDScript argument as well.
-  pub fn into_gd_arglist(self, gen: &mut FreshNameGenerator) -> (GDArgList, Vec<NameTrans>) {
+  pub fn into_gd_arglist(self, gen: &mut impl NameGenerator) -> (GDArgList, Vec<NameTrans>) {
     let cap = 1 + self.required_args.len() + self.optional_args.len();
     let mut name_translations = Vec::with_capacity(cap);
     let mut args = Vec::with_capacity(cap);
@@ -326,7 +325,7 @@ impl SimpleArgList {
   /// Converts the argument list into a GDScript argument list, using
   /// the given name generator to produce unique names, similar to
   /// [`ArgList::into_gd_arglist`].
-  pub fn into_gd_arglist(self, gen: &mut FreshNameGenerator) -> (GDArgList, Vec<NameTrans>) {
+  pub fn into_gd_arglist(self, gen: &mut impl NameGenerator) -> (GDArgList, Vec<NameTrans>) {
     ArgList::from(self).into_gd_arglist(gen)
   }
 
@@ -461,6 +460,7 @@ mod tests {
   use super::*;
   use crate::parser;
   use crate::sxp::dotted::DottedExpr;
+  use crate::compile::names::fresh::FreshNameGenerator;
   use std::convert::TryInto;
 
   fn parse_ast(input: &str) -> AST {
