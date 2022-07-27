@@ -19,7 +19,7 @@ pub fn array_test() {
   assert_eq!(parse_compile_and_output("[(foo)]"), "return [foo()]\n");
   assert_eq!(parse_compile_and_output("(progn [1] [2])"), "return [2]\n");
   assert_eq!(parse_compile_and_output("(progn [(foo)] [2])"), "[foo()]\nreturn [2]\n");
-  assert_eq!(parse_compile_and_output("[(if 1 2 3)]"), "var _cond_0 = null\nif 1:\n    _cond_0 = 2\nelse:\n    if true:\n        _cond_0 = 3\n    else:\n        _cond_0 = null\nreturn [_cond_0]\n");
+  assert_eq!(parse_compile_and_output("[(if 1 2 3)]"), "var _cond = null\nif 1:\n    _cond = 2\nelse:\n    if true:\n        _cond = 3\n    else:\n        _cond = null\nreturn [_cond]\n");
 }
 
 #[test]

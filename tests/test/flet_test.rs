@@ -100,16 +100,16 @@ pub fn local_flet_test() {
       (flet ((f () (+ x 1)))
         (f)))
   "#);
-  assert_eq!(result0.0, "var x_0 = 1\nvar _flet_1 = _LambdaBlock.new(x_0)\nreturn _flet_1.call_func()\n");
+  assert_eq!(result0.0, "var x = 1\nvar _flet = _LambdaBlock.new(x)\nreturn _flet.call_func()\n");
   assert_eq!(result0.1, r#"class _LambdaBlock extends GDLisp.Function:
-    var x_0
-    func _init(x_0):
-        self.x_0 = x_0
+    var x
+    func _init(x):
+        self.x = x
         self.__gdlisp_required = 0
         self.__gdlisp_optional = 0
         self.__gdlisp_rest = 0
     func call_func():
-        return x_0 + 1
+        return x + 1
     func call_funcv(args):
         if args == null:
             return call_func()
@@ -127,16 +127,16 @@ pub fn local_flet_test_indirect() {
       (flet ((f () (+ x 1)))
         (funcall (function f))))
   "#);
-  assert_eq!(result0.0, "var x_0 = 1\nvar _flet_1 = _LambdaBlock.new(x_0)\nreturn GDLisp.funcall(_flet_1, null)\n");
+  assert_eq!(result0.0, "var x = 1\nvar _flet = _LambdaBlock.new(x)\nreturn GDLisp.funcall(_flet, null)\n");
   assert_eq!(result0.1, r#"class _LambdaBlock extends GDLisp.Function:
-    var x_0
-    func _init(x_0):
-        self.x_0 = x_0
+    var x
+    func _init(x):
+        self.x = x
         self.__gdlisp_required = 0
         self.__gdlisp_optional = 0
         self.__gdlisp_rest = 0
     func call_func():
-        return x_0 + 1
+        return x + 1
     func call_funcv(args):
         if args == null:
             return call_func()
@@ -154,5 +154,5 @@ pub fn local_flet_closure_test() {
         (let ((g (lambda () (f))))
           (funcall g))))
   "#);
-  assert_eq!(result0.0, "var x_0 = 1\nvar _flet_1 = _LambdaBlock.new(x_0)\nvar g_2 = _LambdaBlock_0.new(_flet_1)\nreturn GDLisp.funcall(g_2, null)\n");
+  assert_eq!(result0.0, "var x = 1\nvar _flet = _LambdaBlock.new(x)\nvar g = _LambdaBlock_0.new(_flet)\nreturn GDLisp.funcall(g, null)\n");
 }

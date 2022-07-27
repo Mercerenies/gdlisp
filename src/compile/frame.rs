@@ -623,7 +623,8 @@ impl<'a, 'b, 'c, 'd, 'e> CompilerFrame<'a, 'b, 'c, 'd, 'e, StmtBuilder> {
         let StExpr { expr: mut rhs, side_effects } = self.compile_expr(expr, NeedsResult::Yes)?;
         // Assign to a temporary if the RHS is stateful and we need a result.
         if needs_result == NeedsResult::Yes && side_effects.modifies_state() {
-          let var = factory::declare_var(self.compiler.name_generator(), self.builder, "_assign", Some(rhs), expr.pos);
+          let mut gen = RegisteredNameGenerator::new_local_var(self.table);
+          let var = factory::declare_var(&mut gen, self.builder, "_assign", Some(rhs), expr.pos);
           rhs = Expr::new(ExprF::Var(var), *pos);
         }
         self.builder.append(

@@ -33,27 +33,27 @@ pub fn assignment_test() {
 
   // No cell; only accessed directly
   let result0 = parse_compile_and_output("(let ((x 1)) (set x 2))");
-  assert_eq!(result0, "var x_0 = 1\nx_0 = 2\nreturn x_0\n");
+  assert_eq!(result0, "var x = 1\nx = 2\nreturn x\n");
 
   // No cell; only accessed directly
   let result1 = parse_compile_and_output("(let ((x 1)) (set x 2) 3)");
-  assert_eq!(result1, "var x_0 = 1\nx_0 = 2\nreturn 3\n");
+  assert_eq!(result1, "var x = 1\nx = 2\nreturn 3\n");
 
   // Cell; accessed inside lambda
   let result2 = parse_compile_and_output("(let ((x 1)) (lambda () (set x 2)))");
-  assert_eq!(result2, "var x_0 = GDLisp.Cell.new(1)\nreturn _LambdaBlock.new(x_0)\n");
+  assert_eq!(result2, "var x = GDLisp.Cell.new(1)\nreturn _LambdaBlock.new(x)\n");
 
   // Cell; accessed both inside and outside lambda
   let result3 = parse_compile_and_output("(let ((x 1)) (lambda () (set x 2)) (set x 3))");
-  assert_eq!(result3, "var x_0 = GDLisp.Cell.new(1)\nx_0.contents = 3\nreturn x_0.contents\n");
+  assert_eq!(result3, "var x = GDLisp.Cell.new(1)\nx.contents = 3\nreturn x.contents\n");
 
   // No cell; read-only
   let result4 = parse_compile_and_output("(let ((x 1)) (lambda () x) x)");
-  assert_eq!(result4, "var x_0 = 1\nreturn x_0\n");
+  assert_eq!(result4, "var x = 1\nreturn x\n");
 
   // Cell; closure and access separately
   let result5 = parse_compile_and_output("(let ((x 1)) (lambda () (set x 1)) x)");
-  assert_eq!(result5, "var x_0 = GDLisp.Cell.new(1)\nreturn x_0.contents\n");
+  assert_eq!(result5, "var x = GDLisp.Cell.new(1)\nreturn x.contents\n");
 
 }
 
@@ -71,31 +71,31 @@ static func run():
 #[test]
 pub fn slot_assign_test_1() {
   let result = parse_compile_and_output("(let ((a 1)) (set a:b 3))");
-  assert_eq!(result, "var a_0 = 1\na_0.b = 3\nreturn 3\n");
+  assert_eq!(result, "var a = 1\na.b = 3\nreturn 3\n");
 }
 
 #[test]
 pub fn slot_assign_test_2() {
   let result = parse_compile_and_output("(let ((a 1)) (set (access-slot a b) 3))");
-  assert_eq!(result, "var a_0 = 1\na_0.b = 3\nreturn 3\n");
+  assert_eq!(result, "var a = 1\na.b = 3\nreturn 3\n");
 }
 
 #[test]
 pub fn slot_assign_test_3() {
   let result = parse_compile_and_output("(progn (let ((a 1)) (set (access-slot a b) 3)) 0)");
-  assert_eq!(result, "var a_0 = 1\na_0.b = 3\nreturn 0\n");
+  assert_eq!(result, "var a = 1\na.b = 3\nreturn 0\n");
 }
 
 #[test]
 pub fn slot_assign_test_4() {
   let result = parse_compile_and_output("(let ((a 1)) (set (access-slot a b) (a:foo)))");
-  assert_eq!(result, "var a_0 = 1\nvar _assign_1 = a_0.foo()\na_0.b = _assign_1\nreturn _assign_1\n");
+  assert_eq!(result, "var a = 1\nvar _assign = a.foo()\na.b = _assign\nreturn _assign\n");
 }
 
 #[test]
 pub fn slot_assign_test_5() {
   let result = parse_compile_and_output("(progn (let ((a 1)) (set (access-slot a b) (a:foo))) 0)");
-  assert_eq!(result, "var a_0 = 1\na_0.b = a_0.foo()\nreturn 0\n");
+  assert_eq!(result, "var a = 1\na.b = a.foo()\nreturn 0\n");
 }
 
 #[test]
@@ -117,15 +117,15 @@ pub fn assign_to_const_test() {
 #[test]
 pub fn weird_name_test() {
   assert_eq!(parse_compile_and_output("(let ((a-b-c 1)) (a-b-c:d-e-f))"),
-             "var a_b_c_0 = 1\nreturn a_b_c_0.d_e_f()\n");
+             "var a_b_c = 1\nreturn a_b_c.d_e_f()\n");
 }
 
 #[test]
 pub fn assign_to_slot_test() {
   assert_eq!(parse_compile_and_output("(let ((x 1)) (set x:foo 100) 2)"),
-             "var x_0 = 1\nx_0.foo = 100\nreturn 2\n");
+             "var x = 1\nx.foo = 100\nreturn 2\n");
   assert_eq!(parse_compile_and_output("(let ((x 1)) (set x:foo 100))"),
-             "var x_0 = 1\nx_0.foo = 100\nreturn 100\n");
+             "var x = 1\nx.foo = 100\nreturn 100\n");
   assert_eq!(parse_compile_and_output("(flet ((f () 1)) (set (f):foo 100) 2)"),
              "_flet_0().foo = 100\nreturn 2\n");
   assert_eq!(parse_compile_and_output("(flet ((f () 1)) (set (f):foo 100))"),

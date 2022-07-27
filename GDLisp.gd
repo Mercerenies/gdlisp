@@ -34,10 +34,10 @@ class FreshNameGenerator extends Reference:
     func generate():
         return self.generate_with(FreshNameGenerator.DEFAULT_PREFIX)
     func generate_with(prefix):
-        var name_1 = "{}_{}".format([prefix, self.index], "{}")
+        var name = "{}_{}".format([prefix, self.index], "{}")
         self.index = self.index + 1
-        var _cond_2 = self.generate_with(prefix) if name_1 in self.reserved else name_1
-        return _cond_2
+        var _cond = self.generate_with(prefix) if name in self.reserved else name
+        return _cond
     func to_json():
         return {"reserved": self.reserved, "index": self.index}
     static func from_json(json):
@@ -492,14 +492,14 @@ var BaseArray
 var Nothing
 var native_types_lookup
 func _typeof(value):
-    var t_3 = typeof(value)
-    var _cond_4 = null
-    if t_3 != TYPE_OBJECT:
-        _cond_4 = PrimitiveType.new(t_3)
+    var t = typeof(value)
+    var _cond = null
+    if t != TYPE_OBJECT:
+        _cond = PrimitiveType.new(t)
     else:
-        var _cond_5 = value.get_script()
-        _cond_4 = _cond_5 if _cond_5 else self.native_types_lookup.get(value.get_class(), self.Any)
-    return _cond_4
+        var _cond_0 = value.get_script()
+        _cond = _cond_0 if _cond_0 else self.native_types_lookup.get(value.get_class(), self.Any)
+    return _cond
 static func cons(a, b):
     return Cons.new(a, b)
 static func car(a):
@@ -507,11 +507,11 @@ static func car(a):
 static func cdr(a):
     return a.cdr
 static func init(a):
-    var _cond_6 = cons(car(a), init(cdr(a))) if cdr(a) is Cons else nil
-    return _cond_6
+    var _cond = cons(car(a), init(cdr(a))) if cdr(a) is Cons else nil
+    return _cond
 static func tail(a):
-    var _cond_7 = tail(cdr(a)) if cdr(a) is Cons else car(a)
-    return _cond_7
+    var _cond = tail(cdr(a)) if cdr(a) is Cons else car(a)
+    return _cond
 static func set_car(b, a):
     a.car = b
     return b
@@ -521,97 +521,97 @@ static func set_cdr(b, a):
 static func intern(a):
     return Symbol.new(a)
 static func length(x):
-    var result_8 = 0
+    var result = 0
     while x is Cons:
-        result_8 = result_8 + 1
+        result = result + 1
         x = x.cdr
-    return result_8
+    return result
 static func funcall(f, args):
     return apply(f, GDLisp.Cons.new(args, null))
 static func sys_DIV_funcall(f, args):
     return apply(f, GDLisp.Cons.new(args, null))
 static func apply(f, args):
-    var args1_9 = init(args)
-    var args2_10 = tail(args)
-    var _cond_11 = f.call_funcv(append(GDLisp.Cons.new(args1_9, GDLisp.Cons.new(args2_10, null)))) if f is Function else push_error("Attempt to call non-function")
-    return _cond_11
+    var args1 = init(args)
+    var args2 = tail(args)
+    var _cond = f.call_funcv(append(GDLisp.Cons.new(args1, GDLisp.Cons.new(args2, null)))) if f is Function else push_error("Attempt to call non-function")
+    return _cond
 static func _PLUS_(args):
-    var _cond_12 = null
+    var _cond = null
     if args is Cons:
-        var result_13 = args.car
+        var result = args.car
         args = args.cdr
         while args is Cons:
-            result_13 = result_13 + args.car
+            result = result + args.car
             args = args.cdr
-        _cond_12 = result_13
+        _cond = result
     else:
-        _cond_12 = 0
-    return _cond_12
+        _cond = 0
+    return _cond
 static func _TIMES_(args):
-    var result_14 = 1
+    var result = 1
     while args is Cons:
-        result_14 = result_14 * args.car
+        result = result * args.car
         args = args.cdr
-    return result_14
+    return result
 static func _(x, args):
-    var _cond_15 = null
+    var _cond = null
     if args is Cons:
-        var result_16 = x
+        var result = x
         while args is Cons:
-            result_16 = result_16 - args.car
+            result = result - args.car
             args = args.cdr
-        _cond_15 = result_16
+        _cond = result
     else:
-        _cond_15 = -x
-    return _cond_15
+        _cond = -x
+    return _cond
 static func _DIV_(x, args):
-    var _cond_17 = null
+    var _cond = null
     if args is Cons:
-        var result_18 = x
+        var result = x
         while args is Cons:
-            result_18 = result_18 / float(args.car)
+            result = result / float(args.car)
             args = args.cdr
-        _cond_17 = result_18
+        _cond = result
     else:
-        _cond_17 = 1 / float(x)
-    return _cond_17
+        _cond = 1 / float(x)
+    return _cond
 static func div(x, args):
-    var _cond_19 = null
+    var _cond = null
     if args is Cons:
-        var result_20 = x
+        var result = x
         while args is Cons:
-            result_20 = result_20 / int(args.car)
+            result = result / int(args.car)
             args = args.cdr
-        _cond_19 = result_20
+        _cond = result
     else:
-        _cond_19 = 1 / int(x)
-    return _cond_19
+        _cond = 1 / int(x)
+    return _cond
 static func mod(x, y):
     return x % y
 static func min(args):
-    var _cond_21 = null
+    var _cond = null
     if args is Cons:
-        var result_22 = args.car
+        var result = args.car
         args = args.cdr
         while args is Cons:
-            result_22 = min(result_22, args.car)
+            result = min(result, args.car)
             args = args.cdr
-        _cond_21 = result_22
+        _cond = result
     else:
-        _cond_21 = INF
-    return _cond_21
+        _cond = INF
+    return _cond
 static func max(args):
-    var _cond_23 = null
+    var _cond = null
     if args is Cons:
-        var result_24 = args.car
+        var result = args.car
         args = args.cdr
         while args is Cons:
-            result_24 = max(result_24, args.car)
+            result = max(result, args.car)
             args = args.cdr
-        _cond_23 = result_24
+        _cond = result
     else:
-        _cond_23 = -INF
-    return _cond_23
+        _cond = -INF
+    return _cond
 static func _EQ_(x, args):
     while args is Cons:
         if x == args.car:
@@ -658,37 +658,37 @@ static func _GT__EQ_(x, args):
         args = args.cdr
     return true
 static func _DIV__EQ_(x, args):
-    var outer_25 = cons(x, args)
-    while outer_25 is Cons:
-        var inner_26 = outer_25.cdr
-        while inner_26 is Cons:
-            if outer_25.car != inner_26.car:
+    var outer = cons(x, args)
+    while outer is Cons:
+        var inner = outer.cdr
+        while inner is Cons:
+            if outer.car != inner.car:
                 pass
             else:
                 return false
-            inner_26 = inner_26.cdr
-        outer_25 = outer_25.cdr
+            inner = inner.cdr
+        outer = outer.cdr
     return true
 static func _not(x):
     return !x
 static func list(args):
     return args
 static func vector(x, y, z):
-    var _cond_27 = Vector2(x, y) if z == null else Vector3(x, y, z)
-    return _cond_27
+    var _cond = Vector2(x, y) if z == null else Vector3(x, y, z)
+    return _cond
 static func list_to_array(list):
-    var arr_28 = []
+    var arr = []
     while list is Cons:
-        arr_28.push_back(list.car)
+        arr.push_back(list.car)
         list = list.cdr
-    return arr_28
+    return arr
 static func array_to_list(arr):
-    var outer_29 = cons(null, null)
-    var curr_30 = outer_29
-    for elem_31 in arr:
-        curr_30.cdr = cons(elem_31, null)
-        curr_30 = curr_30.cdr
-    return outer_29.cdr
+    var outer = cons(null, null)
+    var curr = outer
+    for elem_1 in arr:
+        curr.cdr = cons(elem_1, null)
+        curr = curr.cdr
+    return outer.cdr
 static func elt(arr, n):
     return arr[n]
 static func set_elt(x, arr, n):
@@ -699,80 +699,80 @@ static func is_member(value, arr):
 static func sys_DIV_get_node(obj, path):
     return obj.get_node(path)
 static func sys_DIV_native_class_private():
-    var x_32 = GDScript
-    return x_32.get_class()
+    var x = GDScript
+    return x.get_class()
 static func is_instance(value, type):
-    var _cond_33 = type.is_satisfies(value) if type is GDLispSpecialType else value is type
-    return _cond_33
+    var _cond = type.is_satisfies(value) if type is GDLispSpecialType else value is type
+    return _cond
 static func is_sys_DIV_instance_direct(value, type):
     return value is type
 static func convert(what, type):
-    var _cond_34 = convert(what, type.primitive_value) if type is PrimitiveType else convert(what, type)
-    return _cond_34
+    var _cond = convert(what, type.primitive_value) if type is PrimitiveType else convert(what, type)
+    return _cond
 static func gensym(prefix):
-    var _cond_35 = Symbol.new(GDLisp.global_name_generator.generate()) if prefix == null else Symbol.new(GDLisp.global_name_generator.generate_with(prefix))
-    return _cond_35
+    var _cond = Symbol.new(GDLisp.global_name_generator.generate()) if prefix == null else Symbol.new(GDLisp.global_name_generator.generate_with(prefix))
+    return _cond
 static func map(f, xs):
-    var _cond_36 = null
-    var _cond_39 = true if xs is Cons else true if xs == nil else null
-    if _cond_39:
-        var outer_40 = cons(nil, nil)
-        var curr_41 = outer_40
+    var _cond = null
+    var _cond_0 = true if xs is Cons else true if xs == nil else null
+    if _cond_0:
+        var outer = cons(nil, nil)
+        var curr = outer
         while xs != nil:
-            curr_41.cdr = cons(funcall(f, GDLisp.Cons.new(xs.car, null)), nil)
-            curr_41 = curr_41.cdr
+            curr.cdr = cons(funcall(f, GDLisp.Cons.new(xs.car, null)), nil)
+            curr = curr.cdr
             xs = xs.cdr
-        _cond_36 = outer_40.cdr
+        _cond = outer.cdr
     else:
-        var result_37 = []
-        for i_38 in len(xs):
-            result_37.push_back(funcall(f, GDLisp.Cons.new(xs[i_38], null)))
-        _cond_36 = result_37
-    return _cond_36
+        var result = []
+        for i_2 in len(xs):
+            result.push_back(funcall(f, GDLisp.Cons.new(xs[i_2], null)))
+        _cond = result
+    return _cond
 static func filter(p, xs):
-    var _cond_42 = null
-    var _cond_45 = true if xs is Cons else true if xs == nil else false
-    if _cond_45:
-        var outer_46 = cons(nil, nil)
-        var curr_47 = outer_46
+    var _cond = null
+    var _cond_0 = true if xs is Cons else true if xs == nil else false
+    if _cond_0:
+        var outer = cons(nil, nil)
+        var curr = outer
         while xs != nil:
             if funcall(p, GDLisp.Cons.new(xs.car, null)):
-                curr_47.cdr = cons(xs.car, nil)
-                curr_47 = curr_47.cdr
+                curr.cdr = cons(xs.car, nil)
+                curr = curr.cdr
             xs = xs.cdr
-        _cond_42 = outer_46.cdr
+        _cond = outer.cdr
     else:
-        var result_43 = []
-        for i_44 in len(xs):
-            if funcall(p, GDLisp.Cons.new(xs[i_44], null)):
-                result_43.push_back(xs[i_44])
-        _cond_42 = result_43
-    return _cond_42
+        var result = []
+        for i_3 in len(xs):
+            if funcall(p, GDLisp.Cons.new(xs[i_3], null)):
+                result.push_back(xs[i_3])
+        _cond = result
+    return _cond
 static func reverse(arg):
-    var rev_48 = nil
+    var rev = nil
     while arg != nil:
-        rev_48 = cons(car(arg), rev_48)
+        rev = cons(car(arg), rev)
         arg = arg.cdr
-    return rev_48
+    return rev
 static func append(args):
-    var outer_49 = cons(nil, nil)
-    var curr_50 = outer_49
+    var outer = cons(nil, nil)
+    var curr = outer
     while args != nil:
-        var inner_value_51 = args.car
-        while inner_value_51 != nil:
-            curr_50.cdr = cons(inner_value_51.car, nil)
-            curr_50 = curr_50.cdr
-            inner_value_51 = inner_value_51.cdr
+        var inner_value = args.car
+        while inner_value != nil:
+            curr.cdr = cons(inner_value.car, nil)
+            curr = curr.cdr
+            inner_value = inner_value.cdr
         args = args.cdr
-    return outer_49.cdr
+    return outer.cdr
 static func sys_DIV_qq_smart_list(a):
-    var t_52 = typeof(a)
-    var _cond_53 = array_to_list(a) if TYPE_ARRAY <= t_52 && t_52 <= TYPE_COLOR_ARRAY else a
-    return _cond_53
+    var t = typeof(a)
+    var _cond = array_to_list(a) if TYPE_ARRAY <= t && t <= TYPE_COLOR_ARRAY else a
+    return _cond
 static func sys_DIV_qq_smart_array(a):
-    var t_54 = typeof(a)
-    var _cond_55 = a if TYPE_ARRAY <= t_54 && t_54 <= TYPE_COLOR_ARRAY else list_to_array(a)
-    return _cond_55
+    var t = typeof(a)
+    var _cond = a if TYPE_ARRAY <= t && t <= TYPE_COLOR_ARRAY else list_to_array(a)
+    return _cond
 static func _PI():
     return GDLisp.cons(GDLisp.intern("literally"), GDLisp.cons(GDLisp.intern("PI"), null))
 static func _TAU():
@@ -790,7 +790,7 @@ class PrimitiveType extends GDLispSpecialType:
     var primitive_value
     func is_satisfies(value):
         return typeof(value) == self.primitive_value
-    var __gdlisp_outer_class_56 = load("res://GDLisp.gd")
+    var __gdlisp_outer_class_4 = load("res://GDLisp.gd")
 class AnyType extends GDLispSpecialType:
     func _init():
         pass
@@ -801,73 +801,73 @@ class AnyRefType extends GDLispSpecialType:
         pass
     func is_satisfies(value):
         return typeof(value) == TYPE_OBJECT
-    var __gdlisp_outer_class_57 = load("res://GDLisp.gd")
+    var __gdlisp_outer_class_5 = load("res://GDLisp.gd")
 class AnyValType extends GDLispSpecialType:
     func _init():
         pass
     func is_satisfies(value):
         return typeof(value) != TYPE_OBJECT
-    var __gdlisp_outer_class_58 = load("res://GDLisp.gd")
+    var __gdlisp_outer_class_6 = load("res://GDLisp.gd")
 class NumberType extends GDLispSpecialType:
     func _init():
         pass
     func is_satisfies(value):
-        var t_60 = typeof(value)
-        var _cond_61 = true if t_60 == TYPE_INT else true if t_60 == TYPE_REAL else false
-        return _cond_61
-    var __gdlisp_outer_class_59 = load("res://GDLisp.gd")
+        var t = typeof(value)
+        var _cond = true if t == TYPE_INT else true if t == TYPE_REAL else false
+        return _cond
+    var __gdlisp_outer_class_7 = load("res://GDLisp.gd")
 class BaseArrayType extends GDLispSpecialType:
     func _init():
         pass
     func is_satisfies(value):
-        var _cmp_63 = typeof(value)
-        return TYPE_ARRAY <= _cmp_63 && _cmp_63 <= TYPE_COLOR_ARRAY
-    var __gdlisp_outer_class_62 = load("res://GDLisp.gd")
+        var _cmp = typeof(value)
+        return TYPE_ARRAY <= _cmp && _cmp <= TYPE_COLOR_ARRAY
+    var __gdlisp_outer_class_8 = load("res://GDLisp.gd")
 class NothingType extends GDLispSpecialType:
     func _init():
         pass
     func is_satisfies(value):
         return false
 static func _or(args):
-    var args_64 = reverse(args)
-    var _cond_65 = null
-    if args_64:
-        var result_66 = cons(cons(true, cons(car(args_64), null)), null)
-        args_64 = cdr(args_64)
-        while args_64 != nil:
-            result_66 = cons(cons(car(args_64), null), result_66)
-            args_64 = cdr(args_64)
-        _cond_65 = cons(GDLisp.intern("cond"), result_66)
+    var args_0 = reverse(args)
+    var _cond = null
+    if args_0:
+        var result = cons(cons(true, cons(car(args_0), null)), null)
+        args_0 = cdr(args_0)
+        while args_0 != nil:
+            result = cons(cons(car(args_0), null), result)
+            args_0 = cdr(args_0)
+        _cond = cons(GDLisp.intern("cond"), result)
     else:
-        _cond_65 = false
-    return _cond_65
+        _cond = false
+    return _cond
 static func _and(args):
-    var args_67 = reverse(args)
-    var _cond_68 = null
-    if args_67:
-        var result_69 = cons(cons(true, cons(car(args_67), null)), null)
-        args_67 = cdr(args_67)
-        while args_67 != nil:
-            result_69 = cons(cons(cons(GDLisp.intern("not"), cons(car(args_67), null)), cons(false, null)), result_69)
-            args_67 = cdr(args_67)
-        _cond_68 = cons(GDLisp.intern("cond"), result_69)
+    var args_0 = reverse(args)
+    var _cond = null
+    if args_0:
+        var result = cons(cons(true, cons(car(args_0), null)), null)
+        args_0 = cdr(args_0)
+        while args_0 != nil:
+            result = cons(cons(cons(GDLisp.intern("not"), cons(car(args_0), null)), cons(false, null)), result)
+            args_0 = cdr(args_0)
+        _cond = cons(GDLisp.intern("cond"), result)
     else:
-        _cond_68 = true
-    return _cond_68
+        _cond = true
+    return _cond
 static func let_TIMES_(vars, body):
-    var _cond_70 = null
+    var _cond = null
     if vars == nil:
-        _cond_70 = cons(GDLisp.intern("progn"), append(GDLisp.Cons.new(sys_DIV_qq_smart_list(body), GDLisp.Cons.new(null, null))))
+        _cond = cons(GDLisp.intern("progn"), append(GDLisp.Cons.new(sys_DIV_qq_smart_list(body), GDLisp.Cons.new(null, null))))
     else:
         var _quasiquote = append(GDLisp.Cons.new(sys_DIV_qq_smart_list(body), GDLisp.Cons.new(null, null)))
-        _cond_70 = cons(GDLisp.intern("let"), cons(cons(car(vars), null), cons(cons(GDLisp.intern("let*"), cons(cdr(vars), _quasiquote)), null)))
-    return _cond_70
+        _cond = cons(GDLisp.intern("let"), cons(cons(car(vars), null), cons(cons(GDLisp.intern("let*"), cons(cdr(vars), _quasiquote)), null)))
+    return _cond
 static func defvars(args):
-    var arr_71 = []
+    var arr = []
     while args != nil:
-        arr_71.push_back(GDLisp.Cons.new(GDLisp.intern("defvar"), GDLisp.Cons.new(args.car, null)))
+        arr.push_back(GDLisp.Cons.new(GDLisp.intern("defvar"), GDLisp.Cons.new(args.car, null)))
         args = args.cdr
-    return cons(GDLisp.intern("progn"), append(GDLisp.Cons.new(sys_DIV_qq_smart_list(arr_71), GDLisp.Cons.new(null, null))))
+    return cons(GDLisp.intern("progn"), append(GDLisp.Cons.new(sys_DIV_qq_smart_list(arr), GDLisp.Cons.new(null, null))))
 static func when(cnd, args):
     var _quasiquote = append(GDLisp.Cons.new(sys_DIV_qq_smart_list(args), GDLisp.Cons.new(null, null)))
     return cons(GDLisp.intern("cond"), cons(cons(cnd, cons(cons(GDLisp.intern("progn"), _quasiquote), null)), null))
@@ -877,12 +877,12 @@ static func unless(cnd, args):
 static func _if(cnd, t, f):
     return cons(GDLisp.intern("cond"), cons(cons(cnd, cons(t, null)), cons(cons(true, cons(f, null)), null)))
 static func yield_TIMES_(arg):
-    var symbol_72 = gensym("_yield")
+    var symbol = gensym("_yield")
     var _quasiquote_0 = cons(GDLisp.intern("is-valid"), null)
-    var _quasiquote_1 = cons(cons(GDLisp.intern("instance?"), cons(symbol_72, cons(GDLisp.intern("GDScriptFunctionState"), null))), cons(cons(cons(GDLisp.intern("access-slot"), cons(symbol_72, _quasiquote_0)), null), null))
-    var _quasiquote_2 = cons(symbol_72, cons(GDLisp.intern("resume"), null))
-    var _quasiquote_5 = cons(cons(GDLisp.intern("yield"), null), cons(cons(GDLisp.intern("set"), cons(symbol_72, cons(cons(cons(GDLisp.intern("access-slot"), _quasiquote_2), null), null))), null))
-    return cons(GDLisp.intern("let"), cons(cons(cons(symbol_72, cons(arg, null)), null), cons(cons(GDLisp.intern("while"), cons(cons(GDLisp.intern("and"), _quasiquote_1), _quasiquote_5)), cons(symbol_72, null))))
+    var _quasiquote_1 = cons(cons(GDLisp.intern("instance?"), cons(symbol, cons(GDLisp.intern("GDScriptFunctionState"), null))), cons(cons(cons(GDLisp.intern("access-slot"), cons(symbol, _quasiquote_0)), null), null))
+    var _quasiquote_2 = cons(symbol, cons(GDLisp.intern("resume"), null))
+    var _quasiquote_5 = cons(cons(GDLisp.intern("yield"), null), cons(cons(GDLisp.intern("set"), cons(symbol, cons(cons(cons(GDLisp.intern("access-slot"), _quasiquote_2), null), null))), null))
+    return cons(GDLisp.intern("let"), cons(cons(cons(symbol, cons(arg, null)), null), cons(cons(GDLisp.intern("while"), cons(cons(GDLisp.intern("and"), _quasiquote_1), _quasiquote_5)), cons(symbol, null))))
 static func this_file():
     return GDLisp.cons(GDLisp.intern("sys/special-ref"), GDLisp.cons(GDLisp.intern("this-file"), null))
 static func this_filename():
@@ -892,20 +892,20 @@ static func this_true_filename():
 static func contextual_load(arg):
     return cons(GDLisp.intern("load"), cons(cons(GDLisp.intern("sys/context-filename"), cons(arg, null)), null))
 static func deflazy(name, value, modifiers):
-    var fn_name_73 = gensym("_lazy")
-    var this_file_74 = gensym("_this_file")
-    var value_var_75 = gensym("_value")
-    var meta_name_76 = "__gdlisp_Lazy_{}".format([gensym(null).contents], "{}")
+    var fn_name = gensym("_lazy")
+    var this_file = gensym("_this_file")
+    var value_var = gensym("_value")
+    var meta_name = "__gdlisp_Lazy_{}".format([gensym(null).contents], "{}")
     var _quasiquote = cons(cons(GDLisp.intern("this-file"), null), null)
     var _quasiquote_1 = cons(GDLisp.intern("get-meta"), null)
     var _quasiquote_2 = cons(value, null)
-    var _quasiquote_5 = cons(cons(cons(GDLisp.intern("access-slot"), cons(this_file_74, cons(GDLisp.intern("set-meta"), null))), cons(meta_name_76, cons(value_var_75, null))), cons(value_var_75, null))
-    var _quasiquote_6 = cons(cons(cons(GDLisp.intern("access-slot"), cons(this_file_74, cons(GDLisp.intern("has-meta"), null))), cons(meta_name_76, null)), cons(cons(cons(GDLisp.intern("access-slot"), cons(this_file_74, _quasiquote_1)), cons(meta_name_76, null)), cons(cons(GDLisp.intern("let"), cons(cons(cons(value_var_75, _quasiquote_2), null), _quasiquote_5)), null)))
-    var _quasiquote_7 = cons(cons(GDLisp.intern("let"), cons(cons(cons(this_file_74, _quasiquote), null), cons(cons(GDLisp.intern("if"), _quasiquote_6), null))), null)
+    var _quasiquote_5 = cons(cons(cons(GDLisp.intern("access-slot"), cons(this_file, cons(GDLisp.intern("set-meta"), null))), cons(meta_name, cons(value_var, null))), cons(value_var, null))
+    var _quasiquote_6 = cons(cons(cons(GDLisp.intern("access-slot"), cons(this_file, cons(GDLisp.intern("has-meta"), null))), cons(meta_name, null)), cons(cons(cons(GDLisp.intern("access-slot"), cons(this_file, _quasiquote_1)), cons(meta_name, null)), cons(cons(GDLisp.intern("let"), cons(cons(cons(value_var, _quasiquote_2), null), _quasiquote_5)), null)))
+    var _quasiquote_7 = cons(cons(GDLisp.intern("let"), cons(cons(cons(this_file, _quasiquote), null), cons(cons(GDLisp.intern("if"), _quasiquote_6), null))), null)
     var _quasiquote_8 = cons(GDLisp.intern("access-slot"), null)
-    var _quasiquote_11 = cons(cons(GDLisp.intern("list"), cons(cons(GDLisp.intern("quote"), cons(GDLisp.intern("contextual-load"), null)), cons(cons(GDLisp.intern("this-true-filename"), null), null))), cons(cons(GDLisp.intern("quote"), cons(fn_name_73, null)), null))
+    var _quasiquote_11 = cons(cons(GDLisp.intern("list"), cons(cons(GDLisp.intern("quote"), cons(GDLisp.intern("contextual-load"), null)), cons(cons(GDLisp.intern("this-true-filename"), null), null))), cons(cons(GDLisp.intern("quote"), cons(fn_name, null)), null))
     var _quasiquote_12 = cons(cons(GDLisp.intern("list"), cons(cons(GDLisp.intern("list"), cons(cons(GDLisp.intern("quote"), _quasiquote_8), _quasiquote_11)), null)), append(GDLisp.Cons.new(sys_DIV_qq_smart_list(modifiers), GDLisp.Cons.new(null, null))))
-    return cons(GDLisp.intern("progn"), cons(cons(GDLisp.intern("defn"), cons(fn_name_73, cons(null, _quasiquote_7))), cons(cons(GDLisp.intern("define-symbol-macro"), cons(name, _quasiquote_12)), null)))
+    return cons(GDLisp.intern("progn"), cons(cons(GDLisp.intern("defn"), cons(fn_name, cons(null, _quasiquote_7))), cons(cons(GDLisp.intern("define-symbol-macro"), cons(name, _quasiquote_12)), null)))
 static func defobject(name, parent, visibility, body):
     if visibility == nil:
         visibility = GDLisp.intern("public")

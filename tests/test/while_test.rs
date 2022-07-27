@@ -13,5 +13,5 @@ pub fn compound_while_tests() {
   // If expressions cannot be compiled into a single GDScript
   // expression, so this forces the while loop to use the "compound"
   // form.
-  assert_eq!(parse_compile_and_output("(while (if 1 2 3) (foo))"), "while true:\n    var _cond_0 = null\n    if 1:\n        _cond_0 = 2\n    else:\n        if true:\n            _cond_0 = 3\n        else:\n            _cond_0 = null\n    if !_cond_0:\n        break\n    foo()\nreturn null\n")
+  assert_eq!(parse_compile_and_output("(while (if 1 2 3) (foo))"), "while true:\n    var _cond = null\n    if 1:\n        _cond = 2\n    else:\n        if true:\n            _cond = 3\n        else:\n            _cond = null\n    if !_cond:\n        break\n    foo()\nreturn null\n")
 }

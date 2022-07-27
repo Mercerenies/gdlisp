@@ -62,13 +62,13 @@ pub fn constructor_args_lambda_class_test() {
 pub fn closure_lambda_class_test() {
 
   let result0 = parse_compile_and_output_h("(let ((a 1)) (new Node (defn foo (x) (+ x a))))");
-  assert_eq!(result0.0, "var a_0 = 1\nreturn _AnonymousClass.new(a_0)\n");
+  assert_eq!(result0.0, "var a = 1\nreturn _AnonymousClass.new(a)\n");
   assert_eq!(result0.1, r#"class _AnonymousClass extends Node:
-    func _init(a_0):
-        self.a_0 = a_0
-    var a_0
+    func _init(a):
+        self.a = a
+    var a
     func foo(x):
-        return x + a_0
+        return x + a
 "#);
 
 }
@@ -77,15 +77,15 @@ pub fn closure_lambda_class_test() {
 pub fn closure_and_args_lambda_class_test() {
 
   let result0 = parse_compile_and_output_h("(let ((a 1)) (new (Node 77) (defvar z) (defn _init (z) (set self:z z)) (defn foo () (+ self:z a))))");
-  assert_eq!(result0.0, "var a_0 = 1\nreturn _AnonymousClass.new(a_0, 77)\n");
+  assert_eq!(result0.0, "var a = 1\nreturn _AnonymousClass.new(a, 77)\n");
   assert_eq!(result0.1, r#"class _AnonymousClass extends Node:
-    func _init(a_0, z):
-        self.a_0 = a_0
+    func _init(a, z):
+        self.a = a
         self.z = z
-    var a_0
+    var a
     var z
     func foo():
-        return self.z + a_0
+        return self.z + a
 "#);
 
 }
@@ -94,11 +94,11 @@ pub fn closure_and_args_lambda_class_test() {
 pub fn closure_and_args_lambda_class_with_name_conflict_test() {
 
   let result0 = parse_compile_and_output_h("(let ((z 1)) (new (Node 77) (defvar z) (defn _init (z) (set self:z z)) (defn foo () (+ self:z z))))");
-  assert_eq!(result0.0, "var z_0 = 1\nreturn _AnonymousClass.new(z_0, 77)\n");
+  assert_eq!(result0.0, "var z = 1\nreturn _AnonymousClass.new(z, 77)\n");
   assert_eq!(result0.1, r#"class _AnonymousClass extends Node:
-    func _init(z_0, z):
+    func _init(z_0, z_1):
         self.z_0 = z_0
-        self.z = z
+        self.z = z_1
     var z_0
     var z
     func foo():

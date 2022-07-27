@@ -25,14 +25,14 @@ pub fn yield_test() {
 
 #[test]
 pub fn attribute_test() {
-  assert_eq!(parse_compile_and_output("(let ((foo 1)) foo:bar)"), "var foo_0 = 1\nreturn foo_0.bar\n");
-  assert_eq!(parse_compile_and_output("(let ((foo 1)) foo:bar 2)"), "var foo_0 = 1\nreturn 2\n");
+  assert_eq!(parse_compile_and_output("(let ((foo 1)) foo:bar)"), "var foo = 1\nreturn foo.bar\n");
+  assert_eq!(parse_compile_and_output("(let ((foo 1)) foo:bar 2)"), "var foo = 1\nreturn 2\n");
 }
 
 #[test]
 pub fn method_test() {
-  assert_eq!(parse_compile_and_output("(let ((foo 1)) (foo:bar))"), "var foo_0 = 1\nreturn foo_0.bar()\n");
-  assert_eq!(parse_compile_and_output("(let ((foo 1)) (foo:bar 100) 2)"), "var foo_0 = 1\nfoo_0.bar(100)\nreturn 2\n");
+  assert_eq!(parse_compile_and_output("(let ((foo 1)) (foo:bar))"), "var foo = 1\nreturn foo.bar()\n");
+  assert_eq!(parse_compile_and_output("(let ((foo 1)) (foo:bar 100) 2)"), "var foo = 1\nfoo.bar(100)\nreturn 2\n");
 }
 
 #[test]

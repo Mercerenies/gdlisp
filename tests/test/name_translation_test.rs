@@ -6,8 +6,8 @@ pub fn translate_local_vars_test_1() {
   assert_eq!(parse_compile_decl("((defn foo () (let ((x 1)) x)))"),
              r#"extends Reference
 static func foo():
-    var x_0 = 1
-    return x_0
+    var x = 1
+    return x
 static func run():
     return null
 "#);
@@ -18,9 +18,9 @@ pub fn translate_local_vars_test_2() {
   assert_eq!(parse_compile_decl("((defn foo () (let* ((x 1) (x 2)) x)))"),
              r#"extends Reference
 static func foo():
-    var x_0 = 1
-    var x_1 = 2
-    return x_1
+    var x = 1
+    var x_0 = 2
+    return x_0
 static func run():
     return null
 "#);
@@ -31,9 +31,9 @@ pub fn translate_local_vars_test_3() {
   assert_eq!(parse_compile_decl("((defn foo () (let* ((x-y 1) (x-y 2)) x-y)))"),
              r#"extends Reference
 static func foo():
-    var x_y_0 = 1
-    var x_y_1 = 2
-    return x_y_1
+    var x_y = 1
+    var x_y_0 = 2
+    return x_y_0
 static func run():
     return null
 "#);

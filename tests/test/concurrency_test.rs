@@ -10,7 +10,7 @@ fn concurrent_runs_test() {
 
   fn thread_fn(_n: u32) {
     assert_eq!(parse_compile_and_output("(if 1 2 3)"),
-               "var _cond_0 = null\nif 1:\n    _cond_0 = 2\nelse:\n    if true:\n        _cond_0 = 3\n    else:\n        _cond_0 = null\nreturn _cond_0\n");
+               "var _cond = null\nif 1:\n    _cond = 2\nelse:\n    if true:\n        _cond = 3\n    else:\n        _cond = null\nreturn _cond\n");
     assert_eq!(parse_and_run("((let ((r (Reference:new))) (print (= (typeof r) Reference))))"),
                "\nTrue\n");
   }

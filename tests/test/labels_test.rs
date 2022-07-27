@@ -99,16 +99,16 @@ pub fn recursive_single_labels_with_contrived_local_name_test() {
   assert_eq!(result, r#"extends Reference
 const x = 0
 class _Labels extends Reference:
-    var x_1
-    func _init(x_1):
-        self.x_1 = x_1
-    func _fn_f_2(x_0):
-        _fn_f_2(x_0)
-        return _fn_f_2(x_1)
+    var x_0
+    func _init(x_0):
+        self.x_0 = x_0
+    func _fn_f_0(x_0_0):
+        _fn_f_0(x_0_0)
+        return _fn_f_0(x_0)
 static func run():
-    var x_1 = 1
-    var _locals = _Labels.new(x_1)
-    return _locals._fn_f_2(1)
+    var x_0 = 1
+    var _locals = _Labels.new(x_0)
+    return _locals._fn_f_0(1)
 "#);
 }
 
@@ -144,7 +144,7 @@ class _Labels extends Reference:
 #[test]
 pub fn recursive_single_with_extra_end_labels_test() {
   let result0 = parse_compile_and_output_h("(labels ((f (x) (f x)) (g (x) (f x))) (g 1))");
-  assert_eq!(result0.0, "var _locals = _Labels.new()\nvar _flet_1 = _LambdaBlock.new(_locals)\nreturn _flet_1.call_func(1)\n");
+  assert_eq!(result0.0, "var _locals = _Labels.new()\nvar _flet = _LambdaBlock.new(_locals)\nreturn _flet.call_func(1)\n");
   assert_eq!(result0.1, r#"class _Labels extends Reference:
     func _init():
         pass

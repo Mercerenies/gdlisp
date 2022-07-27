@@ -26,7 +26,7 @@ pub fn symbol_macro_test() {
 
 #[test]
 pub fn builtin_symbol_macro_test() {
-  assert_eq!(parse_compile_decl("([PI SPKEY (let ((PI 1)) PI)])"), "extends Reference\nstatic func run():\n    var _PI_0 = 1\n    return [PI, SPKEY, _PI_0]\n");
+  assert_eq!(parse_compile_decl("([PI SPKEY (let ((PI 1)) PI)])"), "extends Reference\nstatic func run():\n    var _PI = 1\n    return [PI, SPKEY, _PI]\n");
 }
 
 #[test]
@@ -302,12 +302,12 @@ pub fn gensym_test_1() {
   let result = parse_compile_decl("((defmacro foo (a) (let ((x (gensym))) `(let ((,x ,a)) [,x ,x]))) (foo 10))");
   assert_eq!(result, r#"extends Reference
 static func foo(a):
-    var x_0 = GDLisp.gensym(null)
+    var x = GDLisp.gensym(null)
     var _quasiquote = null
-    return GDLisp.cons(GDLisp.intern("let"), GDLisp.cons(GDLisp.cons(GDLisp.cons(x_0, GDLisp.cons(a, _quasiquote)), null), GDLisp.cons([x_0, x_0], null)))
+    return GDLisp.cons(GDLisp.intern("let"), GDLisp.cons(GDLisp.cons(GDLisp.cons(x, GDLisp.cons(a, _quasiquote)), null), GDLisp.cons([x, x], null)))
 static func run():
-    var _G_0_1 = 10
-    return [_G_0_1, _G_0_1]
+    var _G_0 = 10
+    return [_G_0, _G_0]
 "#);
 }
 
@@ -316,12 +316,12 @@ pub fn gensym_test_2() {
   let result = parse_compile_decl("((defmacro foo (a) (let ((x (gensym))) `(let ((,x ,a)) [,x ,x]))) [(foo 10) '_G_0])");
   assert_eq!(result, r#"extends Reference
 static func foo(a):
-    var x_0 = GDLisp.gensym(null)
+    var x = GDLisp.gensym(null)
     var _quasiquote = null
-    return GDLisp.cons(GDLisp.intern("let"), GDLisp.cons(GDLisp.cons(GDLisp.cons(x_0, GDLisp.cons(a, _quasiquote)), null), GDLisp.cons([x_0, x_0], null)))
+    return GDLisp.cons(GDLisp.intern("let"), GDLisp.cons(GDLisp.cons(GDLisp.cons(x, GDLisp.cons(a, _quasiquote)), null), GDLisp.cons([x, x], null)))
 static func run():
-    var _G_1_1 = 10
-    return [[_G_1_1, _G_1_1], GDLisp.intern("_G_0")]
+    var _G_1 = 10
+    return [[_G_1, _G_1], GDLisp.intern("_G_0")]
 "#);
 }
 
@@ -407,8 +407,8 @@ class Bar extends Foo:
         return __gdlisp_outer_class_1.add_one(5)
     var __gdlisp_outer_class_1 = load("res://TEST.gd")
 static func foo():
-    var x_2 = Bar.new()
-    return x_2.f() + x_2.g()
+    var x = Bar.new()
+    return x.f() + x.g()
 static func run():
     return 17
 "#);

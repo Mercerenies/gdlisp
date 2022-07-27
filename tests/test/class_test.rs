@@ -64,15 +64,15 @@ class _LambdaBlock extends GDLisp.Function:
         self.__gdlisp_optional = 0
         self.__gdlisp_rest = 0
     func call_func():
-        var _cond_1 = null
+        var _cond = null
         if y:
-            _cond_1 = 1
+            _cond = 1
         else:
             if true:
-                _cond_1 = 2
+                _cond = 2
             else:
-                _cond_1 = null
-        return _cond_1
+                _cond = null
+        return _cond
     func call_funcv(args):
         if args == null:
             return call_func()
@@ -342,21 +342,21 @@ static func run():
 
 #[test]
 pub fn complicated_member_var_class_test() {
-  // Note: We use _cond_1 here because _cond_0 disappears during the
+  // Note: We use _cond_0 here because _cond disappears during the
   // failed compilation of (if 1 2 3) via compile_simple_expr.
   assert_eq!(
     parse_compile_decl("((defclass ClassName (Node) main (defvar x (if 1 2 3)) (defn _init (x) (set self:x x)) (defn get-x () self:x)))"),
     r#"extends Node
 func _init(x):
-    var _cond_1 = null
+    var _cond_0 = null
     if 1:
-        _cond_1 = 2
+        _cond_0 = 2
     else:
         if true:
-            _cond_1 = 3
+            _cond_0 = 3
         else:
-            _cond_1 = null
-    self.x = _cond_1
+            _cond_0 = null
+    self.x = _cond_0
     self.x = x
 var x
 func get_x():
@@ -368,7 +368,7 @@ static func run():
 
 #[test]
 pub fn complicated_ready_member_var_class_test() {
-  // Note: We use _cond_1 here because _cond_0 disappears during the
+  // Note: We use _cond_0 here because _cond disappears during the
   // failed compilation of (if 1 2 3) via compile_simple_expr.
   assert_eq!(
     parse_compile_decl("((defclass ClassName (Node) main (defvar x (if 1 2 3) onready) (defn _init (x) (set self:x x)) (defn get-x () self:x)))"),
@@ -379,15 +379,15 @@ var x
 func get_x():
     return self.x
 func _ready():
-    var _cond_1 = null
+    var _cond_0 = null
     if 1:
-        _cond_1 = 2
+        _cond_0 = 2
     else:
         if true:
-            _cond_1 = 3
+            _cond_0 = 3
         else:
-            _cond_1 = null
-    self.x = _cond_1
+            _cond_0 = null
+    self.x = _cond_0
 static func run():
     return null
 "#);

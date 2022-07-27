@@ -38,6 +38,7 @@ use crate::compile::body::builder::StmtBuilder;
 use crate::compile::stateful::StExpr;
 use crate::compile::stmt_wrapper::{self, StmtWrapper};
 use crate::compile::args::{self, Expecting};
+use crate::compile::names::registered::RegisteredNameGenerator;
 use crate::ir::arglist::VarArg;
 use crate::util;
 use crate::pipeline::source::SourceOffset;
@@ -269,7 +270,7 @@ impl CallMagic {
             let args = args.into_iter().map(|x| {
               let StExpr { expr, side_effects } = x;
               if side_effects.modifies_state() {
-                let var_name = factory::declare_var(compiler.name_generator(), builder, "_cmp", Some(expr), pos);
+                let var_name = factory::declare_var(&mut RegisteredNameGenerator::new_local_var(table), builder, "_cmp", Some(expr), pos);
                 Expr::new(ExprF::Var(var_name), pos)
               } else {
                 expr

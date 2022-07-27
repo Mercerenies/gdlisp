@@ -3,7 +3,7 @@
 
 use super::factory;
 use super::stmt_wrapper::{self, StmtWrapper};
-use super::names::fresh::FreshNameGenerator;
+use super::names::generator::NameGenerator;
 use super::body::builder::StmtBuilder;
 use crate::gdscript::expr::{Expr, ExprF};
 use crate::ir::access_type::AccessType;
@@ -115,7 +115,7 @@ impl NeedsResult {
   /// it later. If `self` is `No`, then the returned `Expr` is nil, as
   /// we chose not to store the result anywhere.
   pub fn into_destination(self,
-                          gen: &mut FreshNameGenerator,
+                          gen: &mut impl NameGenerator,
                           builder: &mut StmtBuilder,
                           prefix: &str,
                           pos: SourceOffset)

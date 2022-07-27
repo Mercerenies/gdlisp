@@ -4,28 +4,28 @@ use super::common::{parse_compile_and_output, parse_compile_and_output_h};
 #[test]
 pub fn let_tests() {
   assert_eq!(parse_compile_and_output("(let () 1)"), "return 1\n");
-  assert_eq!(parse_compile_and_output("(let (a) 1)"), "var a_0 = null\nreturn 1\n");
-  assert_eq!(parse_compile_and_output("(let ((a)) 1)"), "var a_0 = null\nreturn 1\n");
-  assert_eq!(parse_compile_and_output("(let ((a 1)) (foo1 a))"), "var a_0 = 1\nreturn foo1(a_0)\n");
-  assert_eq!(parse_compile_and_output("(let ((a 1) (b 2)) (foo2 a b))"), "var a_0 = 1\nvar b_1 = 2\nreturn foo2(a_0, b_1)\n");
-  assert_eq!(parse_compile_and_output("(let ((a (foo) (bar))) (foo1 a))"), "foo()\nvar a_0 = bar()\nreturn foo1(a_0)\n");
-  assert_eq!(parse_compile_and_output("(let ((a) b) 1)"), "var a_0 = null\nvar b_1 = null\nreturn 1\n");
-  assert_eq!(parse_compile_and_output("(let (a (b)) 1)"), "var a_0 = null\nvar b_1 = null\nreturn 1\n");
+  assert_eq!(parse_compile_and_output("(let (a) 1)"), "var a = null\nreturn 1\n");
+  assert_eq!(parse_compile_and_output("(let ((a)) 1)"), "var a = null\nreturn 1\n");
+  assert_eq!(parse_compile_and_output("(let ((a 1)) (foo1 a))"), "var a = 1\nreturn foo1(a)\n");
+  assert_eq!(parse_compile_and_output("(let ((a 1) (b 2)) (foo2 a b))"), "var a = 1\nvar b = 2\nreturn foo2(a, b)\n");
+  assert_eq!(parse_compile_and_output("(let ((a (foo) (bar))) (foo1 a))"), "foo()\nvar a = bar()\nreturn foo1(a)\n");
+  assert_eq!(parse_compile_and_output("(let ((a) b) 1)"), "var a = null\nvar b = null\nreturn 1\n");
+  assert_eq!(parse_compile_and_output("(let (a (b)) 1)"), "var a = null\nvar b = null\nreturn 1\n");
 }
 
 #[test]
 pub fn let_name_trans_tests() {
-  assert_eq!(parse_compile_and_output("(let ((a-b 1)) a-b)"), "var a_b_0 = 1\nreturn a_b_0\n");
+  assert_eq!(parse_compile_and_output("(let ((a-b 1)) a-b)"), "var a_b = 1\nreturn a_b\n");
 }
 
 #[test]
 pub fn var_shadowing() {
-  assert_eq!(parse_compile_and_output("(let ((a)) (let ((a a)) a))"), "var a_0 = null\nvar a_1 = a_0\nreturn a_1\n");
+  assert_eq!(parse_compile_and_output("(let ((a)) (let ((a a)) a))"), "var a = null\nvar a_0 = a\nreturn a_0\n");
 }
 
 #[test]
 pub fn inline_if_in_let_test() {
-  assert_eq!(parse_compile_and_output("(let ((a (if (foo) (bar) (foo)))) a)"), "var _cond_0 = null\nif foo():\n    _cond_0 = bar()\nelse:\n    if true:\n        _cond_0 = foo()\n    else:\n        _cond_0 = null\nvar a_1 = _cond_0\nreturn a_1\n");
+  assert_eq!(parse_compile_and_output("(let ((a (if (foo) (bar) (foo)))) a)"), "var _cond = null\nif foo():\n    _cond = bar()\nelse:\n    if true:\n        _cond = foo()\n    else:\n        _cond = null\nvar a = _cond\nreturn a\n");
 }
 
 #[test]
@@ -67,6 +67,12 @@ pub fn closure_var_test() {
 }
 
 #[test]
-pub fn let_star_test() {
-  assert_eq!(parse_compile_and_output("(let* ((a 1) (b a)) b)"), "var a_0 = 1\nvar b_1 = a_0\nreturn b_1\n");
+pub fn let_star_test_1() {
+  assert_eq!(parse_compile_and_output("(let* ((a 1) (b a)) b)"), "var a = 1\nvar b = a\nreturn b\n");
+}
+
+#[test]
+pub fn let_star_test_2() {
+  assert_eq!(parse_compile_and_output("(let* ((a 1) (a a) (a a)) a)"),
+             "var a = 1\nvar a_0 = a\nvar a_1 = a_0\nreturn a_1\n");
 }

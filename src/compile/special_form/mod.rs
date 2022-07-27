@@ -16,6 +16,7 @@ use crate::compile::stmt_wrapper;
 use crate::compile::error::Error;
 use crate::compile::stateful::SideEffects;
 use crate::compile::names;
+use crate::compile::names::registered::RegisteredNameGenerator;
 use crate::compile::factory;
 use crate::compile::frame::CompilerFrame;
 use crate::compile::names::generator::NameGenerator;
@@ -32,7 +33,7 @@ pub fn compile_cond_stmt(frame: &mut CompilerFrame<StmtBuilder>,
                          needs_result: NeedsResult,
                          pos: SourceOffset)
                          -> Result<StExpr, Error> {
-  let (destination, result) = needs_result.into_destination(frame.compiler.name_generator(), frame.builder, "_cond", pos);
+  let (destination, result) = needs_result.into_destination(&mut RegisteredNameGenerator::new_local_var(frame.table), frame.builder, "_cond", pos);
   let init: Vec<Stmt> = util::option_to_vec(destination.wrap_to_stmt(Compiler::nil_expr(pos)));
   let body = clauses.iter().rev().fold(Ok(init), |acc: Result<_, Error>, curr| {
     let acc = acc?;
@@ -43,7 +44,7 @@ pub fn compile_cond_stmt(frame: &mut CompilerFrame<StmtBuilder>,
         // the conditional).
         frame.with_local_builder(|frame| {
           let cond = frame.compile_expr(cond, NeedsResult::Yes)?.expr;
-          let var_name = factory::declare_var(frame.compiler.name_generator(), frame.builder, "_cond", Some(cond), pos);
+          let var_name = factory::declare_var(&mut RegisteredNameGenerator::new_local_var(frame.table), frame.builder, "_cond", Some(cond), pos);
           let var_expr = StExpr { expr: Expr::new(ExprF::Var(var_name.clone()), pos), side_effects: SideEffects::None };
           // Inner local builder (for the contents of the "true"
           // block).
