@@ -32,7 +32,7 @@ pub fn compile_let(frame: &mut CompilerFrame<StmtBuilder>,
       } else {
         result_value
       };
-    let gd_name = factory::declare_var(&mut frame.compiler.name_generator(), frame.builder, &names::lisp_to_gd(&ast_name), Some(result_value), clause.value.pos);
+    let gd_name = factory::declare_var(frame.compiler.name_generator(), frame.builder, &names::lisp_to_gd(&ast_name), Some(result_value), clause.value.pos);
     Ok((ast_name, gd_name))
   }).collect::<Result<Vec<_>, _>>()?;
   frame.with_local_vars(&mut var_names.into_iter().map(|x| (x.0.clone(), LocalVar::local(x.1, *closure_vars.get(&x.0).unwrap_or(&AccessType::None)))), |frame| {

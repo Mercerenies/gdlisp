@@ -4,7 +4,7 @@
 
 use super::frame::CompilerFrame;
 use super::stateful::NeedsResult;
-use super::names::fresh::FreshNameGenerator;
+use super::names::generator::NameGenerator;
 use super::names::registered::RegisteredNameGenerator;
 use super::body::builder::{StmtBuilder, CodeBuilder, HasDecls};
 use super::body::class_initializer::ClassBuilder;
@@ -14,7 +14,6 @@ use super::symbol_table::{HasSymbolTable, ClassTablePair};
 use super::symbol_table::local_var::LocalVar;
 use super::symbol_table::function_call::OuterStaticRef;
 use super::error::Error;
-use super::names::generator::NameGenerator;
 use crate::gdscript::expr::Expr;
 use crate::gdscript::stmt::Stmt;
 use crate::gdscript::decl::{self, Decl, DeclF, ClassExtends};
@@ -38,7 +37,7 @@ struct DeclaredFnWithInit {
 ///
 /// The variable will have a generated name produced by `gen`. The
 /// generated name is returned.
-pub fn declare_var(gen: &mut FreshNameGenerator,
+pub fn declare_var(gen: &mut impl NameGenerator,
                    builder: &mut StmtBuilder,
                    prefix: &str,
                    value: Option<Expr>,
