@@ -41,7 +41,7 @@ pub fn assignment_test() {
 
   // Cell; accessed inside lambda
   let result2 = parse_compile_and_output("(let ((x 1)) (lambda () (set x 2)))");
-  assert_eq!(result2, "var x_0 = GDLisp.Cell.new(1)\nreturn _LambdaBlock_1.new(x_0)\n");
+  assert_eq!(result2, "var x_0 = GDLisp.Cell.new(1)\nreturn _LambdaBlock.new(x_0)\n");
 
   // Cell; accessed both inside and outside lambda
   let result3 = parse_compile_and_output("(let ((x 1)) (lambda () (set x 2)) (set x 3))");

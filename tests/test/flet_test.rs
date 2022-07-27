@@ -67,10 +67,10 @@ pub fn semiglobal_flet_test() {
 pub fn semiglobal_flet_test_indirect() {
 
   let result0 = parse_compile_and_output_h("(flet ((f (x) (+ x 1))) (funcall (function f) 10))");
-  assert_eq!(result0.0, "return GDLisp.funcall(_FunctionRefBlock_2.new(), GDLisp.Cons.new(10, null))\n");
+  assert_eq!(result0.0, "return GDLisp.funcall(_FunctionRefBlock.new(), GDLisp.Cons.new(10, null))\n");
   assert_eq!(result0.1, r#"static func _flet_0(x_1):
     return x_1 + 1
-class _FunctionRefBlock_2 extends GDLisp.Function:
+class _FunctionRefBlock extends GDLisp.Function:
     func _init():
         self.__gdlisp_required = 1
         self.__gdlisp_optional = 0
@@ -100,8 +100,8 @@ pub fn local_flet_test() {
       (flet ((f () (+ x 1)))
         (f)))
   "#);
-  assert_eq!(result0.0, "var x_0 = 1\nvar _flet_2 = _LambdaBlock_1.new(x_0)\nreturn _flet_2.call_func()\n");
-  assert_eq!(result0.1, r#"class _LambdaBlock_1 extends GDLisp.Function:
+  assert_eq!(result0.0, "var x_0 = 1\nvar _flet_1 = _LambdaBlock.new(x_0)\nreturn _flet_1.call_func()\n");
+  assert_eq!(result0.1, r#"class _LambdaBlock extends GDLisp.Function:
     var x_0
     func _init(x_0):
         self.x_0 = x_0
@@ -127,8 +127,8 @@ pub fn local_flet_test_indirect() {
       (flet ((f () (+ x 1)))
         (funcall (function f))))
   "#);
-  assert_eq!(result0.0, "var x_0 = 1\nvar _flet_2 = _LambdaBlock_1.new(x_0)\nreturn GDLisp.funcall(_flet_2, null)\n");
-  assert_eq!(result0.1, r#"class _LambdaBlock_1 extends GDLisp.Function:
+  assert_eq!(result0.0, "var x_0 = 1\nvar _flet_1 = _LambdaBlock.new(x_0)\nreturn GDLisp.funcall(_flet_1, null)\n");
+  assert_eq!(result0.1, r#"class _LambdaBlock extends GDLisp.Function:
     var x_0
     func _init(x_0):
         self.x_0 = x_0
@@ -154,5 +154,5 @@ pub fn local_flet_closure_test() {
         (let ((g (lambda () (f))))
           (funcall g))))
   "#);
-  assert_eq!(result0.0, "var x_0 = 1\nvar _flet_2 = _LambdaBlock_1.new(x_0)\nvar g_4 = _LambdaBlock_3.new(_flet_2)\nreturn GDLisp.funcall(g_4, null)\n");
+  assert_eq!(result0.0, "var x_0 = 1\nvar _flet_1 = _LambdaBlock.new(x_0)\nvar g_2 = _LambdaBlock_0.new(_flet_1)\nreturn GDLisp.funcall(g_2, null)\n");
 }

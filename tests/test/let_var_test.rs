@@ -31,8 +31,8 @@ pub fn inline_if_in_let_test() {
 #[test]
 pub fn closure_var_test() {
   let result0 = parse_compile_and_output_h("(lambda () foobar)");
-  assert_eq!(result0.0, "return _LambdaBlock_0.new(foobar)\n");
-  assert_eq!(result0.1, r#"class _LambdaBlock_0 extends GDLisp.Function:
+  assert_eq!(result0.0, "return _LambdaBlock.new(foobar)\n");
+  assert_eq!(result0.1, r#"class _LambdaBlock extends GDLisp.Function:
     var foobar
     func _init(foobar):
         self.foobar = foobar
@@ -50,8 +50,8 @@ pub fn closure_var_test() {
 
 
   let result1 = parse_compile_and_output_h("(lambda () glob)");
-  assert_eq!(result1.0, "return _LambdaBlock_0.new()\n");
-  assert_eq!(result1.1, r#"class _LambdaBlock_0 extends GDLisp.Function:
+  assert_eq!(result1.0, "return _LambdaBlock.new()\n");
+  assert_eq!(result1.1, r#"class _LambdaBlock extends GDLisp.Function:
     func _init():
         self.__gdlisp_required = 0
         self.__gdlisp_optional = 0

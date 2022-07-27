@@ -38,7 +38,7 @@ pub fn parent_constructor_class_test_2() {
 #[test]
 pub fn parent_constructor_class_test_3() {
   assert_eq!(parse_compile_decl("((defclass ClassName (Node) (defvar x) (defn _init (y) (super (if y 1 2))) (defn foo () 2)))"), r#"extends Reference
-class _LambdaBlock_3 extends GDLisp.Function:
+class _LambdaBlock extends GDLisp.Function:
     var y_0
     func _init(y_0):
         self.y_0 = y_0
@@ -61,7 +61,7 @@ class _LambdaBlock_3 extends GDLisp.Function:
         else:
             push_error("Too many arguments")
 class ClassName extends Node:
-    func _init(y_0).(GDLisp.sys_DIV_funcall(_LambdaBlock_3.new(y_0), null)):
+    func _init(y_0).(GDLisp.sys_DIV_funcall(_LambdaBlock.new(y_0), null)):
         pass
     var x
     func foo():
@@ -137,7 +137,7 @@ static func run():
 pub fn super_call_closed_in_class_test_1() {
   assert_eq!(parse_compile_decl(r#"((defclass Foo () (defn foo () (lambda () (super:foo)))))"#),
              r#"extends Reference
-class _LambdaBlock_2 extends GDLisp.Function:
+class _LambdaBlock extends GDLisp.Function:
     var _self_0
     func _init(_self_0):
         self._self_0 = _self_0
@@ -155,7 +155,7 @@ class Foo extends Reference:
     func _init():
         pass
     func foo():
-        return _LambdaBlock_2.new(self)
+        return _LambdaBlock.new(self)
     func __gdlisp_super_1():
         return .foo()
 static func run():
@@ -167,7 +167,7 @@ static func run():
 pub fn super_call_closed_in_class_test_2() {
   assert_eq!(parse_compile_decl(r#"((defclass Foo () (defn foo () (lambda () (super:foo) (super:bar)))))"#),
              r#"extends Reference
-class _LambdaBlock_3 extends GDLisp.Function:
+class _LambdaBlock extends GDLisp.Function:
     var _self_0
     func _init(_self_0):
         self._self_0 = _self_0
@@ -186,7 +186,7 @@ class Foo extends Reference:
     func _init():
         pass
     func foo():
-        return _LambdaBlock_3.new(self)
+        return _LambdaBlock.new(self)
     func __gdlisp_super_1():
         return .foo()
     func __gdlisp_super_2():
@@ -516,7 +516,7 @@ static func run():
 pub fn simple_self_closure_class_test() {
   assert_eq!(parse_compile_decl("((defclass Foo (Node) (defn test () (lambda () self))))"),
              r#"extends Reference
-class _LambdaBlock_1 extends GDLisp.Function:
+class _LambdaBlock extends GDLisp.Function:
     var _self_0
     func _init(_self_0):
         self._self_0 = _self_0
@@ -534,7 +534,7 @@ class Foo extends Node:
     func _init():
         pass
     func test():
-        return _LambdaBlock_1.new(self)
+        return _LambdaBlock.new(self)
 static func run():
     return null
 "#);

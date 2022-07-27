@@ -56,10 +56,10 @@ pub fn semiglobal_labels_test() {
 pub fn semiglobal_labels_test_indirect() {
 
   let result0 = parse_compile_and_output_h("(labels ((f (x) (+ x 1))) (funcall (function f) 10))");
-  assert_eq!(result0.0, "return GDLisp.funcall(_FunctionRefBlock_2.new(), GDLisp.Cons.new(10, null))\n");
+  assert_eq!(result0.0, "return GDLisp.funcall(_FunctionRefBlock.new(), GDLisp.Cons.new(10, null))\n");
   assert_eq!(result0.1, r#"static func _flet_0(x_1):
     return x_1 + 1
-class _FunctionRefBlock_2 extends GDLisp.Function:
+class _FunctionRefBlock extends GDLisp.Function:
     func _init():
         self.__gdlisp_required = 1
         self.__gdlisp_optional = 0
@@ -125,13 +125,13 @@ class _Labels extends Reference:
 #[test]
 pub fn recursive_single_with_extra_end_labels_test() {
   let result0 = parse_compile_and_output_h("(labels ((f (x) (f x)) (g (x) (f x))) (g 1))");
-  assert_eq!(result0.0, "var _locals = _Labels.new()\nvar _flet_4 = _LambdaBlock_3.new(_locals)\nreturn _flet_4.call_func(1)\n");
+  assert_eq!(result0.0, "var _locals = _Labels.new()\nvar _flet_3 = _LambdaBlock.new(_locals)\nreturn _flet_3.call_func(1)\n");
   assert_eq!(result0.1, r#"class _Labels extends Reference:
     func _init():
         pass
     func _fn_f_0(x_1):
         return _fn_f_0(x_1)
-class _LambdaBlock_3 extends GDLisp.Function:
+class _LambdaBlock extends GDLisp.Function:
     var _locals
     func _init(_locals):
         self._locals = _locals
@@ -157,13 +157,13 @@ class _LambdaBlock_3 extends GDLisp.Function:
 #[test]
 pub fn recursive_single_indirect_labels_test() {
   let result0 = parse_compile_and_output_h("(labels ((f (x) (f x))) (funcall (function f) 1))");
-  assert_eq!(result0.0, "var _locals = _Labels.new()\nreturn GDLisp.funcall(_FunctionRefBlock_2.new(_locals), GDLisp.Cons.new(1, null))\n");
+  assert_eq!(result0.0, "var _locals = _Labels.new()\nreturn GDLisp.funcall(_FunctionRefBlock.new(_locals), GDLisp.Cons.new(1, null))\n");
   assert_eq!(result0.1, r#"class _Labels extends Reference:
     func _init():
         pass
     func _fn_f_0(x_1):
         return _fn_f_0(x_1)
-class _FunctionRefBlock_2 extends GDLisp.Function:
+class _FunctionRefBlock extends GDLisp.Function:
     var _locals
     func _init(_locals):
         self._locals = _locals

@@ -307,6 +307,10 @@ pub fn compile_lambda_stmt(frame: &mut CompilerFrame<StmtBuilder>,
     closure
   };
 
+  // Determine the eventual class name.
+  let class_name = ContextualNameGenerator::new(table, Namespace::Value).generate_with("_LambdaBlock");
+  table.add_synthetic_var(class_name.clone(), false);
+
   let mut lambda_table = SymbolTable::with_synthetics_from(table);
 
   // Bind the arguments to the lambda in the new lambda table.
@@ -347,7 +351,6 @@ pub fn compile_lambda_stmt(frame: &mut CompilerFrame<StmtBuilder>,
   };
 
   // Generate the enclosing class.
-  let class_name = compiler.name_generator().generate_with("_LambdaBlock");
   let mut class = generate_lambda_class(class_name.clone(), args.clone().into(), arglist, &gd_closure_vars, lambda_body, pos);
 
   // Add outer class reference.
@@ -375,7 +378,7 @@ pub fn compile_lambda_stmt(frame: &mut CompilerFrame<StmtBuilder>,
 pub fn compile_function_ref(compiler: &mut Compiler,
                             pipeline: &mut Pipeline,
                             builder: &mut StmtBuilder,
-                            _table: &mut SymbolTable,
+                            table: &mut SymbolTable,
                             func: FnCall,
                             pos: SourceOffset)
                             -> Result<StExpr, Error> {
@@ -410,7 +413,8 @@ pub fn compile_function_ref(compiler: &mut Compiler,
     );
 
     // Generate the class and the constructor call.
-    let class_name = compiler.name_generator().generate_with("_FunctionRefBlock");
+    let class_name = ContextualNameGenerator::new(table, Namespace::Value).generate_with("_FunctionRefBlock");
+    table.add_synthetic_var(class_name.clone(), false);
     let class = generate_lambda_class(class_name.clone(), func.specs, arglist, &gd_src_closure_vars, vec!(body), pos);
     builder.add_helper(Decl::new(DeclF::ClassDecl(class), pos));
     Ok(make_constructor_call(class_name, gd_src_closure_vars, vec!(), pos))
