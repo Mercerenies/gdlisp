@@ -12,6 +12,7 @@ use crate::compile::body::class_scope::DirectClassScope;
 use crate::compile::symbol_table::{SymbolTable, ClassTablePair};
 use crate::compile::symbol_table::local_var::LocalVar;
 use crate::compile::symbol_table::function_call::OuterStaticRef;
+use crate::compile::names::generator::NameGenerator;
 use crate::gdscript::decl::{self, Decl, DeclF, VarDecl};
 use crate::gdscript::inner_class::{self, NeedsOuterClassRef};
 use crate::pipeline::source::SourceOffset;

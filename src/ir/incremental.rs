@@ -23,6 +23,7 @@ use crate::compile::resource_type::ResourceType;
 use crate::compile::args::{Expecting, ExpectedShape};
 use crate::compile::names;
 use crate::compile::names::fresh::FreshNameGenerator;
+use crate::compile::names::generator::NameGenerator;
 use crate::compile::frame::MAX_QUOTE_REIFY_DEPTH;
 use crate::compile::body::class_initializer::InitTime;
 use crate::gdscript::library;

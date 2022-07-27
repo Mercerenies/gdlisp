@@ -7,6 +7,7 @@ use crate::gdscript::decl::FnDecl;
 use crate::gdscript::expr::Expr;
 use crate::gdscript::stmt::Stmt;
 use crate::compile::names::fresh::FreshNameGenerator;
+use crate::compile::names::generator::NameGenerator;
 use crate::compile::special_form::lambda::simple_arg_names;
 
 /// A supermethod proxy is a method on the current class that, when

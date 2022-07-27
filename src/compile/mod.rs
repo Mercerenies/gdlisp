@@ -18,6 +18,7 @@ use body::builder::{CodeBuilder, StmtBuilder, HasDecls};
 use body::class_initializer::{ClassBuilder, InitTime};
 use body::class_scope::{ClassScope, OutsideOfClass, DirectClassScope};
 use names::fresh::FreshNameGenerator;
+use names::generator::NameGenerator;
 use preload_resolver::PreloadResolver;
 use constant::MaybeConstant;
 use crate::gdscript::literal::Literal;

@@ -10,6 +10,7 @@ use crate::compile::stateful::{StExpr, NeedsResult};
 use crate::compile::stmt_wrapper;
 use crate::compile::factory;
 use crate::compile::frame::CompilerFrame;
+use crate::compile::names::generator::NameGenerator;
 use crate::gdscript::decl::{self, Decl, DeclF};
 use crate::graph::Graph;
 use crate::graph::top_sort::top_sort;

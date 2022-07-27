@@ -4,6 +4,7 @@
 use phf::{phf_map};
 
 pub mod fresh;
+pub mod generator;
 
 // Note: Many of these translations are based on the similar
 // translations performed by the Scala compiler.

@@ -6,6 +6,7 @@ use crate::gdscript::expr::{Expr, ExprF};
 use crate::gdscript::stmt::Stmt;
 use crate::gdscript::library;
 use crate::compile::names::fresh::FreshNameGenerator;
+use crate::compile::names::generator::NameGenerator;
 use crate::compile::stmt_wrapper::StmtWrapper;
 use crate::pipeline::source::Sourced;
 use crate::sxp::ast::{AST, ASTF};

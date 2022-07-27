@@ -18,6 +18,7 @@ use crate::compile::stateful::SideEffects;
 use crate::compile::names;
 use crate::compile::factory;
 use crate::compile::frame::CompilerFrame;
+use crate::compile::names::generator::NameGenerator;
 use crate::gdscript::stmt::{self, Stmt, StmtF};
 use crate::gdscript::expr::{Expr, ExprF};
 use crate::gdscript::op;

@@ -15,6 +15,7 @@ use crate::compile::error::{Error, ErrorF};
 use crate::compile::stateful::SideEffects;
 use crate::compile::names::{self, NameTrans};
 use crate::compile::names::fresh::FreshNameGenerator;
+use crate::compile::names::generator::NameGenerator;
 use crate::gdscript::stmt::{Stmt, StmtF};
 use crate::gdscript::expr::{Expr, ExprF};
 use crate::gdscript::decl::{self, Decl, DeclF, VarDecl};

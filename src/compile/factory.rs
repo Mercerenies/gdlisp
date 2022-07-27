@@ -13,6 +13,7 @@ use super::symbol_table::{HasSymbolTable, ClassTablePair};
 use super::symbol_table::local_var::LocalVar;
 use super::symbol_table::function_call::OuterStaticRef;
 use super::error::Error;
+use super::names::generator::NameGenerator;
 use crate::gdscript::expr::Expr;
 use crate::gdscript::stmt::Stmt;
 use crate::gdscript::decl::{self, Decl, DeclF, ClassExtends};

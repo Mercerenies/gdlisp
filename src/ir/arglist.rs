@@ -7,6 +7,7 @@
 use crate::gdscript::arglist::ArgList as GDArgList;
 use crate::compile::names::fresh::FreshNameGenerator;
 use crate::compile::names::{self, NameTrans};
+use crate::compile::names::generator::NameGenerator;
 use crate::compile::symbol_table::function_call::FnSpecs;
 use crate::sxp::ast::{AST, ASTF};
 use crate::pipeline::source::{SourceOffset, Sourced};
