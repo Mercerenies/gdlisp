@@ -1,5 +1,5 @@
 
-use super::common::{parse_compile_and_output_h, parse_and_run};
+use super::common::{parse_compile_and_output_h, parse_and_run, parse_compile_decl};
 
 #[test]
 fn simple_labels_test_1() {
@@ -183,5 +183,38 @@ class _FunctionRefBlock_3 extends GDLisp.Function:
             return call_func(required_0)
         else:
             push_error("Too many arguments")
+"#);
+}
+
+#[test]
+pub fn recursive_single_labels_decl_test_1() {
+  let result = parse_compile_decl("((labels ((f (x) (f x))) (f 1)))");
+  assert_eq!(result, r#"extends Reference
+class _Labels_2 extends Reference:
+    func _init():
+        pass
+    func _fn_f_0(x_1):
+        return _fn_f_0(x_1)
+static func run():
+    var _locals = _Labels_2.new()
+    return _locals._fn_f_0(1)
+"#);
+}
+
+#[test]
+pub fn recursive_single_labels_decl_test_2() {
+  // Contrived introduction of a constant named _locals. The
+  // contextual name generator should detect this and work around it.
+  let result = parse_compile_decl("((defconst _locals 0) (labels ((f (x) (f x))) (f 1)))");
+  assert_eq!(result, r#"extends Reference
+const _locals = 0
+class _Labels_2 extends Reference:
+    func _init():
+        pass
+    func _fn_f_0(x_1):
+        return _fn_f_0(x_1)
+static func run():
+    var _locals_0 = _Labels_2.new()
+    return _locals_0._fn_f_0(1)
 "#);
 }
