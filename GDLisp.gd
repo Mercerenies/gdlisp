@@ -859,30 +859,30 @@ static func let_TIMES_(vars, body):
     if vars == nil:
         _cond_70 = cons(GDLisp.intern("progn"), append(GDLisp.Cons.new(sys_DIV_qq_smart_list(body), GDLisp.Cons.new(null, null))))
     else:
-        var _quasiquote_71 = append(GDLisp.Cons.new(sys_DIV_qq_smart_list(body), GDLisp.Cons.new(null, null)))
-        _cond_70 = cons(GDLisp.intern("let"), cons(cons(car(vars), null), cons(cons(GDLisp.intern("let*"), cons(cdr(vars), _quasiquote_71)), null)))
+        var _quasiquote = append(GDLisp.Cons.new(sys_DIV_qq_smart_list(body), GDLisp.Cons.new(null, null)))
+        _cond_70 = cons(GDLisp.intern("let"), cons(cons(car(vars), null), cons(cons(GDLisp.intern("let*"), cons(cdr(vars), _quasiquote)), null)))
     return _cond_70
 static func defvars(args):
-    var arr_72 = []
+    var arr_71 = []
     while args != nil:
-        arr_72.push_back(GDLisp.Cons.new(GDLisp.intern("defvar"), GDLisp.Cons.new(args.car, null)))
+        arr_71.push_back(GDLisp.Cons.new(GDLisp.intern("defvar"), GDLisp.Cons.new(args.car, null)))
         args = args.cdr
-    return cons(GDLisp.intern("progn"), append(GDLisp.Cons.new(sys_DIV_qq_smart_list(arr_72), GDLisp.Cons.new(null, null))))
+    return cons(GDLisp.intern("progn"), append(GDLisp.Cons.new(sys_DIV_qq_smart_list(arr_71), GDLisp.Cons.new(null, null))))
 static func when(cnd, args):
-    var _quasiquote_73 = append(GDLisp.Cons.new(sys_DIV_qq_smart_list(args), GDLisp.Cons.new(null, null)))
-    return cons(GDLisp.intern("cond"), cons(cons(cnd, cons(cons(GDLisp.intern("progn"), _quasiquote_73), null)), null))
+    var _quasiquote = append(GDLisp.Cons.new(sys_DIV_qq_smart_list(args), GDLisp.Cons.new(null, null)))
+    return cons(GDLisp.intern("cond"), cons(cons(cnd, cons(cons(GDLisp.intern("progn"), _quasiquote), null)), null))
 static func unless(cnd, args):
-    var _quasiquote_74 = append(GDLisp.Cons.new(sys_DIV_qq_smart_list(args), GDLisp.Cons.new(null, null)))
-    return cons(GDLisp.intern("cond"), cons(cons(cnd, cons(null, null)), cons(cons(true, cons(cons(GDLisp.intern("progn"), _quasiquote_74), null)), null)))
+    var _quasiquote = append(GDLisp.Cons.new(sys_DIV_qq_smart_list(args), GDLisp.Cons.new(null, null)))
+    return cons(GDLisp.intern("cond"), cons(cons(cnd, cons(null, null)), cons(cons(true, cons(cons(GDLisp.intern("progn"), _quasiquote), null)), null)))
 static func _if(cnd, t, f):
     return cons(GDLisp.intern("cond"), cons(cons(cnd, cons(t, null)), cons(cons(true, cons(f, null)), null)))
 static func yield_TIMES_(arg):
-    var symbol_77 = gensym("_yield")
-    var _quasiquote_79 = cons(GDLisp.intern("is-valid"), null)
-    var _quasiquote_80 = cons(cons(GDLisp.intern("instance?"), cons(symbol_77, cons(GDLisp.intern("GDScriptFunctionState"), null))), cons(cons(cons(GDLisp.intern("access-slot"), cons(symbol_77, _quasiquote_79)), null), null))
-    var _quasiquote_81 = cons(symbol_77, cons(GDLisp.intern("resume"), null))
-    var _quasiquote_84 = cons(cons(GDLisp.intern("yield"), null), cons(cons(GDLisp.intern("set"), cons(symbol_77, cons(cons(cons(GDLisp.intern("access-slot"), _quasiquote_81), null), null))), null))
-    return cons(GDLisp.intern("let"), cons(cons(cons(symbol_77, cons(arg, null)), null), cons(cons(GDLisp.intern("while"), cons(cons(GDLisp.intern("and"), _quasiquote_80), _quasiquote_84)), cons(symbol_77, null))))
+    var symbol_72 = gensym("_yield")
+    var _quasiquote_0 = cons(GDLisp.intern("is-valid"), null)
+    var _quasiquote_1 = cons(cons(GDLisp.intern("instance?"), cons(symbol_72, cons(GDLisp.intern("GDScriptFunctionState"), null))), cons(cons(cons(GDLisp.intern("access-slot"), cons(symbol_72, _quasiquote_0)), null), null))
+    var _quasiquote_2 = cons(symbol_72, cons(GDLisp.intern("resume"), null))
+    var _quasiquote_5 = cons(cons(GDLisp.intern("yield"), null), cons(cons(GDLisp.intern("set"), cons(symbol_72, cons(cons(cons(GDLisp.intern("access-slot"), _quasiquote_2), null), null))), null))
+    return cons(GDLisp.intern("let"), cons(cons(cons(symbol_72, cons(arg, null)), null), cons(cons(GDLisp.intern("while"), cons(cons(GDLisp.intern("and"), _quasiquote_1), _quasiquote_5)), cons(symbol_72, null))))
 static func this_file():
     return GDLisp.cons(GDLisp.intern("sys/special-ref"), GDLisp.cons(GDLisp.intern("this-file"), null))
 static func this_filename():
@@ -892,20 +892,20 @@ static func this_true_filename():
 static func contextual_load(arg):
     return cons(GDLisp.intern("load"), cons(cons(GDLisp.intern("sys/context-filename"), cons(arg, null)), null))
 static func deflazy(name, value, modifiers):
-    var fn_name_85 = gensym("_lazy")
-    var this_file_86 = gensym("_this_file")
-    var value_var_87 = gensym("_value")
-    var meta_name_88 = "__gdlisp_Lazy_{}".format([gensym(null).contents], "{}")
-    var _quasiquote_89 = cons(cons(GDLisp.intern("this-file"), null), null)
-    var _quasiquote_91 = cons(GDLisp.intern("get-meta"), null)
-    var _quasiquote_92 = cons(value, null)
-    var _quasiquote_95 = cons(cons(cons(GDLisp.intern("access-slot"), cons(this_file_86, cons(GDLisp.intern("set-meta"), null))), cons(meta_name_88, cons(value_var_87, null))), cons(value_var_87, null))
-    var _quasiquote_96 = cons(cons(cons(GDLisp.intern("access-slot"), cons(this_file_86, cons(GDLisp.intern("has-meta"), null))), cons(meta_name_88, null)), cons(cons(cons(GDLisp.intern("access-slot"), cons(this_file_86, _quasiquote_91)), cons(meta_name_88, null)), cons(cons(GDLisp.intern("let"), cons(cons(cons(value_var_87, _quasiquote_92), null), _quasiquote_95)), null)))
-    var _quasiquote_97 = cons(cons(GDLisp.intern("let"), cons(cons(cons(this_file_86, _quasiquote_89), null), cons(cons(GDLisp.intern("if"), _quasiquote_96), null))), null)
-    var _quasiquote_98 = cons(GDLisp.intern("access-slot"), null)
-    var _quasiquote_101 = cons(cons(GDLisp.intern("list"), cons(cons(GDLisp.intern("quote"), cons(GDLisp.intern("contextual-load"), null)), cons(cons(GDLisp.intern("this-true-filename"), null), null))), cons(cons(GDLisp.intern("quote"), cons(fn_name_85, null)), null))
-    var _quasiquote_102 = cons(cons(GDLisp.intern("list"), cons(cons(GDLisp.intern("list"), cons(cons(GDLisp.intern("quote"), _quasiquote_98), _quasiquote_101)), null)), append(GDLisp.Cons.new(sys_DIV_qq_smart_list(modifiers), GDLisp.Cons.new(null, null))))
-    return cons(GDLisp.intern("progn"), cons(cons(GDLisp.intern("defn"), cons(fn_name_85, cons(null, _quasiquote_97))), cons(cons(GDLisp.intern("define-symbol-macro"), cons(name, _quasiquote_102)), null)))
+    var fn_name_73 = gensym("_lazy")
+    var this_file_74 = gensym("_this_file")
+    var value_var_75 = gensym("_value")
+    var meta_name_76 = "__gdlisp_Lazy_{}".format([gensym(null).contents], "{}")
+    var _quasiquote = cons(cons(GDLisp.intern("this-file"), null), null)
+    var _quasiquote_1 = cons(GDLisp.intern("get-meta"), null)
+    var _quasiquote_2 = cons(value, null)
+    var _quasiquote_5 = cons(cons(cons(GDLisp.intern("access-slot"), cons(this_file_74, cons(GDLisp.intern("set-meta"), null))), cons(meta_name_76, cons(value_var_75, null))), cons(value_var_75, null))
+    var _quasiquote_6 = cons(cons(cons(GDLisp.intern("access-slot"), cons(this_file_74, cons(GDLisp.intern("has-meta"), null))), cons(meta_name_76, null)), cons(cons(cons(GDLisp.intern("access-slot"), cons(this_file_74, _quasiquote_1)), cons(meta_name_76, null)), cons(cons(GDLisp.intern("let"), cons(cons(cons(value_var_75, _quasiquote_2), null), _quasiquote_5)), null)))
+    var _quasiquote_7 = cons(cons(GDLisp.intern("let"), cons(cons(cons(this_file_74, _quasiquote), null), cons(cons(GDLisp.intern("if"), _quasiquote_6), null))), null)
+    var _quasiquote_8 = cons(GDLisp.intern("access-slot"), null)
+    var _quasiquote_11 = cons(cons(GDLisp.intern("list"), cons(cons(GDLisp.intern("quote"), cons(GDLisp.intern("contextual-load"), null)), cons(cons(GDLisp.intern("this-true-filename"), null), null))), cons(cons(GDLisp.intern("quote"), cons(fn_name_73, null)), null))
+    var _quasiquote_12 = cons(cons(GDLisp.intern("list"), cons(cons(GDLisp.intern("list"), cons(cons(GDLisp.intern("quote"), _quasiquote_8), _quasiquote_11)), null)), append(GDLisp.Cons.new(sys_DIV_qq_smart_list(modifiers), GDLisp.Cons.new(null, null))))
+    return cons(GDLisp.intern("progn"), cons(cons(GDLisp.intern("defn"), cons(fn_name_73, cons(null, _quasiquote_7))), cons(cons(GDLisp.intern("define-symbol-macro"), cons(name, _quasiquote_12)), null)))
 static func defobject(name, parent, visibility, body):
     if visibility == nil:
         visibility = GDLisp.intern("public")
@@ -919,7 +919,7 @@ static func defobject(name, parent, visibility, body):
     else:
         body = cons(visibility, body)
         visibility = GDLisp.intern("public")
-    var _quasiquote_103 = append(GDLisp.Cons.new(sys_DIV_qq_smart_list(body), GDLisp.Cons.new(null, null)))
-    return cons(GDLisp.intern("deflazy"), cons(name, cons(cons(GDLisp.intern("new"), cons(parent, _quasiquote_103)), cons(visibility, null))))
+    var _quasiquote = append(GDLisp.Cons.new(sys_DIV_qq_smart_list(body), GDLisp.Cons.new(null, null)))
+    return cons(GDLisp.intern("deflazy"), cons(name, cons(cons(GDLisp.intern("new"), cons(parent, _quasiquote)), cons(visibility, null))))
 static func run():
     return null

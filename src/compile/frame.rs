@@ -14,6 +14,7 @@ use super::preload_resolver::{PreloadResolver, DefaultPreloadResolver};
 use super::symbol_table::{SymbolTable, HasSymbolTable};
 use super::symbol_table::local_var::{LocalVar, ValueHint, VarName};
 use super::names::fresh::FreshNameGenerator;
+use super::names::registered::RegisteredNameGenerator;
 use super::error::{Error, ErrorF};
 use super::stateful::{StExpr, NeedsResult, SideEffects};
 use super::body::builder::{StmtBuilder, CodeBuilder, HasDecls};
@@ -529,7 +530,8 @@ impl<'a, 'b, 'c, 'd, 'e> CompilerFrame<'a, 'b, 'c, 'd, 'e, StmtBuilder> {
       IRExprF::Split(name, expr) => {
         let pos = expr.pos;
         let expr = self.compile_expr(expr, NeedsResult::Yes)?.expr;
-        let tmp_var = factory::declare_var(self.compiler.name_generator(), self.builder, &name, Some(expr), pos);
+        let mut gen = RegisteredNameGenerator::new_local_var(self.table);
+        let tmp_var = factory::declare_var(&mut gen, self.builder, &name, Some(expr), pos);
         Ok(StExpr {
           expr: Expr::new(ExprF::Var(tmp_var), pos),
           side_effects: SideEffects::None,
