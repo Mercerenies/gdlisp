@@ -113,13 +113,13 @@ pub fn closure_and_args_lambda_class_with_argument_name_conflict_test() {
   let result0 = parse_compile_decl("((defn foo (z) (new (Node 77) (defvar z) (defn _init (z) (set self:z z)) (defn foo () (+ self:z z)))))");
   assert_eq!(result0, r#"extends Reference
 class _AnonymousClass extends Node:
-    func _init(z, z_0):
-        self.z = z
-        self.z = z_0
-    var z
+    func _init(z_0, z_1):
+        self.z_0 = z_0
+        self.z = z_1
+    var z_0
     var z
     func foo():
-        return self.z + z
+        return self.z + z_0
 static func foo(z):
     return _AnonymousClass.new(z, 77)
 static func run():

@@ -68,7 +68,8 @@ pub fn compile_lambda_class(frame: &mut CompilerFrame<StmtBuilder>,
 
   // Bind all of the closure variables, closure functions, and global
   // variables inside.
-  lambda::locally_bind_vars(compiler, table, &mut lambda_table, closure.closure_vars.names(), pos)?;
+  let forbidden_names = get_all_instance_scoped_vars(&decls);
+  lambda::locally_bind_vars(compiler, table, &mut lambda_table, closure.closure_vars.names(), &forbidden_names, pos)?;
   lambda::locally_bind_fns(compiler, *pipeline, table, &mut lambda_table, closure.closure_fns.names(), pos, &OuterStaticRef::InnerInstanceVar(&outer_ref_name))?;
   lambda::copy_global_vars(table, &mut lambda_table);
 
@@ -140,6 +141,23 @@ pub fn compile_lambda_class(frame: &mut CompilerFrame<StmtBuilder>,
   let constructor_args = constructor_args.iter().map(|expr| compiler.frame(pipeline, *builder, table, *original_class_scope).compile_expr(expr, NeedsResult::Yes)).collect::<Result<Vec<_>, _>>()?;
   let expr = lambda::make_constructor_call(gd_class_name, gd_src_closure_vars, constructor_args, pos);
   Ok(expr)
+}
+
+fn get_all_instance_scoped_vars(decls: &[ir::decl::ClassInnerDecl]) -> Vec<&str> {
+  let mut result: Vec<&str> = vec![];
+  for decl in decls {
+    match &decl.value {
+      ir::decl::ClassInnerDeclF::ClassVarDecl(var) => {
+        result.push(&var.name);
+      }
+      ir::decl::ClassInnerDeclF::ClassConstDecl(cdecl) => {
+        result.push(&cdecl.name);
+      }
+      ir::decl::ClassInnerDeclF::ClassSignalDecl(_) => {}
+      ir::decl::ClassInnerDeclF::ClassFnDecl(_) => {}
+    }
+  }
+  result
 }
 
 fn compile_lambda_class_constructor(frame: &mut CompilerFrame<impl HasDecls>,

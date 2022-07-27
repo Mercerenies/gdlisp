@@ -69,7 +69,7 @@ pub fn compile_labels_scc(frame: &mut CompilerFrame<StmtBuilder>,
   // Bind all of the closure variables, closure functions, and global
   // variables inside.
   let mut lambda_table = SymbolTable::with_synthetics_from(table);
-  locally_bind_vars(compiler, table, &mut lambda_table, closure.closure_vars.names(), pos)?;
+  locally_bind_vars(compiler, table, &mut lambda_table, closure.closure_vars.names(), &[], pos)?;
   locally_bind_fns(compiler, *pipeline, table, &mut lambda_table, closure.closure_fns.names(), pos, &OuterStaticRef::InnerInstanceVar(&outer_ref_name))?;
   copy_global_vars(table, &mut lambda_table);
 
@@ -181,6 +181,7 @@ pub fn locally_bind_vars<'a, I, U>(compiler: &mut Compiler,
                                    table: &SymbolTable,
                                    lambda_table: &mut SymbolTable,
                                    closure_vars: I,
+                                   forbidden_names: &[&str],
                                    pos: SourceOffset)
                                    -> Result<(), Error>
 where I : Iterator<Item=&'a U>,
@@ -197,11 +198,23 @@ where I : Iterator<Item=&'a U>,
         if new_var == LocalVar::self_var() { // TODO Special case over in VarName?
           new_var = LocalVar::local(compiler.name_generator().generate_with("_self"), AccessType::ClosedRead);
         }
+        let mut name_generator = RegisteredNameGenerator::new_local_var(lambda_table);
+        protect_closure_var_name(&mut name_generator, &mut new_var, forbidden_names);
         lambda_table.set_var(var.borrow().to_owned(), new_var);
       }
     };
   }
   Ok(())
+}
+
+fn protect_closure_var_name(gen: &mut impl NameGenerator, var: &mut LocalVar, forbidden_names: &[&str]) {
+  if let Some(original_name) = var.simple_name() {
+    let mut final_name = original_name.to_owned();
+    while forbidden_names.contains(&&*final_name) {
+      final_name = gen.generate_with(original_name);
+    }
+    var.set_simple_name(final_name);
+  }
 }
 
 pub fn locally_bind_fns<'a, I, U, L>(compiler: &mut Compiler,
@@ -325,7 +338,7 @@ pub fn compile_lambda_stmt(frame: &mut CompilerFrame<StmtBuilder>,
 
   // Bind all of the closure variables, closure functions, and global
   // variables inside.
-  locally_bind_vars(compiler, table, &mut lambda_table, closure.closure_vars.names(), pos)?;
+  locally_bind_vars(compiler, table, &mut lambda_table, closure.closure_vars.names(), &[], pos)?;
   locally_bind_fns(compiler, *pipeline, table, &mut lambda_table, closure.closure_fns.names(), pos, &OuterStaticRef::InnerInstanceVar(&outer_ref_name))?;
   copy_global_vars(table, &mut lambda_table);
 
