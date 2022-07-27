@@ -14,6 +14,11 @@ use std::borrow::ToOwned;
 /// A contextual name generator is designed to generate names in a
 /// particular namespace and cannot be used in other namespaces, since
 /// conflicts are only detected in one namespace.
+///
+/// **Note:** `ContextualNameGenerator` does not modify the symbol
+/// table. For a variant of this type which keeps a mutable reference
+/// to a symbol table and modifies it to be aware of the new names,
+/// see [`super::registered::RegisteredNameGenerator`].
 #[derive(Debug, Clone)]
 pub struct ContextualNameGenerator<'a> {
   context: &'a SymbolTable,

@@ -13,7 +13,7 @@ use crate::compile::body::class_scope::DirectClassScope;
 use crate::compile::symbol_table::{SymbolTable, ClassTablePair};
 use crate::compile::symbol_table::local_var::LocalVar;
 use crate::compile::symbol_table::function_call::OuterStaticRef;
-use crate::compile::names::contextual::ContextualNameGenerator;
+use crate::compile::names::registered::RegisteredNameGenerator;
 use crate::compile::names::generator::NameGenerator;
 use crate::gdscript::decl::{self, Decl, DeclF, VarDecl};
 use crate::gdscript::inner_class::{self, NeedsOuterClassRef};
@@ -44,8 +44,7 @@ pub fn compile_lambda_class(frame: &mut CompilerFrame<StmtBuilder>,
   let extends = Compiler::resolve_extends(table, &extends, pos)?;
 
   // New GD name
-  let gd_class_name = ContextualNameGenerator::new(table, Namespace::Value).generate_with("_AnonymousClass");
-  table.add_synthetic_var(gd_class_name.clone(), false);
+  let gd_class_name = RegisteredNameGenerator::new_global_var(table).generate_with("_AnonymousClass");
 
   let closure = {
     let mut closure = ClosureData::from(class);

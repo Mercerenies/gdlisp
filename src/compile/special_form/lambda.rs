@@ -16,7 +16,7 @@ use crate::compile::error::{Error, ErrorF};
 use crate::compile::stateful::SideEffects;
 use crate::compile::names::{self, NameTrans};
 use crate::compile::names::fresh::FreshNameGenerator;
-use crate::compile::names::contextual::ContextualNameGenerator;
+use crate::compile::names::registered::RegisteredNameGenerator;
 use crate::compile::names::generator::NameGenerator;
 use crate::gdscript::stmt::{Stmt, StmtF};
 use crate::gdscript::expr::{Expr, ExprF};
@@ -65,8 +65,7 @@ pub fn compile_labels_scc(frame: &mut CompilerFrame<StmtBuilder>,
   }
 
   // Determine a name for the global class to represent the labels.
-  let class_name = ContextualNameGenerator::new(table, Namespace::Value).generate_with("_Labels");
-  table.add_synthetic_var(class_name.clone(), false);
+  let class_name = RegisteredNameGenerator::new_global_var(table).generate_with("_Labels");
 
   // Bind all of the closure variables, closure functions, and global
   // variables inside.
@@ -79,7 +78,7 @@ pub fn compile_labels_scc(frame: &mut CompilerFrame<StmtBuilder>,
   let gd_closure_vars = closure.to_gd_closure_vars(&lambda_table);
   let gd_src_closure_vars = closure.to_gd_closure_vars(table);
 
-  let local_var_name = ContextualNameGenerator::new(&table, Namespace::Value).generate_with("_locals");
+  let local_var_name = RegisteredNameGenerator::new_local_var(table).generate_with("_locals");
 
   // Bind the functions themselves
   let named_clauses = generate_names_for_scc_clauses(clauses.iter().copied(), compiler.name_generator());
@@ -148,7 +147,6 @@ pub fn compile_labels_scc(frame: &mut CompilerFrame<StmtBuilder>,
   let constructor_args: Vec<_> = gd_src_closure_vars.into_iter().map(|x| Expr::new(ExprF::Var(x), pos)).collect();
   let expr = Expr::call(Some(Expr::new(ExprF::Var(class_name), pos)), "new", constructor_args, pos);
   builder.append(Stmt::new(StmtF::VarDecl(local_var_name.clone(), expr), pos));
-  table.add_synthetic_var(local_var_name, true);
 
   Ok(bound_calls)
 }
@@ -308,8 +306,7 @@ pub fn compile_lambda_stmt(frame: &mut CompilerFrame<StmtBuilder>,
   };
 
   // Determine the eventual class name.
-  let class_name = ContextualNameGenerator::new(table, Namespace::Value).generate_with("_LambdaBlock");
-  table.add_synthetic_var(class_name.clone(), false);
+  let class_name = RegisteredNameGenerator::new_global_var(table).generate_with("_LambdaBlock");
 
   let mut lambda_table = SymbolTable::with_synthetics_from(table);
 
@@ -413,8 +410,7 @@ pub fn compile_function_ref(compiler: &mut Compiler,
     );
 
     // Generate the class and the constructor call.
-    let class_name = ContextualNameGenerator::new(table, Namespace::Value).generate_with("_FunctionRefBlock");
-    table.add_synthetic_var(class_name.clone(), false);
+    let class_name = RegisteredNameGenerator::new_global_var(table).generate_with("_FunctionRefBlock");
     let class = generate_lambda_class(class_name.clone(), func.specs, arglist, &gd_src_closure_vars, vec!(body), pos);
     builder.add_helper(Decl::new(DeclF::ClassDecl(class), pos));
     Ok(make_constructor_call(class_name, gd_src_closure_vars, vec!(), pos))

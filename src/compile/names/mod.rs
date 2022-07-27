@@ -6,6 +6,7 @@ use phf::{phf_map};
 pub mod contextual;
 pub mod fresh;
 pub mod generator;
+pub mod registered;
 
 // Note: Many of these translations are based on the similar
 // translations performed by the Scala compiler.
