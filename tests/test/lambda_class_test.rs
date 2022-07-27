@@ -74,7 +74,7 @@ pub fn closure_lambda_class_test() {
 }
 
 #[test]
-pub fn closure_and_args_lambda_class_test() { /////
+pub fn closure_and_args_lambda_class_test() {
 
   let result0 = parse_compile_and_output_h("(let ((a 1)) (new (Node 77) (defvar z) (defn _init (z) (set self:z z)) (defn foo () (+ self:z a))))");
   assert_eq!(result0.0, "var a_0 = 1\nreturn _AnonymousClass.new(a_0, 77)\n");
@@ -86,6 +86,44 @@ pub fn closure_and_args_lambda_class_test() { /////
     var z
     func foo():
         return self.z + a_0
+"#);
+
+}
+
+#[test]
+pub fn closure_and_args_lambda_class_with_name_conflict_test() {
+
+  let result0 = parse_compile_and_output_h("(let ((z 1)) (new (Node 77) (defvar z) (defn _init (z) (set self:z z)) (defn foo () (+ self:z z))))");
+  assert_eq!(result0.0, "var z_0 = 1\nreturn _AnonymousClass.new(z_0, 77)\n");
+  assert_eq!(result0.1, r#"class _AnonymousClass extends Node:
+    func _init(z_0, z):
+        self.z_0 = z_0
+        self.z = z
+    var z_0
+    var z
+    func foo():
+        return self.z + z_0
+"#);
+
+}
+
+#[test]
+pub fn closure_and_args_lambda_class_with_argument_name_conflict_test() {
+
+  let result0 = parse_compile_decl("((defn foo (z) (new (Node 77) (defvar z) (defn _init (z) (set self:z z)) (defn foo () (+ self:z z)))))");
+  assert_eq!(result0, r#"extends Reference
+class _AnonymousClass extends Node:
+    func _init(z, z_0):
+        self.z = z
+        self.z = z_0
+    var z
+    var z
+    func foo():
+        return self.z + z
+static func foo(z):
+    return _AnonymousClass.new(z, 77)
+static func run():
+    return null
 "#);
 
 }
