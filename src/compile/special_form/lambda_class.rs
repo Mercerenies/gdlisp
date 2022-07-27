@@ -1,7 +1,6 @@
 
 use crate::ir;
 use crate::ir::expr::LambdaClass;
-use crate::ir::identifier::Namespace;
 use crate::compile::error::{Error, ErrorF};
 use crate::compile::factory;
 use crate::compile::CompilerFrame;
