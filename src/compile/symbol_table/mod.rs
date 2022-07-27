@@ -41,8 +41,10 @@ pub struct SymbolTable {
 
   /// A mapping of GDScript variables that were
   /// synthetically-generated and do not have a GDLisp name
-  /// corresponding to them.
-  synthetic_locals: HashSet<String>,
+  /// corresponding to them. The Boolean indicates whether the
+  /// variable is local to the current function or not. Locals will be
+  /// cleared by [`clear_synthetic_locals`].
+  synthetic_locals: HashMap<String, bool>,
 
   /// A mapping from GDLisp names to [`FnCall`] and corresponding
   /// [`CallMagic`] instances.
@@ -52,9 +54,8 @@ pub struct SymbolTable {
   /// this map shall always be valid keys in `functions`.
   reverse_functions: HashMap<String, String>,
 
-  /// A mapping of GDScript functions that were
-  /// synthetically-generated and do not have a GDLisp name
-  /// corresponding to them.
+  /// A set of GDScript functions that were synthetically-generated
+  /// and do not have a GDLisp name corresponding to them.
   synthetic_functions: HashSet<String>,
 }
 
@@ -126,14 +127,19 @@ impl SymbolTable {
   /// Adds a synthetic GDScript variable to the symbol table.
   /// Synthetic GDScript variables do not appear in the symbol table's
   /// maps but will respond to [`has_var_with_gd_name`].
-  pub fn add_synthetic_var(&mut self, name: String) {
-    self.synthetic_locals.insert(name);
+  pub fn add_synthetic_var(&mut self, name: String, is_local: bool) {
+    self.synthetic_locals.insert(name, is_local);
   }
 
   /// Removes a synthetic GDScript variable. See
   /// [`add_synthetic_var`].
   pub fn remove_synthetic_var(&mut self, name: &str) {
     self.synthetic_locals.remove(name);
+  }
+
+  /// Removes all synthetic variables marked with `is_local`.
+  pub fn clear_synthetic_locals(&mut self) {
+    self.synthetic_locals.retain(|_, is_local| !*is_local);
   }
 
   /// Gets the function call and call magic associated with the given
@@ -215,7 +221,7 @@ impl SymbolTable {
   /// GDScript name.
   pub fn has_var_with_gd_name(&self, name: &str) -> bool {
     self.reverse_locals.contains_key(name) ||
-      self.synthetic_locals.contains(name)
+      self.synthetic_locals.contains_key(name)
   }
 
   /// Returns true if the symbol table has a function with the given
@@ -432,7 +438,7 @@ mod tests {
   fn test_synthetic_vars() {
     let mut table = SymbolTable::new();
     assert_eq!(table.has_var_with_gd_name("foo"), false);
-    table.add_synthetic_var(String::from("foo"));
+    table.add_synthetic_var(String::from("foo"), false);
     assert_eq!(table.has_var_with_gd_name("foo"), true);
     table.remove_synthetic_var("foo");
     assert_eq!(table.has_var_with_gd_name("foo"), false);

@@ -66,7 +66,7 @@ mod tests {
   #[test]
   fn contextual_generate() {
     let mut table = SymbolTable::new();
-    table.add_synthetic_var(String::from("_G"));
+    table.add_synthetic_var(String::from("_G"), true);
     let mut gen = ContextualNameGenerator::new(Namespace::Value, &table);
     assert_eq!(gen.generate(), "_G_0");
     assert_eq!(gen.generate(), "_G_0");

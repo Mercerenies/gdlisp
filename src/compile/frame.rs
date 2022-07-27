@@ -241,6 +241,7 @@ impl<'a, 'b, 'c, 'd, 'e> CompilerFrame<'a, 'b, 'c, 'd, 'e, CodeBuilder> {
       Compiler::bind_decl(&self.compiler.magic_table, &mut self.pipeline, &mut self.table, decl)?;
     }
     for decl in decls {
+      self.table.clear_synthetic_locals();
       self.compile_decl(decl)?;
     }
     Ok(())
