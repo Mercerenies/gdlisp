@@ -66,7 +66,7 @@ pub fn compile_labels_scc(frame: &mut CompilerFrame<StmtBuilder>,
 
   // Bind all of the closure variables, closure functions, and global
   // variables inside.
-  let mut lambda_table = SymbolTable::new();
+  let mut lambda_table = SymbolTable::with_synthetics_from(table);
   locally_bind_vars(compiler, table, &mut lambda_table, closure.closure_vars.names(), pos)?;
   locally_bind_fns(compiler, *pipeline, table, &mut lambda_table, closure.closure_fns.names(), pos, &OuterStaticRef::InnerInstanceVar(&outer_ref_name))?;
   copy_global_vars(table, &mut lambda_table);
@@ -304,7 +304,7 @@ pub fn compile_lambda_stmt(frame: &mut CompilerFrame<StmtBuilder>,
     closure
   };
 
-  let mut lambda_table = SymbolTable::new();
+  let mut lambda_table = SymbolTable::with_synthetics_from(table);
 
   // Bind the arguments to the lambda in the new lambda table.
   for arg in &gd_args {

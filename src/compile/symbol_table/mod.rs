@@ -77,6 +77,28 @@ impl SymbolTable {
     SymbolTable::default()
   }
 
+  /// A new, empty symbol table which inherits its synthetic variables
+  /// from the given symbol table. Only global synthetic variables and
+  /// functions are inherited; local synthetic variables from the
+  /// prior table are discarded.
+  pub fn with_synthetics_from(table: &SymbolTable) -> SymbolTable {
+    let mut new_table = SymbolTable::new();
+
+    // Variables
+    for (var, is_local) in &table.synthetic_locals {
+      if !is_local {
+        new_table.add_synthetic_var(var.to_owned(), false);
+      }
+    }
+
+    // Functions (cannot be local, so assume all are global)
+    for fun in &table.synthetic_functions {
+      new_table.add_synthetic_fn(fun.to_owned());
+    }
+
+    new_table
+  }
+
   /// Gets the variable with the given GDLisp name, or `None` if no such
   /// variable exists in the table.
   pub fn get_var(&self, name: &str) -> Option<&LocalVar> {

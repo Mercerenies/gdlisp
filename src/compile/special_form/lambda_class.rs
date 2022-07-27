@@ -60,7 +60,7 @@ pub fn compile_lambda_class(frame: &mut CompilerFrame<StmtBuilder>,
     outer_ref_name = compiler.name_generator().generate_with(inner_class::OUTER_REFERENCE_NAME);
   }
 
-  let mut lambda_table = SymbolTable::new();
+  let mut lambda_table = SymbolTable::with_synthetics_from(table);
 
   // Bind self into the lambda table.
   lambda_table.set_var(String::from("self"), LocalVar::self_var());
