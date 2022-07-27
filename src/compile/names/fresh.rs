@@ -43,6 +43,7 @@ impl FreshNameGenerator {
       index: 0,
     }
   }
+
   /// Convert the `FreshNameGenerator` to a JSON value, suitable for
   /// restoring the generator later with
   /// [`FreshNameGenerator::from_json`].

@@ -3,6 +3,7 @@
 
 use phf::{phf_map};
 
+pub mod contextual;
 pub mod fresh;
 pub mod generator;
 
