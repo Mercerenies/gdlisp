@@ -23,7 +23,7 @@ pub struct ContextualNameGenerator<'a> {
 impl<'a> ContextualNameGenerator<'a> {
 
   /// Construct a new `ContextualNameGenerator` from a symbol table.
-  pub fn new(namespace: Namespace, context: &SymbolTable) -> ContextualNameGenerator<'_> {
+  pub fn new(context: &SymbolTable, namespace: Namespace) -> ContextualNameGenerator<'_> {
     ContextualNameGenerator { context, namespace }
   }
 
@@ -57,7 +57,7 @@ mod tests {
   #[test]
   fn empty_generate() {
     let table = SymbolTable::new();
-    let mut gen = ContextualNameGenerator::new(Namespace::Value, &table);
+    let mut gen = ContextualNameGenerator::new(&table, Namespace::Value);
     assert_eq!(gen.generate(), "_G");
     assert_eq!(gen.generate(), "_G");
     assert_eq!(gen.generate(), "_G");
@@ -67,7 +67,7 @@ mod tests {
   fn contextual_generate() {
     let mut table = SymbolTable::new();
     table.add_synthetic_var(String::from("_G"), true);
-    let mut gen = ContextualNameGenerator::new(Namespace::Value, &table);
+    let mut gen = ContextualNameGenerator::new(&table, Namespace::Value);
     assert_eq!(gen.generate(), "_G_0");
     assert_eq!(gen.generate(), "_G_0");
     assert_eq!(gen.generate(), "_G_0");
