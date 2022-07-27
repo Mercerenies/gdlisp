@@ -14,7 +14,7 @@ use super::common::*;
 pub fn empty_object_test() {
   assert_eq!(parse_compile_decl("((defobject Foo (Reference)))"),
              r#"extends Reference
-class _AnonymousClass_2 extends Reference:
+class _AnonymousClass extends Reference:
     func _init():
         pass
 static func _lazy_0():
@@ -24,9 +24,9 @@ static func _lazy_0():
         _cond_1 = _this_file_1_0.get_meta("__gdlisp_Lazy__G_3")
     else:
         if true:
-            var _value_2_3 = _AnonymousClass_2.new()
-            _this_file_1_0.set_meta("__gdlisp_Lazy__G_3", _value_2_3)
-            _cond_1 = _value_2_3
+            var _value_2_2 = _AnonymousClass.new()
+            _this_file_1_0.set_meta("__gdlisp_Lazy__G_3", _value_2_2)
+            _cond_1 = _value_2_2
         else:
             _cond_1 = null
     return _cond_1

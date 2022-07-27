@@ -9,19 +9,19 @@ use super::common::*;
 pub fn basic_lambda_class_test() {
 
   let result0 = parse_compile_and_output_h("(new Node)");
-  assert_eq!(result0.0, "return _AnonymousClass_0.new()\n");
-  assert_eq!(result0.1, r#"class _AnonymousClass_0 extends Node:
+  assert_eq!(result0.0, "return _AnonymousClass.new()\n");
+  assert_eq!(result0.1, r#"class _AnonymousClass extends Node:
     func _init():
         pass
 "#);
 
   let result1 = parse_compile_and_output_h("(new Node (defn foo (x) (+ x 1)))");
-  assert_eq!(result1.0, "return _AnonymousClass_0.new()\n");
-  assert_eq!(result1.1, r#"class _AnonymousClass_0 extends Node:
+  assert_eq!(result1.0, "return _AnonymousClass.new()\n");
+  assert_eq!(result1.1, r#"class _AnonymousClass extends Node:
     func _init():
         pass
-    func foo(x_1):
-        return x_1 + 1
+    func foo(x_0):
+        return x_0 + 1
 "#);
 
 }
@@ -30,8 +30,8 @@ pub fn basic_lambda_class_test() {
 pub fn constructor_lambda_class_test() {
 
   let result0 = parse_compile_and_output_h("(new Node (defvar x) (defn _init () (set self:x 1)) (defn foo () self:x))");
-  assert_eq!(result0.0, "return _AnonymousClass_0.new()\n");
-  assert_eq!(result0.1, r#"class _AnonymousClass_0 extends Node:
+  assert_eq!(result0.0, "return _AnonymousClass.new()\n");
+  assert_eq!(result0.1, r#"class _AnonymousClass extends Node:
     func _init():
         self.x = 1
     var x
@@ -45,11 +45,11 @@ pub fn constructor_lambda_class_test() {
 pub fn constructor_args_lambda_class_test() {
 
   let result0 = parse_compile_and_output_h("(new (Node 99) (defvar x) (defvar y) (defn _init (y) (set self:x 1) (set self:y y)) (defn foo () [self:x self:y]))");
-  assert_eq!(result0.0, "return _AnonymousClass_0.new(99)\n");
-  assert_eq!(result0.1, r#"class _AnonymousClass_0 extends Node:
-    func _init(y_1):
+  assert_eq!(result0.0, "return _AnonymousClass.new(99)\n");
+  assert_eq!(result0.1, r#"class _AnonymousClass extends Node:
+    func _init(y_0):
         self.x = 1
-        self.y = y_1
+        self.y = y_0
     var x
     var y
     func foo():
@@ -62,13 +62,13 @@ pub fn constructor_args_lambda_class_test() {
 pub fn closure_lambda_class_test() {
 
   let result0 = parse_compile_and_output_h("(let ((a 1)) (new Node (defn foo (x) (+ x a))))");
-  assert_eq!(result0.0, "var a_0 = 1\nreturn _AnonymousClass_1.new(a_0)\n");
-  assert_eq!(result0.1, r#"class _AnonymousClass_1 extends Node:
+  assert_eq!(result0.0, "var a_0 = 1\nreturn _AnonymousClass.new(a_0)\n");
+  assert_eq!(result0.1, r#"class _AnonymousClass extends Node:
     func _init(a_0):
         self.a_0 = a_0
     var a_0
-    func foo(x_2):
-        return x_2 + a_0
+    func foo(x_1):
+        return x_1 + a_0
 "#);
 
 }
@@ -77,11 +77,11 @@ pub fn closure_lambda_class_test() {
 pub fn closure_and_args_lambda_class_test() {
 
   let result0 = parse_compile_and_output_h("(let ((a 1)) (new (Node 77) (defvar z) (defn _init (z) (set self:z z)) (defn foo () (+ self:z a))))");
-  assert_eq!(result0.0, "var a_0 = 1\nreturn _AnonymousClass_1.new(a_0, 77)\n");
-  assert_eq!(result0.1, r#"class _AnonymousClass_1 extends Node:
-    func _init(a_0, z_2):
+  assert_eq!(result0.0, "var a_0 = 1\nreturn _AnonymousClass.new(a_0, 77)\n");
+  assert_eq!(result0.1, r#"class _AnonymousClass extends Node:
+    func _init(a_0, z_1):
         self.a_0 = a_0
-        self.z = z_2
+        self.z = z_1
     var a_0
     var z
     func foo():
@@ -94,7 +94,7 @@ pub fn closure_and_args_lambda_class_test() {
 pub fn capture_self_lambda_class_test() {
   let result = parse_compile_decl("((defclass Foo (Reference) (defn f () (new Reference (defn g () self)))))");
   assert_eq!(result, r#"extends Reference
-class _AnonymousClass_0 extends Reference:
+class _AnonymousClass extends Reference:
     func _init():
         pass
     func g():
@@ -103,7 +103,7 @@ class Foo extends Reference:
     func _init():
         pass
     func f():
-        return _AnonymousClass_0.new()
+        return _AnonymousClass.new()
 static func run():
     return null
 "#);
@@ -115,12 +115,12 @@ pub fn constructor_uses_outer_ref_lambda_class_test() {
   assert_eq!(result, r#"extends Reference
 static func foo():
     return 1
-class _AnonymousClass_0 extends Reference:
+class _AnonymousClass extends Reference:
     func _init():
-        __gdlisp_outer_class_1.foo()
-    var __gdlisp_outer_class_1 = load("res://TEST.gd")
+        __gdlisp_outer_class_0.foo()
+    var __gdlisp_outer_class_0 = load("res://TEST.gd")
 static func run():
-    return _AnonymousClass_0.new()
+    return _AnonymousClass.new()
 "#);
 }
 
