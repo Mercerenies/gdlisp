@@ -251,6 +251,27 @@ impl LocalVar {
     self.name.simple_name()
   }
 
+  /// Replaces the simple, unqualified name of the variable. If the
+  /// variable has no unqualified name, then this function does
+  /// nothing.
+  pub fn set_simple_name(&mut self, name: String) {
+    match &mut self.name {
+      VarName::Local(s) => {
+        *s = name;
+      }
+      VarName::FileConstant(s) => {
+        *s = name;
+      }
+      VarName::Superglobal(s) => {
+        *s = name;
+      }
+      VarName::ImportedConstant(_, _) => {}
+      VarName::SubscriptedConstant(_, _) => {}
+      VarName::CurrentFile(_) => {}
+      VarName::Null => {}
+    }
+  }
+
   /// An `Expr` which references the value of this variable. If this
   /// variable requires a cell (`self.access_type.requires_cell()`),
   /// then this access expression contains the necessary subscripting
