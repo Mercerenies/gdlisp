@@ -88,8 +88,27 @@ pub fn recursive_single_labels_test() {
   assert_eq!(result0.1, r#"class _Labels extends Reference:
     func _init():
         pass
-    func _fn_f_0(x_1):
-        return _fn_f_0(x_1)
+    func _fn_f_0(x):
+        return _fn_f_0(x)
+"#);
+}
+
+#[test]
+pub fn recursive_single_labels_with_contrived_local_name_test() {
+  let result = parse_compile_decl("((defconst x 0) (let ((x 1)) (labels ((f (x_0) (f x_0) (f x))) (f 1))))");
+  assert_eq!(result, r#"extends Reference
+const x = 0
+class _Labels extends Reference:
+    var x_1
+    func _init(x_1):
+        self.x_1 = x_1
+    func _fn_f_2(x_0):
+        _fn_f_2(x_0)
+        return _fn_f_2(x_1)
+static func run():
+    var x_1 = 1
+    var _locals = _Labels.new(x_1)
+    return _locals._fn_f_2(1)
 "#);
 }
 
@@ -100,10 +119,10 @@ pub fn recursive_double_labels_test() {
   assert_eq!(result0.1, r#"class _Labels extends Reference:
     func _init():
         pass
-    func _fn_f_0(x_2):
-        return _fn_g_1(x_2)
-    func _fn_g_1(x_3):
-        return _fn_f_0(x_3)
+    func _fn_f_0(x):
+        return _fn_g_1(x)
+    func _fn_g_1(x):
+        return _fn_f_0(x)
 "#);
 }
 
@@ -116,8 +135,8 @@ pub fn recursive_single_with_extra_beginning_labels_test() {
 class _Labels extends Reference:
     func _init():
         pass
-    func _fn_f_3(x_4):
-        return _fn_f_3(__gdlisp_outer_class_2._flet_0(x_4))
+    func _fn_f_3(x):
+        return _fn_f_3(__gdlisp_outer_class_2._flet_0(x))
     var __gdlisp_outer_class_2 = load("res://TEST.gd")
 "#);
 }
@@ -125,12 +144,12 @@ class _Labels extends Reference:
 #[test]
 pub fn recursive_single_with_extra_end_labels_test() {
   let result0 = parse_compile_and_output_h("(labels ((f (x) (f x)) (g (x) (f x))) (g 1))");
-  assert_eq!(result0.0, "var _locals = _Labels.new()\nvar _flet_3 = _LambdaBlock.new(_locals)\nreturn _flet_3.call_func(1)\n");
+  assert_eq!(result0.0, "var _locals = _Labels.new()\nvar _flet_2 = _LambdaBlock.new(_locals)\nreturn _flet_2.call_func(1)\n");
   assert_eq!(result0.1, r#"class _Labels extends Reference:
     func _init():
         pass
-    func _fn_f_0(x_1):
-        return _fn_f_0(x_1)
+    func _fn_f_0(x):
+        return _fn_f_0(x)
 class _LambdaBlock extends GDLisp.Function:
     var _locals
     func _init(_locals):
@@ -138,8 +157,8 @@ class _LambdaBlock extends GDLisp.Function:
         self.__gdlisp_required = 1
         self.__gdlisp_optional = 0
         self.__gdlisp_rest = 0
-    func call_func(x_2):
-        return _locals._fn_f_0(x_2)
+    func call_func(x_1):
+        return _locals._fn_f_0(x_1)
     func call_funcv(args):
         var required_0 = null
         if args == null:
@@ -161,8 +180,8 @@ pub fn recursive_single_indirect_labels_test() {
   assert_eq!(result0.1, r#"class _Labels extends Reference:
     func _init():
         pass
-    func _fn_f_0(x_1):
-        return _fn_f_0(x_1)
+    func _fn_f_0(x):
+        return _fn_f_0(x)
 class _FunctionRefBlock extends GDLisp.Function:
     var _locals
     func _init(_locals):
@@ -193,8 +212,8 @@ pub fn recursive_single_labels_decl_test_1() {
 class _Labels extends Reference:
     func _init():
         pass
-    func _fn_f_0(x_1):
-        return _fn_f_0(x_1)
+    func _fn_f_0(x):
+        return _fn_f_0(x)
 static func run():
     var _locals = _Labels.new()
     return _locals._fn_f_0(1)
@@ -211,8 +230,8 @@ const _locals = 0
 class _Labels extends Reference:
     func _init():
         pass
-    func _fn_f_0(x_1):
-        return _fn_f_0(x_1)
+    func _fn_f_0(x):
+        return _fn_f_0(x)
 static func run():
     var _locals_0 = _Labels.new()
     return _locals_0._fn_f_0(1)
@@ -235,35 +254,35 @@ pub fn contrived_nested_labels_test() {
 class _Labels extends Reference:
     func _init():
         pass
-    func _fn_f_0(x_1):
-        return _fn_f_0(x_1)
+    func _fn_f_0(x):
+        return _fn_f_0(x)
 class _Labels_0 extends Reference:
     var _locals
     func _init(_locals):
         self._locals = _locals
-    func _fn_g_2(x_3):
-        _locals._fn_f_0(x_3)
-        return _fn_g_2(x_3)
+    func _fn_g_1(x):
+        _locals._fn_f_0(x)
+        return _fn_g_1(x)
 class _Labels_1 extends Reference:
     func _init():
         pass
-    func _fn_f_4(x_5):
-        return _fn_f_4(x_5)
+    func _fn_f_2(x):
+        return _fn_f_2(x)
 class _Labels_2 extends Reference:
     var _locals_1
     func _init(_locals_1):
         self._locals_1 = _locals_1
-    func _fn_g_6(x_7):
-        _locals_1._fn_f_4(x_7)
-        return _fn_g_6(x_7)
+    func _fn_g_3(x):
+        _locals_1._fn_f_2(x)
+        return _fn_g_3(x)
 static func run():
     var _locals = _Labels.new()
     var _locals_0 = _Labels_0.new(_locals)
     _locals._fn_f_0(1)
-    _locals_0._fn_g_2(2)
+    _locals_0._fn_g_1(2)
     var _locals_1 = _Labels_1.new()
     var _locals_2 = _Labels_2.new(_locals_1)
-    _locals_1._fn_f_4(1)
-    return _locals_2._fn_g_6(2)
+    _locals_1._fn_f_2(1)
+    return _locals_2._fn_g_3(2)
 "#);
 }

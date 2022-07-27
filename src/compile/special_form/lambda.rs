@@ -3,7 +3,6 @@ use crate::util::unzip_err;
 use crate::ir;
 use crate::ir::expr::{Locals, LocalFnClause};
 use crate::ir::access_type::AccessType;
-use crate::ir::identifier::Namespace;
 use crate::compile::{Compiler, StExpr};
 use crate::compile::frame::CompilerFrame;
 use crate::compile::body::builder::StmtBuilder;
@@ -91,7 +90,7 @@ pub fn compile_labels_scc(frame: &mut CompilerFrame<StmtBuilder>,
   let (bound_calls, functions) = unzip_err::<Error, Vec<_>, Vec<_>, _, _, _>(named_clauses.iter().map(|(func_name, clause)| {
     let mut lambda_table = lambda_table.clone(); // New table for this particular function
     let mut lambda_builder = StmtBuilder::new();
-    let (arglist, gd_args) = clause.args.clone().into_gd_arglist(&mut compiler.name_generator());
+    let (arglist, gd_args) = clause.args.clone().into_gd_arglist(&mut RegisteredNameGenerator::new_local_var(&mut lambda_table));
     // Bind the function arguments
     for NameTrans { lisp_name: arg, gd_name: gd_arg } in &gd_args {
       let access_type = *closure.all_vars.get(&arg).unwrap_or(&AccessType::None);
@@ -295,7 +294,7 @@ pub fn compile_lambda_stmt(frame: &mut CompilerFrame<StmtBuilder>,
 
   let mut class_scope = class_scope.closure_mut();
 
-  let (arglist, gd_args) = args.clone().into_gd_arglist(&mut compiler.name_generator());
+  let (arglist, gd_args) = args.clone().into_gd_arglist(compiler.name_generator());
 
   let closure = {
     let mut closure = ClosureData::from(Function::new(args, body));

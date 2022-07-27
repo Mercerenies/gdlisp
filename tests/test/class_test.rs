@@ -548,7 +548,7 @@ class _Labels extends Reference:
     var _self_0
     func _init(_self_0):
         self._self_0 = _self_0
-    func _fn_foo_1(x_2):
+    func _fn_foo_1(x):
         return _fn_foo_1(_self_0)
 class Foo extends Node:
     func _init():
@@ -570,7 +570,7 @@ class _Labels_0 extends Reference:
     var _self_0
     func _init(_self_0):
         self._self_0 = _self_0
-    func _fn_foo_1(x_2):
+    func _fn_foo_1(x):
         return _fn_foo_1(_self_0)
 class Foo extends Node:
     func _init():
