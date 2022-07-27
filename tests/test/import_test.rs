@@ -140,8 +140,8 @@ fn macro_uses_other_import_test() {
   let result = pipeline.load_file("main.lisp").unwrap().gdscript.to_gd();
   assert_eq!(result, r#"extends Node
 const _Import_0 = preload("res://example.gd")
-static func f(x_1):
-    return _Import_0.add_one(x_1)
+static func f(x):
+    return _Import_0.add_one(x)
 static func run():
     return 44
 "#);

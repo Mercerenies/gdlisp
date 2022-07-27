@@ -17,28 +17,28 @@ pub fn empty_file_test() {
 #[test]
 pub fn simple_function_declaration_test() {
   assert_eq!(parse_compile_decl("((defn foo (x) x))"),
-             "extends Reference\nstatic func foo(x_0):\n    return x_0\nstatic func run():\n    return null\n");
+             "extends Reference\nstatic func foo(x):\n    return x\nstatic func run():\n    return null\n");
 }
 
 #[test]
 pub fn lambda_in_function_declaration_test() {
   assert_eq!(parse_compile_decl("((defn foo (x) (lambda () x) x))"), r#"extends Reference
 class _LambdaBlock extends GDLisp.Function:
-    var x_0
-    func _init(x_0):
-        self.x_0 = x_0
+    var x
+    func _init(x):
+        self.x = x
         self.__gdlisp_required = 0
         self.__gdlisp_optional = 0
         self.__gdlisp_rest = 0
     func call_func():
-        return x_0
+        return x
     func call_funcv(args):
         if args == null:
             return call_func()
         else:
             push_error("Too many arguments")
-static func foo(x_0):
-    return x_0
+static func foo(x):
+    return x
 static func run():
     return null
 "#);
@@ -48,23 +48,23 @@ static func run():
 pub fn closed_rw_in_function_declaration_test() {
   assert_eq!(parse_compile_decl("((defn foo (x) (lambda () (set x 1)) x))"), r#"extends Reference
 class _LambdaBlock extends GDLisp.Function:
-    var x_0
-    func _init(x_0):
-        self.x_0 = x_0
+    var x
+    func _init(x):
+        self.x = x
         self.__gdlisp_required = 0
         self.__gdlisp_optional = 0
         self.__gdlisp_rest = 0
     func call_func():
-        x_0.contents = 1
-        return x_0.contents
+        x.contents = 1
+        return x.contents
     func call_funcv(args):
         if args == null:
             return call_func()
         else:
             push_error("Too many arguments")
-static func foo(x_0):
-    x_0 = GDLisp.Cell.new(x_0)
-    return x_0.contents
+static func foo(x):
+    x = GDLisp.Cell.new(x)
+    return x.contents
 static func run():
     return null
 "#);

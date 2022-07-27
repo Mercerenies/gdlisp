@@ -59,7 +59,7 @@ pub fn semiglobal_flet_test() {
 
   let result0 = parse_compile_and_output_h("(flet ((f (x) (+ x 1))) (f 10))");
   assert_eq!(result0.0, "return _flet_0(10)\n");
-  assert_eq!(result0.1, "static func _flet_0(x_1):\n    return x_1 + 1\n");
+  assert_eq!(result0.1, "static func _flet_0(x):\n    return x + 1\n");
 
 }
 
@@ -68,8 +68,8 @@ pub fn semiglobal_flet_test_indirect() {
 
   let result0 = parse_compile_and_output_h("(flet ((f (x) (+ x 1))) (funcall (function f) 10))");
   assert_eq!(result0.0, "return GDLisp.funcall(_FunctionRefBlock.new(), GDLisp.Cons.new(10, null))\n");
-  assert_eq!(result0.1, r#"static func _flet_0(x_1):
-    return x_1 + 1
+  assert_eq!(result0.1, r#"static func _flet_0(x):
+    return x + 1
 class _FunctionRefBlock extends GDLisp.Function:
     func _init():
         self.__gdlisp_required = 1

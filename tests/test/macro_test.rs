@@ -11,7 +11,7 @@ use super::common::*;
 
 #[test]
 pub fn simple_macro_test() {
-  assert_eq!(parse_compile_decl("((defmacro foo (x) x))"), "extends Reference\nstatic func foo(x_0):\n    return x_0\nstatic func run():\n    return null\n")
+  assert_eq!(parse_compile_decl("((defmacro foo (x) x))"), "extends Reference\nstatic func foo(x):\n    return x\nstatic func run():\n    return null\n")
 }
 
 #[test]
@@ -31,22 +31,22 @@ pub fn builtin_symbol_macro_test() {
 
 #[test]
 pub fn arithmetic_macro_test() {
-  assert_eq!(parse_compile_decl("((defmacro foo (x) (+ x 100)) (foo 9))"), "extends Reference\nstatic func foo(x_0):\n    return x_0 + 100\nstatic func run():\n    return 109\n");
+  assert_eq!(parse_compile_decl("((defmacro foo (x) (+ x 100)) (foo 9))"), "extends Reference\nstatic func foo(x):\n    return x + 100\nstatic func run():\n    return 109\n");
 }
 
 #[test]
 pub fn quote_macro_test() {
-  assert_eq!(parse_compile_decl("((defmacro my-quote (x) (cons 'quote (cons x ()))) (my-quote abc))"), "extends Reference\nstatic func my_quote(x_0):\n    return GDLisp.cons(GDLisp.intern(\"quote\"), GDLisp.cons(x_0, null))\nstatic func run():\n    return GDLisp.intern(\"abc\")\n");
+  assert_eq!(parse_compile_decl("((defmacro my-quote (x) (cons 'quote (cons x ()))) (my-quote abc))"), "extends Reference\nstatic func my_quote(x):\n    return GDLisp.cons(GDLisp.intern(\"quote\"), GDLisp.cons(x, null))\nstatic func run():\n    return GDLisp.intern(\"abc\")\n");
 }
 
 #[test]
 pub fn macro_in_macro_test() {
-  assert_eq!(parse_compile_decl("((defmacro foo (x) (+ x 1)) (defmacro bar () (foo 0)) (bar))"), "extends Reference\nstatic func foo(x_0):\n    return x_0 + 1\nstatic func bar():\n    return 1\nstatic func run():\n    return 1\n");
+  assert_eq!(parse_compile_decl("((defmacro foo (x) (+ x 1)) (defmacro bar () (foo 0)) (bar))"), "extends Reference\nstatic func foo(x):\n    return x + 1\nstatic func bar():\n    return 1\nstatic func run():\n    return 1\n");
 }
 
 #[test]
 pub fn macro_from_macro_test() {
-  assert_eq!(parse_compile_decl("((defmacro foo (x) (+ x 1)) (defmacro bar (x) (cons 'foo (cons x ()))) (bar 2))"), "extends Reference\nstatic func foo(x_0):\n    return x_0 + 1\nstatic func bar(x_1):\n    return GDLisp.cons(GDLisp.intern(\"foo\"), GDLisp.cons(x_1, null))\nstatic func run():\n    return 3\n");
+  assert_eq!(parse_compile_decl("((defmacro foo (x) (+ x 1)) (defmacro bar (x) (cons 'foo (cons x ()))) (bar 2))"), "extends Reference\nstatic func foo(x):\n    return x + 1\nstatic func bar(x):\n    return GDLisp.cons(GDLisp.intern(\"foo\"), GDLisp.cons(x, null))\nstatic func run():\n    return 3\n");
 }
 
 #[test]
@@ -59,17 +59,17 @@ pub fn bad_args_macro_test() {
 
 #[test]
 pub fn rest_args_macro_test() {
-  assert_eq!(parse_compile_decl("((defmacro foo (&rest x) x) (foo + 1 2))"), "extends Reference\nstatic func foo(x_0):\n    return x_0\nstatic func run():\n    return 1 + 2\n");
+  assert_eq!(parse_compile_decl("((defmacro foo (&rest x) x) (foo + 1 2))"), "extends Reference\nstatic func foo(x):\n    return x\nstatic func run():\n    return 1 + 2\n");
 }
 
 #[test]
 pub fn optional_args_macro_test_1() {
-  assert_eq!(parse_compile_decl("((defmacro foo (&opt x) x) (foo 1))"), "extends Reference\nstatic func foo(x_0):\n    return x_0\nstatic func run():\n    return 1\n");
+  assert_eq!(parse_compile_decl("((defmacro foo (&opt x) x) (foo 1))"), "extends Reference\nstatic func foo(x):\n    return x\nstatic func run():\n    return 1\n");
 }
 
 #[test]
 pub fn optional_args_macro_test_2() {
-  assert_eq!(parse_compile_decl("((defmacro foo (&opt x) x) (foo))"), "extends Reference\nstatic func foo(x_0):\n    return x_0\nstatic func run():\n    return null\n");
+  assert_eq!(parse_compile_decl("((defmacro foo (&opt x) x) (foo))"), "extends Reference\nstatic func foo(x):\n    return x\nstatic func run():\n    return null\n");
 }
 
 #[test]
@@ -301,13 +301,13 @@ static func run():
 pub fn gensym_test_1() {
   let result = parse_compile_decl("((defmacro foo (a) (let ((x (gensym))) `(let ((,x ,a)) [,x ,x]))) (foo 10))");
   assert_eq!(result, r#"extends Reference
-static func foo(a_0):
-    var x_1 = GDLisp.gensym(null)
-    var _quasiquote_2 = null
-    return GDLisp.cons(GDLisp.intern("let"), GDLisp.cons(GDLisp.cons(GDLisp.cons(x_1, GDLisp.cons(a_0, _quasiquote_2)), null), GDLisp.cons([x_1, x_1], null)))
+static func foo(a):
+    var x_0 = GDLisp.gensym(null)
+    var _quasiquote_1 = null
+    return GDLisp.cons(GDLisp.intern("let"), GDLisp.cons(GDLisp.cons(GDLisp.cons(x_0, GDLisp.cons(a, _quasiquote_1)), null), GDLisp.cons([x_0, x_0], null)))
 static func run():
-    var _G_0_3 = 10
-    return [_G_0_3, _G_0_3]
+    var _G_0_2 = 10
+    return [_G_0_2, _G_0_2]
 "#);
 }
 
@@ -315,13 +315,13 @@ static func run():
 pub fn gensym_test_2() {
   let result = parse_compile_decl("((defmacro foo (a) (let ((x (gensym))) `(let ((,x ,a)) [,x ,x]))) [(foo 10) '_G_0])");
   assert_eq!(result, r#"extends Reference
-static func foo(a_0):
-    var x_1 = GDLisp.gensym(null)
-    var _quasiquote_2 = null
-    return GDLisp.cons(GDLisp.intern("let"), GDLisp.cons(GDLisp.cons(GDLisp.cons(x_1, GDLisp.cons(a_0, _quasiquote_2)), null), GDLisp.cons([x_1, x_1], null)))
+static func foo(a):
+    var x_0 = GDLisp.gensym(null)
+    var _quasiquote_1 = null
+    return GDLisp.cons(GDLisp.intern("let"), GDLisp.cons(GDLisp.cons(GDLisp.cons(x_0, GDLisp.cons(a, _quasiquote_1)), null), GDLisp.cons([x_0, x_0], null)))
 static func run():
-    var _G_1_3 = 10
-    return [[_G_1_3, _G_1_3], GDLisp.intern("_G_0")]
+    var _G_1_2 = 10
+    return [[_G_1_2, _G_1_2], GDLisp.intern("_G_0")]
 "#);
 }
 
@@ -392,23 +392,23 @@ pub fn macro_inner_class_test_4() {
      (foo))
 "#);
   assert_eq!(result, r#"extends Reference
-static func add_one(x_0):
-    return x_0 + 1
+static func add_one(x):
+    return x + 1
 class Foo extends Reference:
     func _init():
         pass
     func f():
-        return __gdlisp_outer_class_1.add_one(10)
-    var __gdlisp_outer_class_1 = load("res://TEST.gd")
+        return __gdlisp_outer_class_0.add_one(10)
+    var __gdlisp_outer_class_0 = load("res://TEST.gd")
 class Bar extends Foo:
     func _init():
         pass
     func g():
-        return __gdlisp_outer_class_2.add_one(5)
-    var __gdlisp_outer_class_2 = load("res://TEST.gd")
+        return __gdlisp_outer_class_1.add_one(5)
+    var __gdlisp_outer_class_1 = load("res://TEST.gd")
 static func foo():
-    var x_3 = Bar.new()
-    return x_3.f() + x_3.g()
+    var x_2 = Bar.new()
+    return x_2.f() + x_2.g()
 static func run():
     return 17
 "#);

@@ -5,6 +5,7 @@
 use super::frame::CompilerFrame;
 use super::stateful::NeedsResult;
 use super::names::fresh::FreshNameGenerator;
+use super::names::registered::RegisteredNameGenerator;
 use super::body::builder::{StmtBuilder, CodeBuilder, HasDecls};
 use super::body::class_initializer::ClassBuilder;
 use super::body::class_scope::DirectClassScope;
@@ -85,7 +86,7 @@ fn declare_function_with_init(frame: &mut CompilerFrame<impl HasDecls>,
                               result_destination: &impl StmtWrapper)
                               -> Result<DeclaredFnWithInit, Error> {
   let local_vars = body.get_locals();
-  let (arglist, gd_args) = args.into_gd_arglist(frame.name_generator());
+  let (arglist, gd_args) = args.into_gd_arglist(&mut RegisteredNameGenerator::new_local_var(frame.table));
   let mut stmt_builder = StmtBuilder::new();
   for arg in &gd_args {
     if local_vars.get(&arg.lisp_name).unwrap_or(&AccessType::None).requires_cell() {

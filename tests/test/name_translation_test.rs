@@ -43,8 +43,8 @@ static func run():
 pub fn translate_arguments_test() {
   assert_eq!(parse_compile_decl("((defn foo (a-b) a-b))"),
              r#"extends Reference
-static func foo(a_b_0):
-    return a_b_0
+static func foo(a_b):
+    return a_b
 static func run():
     return null
 "#);
@@ -55,7 +55,7 @@ pub fn translate_constructor_arguments_test_1() {
   assert_eq!(parse_compile_decl("((defclass Foo (Reference) (defn _init (a-b))))"),
              r#"extends Reference
 class Foo extends Reference:
-    func _init(a_b_0):
+    func _init(a_b):
         pass
 static func run():
     return null
@@ -67,7 +67,7 @@ pub fn translate_constructor_arguments_test_2() {
   assert_eq!(parse_compile_decl("((defclass Foo (Reference) (defn _init (a-b) (super a-b))))"),
              r#"extends Reference
 class Foo extends Reference:
-    func _init(a_b_0).(a_b_0):
+    func _init(a_b).(a_b):
         pass
 static func run():
     return null

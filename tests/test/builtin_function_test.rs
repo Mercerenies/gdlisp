@@ -110,7 +110,7 @@ pub fn yield_star_running_test() {
 pub fn custom_call_magic_test() {
   assert_eq!(parse_compile_decl("((defn foo (x y) (sys/call-magic ADDITION) 9) (foo 10 20))"),
              r#"extends Reference
-static func foo(x_0, y_1):
+static func foo(x, y):
     return 9
 static func run():
     return 10 + 20

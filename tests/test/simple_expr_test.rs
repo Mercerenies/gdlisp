@@ -61,7 +61,7 @@ pub fn assignment_test() {
 pub fn custom_assign_test() {
   let result = parse_compile_decl("((defn set-foo (c a b)) (set (foo 1 2) 3))");
   assert_eq!(result, r#"extends Reference
-static func set_foo(c_0, a_1, b_2):
+static func set_foo(c, a, b):
     return null
 static func run():
     return set_foo(3, 1, 2)
