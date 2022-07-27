@@ -30,7 +30,7 @@ use crate::util::lattice::Lattice;
 /// reference names. Note that this name should not be used *directly*
 /// unless you first check that there are no conflicts. Normally, this
 /// would be passed to
-/// [`generate_with`](crate::compile::names::fresh::FreshNameGenerator::generate_with).
+/// [`generate_with`](crate::compile::names::generator::NameGenerator::generate_with).
 pub const OUTER_REFERENCE_NAME: &str = "__gdlisp_outer_class";
 
 /// Add a declaration to the outer class with the given name to

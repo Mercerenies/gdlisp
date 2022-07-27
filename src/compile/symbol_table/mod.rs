@@ -43,7 +43,7 @@ pub struct SymbolTable {
   /// synthetically-generated and do not have a GDLisp name
   /// corresponding to them. The Boolean indicates whether the
   /// variable is local to the current function or not. Locals will be
-  /// cleared by [`clear_synthetic_locals`].
+  /// cleared by [`SymbolTable::clear_synthetic_locals`].
   synthetic_locals: HashMap<String, bool>,
 
   /// A mapping from GDLisp names to [`FnCall`] and corresponding
@@ -126,13 +126,13 @@ impl SymbolTable {
 
   /// Adds a synthetic GDScript variable to the symbol table.
   /// Synthetic GDScript variables do not appear in the symbol table's
-  /// maps but will respond to [`has_var_with_gd_name`].
+  /// maps but will respond to [`SymbolTable::has_var_with_gd_name`].
   pub fn add_synthetic_var(&mut self, name: String, is_local: bool) {
     self.synthetic_locals.insert(name, is_local);
   }
 
   /// Removes a synthetic GDScript variable. See
-  /// [`add_synthetic_var`].
+  /// [`SymbolTable::add_synthetic_var`].
   pub fn remove_synthetic_var(&mut self, name: &str) {
     self.synthetic_locals.remove(name);
   }
@@ -172,13 +172,13 @@ impl SymbolTable {
 
   /// Adds a synthetic GDScript function to the symbol table.
   /// Synthetic GDScript functions do not appear in the symbol table's
-  /// maps but will respond to [`has_fn_with_gd_name`].
+  /// maps but will respond to [`SymbolTable::has_fn_with_gd_name`].
   pub fn add_synthetic_fn(&mut self, name: String) {
     self.synthetic_functions.insert(name);
   }
 
   /// Removes a synthetic GDScript function. See
-  /// [`add_synthetic_fn`].
+  /// [`SymbolTable::add_synthetic_fn`].
   pub fn remove_synthetic_fn(&mut self, name: &str) {
     self.synthetic_functions.remove(name);
   }

@@ -18,4 +18,4 @@ pub trait NameGenerator {
 
 /// The default `prefix` argument to
 /// [`NameGenerator::generate_with`].
-const DEFAULT_PREFIX: &str = "_G";
+pub const DEFAULT_PREFIX: &str = "_G";
