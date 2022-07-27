@@ -428,4 +428,24 @@ mod tests {
     assert_eq!(vec, vec!(("foo", &tmp), ("foo1", &tmp), ("foo2", &tmp)));
   }
 
+  #[test]
+  fn test_synthetic_vars() {
+    let mut table = SymbolTable::new();
+    assert_eq!(table.has_var_with_gd_name("foo"), false);
+    table.add_synthetic_var(String::from("foo"));
+    assert_eq!(table.has_var_with_gd_name("foo"), true);
+    table.remove_synthetic_var("foo");
+    assert_eq!(table.has_var_with_gd_name("foo"), false);
+  }
+
+  #[test]
+  fn test_synthetic_fns() {
+    let mut table = SymbolTable::new();
+    assert_eq!(table.has_fn_with_gd_name("foo"), false);
+    table.add_synthetic_fn(String::from("foo"));
+    assert_eq!(table.has_fn_with_gd_name("foo"), true);
+    table.remove_synthetic_fn("foo");
+    assert_eq!(table.has_fn_with_gd_name("foo"), false);
+  }
+
 }
