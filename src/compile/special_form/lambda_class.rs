@@ -144,6 +144,9 @@ pub fn compile_lambda_class(frame: &mut CompilerFrame<StmtBuilder>,
 }
 
 fn get_all_instance_scoped_vars(decls: &[ir::decl::ClassInnerDecl]) -> Vec<&str> {
+  // TODO This is NOT a complete solution. See Issue #82
+  // (https://github.com/Mercerenies/gdlisp/issues/82) for the
+  // problems with this implementation.
   let mut result: Vec<&str> = vec![];
   for decl in decls {
     match &decl.value {
