@@ -218,3 +218,52 @@ static func run():
     return _locals_0._fn_f_0(1)
 "#);
 }
+
+#[test]
+pub fn contrived_nested_labels_test() {
+  // Contrived introduction of a constant named _locals. The
+  // contextual name generator should detect this and work around it.
+  let result = parse_compile_decl(r#"((labels ((f (x) (f x)))
+                                        (labels ((g (x) (f x) (g x)))
+                                          (f 1)
+                                          (g 2)))
+                                      (labels ((f (x) (f x)))
+                                        (labels ((g (x) (f x) (g x)))
+                                          (f 1)
+                                          (g 2))))"#);
+  assert_eq!(result, r#"extends Reference
+class _Labels_2 extends Reference:
+    func _init():
+        pass
+    func _fn_f_0(x_1):
+        return _fn_f_0(x_1)
+class _Labels_5 extends Reference:
+    var _locals
+    func _init(_locals):
+        self._locals = _locals
+    func _fn_g_3(x_4):
+        _locals._fn_f_0(x_4)
+        return _fn_g_3(x_4)
+class _Labels_8 extends Reference:
+    func _init():
+        pass
+    func _fn_f_6(x_7):
+        return _fn_f_6(x_7)
+class _Labels_11 extends Reference:
+    var _locals_1
+    func _init(_locals_1):
+        self._locals_1 = _locals_1
+    func _fn_g_9(x_10):
+        _locals_1._fn_f_6(x_10)
+        return _fn_g_9(x_10)
+static func run():
+    var _locals = _Labels_2.new()
+    var _locals_0 = _Labels_5.new(_locals)
+    _locals._fn_f_0(1)
+    _locals_0._fn_g_3(2)
+    var _locals_1 = _Labels_8.new()
+    var _locals_2 = _Labels_11.new(_locals_1)
+    _locals_1._fn_f_6(1)
+    return _locals_2._fn_g_9(2)
+"#);
+}
