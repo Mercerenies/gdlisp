@@ -10,6 +10,7 @@ pub mod classes;
 pub mod keys;
 pub mod magic;
 pub mod cell;
+pub mod gdnative;
 
 use super::expr::{Expr, ExprF};
 use crate::compile::Compiler;
