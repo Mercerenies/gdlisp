@@ -19,7 +19,7 @@ use tempfile::{Builder, NamedTempFile};
 
 use std::process::{Command, Stdio, Child};
 use std::path::Path;
-use std::io::{self, Write};
+use std::io::{self, Write, Seek, SeekFrom};
 use std::ffi::OsStr;
 
 /// Runs a Godot process, with `path` as a script file. The script
@@ -92,6 +92,24 @@ pub fn run_project<P : AsRef<Path>>(path: P) -> io::Result<String> {
   Ok(text.into())
 }
 
+/// Runs a Godot process to dump the JSON API for GDNative to a
+/// (newly-created) temporary file. This method returns the temporary
+/// file object. The corresponding file will be deleted when the
+/// returned value is dropped.
+pub fn dump_json_api() -> io::Result<NamedTempFile> {
+  let mut file = make_tmp_file()?;
+  Command::new("godot")
+    .arg("--no-window")
+    .arg("--quiet")
+    .arg("--gdnative-generate-json-api")
+    .arg(file.path())
+    .status()?;
+  // Not sure if this is necessary, but better safe than sorry. Ensure
+  // that the seek position of the opened file handle is at 0.
+  file.seek(SeekFrom::Start(0))?;
+  Ok(file)
+}
+
 fn make_tmp_file() -> io::Result<NamedTempFile> {
   Builder::new()
     .prefix("__gdlisp_test")
@@ -157,6 +175,16 @@ func _init():
     print("999_SAMPLE_OUTPUT_STRING_999")
 "#).unwrap();
     assert!(out.contains("999_SAMPLE_OUTPUT_STRING_999"));
+  }
+
+  #[test]
+  fn dump_json_api_test() {
+    // Checks that dump_json_api completes successfully and produces
+    // output. It does *not* check the contents of the output. That is
+    // tested over in `crate::gdscript::library::gdnative`.
+    let mut tempfile = dump_json_api().unwrap();
+    let file_len = tempfile.seek(SeekFrom::End(0)).unwrap();
+    assert!(file_len > 0);
   }
 
 }
