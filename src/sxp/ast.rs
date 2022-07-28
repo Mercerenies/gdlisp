@@ -62,7 +62,7 @@ fn fmt_list(a: &AST, b: &AST, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     ASTF::Cons(b1, c1) => {
       // Another cons cell in cdr; continue printing list
       write!(f, "{} ", a)?;
-      fmt_list(&b1, &c1, f)
+      fmt_list(b1, c1, f)
     },
     _ =>
       // Dotted list; print with dot
@@ -146,13 +146,13 @@ impl AST {
       }
       ASTF::Array(arr) => {
         for x in arr {
-          func(&x)?;
+          func(x)?;
         }
       }
       ASTF::Dictionary(d) => {
         for (k, v) in d {
-          func(&k)?;
-          func(&v)?;
+          func(k)?;
+          func(v)?;
         }
       }
       ASTF::Nil | ASTF::Int(_) | ASTF::Bool(_) | ASTF::Float(_) | ASTF::String(_) | ASTF::Symbol(_) => {
@@ -284,11 +284,11 @@ impl AST {
     let mut result: Vec<&'a str> = Vec::new();
     let err = self.walk_preorder::<_, Infallible>(|x| {
       if let ASTF::Symbol(x) = &x.value {
-        result.push(&x);
+        result.push(x);
       }
       Ok(())
     });
-    let () = extract_err(err);
+    extract_err(err);
     result
   }
 

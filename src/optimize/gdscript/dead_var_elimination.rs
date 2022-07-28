@@ -11,7 +11,7 @@ pub struct DeadVarElimination;
 impl DeadVarElimination {
   fn run_on_body(&self, stmts: &mut Vec<Stmt>) {
     let vars = get_variable_info(stmts);
-    *stmts = stmt_walker::walk_stmts_ok(&stmts, stmt_walker::on_each_stmt_ok(|stmt| {
+    *stmts = stmt_walker::walk_stmts_ok(stmts, stmt_walker::on_each_stmt_ok(|stmt| {
       if let StmtF::VarDecl(var_name, expr) = &stmt.value {
         if let Some(info) = vars.get(var_name) {
           if !info.is_ever_used() {

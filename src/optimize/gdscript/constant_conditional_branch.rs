@@ -48,7 +48,7 @@ impl StatementLevelPass for ConstantConditionalBranch {
           return self.run_on_stmt_acc(&if_stmt.if_clause.1);
         } else {
           // Definitely false case
-          let rest_of_stmt = kill_if_branch(&if_stmt, stmt.pos);
+          let rest_of_stmt = kill_if_branch(if_stmt, stmt.pos);
           return self.run_on_stmt_acc(&rest_of_stmt);
         }
       }

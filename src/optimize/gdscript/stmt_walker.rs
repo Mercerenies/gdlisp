@@ -41,7 +41,7 @@ impl<'a, E> StmtWalker<'a, E> {
         StmtF::IfStmt(stmt::IfStmt { if_clause, elif_clauses, else_clause })
       }
       StmtF::ForLoop(stmt::ForLoop { iter_var, collection, body }) => {
-        let body = self.walk_stmts(&body)?;
+        let body = self.walk_stmts(body)?;
         StmtF::ForLoop(stmt::ForLoop {
           iter_var: iter_var.clone(),
           collection: collection.clone(),
@@ -49,7 +49,7 @@ impl<'a, E> StmtWalker<'a, E> {
         })
       }
       StmtF::WhileLoop(stmt::WhileLoop { condition, body }) => {
-        let body = self.walk_stmts(&body)?;
+        let body = self.walk_stmts(body)?;
         StmtF::WhileLoop(stmt::WhileLoop {
           condition: condition.clone(),
           body: body,
@@ -110,7 +110,7 @@ pub fn walk_stmt<'a, E>(stmt: &Stmt, walker: impl FnMut(&[Stmt]) -> Result<Vec<S
 pub fn walk_stmts<'a, E>(stmts: &[Stmt], walker: impl FnMut(&[Stmt]) -> Result<Vec<Stmt>, E> + 'a)
                          -> Result<Vec<Stmt>, E> {
   let mut walker = StmtWalker::new(walker);
-  walker.walk_stmts(&stmts)
+  walker.walk_stmts(stmts)
 }
 
 /// As [`walk_stmt`] but with no error type.

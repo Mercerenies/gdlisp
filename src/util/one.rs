@@ -70,7 +70,7 @@ impl<'a, T> Iterator for IterMut<'a, T> {
 
 }
 
-impl<'a, T> Iterator for IntoIter<T> {
+impl<T> Iterator for IntoIter<T> {
   type Item = T;
 
   fn next(&mut self) -> Option<T> {

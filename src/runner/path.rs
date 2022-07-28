@@ -129,7 +129,7 @@ impl RPathBuf {
   /// Forward slashes will always be used as the path delimiter, even
   /// on Windows. This is consistent with Godot's behavior.
   pub fn path_to_string<P : AsRef<Path> + ?Sized>(path: &P) -> String {
-    path.as_ref().to_string_lossy().replace("\\", "/")
+    path.as_ref().to_string_lossy().replace('\\', "/")
   }
 
 }

@@ -131,6 +131,7 @@ where I : Iterator<Item=Result<(A, B), E>>,
 ///
 /// If no matching element is found, then a new element is appended
 /// and returned.
+#[allow(clippy::redundant_closure)] // Clippy seems to have made a mistake here, suggested fix fails the borrow checker
 pub fn find_or_else_mut<T>(vec: &mut Vec<T>, default: impl FnOnce() -> T, mut pred: impl FnMut(&T) -> bool) -> &mut T {
   if vec.iter().any(|x| pred(x)) {
     vec.iter_mut().find(|x| pred(x)).expect("Internal error in find_or_else_mut")

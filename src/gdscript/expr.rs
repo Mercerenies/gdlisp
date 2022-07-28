@@ -14,6 +14,8 @@ use crate::gdscript::op::{self, UnaryOp, BinaryOp, OperatorHasInfo};
 use crate::gdscript::literal::Literal;
 use crate::pipeline::source::{SourceOffset, Sourced};
 
+use std::fmt::Write;
+
 pub const PRECEDENCE_LOWEST: i32 = -99;
 pub const PRECEDENCE_SUBSCRIPT: i32 = 21;
 pub const PRECEDENCE_ATTRIBUTE: i32 = 20;
@@ -227,7 +229,8 @@ impl Expr {
           if !first {
             result.push_str(", ");
           }
-          result.push_str(&format!("{}: {}", k.to_gd_prec(PRECEDENCE_LOWEST), v.to_gd_prec(PRECEDENCE_LOWEST)));
+          write!(result, "{}: {}", k.to_gd_prec(PRECEDENCE_LOWEST), v.to_gd_prec(PRECEDENCE_LOWEST))
+            .expect("Failed to write to local string");
           first = false;
         }
         result.push('}');

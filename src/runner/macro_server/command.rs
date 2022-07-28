@@ -43,9 +43,9 @@ impl ServerCommand {
     match self {
       ServerCommand::Quit => vec!(),
       ServerCommand::Ping => vec!(),
-      ServerCommand::Eval(s) => vec!(&s),
-      ServerCommand::Exec(s) => vec!(&s),
-      ServerCommand::Load(s) => vec!(&s),
+      ServerCommand::Eval(s) => vec!(s),
+      ServerCommand::Exec(s) => vec!(s),
+      ServerCommand::Load(s) => vec!(s),
     }
   }
 

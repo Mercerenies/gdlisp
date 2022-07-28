@@ -230,7 +230,7 @@ impl<'a, 'b, 'c, 'd, 'e> CompilerFrame<'a, 'b, 'c, 'd, 'e, CodeBuilder> {
     let _ = toplevel.find_main_class()?;
 
     for imp in &toplevel.imports {
-      self.compiler.resolve_import(&mut self.pipeline, &mut self.builder, &mut self.table, imp)?;
+      self.compiler.resolve_import(self.pipeline, self.builder, self.table, imp)?;
     }
     self.compile_decls(&toplevel.decls)?;
 
@@ -239,7 +239,7 @@ impl<'a, 'b, 'c, 'd, 'e> CompilerFrame<'a, 'b, 'c, 'd, 'e, CodeBuilder> {
 
   pub fn compile_decls(&mut self, decls: &[IRDecl]) -> Result<(), Error> {
     for decl in decls {
-      Compiler::bind_decl(&self.compiler.magic_table, &mut self.pipeline, &mut self.table, decl)?;
+      Compiler::bind_decl(&self.compiler.magic_table, self.pipeline, self.table, decl)?;
     }
     for decl in decls {
       self.table.clear_synthetic_locals();
@@ -251,7 +251,7 @@ impl<'a, 'b, 'c, 'd, 'e> CompilerFrame<'a, 'b, 'c, 'd, 'e, CodeBuilder> {
   pub fn compile_decl(&mut self, decl: &IRDecl) -> Result<(), Error> {
     match &decl.value {
       IRDeclF::FnDecl(ir::decl::FnDecl { visibility: _, call_magic: _, name, args, body }) => {
-        let gd_name = names::lisp_to_gd(&name);
+        let gd_name = names::lisp_to_gd(name);
         let function = factory::declare_function(self, gd_name, args.clone(), body, &stmt_wrapper::Return)?;
         self.builder.add_decl(Decl::new(DeclF::FnDecl(decl::Static::IsStatic, function), decl.pos));
         Ok(())
@@ -260,7 +260,7 @@ impl<'a, 'b, 'c, 'd, 'e> CompilerFrame<'a, 'b, 'c, 'd, 'e, CodeBuilder> {
         // Note: Macros compile identically to functions, as far as
         // this stage of compilation is concerned. They'll be resolved
         // and then purged during the IR phase.
-        let gd_name = names::lisp_to_gd(&name);
+        let gd_name = names::lisp_to_gd(name);
         let function = factory::declare_function(self, gd_name, args.clone(), body, &stmt_wrapper::Return)?;
         self.builder.add_decl(Decl::new(DeclF::FnDecl(decl::Static::IsStatic, function), decl.pos));
         Ok(())
@@ -269,21 +269,21 @@ impl<'a, 'b, 'c, 'd, 'e> CompilerFrame<'a, 'b, 'c, 'd, 'e, CodeBuilder> {
         // Note: Macros compile identically to functions, as far as
         // this stage of compilation is concerned. They'll be resolved
         // and then purged during the IR phase.
-        let gd_name = names::lisp_to_gd(&name);
+        let gd_name = names::lisp_to_gd(name);
         let function = factory::declare_function(self, gd_name, IRArgList::empty(), body, &stmt_wrapper::Return)?;
         self.builder.add_decl(Decl::new(DeclF::FnDecl(decl::Static::IsStatic, function), decl.pos));
         Ok(())
       }
       IRDeclF::ConstDecl(ir::decl::ConstDecl { visibility: _, name, value }) => {
-        let gd_name = names::lisp_to_gd(&name);
+        let gd_name = names::lisp_to_gd(name);
         let value = self.compile_simple_expr(name, value, NeedsResult::Yes)?;
-        value.validate_const_expr(&name, self.table)?;
+        value.validate_const_expr(name, self.table)?;
         self.builder.add_decl(Decl::new(DeclF::ConstDecl(gd_name, value), decl.pos));
         Ok(())
       }
       IRDeclF::ClassDecl(ir::decl::ClassDecl { visibility: _, name, extends, main_class, constructor, decls }) => {
-        let gd_name = names::lisp_to_gd(&name);
-        let extends = Compiler::resolve_extends(&self.table, &extends, decl.pos)?;
+        let gd_name = names::lisp_to_gd(name);
+        let extends = Compiler::resolve_extends(self.table, extends, decl.pos)?;
 
         // Synthesize default constructor if needed
         let default_constructor: ir::decl::ConstructorDecl;
@@ -293,13 +293,13 @@ impl<'a, 'b, 'c, 'd, 'e> CompilerFrame<'a, 'b, 'c, 'd, 'e, CodeBuilder> {
             &default_constructor
           }
           Some(c) => {
-            &c
+            c
           }
         };
 
-        let class = factory::declare_class(self, gd_name, extends, *main_class, &constructor, decls, decl.pos)?;
+        let class = factory::declare_class(self, gd_name, extends, *main_class, constructor, decls, decl.pos)?;
         if *main_class {
-          factory::flatten_class_into_main(&mut self.builder, class);
+          factory::flatten_class_into_main(self.builder, class);
           Ok(())
         } else {
           self.builder.add_decl(Decl::new(DeclF::ClassDecl(class), decl.pos));
@@ -307,7 +307,7 @@ impl<'a, 'b, 'c, 'd, 'e> CompilerFrame<'a, 'b, 'c, 'd, 'e, CodeBuilder> {
         }
       }
       IRDeclF::EnumDecl(ir::decl::EnumDecl { visibility: _, name, clauses }) => {
-        let gd_name = names::lisp_to_gd(&name);
+        let gd_name = names::lisp_to_gd(name);
         let gd_clauses = clauses.iter().map(|(const_name, const_value)| {
           let gd_const_name = names::lisp_to_gd(const_name);
           let gd_const_value = const_value.as_ref().map(|x| self.compile_simple_expr(const_name, x, NeedsResult::Yes)).transpose()?;
@@ -532,7 +532,7 @@ impl<'a, 'b, 'c, 'd, 'e> CompilerFrame<'a, 'b, 'c, 'd, 'e, StmtBuilder> {
         let pos = expr.pos;
         let expr = self.compile_expr(expr, NeedsResult::Yes)?.expr;
         let mut gen = RegisteredNameGenerator::new_local_var(self.table);
-        let tmp_var = factory::declare_var(&mut gen, self.builder, &name, Some(expr), pos);
+        let tmp_var = factory::declare_var(&mut gen, self.builder, name, Some(expr), pos);
         Ok(StExpr {
           expr: Expr::new(ExprF::Var(tmp_var), pos),
           side_effects: SideEffects::None,

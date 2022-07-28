@@ -84,7 +84,7 @@ fn walk_impl<'a, E>(walker: &mut (impl FnMut(&Expr) -> Result<Expr, E> + 'a), st
                     -> Result<Vec<Stmt>, E> {
   let new_stmt = match &stmt.value {
     StmtF::Expr(e) => {
-      StmtF::Expr(walk_impl_expr(walker, &e)?)
+      StmtF::Expr(walk_impl_expr(walker, e)?)
     }
     StmtF::IfStmt(stmt::IfStmt { if_clause, elif_clauses, else_clause }) => {
       let new_if_stmt = stmt::IfStmt {

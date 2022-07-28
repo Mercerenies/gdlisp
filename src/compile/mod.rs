@@ -122,7 +122,7 @@ impl Compiler {
     match &decl.value {
       ir::decl::ClassInnerDeclF::ClassSignalDecl(s) => {
         let name = names::lisp_to_gd(&s.name);
-        let args = s.args.args.iter().map(|x| names::lisp_to_gd(&x)).collect();
+        let args = s.args.args.iter().map(|x| names::lisp_to_gd(x)).collect();
         Ok(Decl::new(DeclF::SignalDecl(name, ArgList::required(args)), decl.pos))
       }
       ir::decl::ClassInnerDeclF::ClassConstDecl(c) => {
@@ -398,7 +398,7 @@ impl Compiler {
 
   fn import_name(&mut self, import: &ImportDecl) -> String {
     let prefix = match &import.details {
-      ImportDetails::Named(s) => names::lisp_to_gd(&s),
+      ImportDetails::Named(s) => names::lisp_to_gd(s),
       ImportDetails::Restricted(_) | ImportDetails::Open => String::from("_Import"),
     };
     self.gen.generate_with(&prefix)

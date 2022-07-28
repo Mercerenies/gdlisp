@@ -117,7 +117,7 @@ pub fn compile_for_stmt(frame: &mut CompilerFrame<StmtBuilder>,
   let citer = frame.compile_expr(iter, NeedsResult::Yes)?.expr;
   let var_name = RegisteredNameGenerator::new_fn(frame.table).generate_with(&names::lisp_to_gd(name));
   let body = frame.with_local_builder(|frame| {
-    let local_var = LocalVar::local(var_name.to_owned(), *closure_vars.get(&name).unwrap_or(&AccessType::None));
+    let local_var = LocalVar::local(var_name.to_owned(), *closure_vars.get(name).unwrap_or(&AccessType::None));
     frame.with_local_var(name.to_owned(), local_var, |frame| {
       frame.compile_stmt(&stmt_wrapper::Vacuous, body).map(|_| ())
     })

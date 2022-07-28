@@ -6,7 +6,7 @@ use crate::gdscript::stmt::Stmt;
 use super::constant;
 
 pub fn is_code_seq_noop(stmts: &[Stmt]) -> bool {
-  stmts.iter().all(|stmt| is_code_noop(stmt))
+  stmts.iter().all(is_code_noop)
 }
 
 pub fn is_code_noop(stmt: &Stmt) -> bool {

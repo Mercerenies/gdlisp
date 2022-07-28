@@ -81,7 +81,7 @@ fn main() {
   let program_name = &args[0];
   let parsed_args = parse_args(&args[1..]);
   if parsed_args.help_message {
-    show_help_message(&program_name);
+    show_help_message(program_name);
   } else {
 
     let version = get_godot_version();

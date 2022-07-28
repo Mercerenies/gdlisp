@@ -153,12 +153,12 @@ impl Decl {
   pub fn name(&self) -> Option<&str> {
     match &self.value {
       DeclF::VarDecl(vdecl) => Some(&vdecl.name),
-      DeclF::ConstDecl(n, _) => Some(&n),
+      DeclF::ConstDecl(n, _) => Some(n),
       DeclF::ClassDecl(cdecl) => Some(&cdecl.name),
-      DeclF::InitFnDecl(_) => Some(&library::CONSTRUCTOR_NAME),
+      DeclF::InitFnDecl(_) => Some(library::CONSTRUCTOR_NAME),
       DeclF::FnDecl(_, fdecl) => Some(&fdecl.name),
       DeclF::EnumDecl(edecl) => edecl.name.as_ref().map(|x| x.as_ref()),
-      DeclF::SignalDecl(n, _) => Some(&n),
+      DeclF::SignalDecl(n, _) => Some(n),
       DeclF::PassDecl => None,
     }
   }

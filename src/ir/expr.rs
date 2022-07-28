@@ -191,7 +191,7 @@ impl Expr {
         let mut local_vars = Locals::new();
         iter.walk_locals(acc_vars, acc_fns);
         body.walk_locals(&mut local_vars, acc_fns);
-        local_vars.remove(&var);
+        local_vars.remove(var);
         acc_vars.merge_with(local_vars);
       }
       ExprF::Call(name, args) => {

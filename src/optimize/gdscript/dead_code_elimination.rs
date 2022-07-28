@@ -20,7 +20,7 @@ impl StatementLevelPass for DeadCodeElimination {
     // Check for empty else clause
     if let StmtF::IfStmt(if_stmt) = &mut stmt.value {
       if let Some(else_clause) = &if_stmt.else_clause {
-        if noop::is_code_seq_noop(&else_clause) {
+        if noop::is_code_seq_noop(else_clause) {
           if_stmt.else_clause = None;
         }
       }

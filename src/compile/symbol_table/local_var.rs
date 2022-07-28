@@ -337,9 +337,9 @@ impl VarName {
   /// current file), then this method returns `None`.
   pub fn simple_name(&self) -> Option<&str> {
     match self {
-      VarName::Local(s) => Some(&s),
-      VarName::FileConstant(s) => Some(&s),
-      VarName::Superglobal(s) => Some(&s),
+      VarName::Local(s) => Some(s),
+      VarName::FileConstant(s) => Some(s),
+      VarName::Superglobal(s) => Some(s),
       VarName::ImportedConstant(_, _) => None,
       VarName::SubscriptedConstant(_, _) => None,
       VarName::CurrentFile(_) => None,

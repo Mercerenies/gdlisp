@@ -200,7 +200,7 @@ impl TopLevel {
       1 => {
         // Single main class; return it
         if let DeclF::ClassDecl(cdecl) = &all_main_classes[0].value {
-          Ok(Some(&cdecl))
+          Ok(Some(cdecl))
         } else {
           panic!("Internal error in TopLevel::find_main_class (this is a bug in GDLisp)")
         }

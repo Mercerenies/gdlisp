@@ -93,7 +93,7 @@ pub fn compile_labels_scc(frame: &mut CompilerFrame<StmtBuilder>,
     let (arglist, gd_args) = clause.args.clone().into_gd_arglist(&mut RegisteredNameGenerator::new_local_var(&mut lambda_table));
     // Bind the function arguments
     for NameTrans { lisp_name: arg, gd_name: gd_arg } in &gd_args {
-      let access_type = *closure.all_vars.get(&arg).unwrap_or(&AccessType::None);
+      let access_type = *closure.all_vars.get(arg).unwrap_or(&AccessType::None);
       lambda_table.set_var(arg.to_owned(), LocalVar::local(gd_arg.to_owned(), access_type));
       wrap_in_cell_if_needed(arg, gd_arg, &closure.all_vars, &mut lambda_builder, pos);
     }

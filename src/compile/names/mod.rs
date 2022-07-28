@@ -3,6 +3,8 @@
 
 use phf::{phf_map};
 
+use std::fmt::Write;
+
 pub mod contextual;
 pub mod fresh;
 pub mod generator;
@@ -153,7 +155,7 @@ pub fn lisp_to_gd_bare(name: &str) -> String {
     if is_valid_gd_char(ch) {
       // Special exception if it's the first character and a digit.
       // Otherwise, leave it as is.
-      if first && ch.is_digit(10) {
+      if first && ch.is_ascii_digit() {
         result.push('_');
       }
       result.push(ch);
@@ -171,7 +173,7 @@ pub fn lisp_to_gd_bare(name: &str) -> String {
           if let Some(s) = TRANSLATIONS.get(&ch) {
             result.push_str(s);
           } else {
-            result.push_str(&format!("_u{:04X}", ch as u32));
+            write!(result, "_u{:04X}", ch as u32).expect("Failed to write to local string");
           }
         }
       }

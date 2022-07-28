@@ -40,7 +40,7 @@ pub fn compile_lambda_class(frame: &mut CompilerFrame<StmtBuilder>,
   let mut class_scope = DirectClassScope::new();
 
   // Validate the extends declaration (must be a global variable)
-  let extends = Compiler::resolve_extends(table, &extends, pos)?;
+  let extends = Compiler::resolve_extends(table, extends, pos)?;
 
   // New GD name
   let gd_class_name = RegisteredNameGenerator::new_global_var(table).generate_with("_AnonymousClass");
@@ -68,7 +68,7 @@ pub fn compile_lambda_class(frame: &mut CompilerFrame<StmtBuilder>,
 
   // Bind all of the closure variables, closure functions, and global
   // variables inside.
-  let forbidden_names = get_all_instance_scoped_vars(&decls);
+  let forbidden_names = get_all_instance_scoped_vars(decls);
   lambda::locally_bind_vars(compiler, table, &mut lambda_table, closure.closure_vars.names(), &forbidden_names, pos)?;
   lambda::locally_bind_fns(compiler, *pipeline, table, &mut lambda_table, closure.closure_fns.names(), pos, &OuterStaticRef::InnerInstanceVar(&outer_ref_name))?;
   lambda::copy_global_vars(table, &mut lambda_table);
@@ -85,14 +85,14 @@ pub fn compile_lambda_class(frame: &mut CompilerFrame<StmtBuilder>,
       &default_constructor
     }
     Some(c) => {
-      &c
+      c
     }
   };
-  let (constructor, constructor_helpers) = compile_lambda_class_constructor(&mut compiler.frame(pipeline, *builder, &mut lambda_table, &mut class_scope), &constructor, &gd_closure_vars, pos)?;
+  let (constructor, constructor_helpers) = compile_lambda_class_constructor(&mut compiler.frame(pipeline, *builder, &mut lambda_table, &mut class_scope), constructor, &gd_closure_vars, pos)?;
 
   // Build the class body for the lambda class.
   let mut class_init_builder = ClassBuilder::new();
-  //#[allow(clippy::vec_init_then_push)] // For style consistency
+  #[allow(clippy::vec_init_then_push)] // For style consistency
   let class_body = {
     let mut class_body = vec!();
     class_body.push(Decl::new(DeclF::InitFnDecl(constructor), pos));

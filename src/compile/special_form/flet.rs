@@ -182,7 +182,7 @@ pub fn is_declaration_semiglobal(args: &IRArgList, body: &IRExpr, table: &Symbol
   // All referenced functions should be Global or SemiGlobal and all
   // referenced local variables should be found in the argument list.
   let mut closure_names = closure_vars.names();
-  closure_names.all(|x| arg_var_names.contains(&&x[..])) &&
+  closure_names.all(|x| arg_var_names.contains(&x)) &&
     all_names_are_nonlocal(closure_fns.names(), table)
 }
 

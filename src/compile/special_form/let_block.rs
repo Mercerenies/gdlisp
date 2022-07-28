@@ -26,7 +26,7 @@ pub fn compile_let(frame: &mut CompilerFrame<StmtBuilder>,
   let var_names = clauses.iter().map::<Result<(String, String), Error>, _>(|clause| {
     let LocalVarClause { name: ast_name, value: expr } = clause;
     let ast_name = ast_name.to_owned();
-    let result_value = frame.compile_expr(&expr, NeedsResult::Yes)?.expr;
+    let result_value = frame.compile_expr(expr, NeedsResult::Yes)?.expr;
     let result_value =
       if closure_vars.get(&ast_name).unwrap_or(&AccessType::None).requires_cell() {
         library::cell::construct_cell(result_value)

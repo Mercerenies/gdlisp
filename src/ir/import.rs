@@ -122,11 +122,9 @@ impl ImportDecl {
         }
         ImportDetails::Restricted(vec) => {
           // Find it in the import list.
-          if let Some(name_match) = vec.iter().find(|x| x.namespace.map_or(true, |ns| ns == export_namespace) && x.out_name == *export_name) {
-            Some(name_match.in_name.clone())
-          } else {
-            None
-          }
+          vec.iter()
+            .find(|x| x.namespace.map_or(true, |ns| ns == export_namespace) && x.out_name == *export_name)
+            .map(|name_match| name_match.in_name.clone())
         }
       };
       import_name.map(|import_name| {
@@ -140,7 +138,7 @@ impl ImportDecl {
       return Err(ImportDeclParseError::NoFilename);
     }
     let filename = match &tail[0].value {
-      ASTF::String(s) => ImportDecl::parse_path_param(&s).ok_or_else(|| {
+      ASTF::String(s) => ImportDecl::parse_path_param(s).ok_or_else(|| {
         ImportDeclParseError::InvalidPath(s.clone())
       }),
       _ => Err(ImportDeclParseError::BadFilename(tail[0].clone())),
@@ -161,7 +159,7 @@ impl ImportDecl {
             // (3) or (4) Explicit import (possibly aliased)
             let imports: Vec<_> = DottedExpr::new(tail[1]).try_into().map_err(|_| invalid_ending_err(&tail[1..], tail[1].pos))?;
             let imports = imports.into_iter()
-              .map(|x| ImportName::<Option<Namespace>>::parse(x))
+              .map(ImportName::<Option<Namespace>>::parse)
               .collect::<Result<Vec<_>, _>>()?;
             Ok(ImportDecl::restricted(filename, imports, tail[0].pos))
           }

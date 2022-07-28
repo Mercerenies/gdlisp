@@ -140,9 +140,9 @@ impl IncCompiler {
   }
 
   fn try_resolve_symbol_macro_call(&mut self, pipeline: &mut Pipeline, head: &str, pos: SourceOffset) -> Result<Option<AST>, PError> {
-    if let Some(MacroData { id, imported: _ }) = self.macros.get(&*Id::build(Namespace::Value, &head)) {
+    if let Some(MacroData { id, imported: _ }) = self.macros.get(&*Id::build(Namespace::Value, head)) {
       let id = *id;
-      return self.resolve_macro_call(pipeline, &*Id::build(Namespace::Value, &head), &[], id, pos).map(Some);
+      return self.resolve_macro_call(pipeline, &*Id::build(Namespace::Value, head), &[], id, pos).map(Some);
     }
     Ok(None)
   }
@@ -212,7 +212,7 @@ impl IncCompiler {
       }
       ASTF::Symbol(s) => {
         // Symbol macro resolution
-        let macro_result = self.try_resolve_symbol_macro_call(pipeline, &s, expr.pos)?;
+        let macro_result = self.try_resolve_symbol_macro_call(pipeline, s, expr.pos)?;
         if let Some(macro_result) = macro_result {
           self.compile_expr(pipeline, &macro_result)
         } else {
@@ -258,7 +258,7 @@ impl IncCompiler {
   /// is returned untouched.
   pub fn detect_super<'a, 'b>(body: &'a [&'b AST]) -> (Option<(Vec<&'b AST>, SourceOffset)>, &'a [&'b AST]) {
     if !body.is_empty() {
-      let first: Result<Vec<_>, _> = DottedExpr::new(&body[0]).try_into();
+      let first: Result<Vec<_>, _> = DottedExpr::new(body[0]).try_into();
       if let Ok(mut first) = first {
         if !first.is_empty() && first[0].value == ASTF::Symbol(String::from("super")) {
           let super_symbol = first.remove(0);
@@ -436,7 +436,7 @@ impl IncCompiler {
                 return Err(PError::from(Error::new(ErrorF::BadSysDeclare(value_type.to_owned()), decl.pos)))
               }
             };
-            let (mods, body) = modifier::declare::parser().parse(&body)?;
+            let (mods, body) = modifier::declare::parser().parse(body)?;
             ExpectedShape::validate_end_of_list("sys/declare", body, decl.pos)?;
             for m in mods {
               m.apply(&mut declare);
@@ -466,7 +466,7 @@ impl IncCompiler {
     let mut curr = curr;
     while let Some(ast) = self.try_resolve_macro_call(pipeline, curr)? {
       candidate = Some(ast);
-      curr = &candidate.as_ref().unwrap();
+      curr = candidate.as_ref().unwrap();
     }
 
     let vec = Vec::try_from(DottedExpr::new(curr)).map_err(|x| Error::from_value(x, curr.pos))?;
@@ -539,7 +539,7 @@ impl IncCompiler {
         "defn" => {
           // TODO Unify some of this with the equivalent code from compile_decl?
           Expecting::at_least(2).validate("defn", curr.pos, &vec[1..])?;
-          if let Some(fname) = IncCompiler::compile_instance_function_name(&vec[1]) {
+          if let Some(fname) = IncCompiler::compile_instance_function_name(vec[1]) {
             let args: Vec<_> = DottedExpr::new(vec[2]).try_into()?;
             let args = SimpleArgList::parse(args, vec[2].pos)?;
 
@@ -673,7 +673,7 @@ impl IncCompiler {
     let mut curr = curr; // Change lifetime :)
     while let Some(ast) = self.try_resolve_macro_call(pipeline, curr)? {
       candidate = Some(ast);
-      curr = &candidate.as_ref().unwrap();
+      curr = candidate.as_ref().unwrap();
     }
     // Check if we're looking at a top-level progn.
     if let Ok(vec) = Vec::try_from(DottedExpr::new(curr)) {
@@ -688,7 +688,7 @@ impl IncCompiler {
       let res_type = ResourceType::from(&imp);
       if res_type.can_have_macros() {
         let file = pipeline.load_file(imp.filename.path())?;
-        self.import_macros_from(&file, &imp);
+        self.import_macros_from(file, &imp);
       }
       self.imports.push(imp);
     } else if IncCompiler::is_decl(curr) {

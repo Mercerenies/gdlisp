@@ -100,7 +100,7 @@ impl ClosureData {
 
     // Get closure variables
     for lisp_name in self.closure_vars.names() {
-      let var = table.get_var(&lisp_name).unwrap_or_else(|| {
+      let var = table.get_var(lisp_name).unwrap_or_else(|| {
         panic!("Internal error compiling lambda variable {}", lisp_name);
       });
       if let Some(name) = var.simple_name() {
@@ -112,7 +112,7 @@ impl ClosureData {
     // namespace when closed around, since GDScript doesn't treat
     // function names as first-class objects)
     for lisp_name in self.closure_fns.names() {
-      let (call, _) = table.get_fn(&lisp_name).unwrap_or_else(|| {
+      let (call, _) = table.get_fn(lisp_name).unwrap_or_else(|| {
         panic!("Internal error compiling lambda variable {}", lisp_name);
       });
       if let Some(var) = closure_fn_to_gd_var(call) {
