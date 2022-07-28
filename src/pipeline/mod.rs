@@ -22,8 +22,10 @@ use crate::compile::body::class_scope::OutsideOfClass;
 use crate::compile::symbol_table::SymbolTable;
 use crate::compile::preload_resolver::{DefaultPreloadResolver, LookupPreloadResolver};
 use crate::gdscript::library;
+use crate::gdscript::library::gdnative;
 use crate::gdscript::decl;
 use crate::util;
+use crate::util::lazy::Lazy;
 use crate::runner::macro_server::named_file_server::NamedFileServer;
 use crate::runner::path::{RPathBuf, PathSrc};
 use crate::optimize::gdscript::run_standard_passes;
@@ -41,8 +43,11 @@ pub struct Pipeline {
   known_files: HashMap<PathBuf, TranslationUnit>,
   known_files_paths: HashMap<PathBuf, PathBuf>,
   server: NamedFileServer,
+  native_classes: Lazy<NativeClasses, fn() -> NativeClasses>,
   current_file_path: Option<RPathBuf>,
 }
+
+type NativeClasses = Vec<gdnative::class::Class>;
 
 impl Pipeline {
 
@@ -53,12 +58,24 @@ impl Pipeline {
       known_files: HashMap::new(),
       known_files_paths: HashMap::new(),
       server: NamedFileServer::new(),
+      native_classes: Lazy::new(Pipeline::get_native_classes_impl),
       current_file_path: None,
     }
   }
 
   pub fn new(config: ProjectConfig) -> Pipeline {
     Pipeline::with_resolver(config, Box::new(DefaultNameResolver))
+  }
+
+  fn get_native_classes_impl() -> NativeClasses {
+    let result = gdnative::get_api_from_godot();
+    // TODO Because of the way Lazy is (currently) implemented, I
+    // can't extract the io::Error like I'd really like to. Ideally,
+    // this would return io::Error and then, when we
+    // get_native_classes, we'd also return either io::Error or
+    // PError. Panicking for now, but I'd like to fix this at some
+    // point.
+    result.expect("Could not read GDNative API from Godot binary")
   }
 
   pub fn compile_code<P : AsRef<Path> + ?Sized>(&mut self, filename: &P, input: &str)
@@ -206,6 +223,10 @@ impl Pipeline {
 
   pub fn config(&self) -> &ProjectConfig {
     &self.config
+  }
+
+  pub fn get_native_classes(&mut self) -> &[gdnative::class::Class] {
+    self.native_classes.force_mut()
   }
 
 }
