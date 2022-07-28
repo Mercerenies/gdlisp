@@ -27,4 +27,21 @@ mod tests {
     assert_eq!(serde_json::from_str::<Argument>(&serialized).unwrap(), argument);
   }
 
+  #[test]
+  fn deserialize_argument_test() {
+    let argument_str = r#"{
+						"name": "mesh",
+						"type": "Mesh",
+						"has_default_value": false,
+						"default_value": ""
+					}"#;
+    let argument = Argument {
+      name: String::from("mesh"),
+      argument_type: String::from("Mesh"),
+      has_default_value: false,
+      default_value: String::from(""),
+    };
+    assert_eq!(serde_json::from_str::<Argument>(&argument_str).unwrap(), argument);
+  }
+
 }
