@@ -68,9 +68,11 @@ pub struct MacroID(u32);
 #[derive(Debug)]
 struct MacroCall {
   index: u32, // Index in the lookup table on the GDScript side.
+  #[allow(dead_code)]
   original_name: String, // Probably not needed, but we have it so we may as well keep track of it.
   name: String,
   parms: ArgList,
+  #[allow(dead_code)]
   file: Option<NamedTempFile>, // Macros can optionally retain a file resource, which will be deleted when the macro is discarded from scope.
 }
 
