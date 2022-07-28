@@ -1546,6 +1546,18 @@
   (defn satisfies? (value)
     (= ((literally typeof) value) self:primitive-value)))
 
+;; Named types like _Engine whose name can be returned from get_class
+;; but which do not exist in the runtime namespace exposed to
+;; GDScript.
+(defclass NamedSyntheticType (GDLispSpecialType) private
+  (defvar name)
+
+  (defn _init (name)
+    (set self:name name))
+
+  (defn satisfies? (value)
+    (= (value:get-class) self:name)))
+
 ;; Note: All of these synthetic types would theoretically be defobject
 ;; if we weren't writing them in the standard library. But for
 ;; complicated reasons, we can't use macro expansion at all in stdlib,
