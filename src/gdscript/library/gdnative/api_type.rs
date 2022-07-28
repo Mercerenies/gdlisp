@@ -4,10 +4,14 @@
 
 use serde::{Serialize, Deserialize};
 
+/// The type of API to which a GDScript built-in class belongs.
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum ApiType {
+  /// A core class, which is always available.
   Core,
+  /// A tooling class, available in Godot builds which have access to
+  /// the editor.
   Tools,
 }
 
