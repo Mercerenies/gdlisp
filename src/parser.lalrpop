@@ -11,11 +11,19 @@ grammar;
 Int: i32 = <s:INT> => i32::from_str(s).unwrap();
 Float: f32 = <s:FLOAT> => f32::from_str(s).unwrap();
 String: String = <s:STRING> => {
-  let t = &s[1..s.chars().count()-1];
+  let t = &s[1..s.bytes().count()-1];
   string::parse_escapes(t).unwrap()
 };
 Symbol: String = <s:SYMBOL> => String::from(s);
-NodePath: String = <s:PATH> => String::from(&s[1..]);
+NodePath: String = {
+  <s:PATH> => {
+    String::from(&s[1..])
+  },
+  <s:QUOTED_PATH> => {
+    let t = &s[2..s.bytes().count()-1];
+    string::parse_escapes(t).unwrap()
+  },
+};
 
 match {
   r"\s*" => {},
@@ -24,8 +32,9 @@ match {
   "#t", "#f",
   r"[+-]?[0-9]+" => INT,
   r"[+-]?[0-9]+((\.[0-9]+)([eE][+-]?[0-9]+)?|(\.[0-9]+)?([eE][+-]?[0-9]+))" => FLOAT,
-  r#""([^\\"]|\\[\\"])*""# => STRING,
+  r#""([^\\"]|\\.)*""# => STRING,
   r"\$[A-Za-z0-9_~+=\-\\!$%^&*<>/?]+" => PATH,
+  r#"\$"([^\\"]|\\.)*""# => QUOTED_PATH,
   "(", ")", ".", "[", "]", "'", "#'", "`", ",", ":", "V{", "{", "}", ",.", "@",
 } else {
   // A symbol consists of the following, in order:
