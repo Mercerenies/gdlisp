@@ -129,9 +129,9 @@ fn parse_unicode_sequence(iter: &mut impl Iterator<Item=char>,
 }
 
 fn is_hex_digit(digit: char) -> bool {
-  (digit >= '0' && digit <= '9') ||
-    (digit >= 'a' && digit <= 'f') ||
-    (digit >= 'A' && digit <= 'F')
+  ('0'..='9').contains(&digit) ||
+    ('a'..='f').contains(&digit) ||
+    ('A'..='F').contains(&digit)
 }
 
 /// Given a string, insert Godot-style escape sequences to make the
