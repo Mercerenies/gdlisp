@@ -73,3 +73,18 @@ static func run():
     return null
 "#);
 }
+
+#[test]
+pub fn basic_node_path_test_6() {
+  // Note: \n is a *literal* newline in the code here, which will be
+  // converted to a "backslash-n" sequence in GDScript.
+  assert_eq!(parse_compile_decl("((defclass Foo (Reference) main (defn foo () $\"5\nc\")))"),
+             r#"extends Reference
+func _init():
+    pass
+func foo():
+    return $"5\nc"
+static func run():
+    return null
+"#);
+}
