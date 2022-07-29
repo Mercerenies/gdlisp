@@ -13,7 +13,11 @@ use super::ast::AST;
 /// ownership of `self` to do the conversion. The resulting `Expr`
 /// should not share any data with `&self`.
 pub trait Reify {
+
+  /// Reify the value into a GDScript expression would should evaluate
+  /// to something comparable to `self`.
   fn reify(&self) -> Expr;
+
 }
 
 impl Reify for AST {

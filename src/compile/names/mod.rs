@@ -54,7 +54,9 @@ const KNOWN_GDSCRIPT_KEYWORDS: &[&str] = &[
 /// translates into a GDScript name.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct NameTrans {
+  /// The GDLisp name.
   pub lisp_name: String,
+  /// The GDScript name which corresponds to the GDLisp name.
   pub gd_name: String,
 }
 

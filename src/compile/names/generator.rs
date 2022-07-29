@@ -2,6 +2,8 @@
 //! Provides the [`NameGenerator`] trait, whose implementations are
 //! capable of generating names.
 
+/// `NameGenerator` represents structures intended to generate new,
+/// unique symbolic names.
 pub trait NameGenerator {
 
   /// Generate a new name, beginning with `prefix`.

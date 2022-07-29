@@ -29,8 +29,12 @@ pub struct SuperProxy {
 
 impl SuperProxy {
 
+  /// The prefix used to generate names for superclass proxy methods.
   pub const PROXY_NAME: &'static str = "__gdlisp_super";
 
+  /// Generates a superclass proxy method for the method with the
+  /// given name and argument count. The provided name generator is
+  /// used to come up with a unique name for the proxy method.
   pub fn generate(gen: &mut FreshNameGenerator, super_name: String, args: usize, pos: SourceOffset) -> SuperProxy {
     let name = gen.generate_with(SuperProxy::PROXY_NAME);
     SuperProxy { name, super_name, args, pos }

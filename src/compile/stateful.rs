@@ -22,8 +22,11 @@ use crate::pipeline::source::SourceOffset;
 /// effects, we can reduce this.
 #[derive(Debug, Clone)]
 pub struct StExpr {
+  /// The expression being wrapped.
   pub expr: Expr,
-  pub side_effects: SideEffects
+  /// A declaration of the side effects of the wrapped expression, as
+  /// a [`SideEffects`] value.
+  pub side_effects: SideEffects,
 }
 
 /// A declaration of side effects.

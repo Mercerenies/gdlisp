@@ -113,8 +113,19 @@ pub enum FnName {
 /// structure simply designates the shape of the function.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub struct FnSpecs {
+  /// The number of required parameters to the function. If the
+  /// function is provided with fewer than this many arguments, an
+  /// error is issued.
   pub required: usize,
+  /// The number of optional parameters to the function. After
+  /// required arguments are bound, the next arguments are bound to
+  /// optional parameters until the argument list is exhausted or
+  /// optional parameters have all been bound.
   pub optional: usize,
+  /// The "rest" argument. After required and optional arguments have
+  /// been handled, if there are excess arguments, they are bound to
+  /// the "rest" parameter. If there is no "rest" parameter and there
+  /// are excess arguments, then an error is issued.
   pub rest: Option<VarArg>,
 }
 
