@@ -4,6 +4,7 @@
 use crate::pipeline::source::{SourceOffset, Sourced};
 use crate::util::extract_err;
 use crate::util::recursive::Recursive;
+use super::string::insert_escapes;
 
 use ordered_float::OrderedFloat;
 
@@ -355,8 +356,8 @@ impl fmt::Display for AST {
       ASTF::Bool(true) => write!(f, "#t"),
       ASTF::Bool(false) => write!(f, "#f"),
       ASTF::Float(x) => write!(f, "{}", x),
-      ASTF::String(s) => write!(f, "{:?}", s), // TODO Proper string escaping here
-      ASTF::Symbol(s) => write!(f, "{}", s), // TODO Proper escaping here too
+      ASTF::String(s) => write!(f, "\"{}\"", insert_escapes(s)),
+      ASTF::Symbol(s) => write!(f, "{}", s),
       ASTF::Cons(a, b) => {
         write!(f, "(")?;
         fmt_list(&*a, &*b, f)?;
