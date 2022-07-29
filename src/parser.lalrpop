@@ -17,8 +17,6 @@ String: String = <s:STRING> => {
 Symbol: String = <s:SYMBOL> => String::from(s);
 NodePath: String = <s:PATH> => String::from(&s[1..]);
 
-// TODO I want to be able to recognize symbols like 1b or a.b. I think
-// I'll have to write my own custom lexer to do so.
 match {
   r"\s*" => {},
   r";[^\n\r]*[\n\r]?" => {}, // Line comments (starting with semicolon)
@@ -30,6 +28,22 @@ match {
   r"\$[A-Za-z0-9_~+=\-\\!$%^&*<>/?]+" => PATH,
   "(", ")", ".", "[", "]", "'", "#'", "`", ",", ":", "V{", "{", "}", ",.", "@",
 } else {
+  // A symbol consists of the following, in order:
+  //
+  // 1. A starting character
+  //
+  // 2. An initial segment of zero or more subsequent characters.
+  //
+  // 3. A sequence of zero or more qualifiers, where a qualifier is a
+  // dot followed by one or more subsequent characters.
+  //
+  // The starting character can be an ASCII letter, underscore, tilde,
+  // plus, equal sign, minus, backslash, forward slash, exclamation
+  // mark, percent, caret, ampersand, star, less than, greater than,
+  // or question mark.
+  //
+  // The subsequent characters can be any starting character, or an
+  // ASCII number.
   r"[A-Za-z_~+=\-\\!%^&*<>/?][A-Za-z0-9_~+=\-\\!$%^&*<>/?]*(\.[A-Za-z0-9_~+=\-\\!$%^&*<>/?]+)*" => SYMBOL,
 }
 
