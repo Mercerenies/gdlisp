@@ -253,4 +253,12 @@ mod tests {
     assert_eq!(lisp_to_gd_bare("PI"), "PI");
   }
 
+  #[test]
+  fn translations_unicode() {
+    assert_eq!(lisp_to_gd("α"), "_u03B1");
+    assert_eq!(lisp_to_gd("aaβaa"), "aa_u03B2aa");
+    assert_eq!(lisp_to_gd("⊕"), "_u2295");
+    assert_eq!(lisp_to_gd("😎"), "_u1F60E");
+  }
+
 }

@@ -23,6 +23,21 @@ mod tests {
   }
 
   #[test]
+  fn parser_simple_unicode() {
+    let p = ASTParser::new();
+    assert_eq!(p.parse("αβγ").unwrap(), AST::symbol("αβγ", so(0))); // Category Ll
+    assert_eq!(p.parse("ΓΔ.ῼῼ").unwrap(), AST::symbol("ΓΔ.ῼῼ", so(0))); // Categories Lu and Lt
+    assert_eq!(p.parse("aʳ").unwrap(), AST::symbol("aʳ", so(0))); // Category Lm
+    assert_eq!(p.parse("aª").unwrap(), AST::symbol("aª", so(0))); // Category Lo
+    assert_eq!(p.parse("a͚").unwrap(), AST::symbol("a͚", so(0))); // Category Mn
+    assert_eq!(p.parse("Ⅸ³").unwrap(), AST::symbol("Ⅸ³", so(0))); // Categories Nl and No
+    assert_eq!(p.parse("£3÷£2").unwrap(), AST::symbol("£3÷£2", so(0))); // Categories Sm and Sc
+    assert_eq!(p.parse("©©©˄").unwrap(), AST::symbol("©©©˄", so(0))); // Categories Sk and So
+    assert_eq!(p.parse("⁀־־٭").unwrap(), AST::symbol("⁀־־٭", so(0))); // Categories Pc, Pd, and Po
+    assert_eq!(p.parse("value༣༣༣").unwrap(), AST::symbol("value༣༣༣", so(0))); // Category Nd (not allowed at beginning)
+  }
+
+  #[test]
   fn parser_string() {
     let p = ASTParser::new();
     assert_eq!(p.parse("\"abcdef\"").unwrap(), AST::string("abcdef", so(0)));
@@ -108,6 +123,13 @@ mod tests {
     assert!(p.parse("[a").is_err());
     assert!(p.parse("{a").is_err());
     assert!(p.parse("{a}").is_err()); // Not an even number of entries
+    assert!(p.parse("༣value").is_err()); // Category Nd (not allowed at beginning)
+    assert!(p.parse("valueऻ").is_err()); // Category Mc
+    assert!(p.parse("value⃝value").is_err()); // Category Me
+    assert!(p.parse("value❰").is_err()); // Category Ps
+    assert!(p.parse("value❱").is_err()); // Category Pe
+    assert!(p.parse("value«").is_err()); // Category Pi
+    assert!(p.parse("value»").is_err()); // Category Pf
   }
 
 }

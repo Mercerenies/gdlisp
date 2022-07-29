@@ -40,11 +40,12 @@ match {
   // The starting character can be an ASCII letter, underscore, tilde,
   // plus, equal sign, minus, backslash, forward slash, exclamation
   // mark, percent, caret, ampersand, star, less than, greater than,
-  // or question mark.
+  // question mark, or any Unicode character in the categories L, Mn,
+  // Nl, No, S, Pc, Pd, Po.
   //
-  // The subsequent characters can be any starting character, or an
-  // ASCII number.
-  r"[A-Za-z_~+=\-\\!%^&*<>/?][A-Za-z0-9_~+=\-\\!$%^&*<>/?]*(\.[A-Za-z0-9_~+=\-\\!$%^&*<>/?]+)*" => SYMBOL,
+  // The subsequent characters can be any starting character, an ASCII
+  // number, or any Unicode character in the category N.
+  r"[A-Za-z_~+=\-\\!%^&*<>/?[\p{L}\p{Mn}\p{No}\p{Nl}\p{S}\p{Pc}\p{Pd}\p{Po}--\p{Ascii}]][A-Za-z0-9_~+=\-\\!$%^&*<>/?[\p{L}\p{Mn}\p{N}\p{S}\p{Pc}\p{Pd}\p{Po}--\p{Ascii}]]*(\.[A-Za-z0-9_~+=\-\\!$%^&*<>/?[\p{L}\p{Mn}\p{N}\p{S}\p{Pc}\p{Pd}\p{Po}--\p{Ascii}]]+)*" => SYMBOL,
 }
 
 pub AST: AST = {
