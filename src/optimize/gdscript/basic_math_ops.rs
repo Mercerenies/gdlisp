@@ -2,13 +2,13 @@
 use super::ExpressionLevelPass;
 use crate::gdscript::expr::{self, Expr, ExprF};
 use crate::gdscript::op;
-use crate::compile::error::Error;
+use crate::compile::error::GDError;
 use super::constant;
 
 pub struct BasicMathOps;
 
 impl ExpressionLevelPass for BasicMathOps {
-  fn run_on_expr(&self, expr: &Expr) -> Result<Expr, Error> {
+  fn run_on_expr(&self, expr: &Expr) -> Result<Expr, GDError> {
     let mut expr = expr.clone();
     // (TODO Expand this)
 

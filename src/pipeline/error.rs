@@ -1,5 +1,5 @@
 
-use crate::compile::error::{Error as GDError};
+use crate::compile::error::GDError;
 use crate::pipeline::source::{SourceOffset, Sourced};
 use crate::sxp::dotted::TryFromDottedExprError;
 use crate::ir::arglist::ArgListParseError;

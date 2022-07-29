@@ -5,7 +5,7 @@ use crate::gdscript::decl::{Decl, DeclF, ClassDecl, InitFnDecl, FnDecl, Static};
 use crate::gdscript::stmt::Stmt;
 use crate::gdscript::arglist::ArgList;
 use crate::gdscript::library::READY_NAME;
-use crate::compile::error::{Error, ErrorF};
+use crate::compile::error::{GDError, GDErrorF};
 use crate::compile::names::fresh::FreshNameGenerator;
 use crate::util::find_or_else_mut;
 use crate::pipeline::source::SourceOffset;
@@ -211,7 +211,7 @@ impl ClassInit {
   /// declaration. The class declaration is mutated in-place. If an
   /// error occurs, then the class declaration is left in a valid but
   /// unspecified state.
-  pub fn apply(mut self, class: &mut ClassDecl, pos: SourceOffset) -> Result<(), Error> {
+  pub fn apply(mut self, class: &mut ClassDecl, pos: SourceOffset) -> Result<(), GDError> {
 
     // Initializer
     if !self.init.is_empty() {
@@ -243,13 +243,13 @@ impl ClassInit {
   /// field collection. In case of a conflict with an existing (non-proxy)
   /// field, an error is raised. In that case, the class declaration
   /// is left in a valid but unspecified state.
-  fn apply_proxy_fields(fields: Vec<SyntheticField>, class: &mut ClassDecl, pos: SourceOffset) -> Result<(), Error> {
+  fn apply_proxy_fields(fields: Vec<SyntheticField>, class: &mut ClassDecl, pos: SourceOffset) -> Result<(), GDError> {
     let existing_fields = ClassInit::all_var_decls(class);
 
     for field in fields {
       let var_decl = field.into_field();
       if let Some(pos) = existing_fields.get(&*var_decl.name) {
-        return Err(Error::new(ErrorF::FieldAccessorConflict(var_decl.name), *pos));
+        return Err(GDError::new(GDErrorF::FieldAccessorConflict(var_decl.name), *pos));
       }
       class.body.push(Decl::new(DeclF::VarDecl(var_decl), pos));
     }

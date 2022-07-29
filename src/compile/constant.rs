@@ -10,7 +10,7 @@
 //! around GDScript limitations. But for now, we're being super
 //! strict.
 
-use super::error::{Error, ErrorF};
+use super::error::{GDError, GDErrorF};
 use super::symbol_table::local_var::{ValueHint, ValueHintsTable};
 use crate::gdscript::expr::{Expr, ExprF};
 use crate::gdscript::op;
@@ -29,14 +29,14 @@ pub trait MaybeConstant: Sourced {
   fn is_allowable_const(&self, table: &impl ValueHintsTable) -> bool;
 
   /// Check whether [`MaybeConstant::is_allowable_const`] is true. If
-  /// not, return [`ErrorF::NotConstantEnough`]. The `name` is used to
+  /// not, return [`GDErrorF::NotConstantEnough`]. The `name` is used to
   /// produce a more convenient error message and is not used to
   /// determine whether or not the value is constant.
-  fn validate_const_expr(&self, name: &str, table: &impl ValueHintsTable) -> Result<(), Error> {
+  fn validate_const_expr(&self, name: &str, table: &impl ValueHintsTable) -> Result<(), GDError> {
     if self.is_allowable_const(table) {
       Ok(())
     } else {
-      Err(Error::new(ErrorF::NotConstantEnough(name.to_owned()), self.get_source()))
+      Err(GDError::new(GDErrorF::NotConstantEnough(name.to_owned()), self.get_source()))
     }
   }
 

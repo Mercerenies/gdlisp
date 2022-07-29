@@ -4,7 +4,7 @@
 
 use crate::ir::decl::{ClassFnDecl, ConstructorDecl};
 use crate::gdscript::decl::Static;
-use crate::compile::error::{Error, ErrorF};
+use crate::compile::error::{GDError, GDErrorF};
 use super::{ParseRule, Several, Constant};
 
 /// Modifier for [`ClassFnDecl`].
@@ -29,10 +29,10 @@ impl FnMod {
   /// Apply the modifier to a constructor. Some modifiers do not make
   /// sense applied to constructors and will trigger an error if an
   /// attempt is made to do so.
-  pub fn apply_to_constructor(&self, decl: &mut ConstructorDecl) -> Result<(), Error> {
+  pub fn apply_to_constructor(&self, decl: &mut ConstructorDecl) -> Result<(), GDError> {
     match self {
       FnMod::Static => {
-        Err(Error::new(ErrorF::StaticConstructor, decl.body.pos))
+        Err(GDError::new(GDErrorF::StaticConstructor, decl.body.pos))
       }
     }
   }

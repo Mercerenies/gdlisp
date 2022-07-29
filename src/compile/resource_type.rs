@@ -6,7 +6,7 @@
 
 use crate::ir::import::{ImportDecl, ImportDetails};
 use crate::pipeline::Pipeline;
-use super::error::{Error, ErrorF};
+use super::error::{GDError, GDErrorF};
 
 use std::convert::AsRef;
 use std::path::Path;
@@ -83,15 +83,15 @@ impl ResourceType {
   /// Checks [`ResourceType::is_import_allowed`]. If it is false, this
   /// method issues an appropriate error via `Err`. Otherwise, returns
   /// `Ok(())`.
-  pub fn check_import(_pipeline: &Pipeline, import: &ImportDecl) -> Result<(), Error> {
+  pub fn check_import(_pipeline: &Pipeline, import: &ImportDecl) -> Result<(), GDError> {
 
     // if !pipeline.file_exists(import.filename.path()) {
-    //   return Err(Error::ResourceDoesNotExist(import.filename.to_string()));
+    //   return Err(GDError::ResourceDoesNotExist(import.filename.to_string()));
     // }
 
     let res_type = ResourceType::from_path(import.filename.path());
     if !res_type.is_import_allowed(import) {
-      return Err(Error::new(ErrorF::InvalidImportOnResource(import.filename.to_string()), import.pos));
+      return Err(GDError::new(GDErrorF::InvalidImportOnResource(import.filename.to_string()), import.pos));
     }
 
     Ok(())

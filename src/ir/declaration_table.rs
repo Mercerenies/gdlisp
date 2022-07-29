@@ -4,7 +4,7 @@
 
 use super::Decl;
 use super::identifier::{Id, IdLike, Namespace};
-use crate::compile::error::{Error as GDError, ErrorF as GDErrorF};
+use crate::compile::error::{GDError, GDErrorF};
 
 use std::collections::HashMap;
 use std::mem;

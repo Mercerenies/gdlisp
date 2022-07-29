@@ -11,7 +11,7 @@
 //! and we'd like a convenient way to check that the argument count is
 //! correct and return an error otherwise.
 
-use super::error::{Error, ErrorF};
+use super::error::{GDError, GDErrorF};
 use crate::pipeline::source::SourceOffset;
 use crate::sxp::ast::{AST, ASTF};
 
@@ -112,20 +112,20 @@ impl Expecting {
   }
 
   /// Check that `self.contains(args_count)`, and if not, raise an
-  /// appropriate [`ErrorF::WrongNumberArgs`] with the given `name`
+  /// appropriate [`GDErrorF::WrongNumberArgs`] with the given `name`
   /// and `pos`.
-  pub fn validate_amount(&self, name: &str, pos: SourceOffset, args_count: usize) -> Result<(), Error> {
+  pub fn validate_amount(&self, name: &str, pos: SourceOffset, args_count: usize) -> Result<(), GDError> {
     if self.contains(args_count) {
       Ok(())
     } else {
-      Err(Error::new(ErrorF::WrongNumberArgs(String::from(name), *self, args_count), pos))
+      Err(GDError::new(GDErrorF::WrongNumberArgs(String::from(name), *self, args_count), pos))
     }
   }
 
   /// Validate against the length of a slice.
   ///
   /// Equivalent to `self.validate_amount(name, pos, slice.len())`.
-  pub fn validate<T>(&self, name: &str, pos: SourceOffset, slice: &[T]) -> Result<(), Error> {
+  pub fn validate<T>(&self, name: &str, pos: SourceOffset, slice: &[T]) -> Result<(), GDError> {
     self.validate_amount(name, pos, slice.len())
   }
 
@@ -135,21 +135,21 @@ impl ExpectedShape {
 
   /// Extracts an [`ASTF::Symbol`], or reports an error if the [`AST`]
   /// is not a symbol.
-  pub fn extract_symbol(form_name: &str, ast: AST) -> Result<String, Error> {
+  pub fn extract_symbol(form_name: &str, ast: AST) -> Result<String, GDError> {
     let pos = ast.pos;
     match ast.value {
       ASTF::Symbol(s) => Ok(s),
-      _ => Err(Error::new(ErrorF::InvalidArg(form_name.to_owned(), ast, ExpectedShape::Symbol), pos)),
+      _ => Err(GDError::new(GDErrorF::InvalidArg(form_name.to_owned(), ast, ExpectedShape::Symbol), pos)),
     }
   }
 
   /// Extracts an [`ASTF::String`], or reports an error if the [`AST`]
   /// is not a string literal.
-  pub fn extract_string(form_name: &str, ast: AST) -> Result<String, Error> {
+  pub fn extract_string(form_name: &str, ast: AST) -> Result<String, GDError> {
     let pos = ast.pos;
     match ast.value {
       ASTF::String(s) => Ok(s),
-      _ => Err(Error::new(ErrorF::InvalidArg(form_name.to_owned(), ast, ExpectedShape::String), pos)),
+      _ => Err(GDError::new(GDErrorF::InvalidArg(form_name.to_owned(), ast, ExpectedShape::String), pos)),
     }
   }
 
@@ -160,14 +160,14 @@ impl ExpectedShape {
   ///
   /// This function takes a `&[&AST]` to be compatible with the output
   /// of [`DottedExpr`](crate::sxp::dotted::DottedExpr).
-  pub fn validate_empty(form_name: &str, lst: &[&AST], pos: SourceOffset) -> Result<(), Error> {
+  pub fn validate_empty(form_name: &str, lst: &[&AST], pos: SourceOffset) -> Result<(), GDError> {
     if lst.is_empty() {
       Ok(())
     } else {
       // Note: Report error as `lst[0].pos`, since that's where the proof of nonempty-ness started.
       let err_pos = lst[0].pos;
       let lst: Vec<_> = lst.iter().map(|x| (*x).to_owned()).collect();
-      Err(Error::new(ErrorF::InvalidArg(form_name.to_owned(), AST::list(lst, pos), ExpectedShape::EmptyList), err_pos))
+      Err(GDError::new(GDErrorF::InvalidArg(form_name.to_owned(), AST::list(lst, pos), ExpectedShape::EmptyList), err_pos))
     }
   }
 
@@ -176,14 +176,14 @@ impl ExpectedShape {
   ///
   /// This function takes a `&[&AST]` to be compatible with the output
   /// of [`DottedExpr`](crate::sxp::dotted::DottedExpr).
-  pub fn validate_end_of_list(form_name: &str, lst: &[&AST], pos: SourceOffset) -> Result<(), Error> {
+  pub fn validate_end_of_list(form_name: &str, lst: &[&AST], pos: SourceOffset) -> Result<(), GDError> {
     if lst.is_empty() {
       Ok(())
     } else {
       // Note: Report error as `lst[0].pos`, since that's where the proof of nonempty-ness started.
       let err_pos = lst[0].pos;
       let lst: Vec<_> = lst.iter().map(|x| (*x).to_owned()).collect();
-      Err(Error::new(ErrorF::InvalidArg(form_name.to_owned(), AST::list(lst, pos), ExpectedShape::EndOfList), err_pos))
+      Err(GDError::new(GDErrorF::InvalidArg(form_name.to_owned(), AST::list(lst, pos), ExpectedShape::EndOfList), err_pos))
     }
   }
 

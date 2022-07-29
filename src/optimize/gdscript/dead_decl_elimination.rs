@@ -1,6 +1,6 @@
 
 use crate::gdscript::decl::{self, DeclF};
-use crate::compile::error::Error;
+use crate::compile::error::GDError;
 use super::{FileOptimization, on_each_decl};
 
 /// `DeadDeclElimination` simply removes all "pass" declarations.
@@ -15,7 +15,7 @@ pub struct DeadDeclElimination;
 // out by other passes). For now, it just runs on "pass" decls.
 impl FileOptimization for DeadDeclElimination {
 
-  fn run_on_file(&self, file: &mut decl::TopLevelClass) -> Result<(), Error> {
+  fn run_on_file(&self, file: &mut decl::TopLevelClass) -> Result<(), GDError> {
     file.body = on_each_decl(&file.body, |d| {
       if let DeclF::PassDecl = &d.value {
         Ok(vec!())

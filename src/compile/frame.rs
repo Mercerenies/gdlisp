@@ -15,7 +15,7 @@ use super::symbol_table::{SymbolTable, HasSymbolTable};
 use super::symbol_table::local_var::{LocalVar, ValueHint, VarName};
 use super::names::fresh::FreshNameGenerator;
 use super::names::registered::RegisteredNameGenerator;
-use super::error::{Error, ErrorF};
+use super::error::{GDError, GDErrorF};
 use super::stateful::{StExpr, NeedsResult, SideEffects};
 use super::body::builder::{StmtBuilder, CodeBuilder, HasDecls};
 use super::body::class_scope::ClassScope;
@@ -151,7 +151,7 @@ impl<'a, 'b, 'c, 'd, 'e, B> CompilerFrame<'a, 'b, 'c, 'd, 'e, B> {
                              src_name: &str,
                              expr: &IRExpr,
                              needs_result: NeedsResult)
-                             -> Result<Expr, Error> {
+                             -> Result<Expr, GDError> {
     let mut tmp_builder = StmtBuilder::new();
     let value = self.with_builder(&mut tmp_builder, |frame| {
       frame.compile_expr(expr, needs_result).map(|x| x.expr)
@@ -160,7 +160,7 @@ impl<'a, 'b, 'c, 'd, 'e, B> CompilerFrame<'a, 'b, 'c, 'd, 'e, B> {
     if stmts.is_empty() && decls.is_empty() {
       Ok(value)
     } else {
-      Err(Error::new(ErrorF::NotConstantEnough(String::from(src_name)), expr.pos))
+      Err(GDError::new(GDErrorF::NotConstantEnough(String::from(src_name)), expr.pos))
     }
   }
 
@@ -189,11 +189,11 @@ impl<'a, 'b, 'c, 'd, 'e, B: HasDecls> CompilerFrame<'a, 'b, 'c, 'd, 'e, B> {
 
   /// As
   /// [`with_local_builder_value`](CompilerFrame::with_local_builder_value),
-  /// but the block is expected to return a [`Result<R, Error>`],
+  /// but the block is expected to return a [`Result<R, GDError>`],
   /// whose error values are propagated outward to the return value of
   /// this method.
-  pub fn with_local_builder_result<R, F>(&mut self, block: F) -> Result<(R, Vec<Stmt>), Error>
-  where F : FnOnce(&mut CompilerFrame<StmtBuilder>) -> Result<R, Error> {
+  pub fn with_local_builder_result<R, F>(&mut self, block: F) -> Result<(R, Vec<Stmt>), GDError>
+  where F : FnOnce(&mut CompilerFrame<StmtBuilder>) -> Result<R, GDError> {
     let (error_value, vec) = self.with_local_builder_value(block);
     error_value.map(|r| (r, vec))
   }
@@ -203,8 +203,8 @@ impl<'a, 'b, 'c, 'd, 'e, B: HasDecls> CompilerFrame<'a, 'b, 'c, 'd, 'e, B> {
   /// but with no return value `R`. Only the vector of statements from
   /// the builder is returned. Equivalent to
   /// `self.with_local_builder_result(block).map(|x| x.1)`.
-  pub fn with_local_builder<F>(&mut self, block: F) -> Result<Vec<Stmt>, Error>
-  where F : FnOnce(&mut CompilerFrame<StmtBuilder>) -> Result<(), Error> {
+  pub fn with_local_builder<F>(&mut self, block: F) -> Result<Vec<Stmt>, GDError>
+  where F : FnOnce(&mut CompilerFrame<StmtBuilder>) -> Result<(), GDError> {
     let (error_value, vec) = self.with_local_builder_value(block);
     error_value.map(|_| vec)
   }
@@ -237,7 +237,7 @@ impl<'a, 'b, 'c, 'd, 'e> CompilerFrame<'a, 'b, 'c, 'd, 'e, CodeBuilder> {
     Ok(())
   }
 
-  pub fn compile_decls(&mut self, decls: &[IRDecl]) -> Result<(), Error> {
+  pub fn compile_decls(&mut self, decls: &[IRDecl]) -> Result<(), GDError> {
     for decl in decls {
       Compiler::bind_decl(&self.compiler.magic_table, self.pipeline, self.table, decl)?;
     }
@@ -248,7 +248,7 @@ impl<'a, 'b, 'c, 'd, 'e> CompilerFrame<'a, 'b, 'c, 'd, 'e, CodeBuilder> {
     Ok(())
   }
 
-  pub fn compile_decl(&mut self, decl: &IRDecl) -> Result<(), Error> {
+  pub fn compile_decl(&mut self, decl: &IRDecl) -> Result<(), GDError> {
     match &decl.value {
       IRDeclF::FnDecl(ir::decl::FnDecl { visibility: _, call_magic: _, name, args, body }) => {
         let gd_name = names::lisp_to_gd(name);
@@ -315,7 +315,7 @@ impl<'a, 'b, 'c, 'd, 'e> CompilerFrame<'a, 'b, 'c, 'd, 'e, CodeBuilder> {
             gd_const_value.validate_const_expr(const_name, self.table)?;
           }
           Ok((gd_const_name, gd_const_value))
-        }).collect::<Result<_, Error>>()?;
+        }).collect::<Result<_, GDError>>()?;
         self.builder.add_decl(Decl::new(DeclF::EnumDecl(decl::EnumDecl { name: Some(gd_name), clauses: gd_clauses }), decl.pos));
         Ok(())
       }
@@ -349,7 +349,7 @@ impl<'a, 'b, 'c, 'd, 'e> CompilerFrame<'a, 'b, 'c, 'd, 'e, StmtBuilder> {
                        stmts: &[&IRExpr],
                        needs_result: NeedsResult,
                        pos: SourceOffset)
-                       -> Result<StExpr, Error> {
+                       -> Result<StExpr, GDError> {
     if stmts.is_empty() {
       Ok(Compiler::nil_expr(pos))
     } else {
@@ -375,7 +375,7 @@ impl<'a, 'b, 'c, 'd, 'e> CompilerFrame<'a, 'b, 'c, 'd, 'e, StmtBuilder> {
   pub fn compile_stmt(&mut self,
                       destination: &dyn StmtWrapper,
                       stmt: &IRExpr)
-                      -> Result<(), Error> {
+                      -> Result<(), GDError> {
     let needs_result = NeedsResult::from(!destination.is_vacuous());
     let expr = self.compile_expr(stmt, needs_result)?;
     destination.wrap_to_builder(self.builder, expr);
@@ -386,10 +386,10 @@ impl<'a, 'b, 'c, 'd, 'e> CompilerFrame<'a, 'b, 'c, 'd, 'e, StmtBuilder> {
   pub fn compile_expr(&mut self,
                       expr: &IRExpr,
                       needs_result: NeedsResult)
-                      -> Result<StExpr, Error> {
+                      -> Result<StExpr, GDError> {
     match &expr.value {
       IRExprF::LocalVar(s) => {
-        self.table.get_var(s).ok_or_else(|| Error::new(ErrorF::NoSuchVar(s.clone()), expr.pos)).map(|var| {
+        self.table.get_var(s).ok_or_else(|| GDError::new(GDErrorF::NoSuchVar(s.clone()), expr.pos)).map(|var| {
           StExpr { expr: var.expr(expr.pos), side_effects: SideEffects::from(var.access_type) }
         })
       }
@@ -428,7 +428,7 @@ impl<'a, 'b, 'c, 'd, 'e> CompilerFrame<'a, 'b, 'c, 'd, 'e, StmtBuilder> {
       IRExprF::FuncRef(name) => {
         match name {
           FuncRefTarget::SimpleName(name) => {
-            let func = self.table.get_fn(name).ok_or_else(|| Error::new(ErrorF::NoSuchFn(name.clone()), expr.pos))?.0.clone();
+            let func = self.table.get_fn(name).ok_or_else(|| GDError::new(GDErrorF::NoSuchFn(name.clone()), expr.pos))?.0.clone();
             lambda::compile_function_ref(self.compiler, self.pipeline, self.builder, self.table, func, expr.pos)
           }
         }
@@ -455,7 +455,7 @@ impl<'a, 'b, 'c, 'd, 'e> CompilerFrame<'a, 'b, 'c, 'd, 'e, StmtBuilder> {
           if let Some(LocalVar { value_hint: Some(ValueHint::Enum(vs)), .. }) = self.table.get_var(lhs) {
             // It's an enum and we know its values; validate
             if !vs.contains(&names::lisp_to_gd(sym)) {
-              return Err(Error::new(ErrorF::NoSuchEnumValue(lhs.clone(), sym.clone()), expr.pos));
+              return Err(GDError::new(GDErrorF::NoSuchEnumValue(lhs.clone(), sym.clone()), expr.pos));
             }
           }
         }
@@ -483,7 +483,7 @@ impl<'a, 'b, 'c, 'd, 'e> CompilerFrame<'a, 'b, 'c, 'd, 'e, StmtBuilder> {
         let args = args.iter()
           .map(|arg| self.compile_expr(arg, NeedsResult::Yes).map(|x| x.expr))
           .collect::<Result<Vec<_>, _>>()?;
-        let self_binding = self.table.get_var("self").ok_or_else(|| Error::new(ErrorF::BadSuperCall(String::from(sym)), expr.pos))?;
+        let self_binding = self.table.get_var("self").ok_or_else(|| GDError::new(GDErrorF::BadSuperCall(String::from(sym)), expr.pos))?;
         let expr = self.class_scope.super_call(self.compiler.name_generator(), self_binding, sym.to_owned(), args, expr.pos)?;
         Ok(StExpr {
           expr: expr,
@@ -512,7 +512,7 @@ impl<'a, 'b, 'c, 'd, 'e> CompilerFrame<'a, 'b, 'c, 'd, 'e, StmtBuilder> {
       }
       IRExprF::ContextualFilename(filename) => {
         let new_filename = self.preload_resolver().resolve_preload(filename)
-          .ok_or_else(|| Error::new(ErrorF::ContextualFilenameUnresolved, expr.pos))?;
+          .ok_or_else(|| GDError::new(GDErrorF::ContextualFilenameUnresolved, expr.pos))?;
         Ok(StExpr { expr: Expr::from_value(new_filename, expr.pos), side_effects: SideEffects::None })
       }
       IRExprF::AtomicName(s) => {
@@ -558,14 +558,14 @@ impl<'a, 'b, 'c, 'd, 'e> CompilerFrame<'a, 'b, 'c, 'd, 'e, StmtBuilder> {
                                name: &str,
                                args: &[IRExpr],
                                pos: SourceOffset)
-                               -> Result<StExpr, Error> {
+                               -> Result<StExpr, GDError> {
     let (fcall, call_magic) = match self.table.get_fn(name) {
-      None => return Err(Error::new(ErrorF::NoSuchFn(name.to_owned()), pos)),
+      None => return Err(GDError::new(GDErrorF::NoSuchFn(name.to_owned()), pos)),
       Some((p, m)) => (p.clone(), dyn_clone::clone_box(m))
     };
     // Macro calls should not occur at this stage in compilation.
     if fcall.is_macro {
-      return Err(Error::new(ErrorF::MacroBeforeDefinitionError(name.to_owned()), pos));
+      return Err(GDError::new(GDErrorF::MacroBeforeDefinitionError(name.to_owned()), pos));
     }
     // Call magic is used to implement some commonly used wrappers
     // for simple GDScript operations.
@@ -608,12 +608,12 @@ impl<'a, 'b, 'c, 'd, 'e> CompilerFrame<'a, 'b, 'c, 'd, 'e, StmtBuilder> {
                         target: &AssignTarget,
                         expr: &IRExpr,
                         needs_result: NeedsResult)
-                        -> Result<StExpr, Error> {
+                        -> Result<StExpr, GDError> {
     match target {
       AssignTarget::Variable(pos, name) => {
-        let var = self.table.get_var(name).ok_or_else(|| Error::new(ErrorF::NoSuchVar(name.clone()), *pos))?.to_owned();
+        let var = self.table.get_var(name).ok_or_else(|| GDError::new(GDErrorF::NoSuchVar(name.clone()), *pos))?.to_owned();
         if !var.assignable {
-          return Err(Error::new(ErrorF::CannotAssignTo(var.name.to_gd(*pos)), expr.pos));
+          return Err(GDError::new(GDErrorF::CannotAssignTo(var.name.to_gd(*pos)), expr.pos));
         }
         self.compile_stmt(&stmt_wrapper::AssignToExpr(var.expr(*pos)), expr)?;
         Ok(StExpr { expr: var.expr(*pos), side_effects: SideEffects::from(var.access_type) })
@@ -641,18 +641,18 @@ impl<'a, 'b, 'c, 'd, 'e> CompilerFrame<'a, 'b, 'c, 'd, 'e, StmtBuilder> {
   }
 
   fn compile_array<'a1>(&mut self, elements: impl Iterator<Item=&'a1 IRExpr>, pos: SourceOffset)
-                        -> Result<StExpr, Error> {
+                        -> Result<StExpr, GDError> {
     let mut side_effects = SideEffects::None;
     let vec = elements.map(|expr| {
       let StExpr { expr: cexpr, side_effects: state } = self.compile_expr(expr, NeedsResult::Yes)?;
       side_effects = max(side_effects, state);
       Ok(cexpr)
-    }).collect::<Result<Vec<_>, Error>>()?;
+    }).collect::<Result<Vec<_>, GDError>>()?;
     Ok(StExpr { expr: Expr::new(ExprF::ArrayLit(vec), pos), side_effects })
   }
 
   fn compile_dictionary<'a1>(&mut self, elements: impl Iterator<Item=&'a1 (IRExpr, IRExpr)>, pos: SourceOffset)
-                             -> Result<StExpr, Error> {
+                             -> Result<StExpr, GDError> {
     let mut side_effects = SideEffects::None;
     let vec = elements.map(|(k, v)| {
 
@@ -663,7 +663,7 @@ impl<'a, 'b, 'c, 'd, 'e> CompilerFrame<'a, 'b, 'c, 'd, 'e, StmtBuilder> {
       side_effects = max(side_effects, vstate);
 
       Ok((kexpr, vexpr))
-    }).collect::<Result<Vec<_>, Error>>()?;
+    }).collect::<Result<Vec<_>, GDError>>()?;
     Ok(StExpr { expr: Expr::new(ExprF::DictionaryLit(vec), pos), side_effects })
   }
 

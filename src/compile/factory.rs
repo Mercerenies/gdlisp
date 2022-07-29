@@ -13,7 +13,7 @@ use super::stmt_wrapper::{self, StmtWrapper};
 use super::symbol_table::{HasSymbolTable, ClassTablePair};
 use super::symbol_table::local_var::LocalVar;
 use super::symbol_table::function_call::OuterStaticRef;
-use super::error::Error;
+use super::error::GDError;
 use crate::gdscript::expr::Expr;
 use crate::gdscript::stmt::Stmt;
 use crate::gdscript::decl::{self, Decl, DeclF, ClassExtends};
@@ -71,7 +71,7 @@ pub fn declare_function(frame: &mut CompilerFrame<impl HasDecls>,
                         args: IRArgList,
                         body: &IRExpr,
                         result_destination: &impl StmtWrapper)
-                        -> Result<decl::FnDecl, Error> {
+                        -> Result<decl::FnDecl, GDError> {
   let result = declare_function_with_init(frame, gd_name, args, &[], body, result_destination)?;
   assert!(result.inits.is_empty(), "declare_function got nonempty initializers: {:?}", result.inits);
   Ok(result.function)
@@ -83,7 +83,7 @@ fn declare_function_with_init(frame: &mut CompilerFrame<impl HasDecls>,
                               inits: &[IRExpr],
                               body: &IRExpr,
                               result_destination: &impl StmtWrapper)
-                              -> Result<DeclaredFnWithInit, Error> {
+                              -> Result<DeclaredFnWithInit, GDError> {
   let local_vars = body.get_locals();
   let (arglist, gd_args) = args.into_gd_arglist(&mut RegisteredNameGenerator::new_local_var(frame.table));
   let mut stmt_builder = StmtBuilder::new();
@@ -102,7 +102,7 @@ fn declare_function_with_init(frame: &mut CompilerFrame<impl HasDecls>,
       args: arglist,
       body: stmt_builder.build_into(frame.builder),
     };
-    let inits = inits.iter().map::<Result<Expr, Error>, _>(|expr| {
+    let inits = inits.iter().map::<Result<Expr, GDError>, _>(|expr| {
       let mut inner_builder = StmtBuilder::new();
       let cexpr = frame.with_builder(&mut inner_builder, |frame| {
         frame.compile_expr(expr, NeedsResult::Yes).map(|x| x.expr)
@@ -137,7 +137,7 @@ pub fn declare_class(frame: &mut CompilerFrame<impl HasDecls>,
                      constructor: &ir::decl::ConstructorDecl,
                      decls: &[ir::decl::ClassInnerDecl],
                      pos: SourceOffset)
-                     -> Result<decl::ClassDecl, Error> {
+                     -> Result<decl::ClassDecl, GDError> {
 
   let mut class_scope = DirectClassScope::new();
 
@@ -154,7 +154,7 @@ pub fn declare_class(frame: &mut CompilerFrame<impl HasDecls>,
   let mut class_init_builder = ClassBuilder::new();
   let mut instance_table = frame.table.clone();
   let mut static_table = frame.table.clone();
-  instance_table.with_local_var::<Result<(), Error>, _>(String::from("self"), self_var, |instance_table| {
+  instance_table.with_local_var::<Result<(), GDError>, _>(String::from("self"), self_var, |instance_table| {
 
     // Modify all of the names in the instance / static table. We run
     // this even if needs_outer_ref is false, because we might still
@@ -203,7 +203,7 @@ pub fn declare_class(frame: &mut CompilerFrame<impl HasDecls>,
 
 pub fn declare_constructor(frame: &mut CompilerFrame<impl HasDecls>,
                            constructor: &ir::decl::ConstructorDecl)
-                           -> Result<(decl::InitFnDecl, Vec<decl::FnDecl>), Error> {
+                           -> Result<(decl::InitFnDecl, Vec<decl::FnDecl>), GDError> {
   let constructor_with_init = declare_function_with_init(frame,
                                                          String::from(library::CONSTRUCTOR_NAME),
                                                          IRArgList::from(constructor.args.clone()),

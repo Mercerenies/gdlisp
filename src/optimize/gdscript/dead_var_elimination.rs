@@ -1,7 +1,7 @@
 
 use crate::gdscript::stmt::{Stmt, StmtF};
 use crate::gdscript::decl;
-use crate::compile::error::Error;
+use crate::compile::error::GDError;
 use super::FunctionOptimization;
 use super::stmt_walker;
 use super::variables::get_variable_info;
@@ -28,11 +28,11 @@ impl DeadVarElimination {
  * If a variable is never used, then we can omit it entirely.
  */
 impl FunctionOptimization for DeadVarElimination {
-  fn run_on_function(&self, function: &mut decl::FnDecl) -> Result<(), Error> {
+  fn run_on_function(&self, function: &mut decl::FnDecl) -> Result<(), GDError> {
     self.run_on_body(&mut function.body);
     Ok(())
   }
-  fn run_on_init_function(&self, function: &mut decl::InitFnDecl) -> Result<(), Error> {
+  fn run_on_init_function(&self, function: &mut decl::InitFnDecl) -> Result<(), GDError> {
     self.run_on_body(&mut function.body);
     Ok(())
   }

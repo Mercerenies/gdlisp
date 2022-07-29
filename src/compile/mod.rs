@@ -26,7 +26,7 @@ use crate::gdscript::expr::{Expr, ExprF};
 use crate::gdscript::decl::{self, Decl, DeclF, ClassExtends, Onready, Setget};
 use crate::gdscript::library;
 use crate::gdscript::arglist::ArgList;
-use error::{Error, ErrorF};
+use error::{GDError, GDErrorF};
 use symbol_table::{SymbolTable, ClassTablePair};
 use symbol_table::local_var::{LocalVar, ValueHint, VarName, VarScope, VarNameIntoExtendsError};
 use symbol_table::function_call;
@@ -94,7 +94,7 @@ impl Compiler {
   fn compile_export(&mut self,
                     pipeline: &mut Pipeline,
                     table: &mut SymbolTable,
-                    expr: &IRExpr) -> Result<Expr, Error> {
+                    expr: &IRExpr) -> Result<Expr, GDError> {
     // Any expression valid as a const is valid here, but then so are
     // Expr::LocalVar since we need to allow type names.
     //
@@ -117,7 +117,7 @@ impl Compiler {
                                   tables: ClassTablePair<'_, '_>,
                                   class_scope: &mut DirectClassScope,
                                   decl: &ir::decl::ClassInnerDecl)
-                                  -> Result<Decl, Error> {
+                                  -> Result<Decl, GDError> {
     let table = tables.into_table(decl.is_static());
     match &decl.value {
       ir::decl::ClassInnerDeclF::ClassSignalDecl(s) => {
@@ -168,16 +168,16 @@ impl Compiler {
           InstanceFunctionName::Setter(field_name) => {
 
             if f.is_static == decl::Static::IsStatic || f.args.len() != 1 {
-              return Err(Error::new(
-                ErrorF::BadSetterArguments(field_name.to_owned()),
+              return Err(GDError::new(
+                GDErrorF::BadSetterArguments(field_name.to_owned()),
                 decl.pos,
               ));
             }
 
             let conflicting_name = builder.declare_setter_for(field_name.to_owned());
             if conflicting_name.is_some() {
-              return Err(Error::new(
-                ErrorF::DuplicateName(ClassNamespace::Value, field_name.to_owned()),
+              return Err(GDError::new(
+                GDErrorF::DuplicateName(ClassNamespace::Value, field_name.to_owned()),
                 decl.pos,
               ));
             }
@@ -185,16 +185,16 @@ impl Compiler {
           InstanceFunctionName::Getter(field_name) => {
 
             if f.is_static == decl::Static::IsStatic || !f.args.is_empty() {
-              return Err(Error::new(
-                ErrorF::BadGetterArguments(field_name.to_owned()),
+              return Err(GDError::new(
+                GDErrorF::BadGetterArguments(field_name.to_owned()),
                 decl.pos,
               ));
             }
 
             let conflicting_name = builder.declare_getter_for(field_name.to_owned());
             if conflicting_name.is_some() {
-              return Err(Error::new(
-                ErrorF::DuplicateName(ClassNamespace::Value, field_name.to_owned()),
+              return Err(GDError::new(
+                GDErrorF::DuplicateName(ClassNamespace::Value, field_name.to_owned()),
                 decl.pos,
               ))
             }
@@ -216,7 +216,7 @@ impl Compiler {
                              value: Option<&IRExpr>,
                              frame: &mut CompilerFrame<StmtBuilder>,
                              pos: SourceOffset)
-                             -> Result<Option<Expr>, Error> {
+                             -> Result<Option<Expr>, GDError> {
     match value {
       None => Ok(None),
       Some(value) => {
@@ -254,20 +254,20 @@ impl Compiler {
   /// then [`ErrorF::CannotExtend`] is returned. This situation should
   /// never happen for top-level class or object declarations, but it
   /// can occur in lambda classes.
-  pub fn resolve_extends(table: &SymbolTable, extends: &str, pos: SourceOffset) -> Result<ClassExtends, Error> {
-    let var = table.get_var(extends).ok_or_else(|| Error::new(ErrorF::NoSuchVar(extends.to_owned()), pos))?;
+  pub fn resolve_extends(table: &SymbolTable, extends: &str, pos: SourceOffset) -> Result<ClassExtends, GDError> {
+    let var = table.get_var(extends).ok_or_else(|| GDError::new(GDErrorF::NoSuchVar(extends.to_owned()), pos))?;
     if var.scope != VarScope::GlobalVar {
-      return Err(Error::new(ErrorF::CannotExtend(VarNameIntoExtendsError::CannotExtendLocal(extends.to_owned())), pos));
+      return Err(GDError::new(GDErrorF::CannotExtend(VarNameIntoExtendsError::CannotExtendLocal(extends.to_owned())), pos));
     }
     let var_name = var.name.clone();
-    ClassExtends::try_from(var_name).map_err(|x| Error::from_value(x, pos))
+    ClassExtends::try_from(var_name).map_err(|x| GDError::from_value(x, pos))
   }
 
   fn bind_decl(magic_table: &MagicTable,
                pipeline: &mut Pipeline,
                table: &mut SymbolTable,
                decl: &IRDecl)
-               -> Result<(), Error> {
+               -> Result<(), GDError> {
     match &decl.value {
       IRDeclF::FnDecl(ir::decl::FnDecl { visibility: _, call_magic, name, args, body: _ }) => {
         let func = function_call::FnCall::file_constant(
@@ -281,7 +281,7 @@ impl Compiler {
             // If a call magic declaration was specified, it MUST
             // exist or it's a compile error.
             match magic_table.get(m) {
-              None => return Err(Error::new(ErrorF::NoSuchMagic(m.to_owned()), decl.pos)),
+              None => return Err(GDError::new(GDErrorF::NoSuchMagic(m.to_owned()), decl.pos)),
               Some(magic) => magic.clone(),
             }
           }
@@ -370,13 +370,13 @@ impl Compiler {
     Ok(())
   }
 
-  fn make_preload_line(&self, var: String, path: &RPathBuf, pos: SourceOffset) -> Result<Decl, Error> {
+  fn make_preload_line(&self, var: String, path: &RPathBuf, pos: SourceOffset) -> Result<Decl, GDError> {
     if self.resolver.include_resource(ResourceType::from(path.path())) {
       let mut path = path.clone();
       if path.path().extension() == Some(OsStr::new("lisp")) {
         path.path_mut().set_extension("gd");
       }
-      let path = self.resolver.resolve_preload(&path).ok_or_else(|| Error::new(ErrorF::NoSuchFile(path.clone()), pos))?;
+      let path = self.resolver.resolve_preload(&path).ok_or_else(|| GDError::new(GDErrorF::NoSuchFile(path.clone()), pos))?;
       Ok(Decl::new(
         DeclF::ConstDecl(var, Expr::call(None, "preload", vec!(Expr::from_value(path, pos)), pos)),
         pos,
@@ -437,12 +437,12 @@ impl Compiler {
         let ImportName { namespace: namespace, in_name: import_name, out_name: export_name } = imp;
         match namespace {
           Namespace::Function => {
-            let (call, _) = unit_table.get_fn(&export_name).ok_or_else(|| Error::new(ErrorF::NoSuchFn(export_name), import.pos))?;
+            let (call, _) = unit_table.get_fn(&export_name).ok_or_else(|| GDError::new(GDErrorF::NoSuchFn(export_name), import.pos))?;
             let call = Compiler::translate_call(preload_name.clone(), call.clone());
             table.set_fn(import_name.clone(), call, CallMagic::DefaultCall);
           }
           Namespace::Value => {
-            let mut var = unit_table.get_var(&export_name).ok_or_else(|| Error::new(ErrorF::NoSuchVar(export_name), import.pos))?.clone();
+            let mut var = unit_table.get_var(&export_name).ok_or_else(|| GDError::new(GDErrorF::NoSuchVar(export_name), import.pos))?.clone();
             var.name = var.name.into_imported(preload_name.clone());
             table.set_var(import_name.clone(), var);
           }
@@ -452,14 +452,14 @@ impl Compiler {
       // If it was a restricted import list, validate the import names
       if let ImportDetails::Restricted(vec) = &import.details {
         for imp in vec {
-          imp.refine(exports).map_err(|x| Error::from_value(x, import.pos))?;
+          imp.refine(exports).map_err(|x| GDError::from_value(x, import.pos))?;
         }
       }
     } else {
       // Simple resource import
       let name = match &import.details {
         ImportDetails::Named(s) => s.to_owned(),
-        _ => return Err(PError::from(Error::new(ErrorF::InvalidImportOnResource(import.filename.to_string()), import.pos))),
+        _ => return Err(PError::from(GDError::new(GDErrorF::InvalidImportOnResource(import.filename.to_string()), import.pos))),
       };
       // TODO Check that the file exists?
       let var = LocalVar::file_constant(preload_name);

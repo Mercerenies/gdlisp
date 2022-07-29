@@ -18,7 +18,7 @@ pub mod ternary_if_fold;
 use crate::gdscript::decl::{self, Decl, DeclF};
 use crate::gdscript::expr::Expr;
 use crate::gdscript::stmt::Stmt;
-use crate::compile::error::Error;
+use crate::compile::error::GDError;
 
 // Note: If optimization results in an error, the code is guaranteed
 // to be in a valid, correct state. It may or may not be rolled back
@@ -26,26 +26,26 @@ use crate::compile::error::Error;
 // runtime.
 
 pub trait ExpressionLevelPass {
-  fn run_on_expr(&self, expr: &Expr) -> Result<Expr, Error>;
+  fn run_on_expr(&self, expr: &Expr) -> Result<Expr, GDError>;
 }
 
 pub trait StatementLevelPass {
-  fn run_on_stmt(&self, stmt: &Stmt) -> Result<Vec<Stmt>, Error>;
+  fn run_on_stmt(&self, stmt: &Stmt) -> Result<Vec<Stmt>, GDError>;
 }
 
 pub trait FunctionOptimization {
-  fn run_on_function(&self, function: &mut decl::FnDecl) -> Result<(), Error>;
-  fn run_on_init_function(&self, function: &mut decl::InitFnDecl) -> Result<(), Error>;
+  fn run_on_function(&self, function: &mut decl::FnDecl) -> Result<(), GDError>;
+  fn run_on_init_function(&self, function: &mut decl::InitFnDecl) -> Result<(), GDError>;
 }
 
 pub trait FileOptimization {
-  fn run_on_file(&self, file: &mut decl::TopLevelClass) -> Result<(), Error>;
+  fn run_on_file(&self, file: &mut decl::TopLevelClass) -> Result<(), GDError>;
 }
 
 // TODO Note that expression-level optimizations won't run on
 // ConstDecl, VarDecl, or EnumDecl expressions right now. Also on
 // super args in InitFnDecl.
-fn on_each_decl_impl(decls: &[Decl], acc: &mut Vec<Decl>, block: &mut impl FnMut(&Decl) -> Result<Vec<Decl>, Error>) -> Result<(), Error> {
+fn on_each_decl_impl(decls: &[Decl], acc: &mut Vec<Decl>, block: &mut impl FnMut(&Decl) -> Result<Vec<Decl>, GDError>) -> Result<(), GDError> {
   for decl in decls {
     let mut new_decls = block(decl)?;
     for new_decl in &mut new_decls {
@@ -75,13 +75,13 @@ fn on_each_decl_impl(decls: &[Decl], acc: &mut Vec<Decl>, block: &mut impl FnMut
 /// concatenated together, with the original order preserved. Any
 /// errors during the block invocation are propagated to the caller of
 /// `on_each_decl`.
-pub fn on_each_decl(decls: &[Decl], mut block: impl FnMut(&Decl) -> Result<Vec<Decl>, Error>) -> Result<Vec<Decl>, Error> {
+pub fn on_each_decl(decls: &[Decl], mut block: impl FnMut(&Decl) -> Result<Vec<Decl>, GDError>) -> Result<Vec<Decl>, GDError> {
   let mut acc: Vec<Decl> = Vec::new();
   on_each_decl_impl(decls, &mut acc, &mut block)?;
   Ok(acc)
 }
 
-fn on_decl(opt: &impl FunctionOptimization, decl: &Decl) -> Result<Vec<Decl>, Error> {
+fn on_decl(opt: &impl FunctionOptimization, decl: &Decl) -> Result<Vec<Decl>, GDError> {
   match &decl.value {
     DeclF::FnDecl(s, fndecl) => {
       let mut fndecl = fndecl.clone();
@@ -102,7 +102,7 @@ fn on_decl(opt: &impl FunctionOptimization, decl: &Decl) -> Result<Vec<Decl>, Er
 // Every FunctionOptimization is a FileOptimization by applying it to
 // each function in the file.
 impl<T> FileOptimization for T where T : FunctionOptimization {
-  fn run_on_file(&self, file: &mut decl::TopLevelClass) -> Result<(), Error> {
+  fn run_on_file(&self, file: &mut decl::TopLevelClass) -> Result<(), GDError> {
     file.body = on_each_decl(&file.body, |d| on_decl(self, d))?;
     Ok(())
   }
@@ -110,11 +110,11 @@ impl<T> FileOptimization for T where T : FunctionOptimization {
 
 // A StatementLevelPass is just a local FunctionOptimization
 impl<T> FunctionOptimization for T where T : StatementLevelPass {
-  fn run_on_function(&self, function: &mut decl::FnDecl) -> Result<(), Error> {
+  fn run_on_function(&self, function: &mut decl::FnDecl) -> Result<(), GDError> {
     function.body = stmt_walker::walk_stmts(&function.body, stmt_walker::on_each_stmt(|x| self.run_on_stmt(x)))?;
     Ok(())
   }
-  fn run_on_init_function(&self, function: &mut decl::InitFnDecl) -> Result<(), Error> {
+  fn run_on_init_function(&self, function: &mut decl::InitFnDecl) -> Result<(), GDError> {
     function.body = stmt_walker::walk_stmts(&function.body, stmt_walker::on_each_stmt(|x| self.run_on_stmt(x)))?;
     Ok(())
   }
@@ -122,13 +122,13 @@ impl<T> FunctionOptimization for T where T : StatementLevelPass {
 
 // An ExpressionLevelPass can easily be realized as a StatementLevelPass
 impl<T> StatementLevelPass for T where T : ExpressionLevelPass {
-  fn run_on_stmt(&self, stmt: &Stmt) -> Result<Vec<Stmt>, Error> {
+  fn run_on_stmt(&self, stmt: &Stmt) -> Result<Vec<Stmt>, GDError> {
     expr_walker::walk_expr(stmt, |e| self.run_on_expr(e))
   }
 }
 
 // TODO We'll refine this a lot. Right now, it's hard coded.
-pub fn run_standard_passes(file: &mut decl::TopLevelClass) -> Result<(), Error> {
+pub fn run_standard_passes(file: &mut decl::TopLevelClass) -> Result<(), GDError> {
 
   // Run thrice, for good measure :)
   for _ in 0..3 {

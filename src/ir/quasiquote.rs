@@ -1,7 +1,7 @@
 
 use crate::sxp::ast::{AST, ASTF};
 use crate::ir::incremental::IncCompiler;
-use crate::compile::error::{Error as GDError, ErrorF as GDErrorF};
+use crate::compile::error::{GDError, GDErrorF};
 use super::expr::{Expr, ExprF};
 use super::literal::Literal;
 use crate::pipeline::error::Error;

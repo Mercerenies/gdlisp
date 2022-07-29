@@ -5,7 +5,7 @@ use crate::compile::factory;
 use crate::compile::names;
 use crate::compile::names::registered::RegisteredNameGenerator;
 use crate::compile::body::builder::StmtBuilder;
-use crate::compile::error::Error;
+use crate::compile::error::GDError;
 use crate::compile::symbol_table::HasSymbolTable;
 use crate::compile::symbol_table::local_var::LocalVar;
 use crate::gdscript::library;
@@ -21,9 +21,9 @@ pub fn compile_let(frame: &mut CompilerFrame<StmtBuilder>,
                    body: &IRExpr,
                    needs_result: NeedsResult,
                    _pos: SourceOffset)
-                   -> Result<StExpr, Error> {
+                   -> Result<StExpr, GDError> {
   let closure_vars = body.get_locals();
-  let var_names = clauses.iter().map::<Result<(String, String), Error>, _>(|clause| {
+  let var_names = clauses.iter().map::<Result<(String, String), GDError>, _>(|clause| {
     let LocalVarClause { name: ast_name, value: expr } = clause;
     let ast_name = ast_name.to_owned();
     let result_value = frame.compile_expr(expr, NeedsResult::Yes)?.expr;

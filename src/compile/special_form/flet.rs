@@ -5,7 +5,7 @@ use crate::compile::body::builder::StmtBuilder;
 use crate::compile::symbol_table::{HasSymbolTable, SymbolTable};
 use crate::compile::symbol_table::function_call::{FnCall, FnSpecs, FnScope, FnName};
 use crate::compile::symbol_table::local_var::VarName;
-use crate::compile::error::Error;
+use crate::compile::error::GDError;
 use crate::compile::stateful::{StExpr, NeedsResult};
 use crate::compile::stmt_wrapper;
 use crate::compile::factory;
@@ -29,11 +29,11 @@ pub fn compile_flet(frame: &mut CompilerFrame<StmtBuilder>,
                     body: &IRExpr,
                     needs_result: NeedsResult,
                     pos: SourceOffset)
-                    -> Result<StExpr, Error> {
+                    -> Result<StExpr, GDError> {
   let local_fns = clauses.iter().map(|clause| {
     let call = compile_flet_call(frame, clause.args.to_owned(), &clause.body, pos)?;
     Ok((clause.name.to_owned(), call))
-  }).collect::<Result<Vec<_>, Error>>()?;
+  }).collect::<Result<Vec<_>, GDError>>()?;
   frame.with_local_fns(&mut local_fns.into_iter(), |frame| {
     frame.compile_expr(body, needs_result)
   })
@@ -43,7 +43,7 @@ fn compile_flet_call(frame: &mut CompilerFrame<StmtBuilder>,
                      args: IRArgList,
                      body: &IRExpr,
                      pos: SourceOffset)
-                     -> Result<FnCall, Error> {
+                     -> Result<FnCall, GDError> {
   if is_declaration_semiglobal(&args, body, frame.table) {
     // No closure vars and any closure fns (if there are any) are
     // free of closures, so we can compile to SemiGlobal.
@@ -78,7 +78,7 @@ pub fn compile_labels(frame: &mut CompilerFrame<StmtBuilder>,
                       body: &IRExpr,
                       needs_result: NeedsResult,
                       pos: SourceOffset)
-                      -> Result<StExpr, Error> {
+                      -> Result<StExpr, GDError> {
   // TODO This is rife with string cloning, because of the sloppy way
   // Graph is implemented. Once we fix Graph, we can eliminate some
   // clones here.
@@ -113,7 +113,7 @@ struct CompileLabelsRecAlgorithm<'a, 'b, 'c, 'd, 'e, 'f, 'g, 'h, 'i, 'j, 'k, I> 
 
 impl<'a, 'b, 'c, 'd, 'e, 'f, 'g, 'h, 'i, 'j, 'k, I : Iterator<Item=usize>> CompileLabelsRecAlgorithm<'a, 'b, 'c, 'd, 'e, 'f, 'g, 'h, 'i, 'j, 'k, I> {
 
-  fn compile_labels_rec(&mut self) -> Result<StExpr, Error> {
+  fn compile_labels_rec(&mut self) -> Result<StExpr, GDError> {
     if let Some(current_scc_idx) = self.ordering.next() {
       let tarjan::SCC(current_scc) = self.sccs.get_scc_by_id(current_scc_idx).expect("SCC detection failed (invalid ID)");
       if current_scc.is_empty() {

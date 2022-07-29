@@ -2,7 +2,7 @@
 use crate::gdscript::stmt::{self, Stmt, StmtF};
 use crate::gdscript::expr::{self, Expr, ExprF};
 use crate::gdscript::op;
-use crate::compile::error::Error;
+use crate::compile::error::GDError;
 use super::StatementLevelPass;
 
 pub struct TernaryIfFold;
@@ -81,7 +81,7 @@ impl TernaryIfFold {
 }
 
 impl StatementLevelPass for TernaryIfFold {
-  fn run_on_stmt(&self, stmt: &Stmt) -> Result<Vec<Stmt>, Error> {
+  fn run_on_stmt(&self, stmt: &Stmt) -> Result<Vec<Stmt>, GDError> {
     if let StmtF::IfStmt(if_stmt) = &stmt.value {
       if let Some(stmt) = self.try_to_run(if_stmt) {
         return Ok(vec!(stmt));

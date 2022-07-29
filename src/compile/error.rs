@@ -27,7 +27,7 @@ use std::fmt;
 /// [`crate::pipeline::error`] for an error type which includes this
 /// one and is more general.
 #[derive(PartialEq, Eq, Debug)]
-pub enum ErrorF {
+pub enum GDErrorF {
   /// A `DottedListError` indicates that a dotted list, such as `(1 2
   /// . 3)`, was encountered where a proper list, such as `(1 2 3)`,
   /// was expecting. `DottedListError` is almost always constructed
@@ -237,29 +237,29 @@ pub enum ErrorF {
 /// Variant of [`ErrorF`] with source offset information. See
 /// [`Sourced`].
 #[derive(PartialEq, Eq, Debug)]
-pub struct Error {
-  pub value: ErrorF,
+pub struct GDError {
+  pub value: GDErrorF,
   pub pos: SourceOffset,
 }
 
 const INTERNAL_ERROR_NOTE: &str = "Note: Unless you're doing something really strange, you should probably report this as a compiler bug";
 
-impl Error {
+impl GDError {
 
-  /// Constructs a new error from an `ErrorF` and a source offset.
-  pub fn new(value: ErrorF, pos: SourceOffset) -> Error {
-    Error { value, pos }
+  /// Constructs a new error from an `GDErrorF` and a source offset.
+  pub fn new(value: GDErrorF, pos: SourceOffset) -> GDError {
+    GDError { value, pos }
   }
 
-  /// Constructs a new error from a value compatible with `ErrorF` and
+  /// Constructs a new error from a value compatible with `GDErrorF` and
   /// a source offset.
-  pub fn from_value<T>(value: T, pos: SourceOffset) -> Error
-  where ErrorF: From<T> {
-    Error::new(ErrorF::from(value), pos)
+  pub fn from_value<T>(value: T, pos: SourceOffset) -> GDError
+  where GDErrorF: From<T> {
+    GDError::new(GDErrorF::from(value), pos)
   }
 
   /// Gets the unique identifier of the error shape. See
-  /// [`ErrorF::error_number`].
+  /// [`GDErrorF::error_number`].
   pub fn error_number(&self) -> u32 {
     self.value.error_number()
   }
@@ -272,7 +272,7 @@ impl Error {
 
 }
 
-impl ErrorF {
+impl GDErrorF {
 
   /// Produces a unique numerical value representing this type of
   /// error, intended to make identifying the error easier for the
@@ -280,8 +280,8 @@ impl ErrorF {
   pub fn error_number(&self) -> u32 {
     match self {
       // Note: Error code 0 is not used.
-      ErrorF::DottedListError => 1,
-      ErrorF::ArgListParseError(err) => {
+      GDErrorF::DottedListError => 1,
+      GDErrorF::ArgListParseError(err) => {
         match &err.value {
           ArgListParseErrorF::InvalidArgument(_) => 2,
           ArgListParseErrorF::UnknownDirective(_) => 3,
@@ -289,7 +289,7 @@ impl ErrorF {
           ArgListParseErrorF::SimpleArgListExpected => 5,
         }
       }
-      ErrorF::ImportDeclParseError(err) => {
+      GDErrorF::ImportDeclParseError(err) => {
         match err {
           ImportDeclParseError::NoFilename => 6,
           ImportDeclParseError::BadFilename(_) => 7,
@@ -298,53 +298,53 @@ impl ErrorF {
           ImportDeclParseError::InvalidEnding(_) => 10,
         }
       }
-      ErrorF::CannotCall(_) => 11,
-      ErrorF::WrongNumberArgs(_, _, _) => 12,
-      ErrorF::InvalidArg(_, _, _) => 13,
-      ErrorF::NoSuchVar(_) => 14,
-      ErrorF::NoSuchFn(_) => 15,
-      ErrorF::NoSuchEnumValue(_, _) => 16,
-      ErrorF::NoSuchMagic(_) => 17,
-      ErrorF::UnknownDecl(_) => 18,
+      GDErrorF::CannotCall(_) => 11,
+      GDErrorF::WrongNumberArgs(_, _, _) => 12,
+      GDErrorF::InvalidArg(_, _, _) => 13,
+      GDErrorF::NoSuchVar(_) => 14,
+      GDErrorF::NoSuchFn(_) => 15,
+      GDErrorF::NoSuchEnumValue(_, _) => 16,
+      GDErrorF::NoSuchMagic(_) => 17,
+      GDErrorF::UnknownDecl(_) => 18,
       // NOTE: 19 belongs to the removed InvalidDecl, which has been
       // split into several different error types: InvalidArg,
       // BadExtendsClause, BadEnumClause, and BadSysDeclare.
-      ErrorF::UnquoteOutsideQuasiquote => 20,
-      ErrorF::UnquoteSplicedOutsideQuasiquote => 21,
-      ErrorF::BadUnquoteSpliced(_) => 22,
-      ErrorF::NoSuchFile(_) => 23,
-      ErrorF::AmbiguousNamespace(_) => 24,
-      ErrorF::NotConstantEnough(_) => 25,
-      ErrorF::CannotAssignTo(_) => 26,
-      ErrorF::CannotExtend(_) => 27,
-      ErrorF::ExportOnInnerClassVar(_) => 28,
+      GDErrorF::UnquoteOutsideQuasiquote => 20,
+      GDErrorF::UnquoteSplicedOutsideQuasiquote => 21,
+      GDErrorF::BadUnquoteSpliced(_) => 22,
+      GDErrorF::NoSuchFile(_) => 23,
+      GDErrorF::AmbiguousNamespace(_) => 24,
+      GDErrorF::NotConstantEnough(_) => 25,
+      GDErrorF::CannotAssignTo(_) => 26,
+      GDErrorF::CannotExtend(_) => 27,
+      GDErrorF::ExportOnInnerClassVar(_) => 28,
       // NOTE: 29 belongs to the removed ResourceDoesNotExist, which
       // has been replaced by NoSuchFile and InvalidImportOnResource.
-      ErrorF::InvalidImportOnResource(_) => 30,
-      ErrorF::GodotServerError(_) => 31,
-      ErrorF::StaticConstructor => 32,
-      ErrorF::StaticOnLambdaClass(_) => 33,
-      ErrorF::ModifierParseError(err) => {
+      GDErrorF::InvalidImportOnResource(_) => 30,
+      GDErrorF::GodotServerError(_) => 31,
+      GDErrorF::StaticConstructor => 32,
+      GDErrorF::StaticOnLambdaClass(_) => 33,
+      GDErrorF::ModifierParseError(err) => {
         match &err.value {
           ModifierParseErrorF::UniquenessError(_) => 34,
           ModifierParseErrorF::Expecting(_, _) => 35,
           ModifierParseErrorF::ExhaustedAlternatives => 36,
         }
       }
-      ErrorF::MacroInMinimalistError(_) => 37,
-      ErrorF::MacroBeforeDefinitionError(_) => 38,
-      ErrorF::DuplicateMainClass => 39,
-      ErrorF::ContextualFilenameUnresolved => 40,
-      ErrorF::DuplicateConstructor => 41,
-      ErrorF::DuplicateName(_, _) => 42,
-      ErrorF::BadGetterArguments(_) => 43,
-      ErrorF::BadSetterArguments(_) => 44,
-      ErrorF::FieldAccessorConflict(_) => 45,
-      ErrorF::BadSuperCall(_) => 46,
-      ErrorF::BadExtendsClause => 47,
-      ErrorF::BadEnumClause => 48,
-      ErrorF::BadSysDeclare(_) => 49,
-      ErrorF::UnknownImportedName(_) => 50,
+      GDErrorF::MacroInMinimalistError(_) => 37,
+      GDErrorF::MacroBeforeDefinitionError(_) => 38,
+      GDErrorF::DuplicateMainClass => 39,
+      GDErrorF::ContextualFilenameUnresolved => 40,
+      GDErrorF::DuplicateConstructor => 41,
+      GDErrorF::DuplicateName(_, _) => 42,
+      GDErrorF::BadGetterArguments(_) => 43,
+      GDErrorF::BadSetterArguments(_) => 44,
+      GDErrorF::FieldAccessorConflict(_) => 45,
+      GDErrorF::BadSuperCall(_) => 46,
+      GDErrorF::BadExtendsClause => 47,
+      GDErrorF::BadEnumClause => 48,
+      GDErrorF::BadSysDeclare(_) => 49,
+      GDErrorF::UnknownImportedName(_) => 50,
     }
   }
 
@@ -356,134 +356,134 @@ impl ErrorF {
   pub fn is_internal(&self) -> bool {
     #[allow(clippy::match_like_matches_macro)] // Suggested alternative is quite lengthy on one line
     match self {
-      ErrorF::NoSuchMagic(_) => true,
-      ErrorF::MacroInMinimalistError(_) => true,
-      ErrorF::ContextualFilenameUnresolved => true,
+      GDErrorF::NoSuchMagic(_) => true,
+      GDErrorF::MacroInMinimalistError(_) => true,
+      GDErrorF::ContextualFilenameUnresolved => true,
       _ => false,
     }
   }
 
 }
 
-impl fmt::Display for ErrorF {
+impl fmt::Display for GDErrorF {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     write!(f, "Error {:04}: ", self.error_number())?;
     match self {
-      ErrorF::DottedListError => {
+      GDErrorF::DottedListError => {
         write!(f, "Unexpected dotted list")?;
       }
-      ErrorF::ArgListParseError(err) => {
+      GDErrorF::ArgListParseError(err) => {
         write!(f, "Error parsing argument list: {}", err)?;
       }
-      ErrorF::ImportDeclParseError(err) => {
+      GDErrorF::ImportDeclParseError(err) => {
         write!(f, "Error parsing import declaration: {}", err)?;
       }
-      ErrorF::CannotCall(ast) => {
+      GDErrorF::CannotCall(ast) => {
         write!(f, "Cannot make function call on expression {}", ast)?;
       }
-      ErrorF::WrongNumberArgs(name, expected, actual) => {
+      GDErrorF::WrongNumberArgs(name, expected, actual) => {
         write!(f, "Wrong number of arguments to call {}: expected {}, got {}", name, expected, actual)?;
       }
-      ErrorF::InvalidArg(name, provided, expected) => {
+      GDErrorF::InvalidArg(name, provided, expected) => {
         write!(f, "Invalid argument to {}, given {}, expecting {}", name, provided, expected)?;
       }
-      ErrorF::NoSuchVar(name) => {
+      GDErrorF::NoSuchVar(name) => {
         write!(f, "No such variable {}", name)?;
       }
-      ErrorF::NoSuchFn(name) => {
+      GDErrorF::NoSuchFn(name) => {
         write!(f, "No such function {}", name)?;
       }
-      ErrorF::NoSuchEnumValue(name, subname) => {
+      GDErrorF::NoSuchEnumValue(name, subname) => {
         write!(f, "No such enum value {}:{}", name, subname)?;
       }
-      ErrorF::NoSuchMagic(name) => {
+      GDErrorF::NoSuchMagic(name) => {
         write!(f, "No such call magic {}", name)?;
       }
-      ErrorF::UnknownDecl(ast) => {
+      GDErrorF::UnknownDecl(ast) => {
         write!(f, "Unknown declaration {}", ast)?;
       }
-      ErrorF::UnquoteOutsideQuasiquote => {
+      GDErrorF::UnquoteOutsideQuasiquote => {
         write!(f, "Unquote (,) can only be used inside quasiquote (`)")?;
       }
-      ErrorF::UnquoteSplicedOutsideQuasiquote => {
+      GDErrorF::UnquoteSplicedOutsideQuasiquote => {
         write!(f, "Spliced unquote (,.) can only be used inside quasiquote (`)")?;
       }
-      ErrorF::BadUnquoteSpliced(ast) => {
+      GDErrorF::BadUnquoteSpliced(ast) => {
         write!(f, "Spliced unquote (,.) does not make sense in this context: {}", ast)?;
       }
-      ErrorF::NoSuchFile(p) => {
+      GDErrorF::NoSuchFile(p) => {
         write!(f, "Cannot locate file {}", p)?;
       }
-      ErrorF::AmbiguousNamespace(s) => {
+      GDErrorF::AmbiguousNamespace(s) => {
         write!(f, "Ambiguous namespace when importing {}", s)?;
       }
-      ErrorF::NotConstantEnough(s) => {
+      GDErrorF::NotConstantEnough(s) => {
         write!(f, "Expression for constant declaration {} is not constant enough", s)?;
       }
-      ErrorF::CannotAssignTo(s) => {
+      GDErrorF::CannotAssignTo(s) => {
         write!(f, "Cannot assign to immutable variable {}", s)?;
       }
-      ErrorF::CannotExtend(err) => {
+      GDErrorF::CannotExtend(err) => {
         write!(f, "{}", err)?;
       }
-      ErrorF::ExportOnInnerClassVar(v) => {
+      GDErrorF::ExportOnInnerClassVar(v) => {
         write!(f, "Export declarations can only be used on a file's main class, but one was found on {}", v)?;
       }
-      ErrorF::InvalidImportOnResource(s) => {
+      GDErrorF::InvalidImportOnResource(s) => {
         write!(f, "Cannot use restricted or open import lists on resource import at {}", s)?;
       }
-      ErrorF::GodotServerError(err) => {
+      GDErrorF::GodotServerError(err) => {
         write!(f, "Error during Godot server task execution (error code {}): {}", err.error_code, err.error_string)?;
       }
-      ErrorF::StaticConstructor => {
+      GDErrorF::StaticConstructor => {
         write!(f, "Class constructors cannot be static")?;
       }
-      ErrorF::StaticOnLambdaClass(s) => {
+      GDErrorF::StaticOnLambdaClass(s) => {
         write!(f, "Static name {} is not allowed on anonymous class instance", s)?;
       }
-      ErrorF::ModifierParseError(m) => {
+      GDErrorF::ModifierParseError(m) => {
         write!(f, "Modifier error: {}", m)?;
       }
-      ErrorF::MacroInMinimalistError(m) => {
+      GDErrorF::MacroInMinimalistError(m) => {
         write!(f, "Attempt to expand macro {} in minimalist file", m)?;
       }
-      ErrorF::MacroBeforeDefinitionError(m) => {
+      GDErrorF::MacroBeforeDefinitionError(m) => {
         write!(f, "Attempt to use macro {} before definition was available", m)?;
       }
-      ErrorF::DuplicateMainClass => {
+      GDErrorF::DuplicateMainClass => {
         write!(f, "File has two main classes")?; // TODO Would be nice to have the source offset of the *original* main class here as well.
       }
-      ErrorF::ContextualFilenameUnresolved => {
+      GDErrorF::ContextualFilenameUnresolved => {
         write!(f, "Could not resolve contextual filename of current file")?;
       }
-      ErrorF::DuplicateConstructor => {
+      GDErrorF::DuplicateConstructor => {
         write!(f, "Class has two constructors")?; // TODO Would be nice to have the source offset of the *original* constructor here as well.
       }
-      ErrorF::DuplicateName(ns, name) => {
+      GDErrorF::DuplicateName(ns, name) => {
         write!(f, "The {} '{}' was already declared in this scope", ns.name(), name)?; // TODO Would be nice to have the source offset of the *original* name here as well.
       }
-      ErrorF::BadGetterArguments(field_name) => {
+      GDErrorF::BadGetterArguments(field_name) => {
         write!(f, "The getter '{}' has a bad signature; getters must be 0-ary non-static functions", field_name)?;
       }
-      ErrorF::BadSetterArguments(field_name) => {
+      GDErrorF::BadSetterArguments(field_name) => {
         write!(f, "The setter '{}' has a bad signature; getters must be 1-ary non-static functions", field_name)?;
       }
-      ErrorF::FieldAccessorConflict(field_name) => {
+      GDErrorF::FieldAccessorConflict(field_name) => {
         write!(f, "The value '{}' was declared as both an instance variable and either a getter or a setter", field_name)?;
       }
-      ErrorF::BadSuperCall(super_method) => {
+      GDErrorF::BadSuperCall(super_method) => {
         write!(f, "Cannot call superclass method '{}'; there is no superclass in the current scope", super_method)?;
       }
-      ErrorF::BadExtendsClause => {
+      GDErrorF::BadExtendsClause => {
         write!(f, "Bad 'extends' clause; a class 'extends' clause should either be the empty list or a singleton list")?;
       }
-      ErrorF::BadEnumClause => {
+      GDErrorF::BadEnumClause => {
         write!(f, "Bad 'defenum' clause; expected a list of one or two elements")?;
       }
-      ErrorF::BadSysDeclare(v) => {
+      GDErrorF::BadSysDeclare(v) => {
         write!(f, "Bad 'sys/declare' type; expected 'value', 'superglobal', 'function', or 'superfunction', got {}", v)?;
       }
-      ErrorF::UnknownImportedName(id) => {
+      GDErrorF::UnknownImportedName(id) => {
         write!(f, "Unknown {} name '{}' in import", id.namespace.name(), &id.name)?;
       }
     }
@@ -494,127 +494,127 @@ impl fmt::Display for ErrorF {
   }
 }
 
-impl fmt::Display for Error {
+impl fmt::Display for GDError {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     write!(f, "{}", &self.value)
   }
 }
 
 
-impl Sourced for Error {
-  type Item = ErrorF;
+impl Sourced for GDError {
+  type Item = GDErrorF;
 
   fn get_source(&self) -> SourceOffset {
     self.pos
   }
 
-  fn get_value(&self) -> &ErrorF {
+  fn get_value(&self) -> &GDErrorF {
     &self.value
   }
 
 }
 
-impl From<sxp::dotted::TryFromDottedExprError> for ErrorF {
-  fn from(_: sxp::dotted::TryFromDottedExprError) -> ErrorF {
-    ErrorF::DottedListError
+impl From<sxp::dotted::TryFromDottedExprError> for GDErrorF {
+  fn from(_: sxp::dotted::TryFromDottedExprError) -> GDErrorF {
+    GDErrorF::DottedListError
   }
 }
 
-impl From<sxp::dotted::TryFromDottedExprError> for Error {
-  fn from(err: sxp::dotted::TryFromDottedExprError) -> Error {
-    Error::new(ErrorF::DottedListError, err.pos)
+impl From<sxp::dotted::TryFromDottedExprError> for GDError {
+  fn from(err: sxp::dotted::TryFromDottedExprError) -> GDError {
+    GDError::new(GDErrorF::DottedListError, err.pos)
   }
 }
 
-impl From<ArgListParseError> for ErrorF {
-  fn from(err: ArgListParseError) -> ErrorF {
-    ErrorF::ArgListParseError(err)
+impl From<ArgListParseError> for GDErrorF {
+  fn from(err: ArgListParseError) -> GDErrorF {
+    GDErrorF::ArgListParseError(err)
   }
 }
 
-impl From<ArgListParseError> for Error {
-  fn from(err: ArgListParseError) -> Error {
+impl From<ArgListParseError> for GDError {
+  fn from(err: ArgListParseError) -> GDError {
     let pos = err.pos;
-    Error::new(ErrorF::from(err), pos)
+    GDError::new(GDErrorF::from(err), pos)
   }
 }
 
-impl From<ImportDeclParseError> for ErrorF {
-  fn from(err: ImportDeclParseError) -> ErrorF {
-    ErrorF::ImportDeclParseError(err)
+impl From<ImportDeclParseError> for GDErrorF {
+  fn from(err: ImportDeclParseError) -> GDErrorF {
+    GDErrorF::ImportDeclParseError(err)
   }
 }
 
-impl From<ImportNameResolutionError> for ErrorF {
-  fn from(err: ImportNameResolutionError) -> ErrorF {
+impl From<ImportNameResolutionError> for GDErrorF {
+  fn from(err: ImportNameResolutionError) -> GDErrorF {
     match err {
       ImportNameResolutionError::UnknownName(id) => {
-        ErrorF::UnknownImportedName(id)
+        GDErrorF::UnknownImportedName(id)
       }
       ImportNameResolutionError::AmbiguousNamespace(s) => {
-        ErrorF::AmbiguousNamespace(s)
+        GDErrorF::AmbiguousNamespace(s)
       }
     }
   }
 }
 
-impl From<VarNameIntoExtendsError> for ErrorF {
-  fn from(err: VarNameIntoExtendsError) -> ErrorF {
-    ErrorF::CannotExtend(err)
+impl From<VarNameIntoExtendsError> for GDErrorF {
+  fn from(err: VarNameIntoExtendsError) -> GDErrorF {
+    GDErrorF::CannotExtend(err)
   }
 }
 
-impl From<response::Failure> for ErrorF {
-  fn from(err: response::Failure) -> ErrorF {
-    ErrorF::GodotServerError(err)
+impl From<response::Failure> for GDErrorF {
+  fn from(err: response::Failure) -> GDErrorF {
+    GDErrorF::GodotServerError(err)
   }
 }
 
-impl From<ModifierParseError> for ErrorF {
-  fn from(err: ModifierParseError) -> ErrorF {
-    ErrorF::ModifierParseError(err)
+impl From<ModifierParseError> for GDErrorF {
+  fn from(err: ModifierParseError) -> GDErrorF {
+    GDErrorF::ModifierParseError(err)
   }
 }
 
-impl From<ModifierParseError> for Error {
-  fn from(err: ModifierParseError) -> Error {
+impl From<ModifierParseError> for GDError {
+  fn from(err: ModifierParseError) -> GDError {
     let pos = err.pos;
-    Error::new(ErrorF::from(err), pos)
+    GDError::new(GDErrorF::from(err), pos)
   }
 }
 
-impl From<DuplicateMainClassError> for Error {
-  fn from(err: DuplicateMainClassError) -> Error {
-    Error::new(ErrorF::DuplicateMainClass, err.0)
+impl From<DuplicateMainClassError> for GDError {
+  fn from(err: DuplicateMainClassError) -> GDError {
+    GDError::new(GDErrorF::DuplicateMainClass, err.0)
   }
 }
 
-impl From<ScopeError<ClassNamespace>> for Error {
-  fn from(err: ScopeError<ClassNamespace>) -> Error {
+impl From<ScopeError<ClassNamespace>> for GDError {
+  fn from(err: ScopeError<ClassNamespace>) -> GDError {
     match err {
       ScopeError::DuplicateName(n, s, p) =>
-        Error::new(ErrorF::DuplicateName(n, s), p),
+        GDError::new(GDErrorF::DuplicateName(n, s), p),
     }
   }
 }
 
-impl From<ScopeError<Namespace>> for Error {
-  fn from(err: ScopeError<Namespace>) -> Error {
-    Error::from(
+impl From<ScopeError<Namespace>> for GDError {
+  fn from(err: ScopeError<Namespace>) -> GDError {
+    GDError::from(
       ScopeError::<ClassNamespace>::from(err),
     )
   }
 }
 
-impl From<DependencyError> for Error {
-  fn from(e: DependencyError) -> Error {
+impl From<DependencyError> for GDError {
+  fn from(e: DependencyError) -> GDError {
     match e {
       DependencyError::UnknownName(id, pos) => {
         let error_value = match id.namespace {
-          Namespace::Function => ErrorF::NoSuchFn(id.name),
-          Namespace::Value => ErrorF::NoSuchVar(id.name),
+          Namespace::Function => GDErrorF::NoSuchFn(id.name),
+          Namespace::Value => GDErrorF::NoSuchVar(id.name),
         };
-        Error::new(error_value, pos)
+        GDError::new(error_value, pos)
       }
     }
   }

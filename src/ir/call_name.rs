@@ -6,7 +6,7 @@ use super::incremental::IncCompiler;
 use super::expr::Expr;
 use crate::sxp::ast::{AST, ASTF};
 use crate::sxp::dotted::DottedExpr;
-use crate::compile::error::{Error, ErrorF};
+use crate::compile::error::{GDError, GDErrorF};
 use crate::pipeline::Pipeline;
 use crate::pipeline::error::{Error as PError};
 
@@ -49,7 +49,7 @@ impl CallName {
     } else {
       match &ast.value {
         ASTF::Symbol(s) => Ok(CallName::SimpleName(s.clone())),
-        _ => Err(PError::from(Error::new(ErrorF::CannotCall(ast.clone()), ast.pos))),
+        _ => Err(PError::from(GDError::new(GDErrorF::CannotCall(ast.clone()), ast.pos))),
       }
     }
   }

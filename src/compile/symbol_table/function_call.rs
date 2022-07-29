@@ -6,7 +6,7 @@ use crate::gdscript::expr::Expr;
 use crate::gdscript::inner_class;
 use crate::ir::arglist::VarArg;
 use crate::compile::Compiler;
-use crate::compile::error::Error;
+use crate::compile::error::GDError;
 use crate::compile::body::builder::StmtBuilder;
 use crate::compile::stateful::StExpr;
 use crate::compile::preload_resolver::PreloadResolver;
@@ -180,7 +180,7 @@ impl FnCall {
                    table: &mut SymbolTable,
                    args: Vec<StExpr>,
                    pos: SourceOffset)
-                   -> Result<Expr, Error> {
+                   -> Result<Expr, GDError> {
     self.into_expr_with_magic(&CallMagic::DefaultCall, compiler, builder, table, args, pos)
   }
 
@@ -193,7 +193,7 @@ impl FnCall {
                               table: &mut SymbolTable,
                               args: Vec<StExpr>,
                               pos: SourceOffset)
-                              -> Result<Expr, Error> {
+                              -> Result<Expr, GDError> {
     magic.compile(self, compiler, builder, table, args, pos)
   }
 

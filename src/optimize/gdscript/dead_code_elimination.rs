@@ -1,6 +1,6 @@
 
 use crate::gdscript::stmt::{Stmt, StmtF};
-use crate::compile::error::Error;
+use crate::compile::error::GDError;
 use super::StatementLevelPass;
 use super::noop;
 
@@ -9,7 +9,7 @@ pub struct DeadCodeElimination;
 // TODO Apply to code after a return
 impl StatementLevelPass for DeadCodeElimination {
 
-  fn run_on_stmt(&self, stmt: &Stmt) -> Result<Vec<Stmt>, Error> {
+  fn run_on_stmt(&self, stmt: &Stmt) -> Result<Vec<Stmt>, GDError> {
     let mut stmt = stmt.clone();
 
     // If the statement itself has no effect, then omit it entirely

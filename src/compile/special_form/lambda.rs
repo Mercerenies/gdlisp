@@ -11,7 +11,7 @@ use crate::compile::symbol_table::local_var::{LocalVar, VarScope, VarName};
 use crate::compile::symbol_table::function_call::{FnCall, FnSpecs, FnScope, FnName, OuterStaticRef};
 use crate::compile::symbol_table::call_magic::CallMagic;
 use crate::compile::stmt_wrapper;
-use crate::compile::error::{Error, ErrorF};
+use crate::compile::error::{GDError, GDErrorF};
 use crate::compile::stateful::SideEffects;
 use crate::compile::names::{self, NameTrans};
 use crate::compile::names::fresh::FreshNameGenerator;
@@ -38,7 +38,7 @@ type IRArgList = ir::arglist::ArgList;
 pub fn compile_labels_scc(frame: &mut CompilerFrame<StmtBuilder>,
                           clauses: &[&LocalFnClause],
                           pos: SourceOffset)
-                          -> Result<Vec<(String, FnCall)>, Error> {
+                          -> Result<Vec<(String, FnCall)>, GDError> {
   // In the perfect world, we would do all of our operations *on*
   // frame rather than destructuring that variable here. But, the way
   // this function is currently written, we need access to both
@@ -87,7 +87,7 @@ pub fn compile_labels_scc(frame: &mut CompilerFrame<StmtBuilder>,
     lambda_table.set_fn(clause.name.to_owned(), fn_call, CallMagic::DefaultCall);
   }
 
-  let (bound_calls, functions) = unzip_err::<Error, Vec<_>, Vec<_>, _, _, _>(named_clauses.iter().map(|(func_name, clause)| {
+  let (bound_calls, functions) = unzip_err::<GDError, Vec<_>, Vec<_>, _, _, _>(named_clauses.iter().map(|(func_name, clause)| {
     let mut lambda_table = lambda_table.clone(); // New table for this particular function
     let mut lambda_builder = StmtBuilder::new();
     let (arglist, gd_args) = clause.args.clone().into_gd_arglist(&mut RegisteredNameGenerator::new_local_var(&mut lambda_table));
@@ -183,7 +183,7 @@ pub fn locally_bind_vars<'a, I, U>(compiler: &mut Compiler,
                                    closure_vars: I,
                                    forbidden_names: &[&str],
                                    pos: SourceOffset)
-                                   -> Result<(), Error>
+                                   -> Result<(), GDError>
 where I : Iterator<Item=&'a U>,
       U : Borrow<str>,
       U : ?Sized,
@@ -191,7 +191,7 @@ where I : Iterator<Item=&'a U>,
   for var in closure_vars {
     // Ensure the variable actually exists
     match table.get_var(var.borrow()) {
-      None => return Err(Error::new(ErrorF::NoSuchVar(var.borrow().to_owned()), pos)),
+      None => return Err(GDError::new(GDErrorF::NoSuchVar(var.borrow().to_owned()), pos)),
       Some(gdvar) => {
         let mut new_var = gdvar.to_owned();
         // Ad-hoc rule for closing around self (TODO Generalize?)
@@ -224,7 +224,7 @@ pub fn locally_bind_fns<'a, I, U, L>(compiler: &mut Compiler,
                                      closure_fns: I,
                                      pos: SourceOffset,
                                      outer_static_ref: &OuterStaticRef<'_>)
-                                     -> Result<(), Error>
+                                     -> Result<(), GDError>
 where I : Iterator<Item=&'a U>,
       U : Borrow<str>,
       U : ?Sized,
@@ -233,7 +233,7 @@ where I : Iterator<Item=&'a U>,
   for func in closure_fns {
     // Ensure the function actually exists
     match table.get_fn(func.borrow()) {
-      None => { return Err(Error::new(ErrorF::NoSuchFn(func.borrow().to_owned()), pos)) } // TODO Better error pos
+      None => { return Err(GDError::new(GDErrorF::NoSuchFn(func.borrow().to_owned()), pos)) } // TODO Better error pos
       Some((call, magic)) => {
         let mut call = call.clone();
         call.object.update_for_inner_scope(outer_static_ref, compiler.preload_resolver(), pipeline);
@@ -297,7 +297,7 @@ pub fn compile_lambda_stmt(frame: &mut CompilerFrame<StmtBuilder>,
                            args: &IRArgList,
                            body: &IRExpr,
                            pos: SourceOffset)
-                           -> Result<StExpr, Error> {
+                           -> Result<StExpr, GDError> {
   // In the perfect world, we would do all of our operations *on*
   // frame rather than destructuring that variable here. But, the way
   // this function is currently written, we need access to both
@@ -390,7 +390,7 @@ pub fn compile_function_ref(compiler: &mut Compiler,
                             table: &mut SymbolTable,
                             func: FnCall,
                             pos: SourceOffset)
-                            -> Result<StExpr, Error> {
+                            -> Result<StExpr, GDError> {
   if let FnScope::Local(name) = func.scope {
     // If the function is already bound to a local variable, we can
     // happily reuse that variable. This is most likely to come up if

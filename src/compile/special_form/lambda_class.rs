@@ -1,7 +1,7 @@
 
 use crate::ir;
 use crate::ir::expr::LambdaClass;
-use crate::compile::error::{Error, ErrorF};
+use crate::compile::error::{GDError, GDErrorF};
 use crate::compile::factory;
 use crate::compile::CompilerFrame;
 use crate::compile::Compiler;
@@ -23,7 +23,7 @@ use super::closure::ClosureData;
 pub fn compile_lambda_class(frame: &mut CompilerFrame<StmtBuilder>,
                             class: &LambdaClass,
                             pos: SourceOffset)
-                            -> Result<StExpr, Error> {
+                            -> Result<StExpr, GDError> {
   // In the perfect world, we would do all of our operations *on*
   // frame rather than destructuring that variable here. But, the way
   // this function is currently written, we need access to both
@@ -106,7 +106,7 @@ pub fn compile_lambda_class(frame: &mut CompilerFrame<StmtBuilder>,
 
       if d.is_static() {
         // Static methods / constants are not allowed on lambda classes
-        return Err(Error::new(ErrorF::StaticOnLambdaClass(d.name().into_owned()), d.pos));
+        return Err(GDError::new(GDErrorF::StaticOnLambdaClass(d.name().into_owned()), d.pos));
       }
 
       // Nothing static is allowed in lambda classes (static methods
@@ -167,7 +167,7 @@ fn compile_lambda_class_constructor(frame: &mut CompilerFrame<impl HasDecls>,
                                     constructor: &ir::decl::ConstructorDecl,
                                     gd_closure_vars: &[String],
                                     pos: SourceOffset)
-                                    -> Result<(decl::InitFnDecl, Vec<decl::FnDecl>), Error> {
+                                    -> Result<(decl::InitFnDecl, Vec<decl::FnDecl>), GDError> {
   let (mut constructor, constructor_helpers) = factory::declare_constructor(frame, constructor)?;
   let original_args = constructor.args.args;
   constructor.args.args = gd_closure_vars.to_vec();

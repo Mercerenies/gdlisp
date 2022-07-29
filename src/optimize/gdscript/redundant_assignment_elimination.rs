@@ -3,7 +3,7 @@ use crate::gdscript::stmt::Stmt;
 use crate::gdscript::expr::Expr;
 use crate::gdscript::decl;
 use crate::gdscript::op;
-use crate::compile::error::Error;
+use crate::compile::error::GDError;
 use super::FunctionOptimization;
 use super::constant;
 use super::stmt_walker;
@@ -50,7 +50,7 @@ impl RedundantAssignmentElimination {
     AssignmentStmt { assign_type, var_name, expr }.into()
   }
 
-  pub fn run_on_stmts(&self, stmts: &[Stmt]) -> Result<Vec<Stmt>, Error> {
+  pub fn run_on_stmts(&self, stmts: &[Stmt]) -> Result<Vec<Stmt>, GDError> {
     // Look for something to eliminate. If we find it, do the
     // elimination and call the function again. If not, we're done.
     for (index, stmt1) in stmts.iter().enumerate() {
@@ -80,11 +80,11 @@ impl RedundantAssignmentElimination {
 }
 
 impl FunctionOptimization for RedundantAssignmentElimination {
-  fn run_on_function(&self, function: &mut decl::FnDecl) -> Result<(), Error> {
+  fn run_on_function(&self, function: &mut decl::FnDecl) -> Result<(), GDError> {
     function.body = stmt_walker::walk_stmts(&function.body, |x| self.run_on_stmts(x))?;
     Ok(())
   }
-  fn run_on_init_function(&self, function: &mut decl::InitFnDecl) -> Result<(), Error> {
+  fn run_on_init_function(&self, function: &mut decl::InitFnDecl) -> Result<(), GDError> {
     function.body = stmt_walker::walk_stmts(&function.body, |x| self.run_on_stmts(x))?;
     Ok(())
   }

@@ -10,7 +10,7 @@ use super::special_ref::SpecialRef;
 use super::decl::{self, Decl, DeclF};
 use super::arglist::ArgList;
 use super::quasiquote::quasiquote_with_depth;
-use crate::compile::error::{Error as GDError, ErrorF as GDErrorF};
+use crate::compile::error::{GDError, GDErrorF};
 use crate::compile::args::{Expecting, ExpectedShape};
 use crate::compile::frame::MAX_QUOTE_REIFY_DEPTH;
 use crate::ir::incremental::IncCompiler;

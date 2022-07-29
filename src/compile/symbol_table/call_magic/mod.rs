@@ -33,7 +33,7 @@ use crate::gdscript::library;
 use crate::gdscript::expr_wrapper;
 use crate::compile::Compiler;
 use crate::compile::factory;
-use crate::compile::error::Error;
+use crate::compile::error::GDError;
 use crate::compile::body::builder::StmtBuilder;
 use crate::compile::stateful::StExpr;
 use crate::compile::stmt_wrapper::{self, StmtWrapper};
@@ -173,7 +173,7 @@ fn strip_st(x: Vec<StExpr>) -> Vec<Expr> {
 /// padding which needs to be done to make the call correct on the
 /// GDScript call. This is called by [`CallMagic::compile`] in the
 /// [`CallMagic::DefaultCall`] case to perform its work.
-pub fn compile_default_call(call: FnCall, mut args: Vec<Expr>, pos: SourceOffset) -> Result<Expr, Error> {
+pub fn compile_default_call(call: FnCall, mut args: Vec<Expr>, pos: SourceOffset) -> Result<Expr, GDError> {
   let FnCall { scope: _, object, function, specs, is_macro: _ } = call;
   // First, check arity
   Expecting::from(specs).validate(&function, pos, &args)?;
@@ -222,7 +222,7 @@ impl CallMagic {
                  builder: &mut StmtBuilder,
                  table: &mut SymbolTable,
                  mut args: Vec<StExpr>, // TODO Get this declared immutable here and mutable on inner scopes only
-                 pos: SourceOffset) -> Result<Expr, Error> {
+                 pos: SourceOffset) -> Result<Expr, GDError> {
     match self {
       CallMagic::DefaultCall => {
         let args = strip_st(args);

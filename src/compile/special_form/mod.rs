@@ -13,7 +13,7 @@ use crate::compile::body::builder::StmtBuilder;
 use crate::compile::symbol_table::HasSymbolTable;
 use crate::compile::symbol_table::local_var::LocalVar;
 use crate::compile::stmt_wrapper;
-use crate::compile::error::Error;
+use crate::compile::error::GDError;
 use crate::compile::stateful::SideEffects;
 use crate::compile::names;
 use crate::compile::names::registered::RegisteredNameGenerator;
@@ -32,10 +32,10 @@ pub fn compile_cond_stmt(frame: &mut CompilerFrame<StmtBuilder>,
                          clauses: &[(IRExpr, Option<IRExpr>)],
                          needs_result: NeedsResult,
                          pos: SourceOffset)
-                         -> Result<StExpr, Error> {
+                         -> Result<StExpr, GDError> {
   let (destination, result) = needs_result.into_destination(&mut RegisteredNameGenerator::new_local_var(frame.table), frame.builder, "_cond", pos);
   let init: Vec<Stmt> = util::option_to_vec(destination.wrap_to_stmt(Compiler::nil_expr(pos)));
-  let body = clauses.iter().rev().fold(Ok(init), |acc: Result<_, Error>, curr| {
+  let body = clauses.iter().rev().fold(Ok(init), |acc: Result<_, GDError>, curr| {
     let acc = acc?;
     let (cond, body) = curr;
     match body {
@@ -80,7 +80,7 @@ pub fn compile_while_stmt(frame: &mut CompilerFrame<StmtBuilder>,
                           body: &IRExpr,
                           _needs_result: NeedsResult,
                           pos: SourceOffset)
-                          -> Result<StExpr, Error> {
+                          -> Result<StExpr, GDError> {
   // If the condition fits in a single GDScript expression, then we'll
   // just compile straight to a GDScript while loop. If not, then we
   // need to compile to "while True:" and have a break statement when
@@ -112,7 +112,7 @@ pub fn compile_for_stmt(frame: &mut CompilerFrame<StmtBuilder>,
                         body: &IRExpr,
                         _needs_result: NeedsResult,
                         pos: SourceOffset)
-                        -> Result<StExpr, Error> {
+                        -> Result<StExpr, GDError> {
   let closure_vars = body.get_locals();
   let citer = frame.compile_expr(iter, NeedsResult::Yes)?.expr;
   let var_name = RegisteredNameGenerator::new_fn(frame.table).generate_with(&names::lisp_to_gd(name));

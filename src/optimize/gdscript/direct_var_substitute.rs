@@ -2,7 +2,7 @@
 use crate::gdscript::expr::ExprF;
 use crate::gdscript::stmt::Stmt;
 use crate::gdscript::decl;
-use crate::compile::error::Error;
+use crate::compile::error::GDError;
 use super::FunctionOptimization;
 use super::constant;
 use super::expr_walker;
@@ -38,11 +38,11 @@ impl DirectVarSubstitute {
  * constant value anywhere we would use the variable.
  */
 impl FunctionOptimization for DirectVarSubstitute {
-  fn run_on_function(&self, function: &mut decl::FnDecl) -> Result<(), Error> {
+  fn run_on_function(&self, function: &mut decl::FnDecl) -> Result<(), GDError> {
     self.run_on_body(&mut function.body);
     Ok(())
   }
-  fn run_on_init_function(&self, function: &mut decl::InitFnDecl) -> Result<(), Error> {
+  fn run_on_init_function(&self, function: &mut decl::InitFnDecl) -> Result<(), GDError> {
     self.run_on_body(&mut function.body);
     Ok(())
   }

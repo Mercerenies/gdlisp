@@ -19,7 +19,7 @@ use crate::util::one::One;
 use crate::sxp::dotted::{DottedExpr, TryFromDottedExprError};
 use crate::sxp::ast::{AST, ASTF};
 use crate::sxp::reify::pretty::reify_pretty_expr;
-use crate::compile::error::{Error, ErrorF};
+use crate::compile::error::{GDError, GDErrorF};
 use crate::compile::resource_type::ResourceType;
 use crate::compile::args::{Expecting, ExpectedShape};
 use crate::compile::names;
@@ -89,7 +89,7 @@ impl IncCompiler {
     // If we're in a minimalist file, then macro expansion is automatically an error
     if self.minimalist {
       let head = head.to_owned().name;
-      return Err(PError::from(Error::new(ErrorF::MacroInMinimalistError(head), pos)));
+      return Err(PError::from(GDError::new(GDErrorF::MacroInMinimalistError(head), pos)));
     }
 
     // Local name generator that will be shared among the
@@ -278,7 +278,7 @@ impl IncCompiler {
                       -> Result<(), PError> {
     let vec: Vec<&AST> = DottedExpr::new(decl).try_into()?;
     if vec.is_empty() {
-      return Err(PError::from(Error::new(ErrorF::UnknownDecl(decl.clone()), decl.pos)));
+      return Err(PError::from(GDError::new(GDErrorF::UnknownDecl(decl.clone()), decl.pos)));
     }
     match &vec[0].value {
       ASTF::Symbol(s) => {
@@ -361,10 +361,10 @@ impl IncCompiler {
               ASTF::Cons(car, cdr) =>
                 match (&car.value, &cdr.value) {
                   (ASTF::Symbol(superclass_name), ASTF::Nil) => superclass_name.to_owned(),
-                  (_, ASTF::Nil) => return Err(PError::from(Error::new(ErrorF::BadExtendsClause, vec[2].pos))),
-                  _ => return Err(PError::from(Error::new(ErrorF::BadExtendsClause, vec[2].pos))),
+                  (_, ASTF::Nil) => return Err(PError::from(GDError::new(GDErrorF::BadExtendsClause, vec[2].pos))),
+                  _ => return Err(PError::from(GDError::new(GDErrorF::BadExtendsClause, vec[2].pos))),
                 },
-              _ => return Err(PError::from(Error::new(ErrorF::BadExtendsClause, decl.pos))),
+              _ => return Err(PError::from(GDError::new(GDErrorF::BadExtendsClause, decl.pos))),
             };
             let (mods, decl_body) = modifier::class::parser().parse(&vec[3..])?;
             let mut class = decl::ClassDecl::new(name, superclass);
@@ -390,7 +390,7 @@ impl IncCompiler {
               let (name, value) = match &clause[..] {
                 [name] => (name, None),
                 [name, value] => (name, Some(value)),
-                _ => return Err(PError::from(Error::new(ErrorF::BadEnumClause, decl.pos))),
+                _ => return Err(PError::from(GDError::new(GDErrorF::BadEnumClause, decl.pos))),
               };
               let name = ExpectedShape::extract_symbol("defenum", (*name).to_owned())?;
               let value = value.map(|v| self.compile_expr(pipeline, v)).transpose()?;
@@ -443,7 +443,7 @@ impl IncCompiler {
                 (decl, &vec[4..])
               }
               value_type => {
-                return Err(PError::from(Error::new(ErrorF::BadSysDeclare(value_type.to_owned()), decl.pos)))
+                return Err(PError::from(GDError::new(GDErrorF::BadSysDeclare(value_type.to_owned()), decl.pos)))
               }
             };
             let (mods, body) = modifier::declare::parser().parse(body)?;
@@ -455,12 +455,12 @@ impl IncCompiler {
             Ok(())
           }
           _ => {
-            Err(PError::from(Error::new(ErrorF::UnknownDecl(decl.clone()), decl.pos)))
+            Err(PError::from(GDError::new(GDErrorF::UnknownDecl(decl.clone()), decl.pos)))
           }
         }
       }
       _ => {
-        Err(PError::from(Error::new(ErrorF::InvalidArg(String::from("(declaration)"), vec[0].clone(), ExpectedShape::Symbol), decl.pos)))
+        Err(PError::from(GDError::new(GDErrorF::InvalidArg(String::from("(declaration)"), vec[0].clone(), ExpectedShape::Symbol), decl.pos)))
       }
     }
   }
@@ -480,9 +480,9 @@ impl IncCompiler {
       curr = candidate.as_ref().unwrap();
     }
 
-    let vec = Vec::try_from(DottedExpr::new(curr)).map_err(|x| Error::from_value(x, curr.pos))?;
+    let vec = Vec::try_from(DottedExpr::new(curr)).map_err(|x| GDError::from_value(x, curr.pos))?;
     if vec.is_empty() {
-      return Err(PError::from(Error::new(ErrorF::InvalidArg(String::from("(declaration)"), curr.clone(), ExpectedShape::NonemptyList), curr.pos)));
+      return Err(PError::from(GDError::new(GDErrorF::InvalidArg(String::from("(declaration)"), curr.clone(), ExpectedShape::NonemptyList), curr.pos)));
     }
     if let ASTF::Symbol(s) = &vec[0].value {
       match s.as_str() {
@@ -534,7 +534,7 @@ impl IncCompiler {
 
           // Exports are only allowed on the main class
           if export.is_some() && !acc.main_class {
-            return Err(PError::from(Error::new(ErrorF::ExportOnInnerClassVar(name), curr.pos)));
+            return Err(PError::from(GDError::new(GDErrorF::ExportOnInnerClassVar(name), curr.pos)));
           }
 
           let decl = {
@@ -571,7 +571,7 @@ impl IncCompiler {
 
               // There can only be one constructor defined in the class
               if acc.constructor.is_some() {
-                return Err(PError::from(Error::new(ErrorF::DuplicateConstructor, vec[0].pos)));
+                return Err(PError::from(GDError::new(GDErrorF::DuplicateConstructor, vec[0].pos)));
               }
 
               let super_call = super_call.unwrap_or_else(|| decl::SuperCall::empty(vec[0].pos));
@@ -586,7 +586,7 @@ impl IncCompiler {
               // `(super:foo)` syntax is handled separately).
 
               if let Some(super_call) = &super_call {
-                return Err(PError::from(Error::new(ErrorF::BadSuperCall(String::from("(init)")), super_call.pos)));
+                return Err(PError::from(GDError::new(GDErrorF::BadSuperCall(String::from("(init)")), super_call.pos)));
               }
               let mut decl = decl::ClassFnDecl {
                 is_static: Static::NonStatic,
@@ -602,7 +602,7 @@ impl IncCompiler {
             }
             Ok(())
           } else {
-            Err(PError::from(Error::new(ErrorF::InvalidArg(String::from("defn"), vec[1].clone(), ExpectedShape::InstanceFnName), vec[1].pos)))
+            Err(PError::from(GDError::new(GDErrorF::InvalidArg(String::from("defn"), vec[1].clone(), ExpectedShape::InstanceFnName), vec[1].pos)))
           }
         }
         "defsignal" => {
@@ -617,11 +617,11 @@ impl IncCompiler {
           Ok(())
         }
         _ => {
-          Err(PError::from(Error::new(ErrorF::InvalidArg(String::from("(declaration)"), vec[0].clone(), ExpectedShape::Symbol), curr.pos)))
+          Err(PError::from(GDError::new(GDErrorF::InvalidArg(String::from("(declaration)"), vec[0].clone(), ExpectedShape::Symbol), curr.pos)))
         }
       }
     } else {
-      Err(PError::from(Error::new(ErrorF::UnknownDecl(curr.clone()), curr.pos)))
+      Err(PError::from(GDError::new(GDErrorF::UnknownDecl(curr.clone()), curr.pos)))
     }
   }
 
@@ -660,10 +660,10 @@ impl IncCompiler {
     }
   }
 
-  pub fn compile_import(&mut self, curr: &AST) -> Result<Option<ImportDecl>, Error> {
+  pub fn compile_import(&mut self, curr: &AST) -> Result<Option<ImportDecl>, GDError> {
     if let Ok(vec) = Vec::try_from(DottedExpr::new(curr)) {
       if !vec.is_empty() && vec[0].value == ASTF::symbol("use") {
-        return ImportDecl::parse(&vec[1..]).map_err(|x| Error::from_value(x, curr.pos)).map(Some);
+        return ImportDecl::parse(&vec[1..]).map_err(|x| GDError::from_value(x, curr.pos)).map(Some);
       }
     }
     Ok(None)
@@ -939,7 +939,7 @@ mod tests {
 
     assert_eq!(
       icompiler.compile_expr(&mut pipeline, &ast),
-      Err(PError::from(Error::new(ErrorF::CannotCall(AST::from_value(5, SourceOffset(500))), SourceOffset(500)))),
+      Err(PError::from(GDError::new(GDErrorF::CannotCall(AST::from_value(5, SourceOffset(500))), SourceOffset(500)))),
     );
 
   }

@@ -1,6 +1,6 @@
 
 use crate::gdscript::stmt::{self, Stmt, StmtF};
-use crate::compile::error::Error;
+use crate::compile::error::GDError;
 use crate::pipeline::source::SourceOffset;
 use super::StatementLevelPass;
 use super::constant;
@@ -25,7 +25,7 @@ fn kill_if_branch(if_stmt: &stmt::IfStmt, pos: SourceOffset) -> Vec<Stmt> {
 
 impl ConstantConditionalBranch {
 
-  pub fn run_on_stmt_acc(&self, stmts: &[Stmt]) -> Result<Vec<Stmt>, Error> {
+  pub fn run_on_stmt_acc(&self, stmts: &[Stmt]) -> Result<Vec<Stmt>, GDError> {
     let mut result = Vec::new();
     for stmt in stmts {
       result.extend(self.run_on_stmt(stmt)?);
@@ -37,7 +37,7 @@ impl ConstantConditionalBranch {
 
 impl StatementLevelPass for ConstantConditionalBranch {
 
-  fn run_on_stmt(&self, stmt: &Stmt) -> Result<Vec<Stmt>, Error> {
+  fn run_on_stmt(&self, stmt: &Stmt) -> Result<Vec<Stmt>, GDError> {
     // Check for obviously true or false cases
     if let StmtF::IfStmt(if_stmt) = &stmt.value {
 
