@@ -6,7 +6,9 @@
 //! evaluate to themselves. This includes literal integers, strings,
 //! and the special value `null`.
 
+use super::is_valid_node_path;
 use crate::ir::literal::{Literal as IRLiteral};
+use crate::sxp::string::insert_escapes;
 
 use ordered_float::OrderedFloat;
 use serde::{Serialize, Deserialize};
@@ -47,8 +49,14 @@ impl Literal {
   pub fn to_gd(&self) -> String {
     match self {
       Literal::Int(n) => n.to_string(),
-      Literal::String(s) => format!("\"{}\"", s), // TODO Proper escaping
-      Literal::NodeLiteral(s) => format!("${}", s), // TODO Proper escaping
+      Literal::String(s) => format!("\"{}\"", insert_escapes(s)),
+      Literal::NodeLiteral(s) => {
+        if is_valid_node_path(s) {
+          format!("${}", s)
+        } else {
+          format!("$\"{}\"", insert_escapes(s))
+        }
+      }
       Literal::Null => String::from("null"),
       Literal::Bool(b) => if *b { String::from("true") } else { String::from("false") },
       Literal::Float(f) => format!("{:e}", **f),
@@ -147,6 +155,14 @@ mod tests {
   #[test]
   fn string_test() {
     assert_eq!(Literal::String("foo".to_owned()).to_gd(), "\"foo\"");
+    assert_eq!(Literal::String("foo\"bar".to_owned()).to_gd(), "\"foo\\\"bar\"");
+  }
+
+  #[test]
+  fn node_path_test() {
+    assert_eq!(Literal::NodeLiteral("foo".to_owned()).to_gd(), "$foo");
+    assert_eq!(Literal::NodeLiteral("foo\"bar".to_owned()).to_gd(), "$\"foo\\\"bar\"");
+    assert_eq!(Literal::NodeLiteral("foo bar".to_owned()).to_gd(), "$\"foo bar\"");
   }
 
 }
