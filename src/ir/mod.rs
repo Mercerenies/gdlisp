@@ -108,9 +108,12 @@ mod tests {
 
   fn compile_decl(pipeline: &mut Pipeline, decl: &AST)
                   -> Result<Decl, PError> {
+    let mut vec: Vec<Decl> = Vec::new();
     let mut compiler = incremental::IncCompiler::new(decl.all_symbols());
     compiler.bind_builtin_macros(pipeline);
-    compiler.compile_decl(pipeline, decl)
+    compiler.compile_decl(pipeline, &mut vec, decl)?;
+    assert_eq!(vec.len(), 1);
+    Ok(vec.remove(0))
   }
 
   fn do_compile_expr(expr: &AST) -> Result<Expr, PError> {

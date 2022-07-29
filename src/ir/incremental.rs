@@ -15,6 +15,7 @@ use super::macros::{self, MacroData};
 use super::identifier::{Id, IdLike, Namespace};
 use super::modifier::{self, ParseRule};
 use super::export::Visibility;
+use crate::util::one::One;
 use crate::sxp::dotted::{DottedExpr, TryFromDottedExprError};
 use crate::sxp::ast::{AST, ASTF};
 use crate::sxp::reify::pretty::reify_pretty_expr;
@@ -270,8 +271,11 @@ impl IncCompiler {
     (None, body)
   }
 
-  pub fn compile_decl(&mut self, pipeline: &mut Pipeline, decl: &AST)
-                      -> Result<Decl, PError> {
+  pub fn compile_decl(&mut self,
+                      pipeline: &mut Pipeline,
+                      acc: &mut impl Extend<Decl>,
+                      decl: &AST)
+                      -> Result<(), PError> {
     let vec: Vec<&AST> = DottedExpr::new(decl).try_into()?;
     if vec.is_empty() {
       return Err(PError::from(Error::new(ErrorF::UnknownDecl(decl.clone()), decl.pos)));
@@ -296,7 +300,8 @@ impl IncCompiler {
             for m in mods {
               m.apply(&mut decl);
             }
-            Ok(Decl::new(DeclF::FnDecl(decl), vec[0].pos))
+            acc.extend(One(Decl::new(DeclF::FnDecl(decl), vec[0].pos)));
+            Ok(())
           }
           "defmacro" => {
             Expecting::at_least(2).validate("defmacro", decl.pos, &vec[1..])?;
@@ -314,7 +319,8 @@ impl IncCompiler {
             for m in mods {
               m.apply(&mut decl);
             }
-            Ok(Decl::new(DeclF::MacroDecl(decl), vec[0].pos))
+            acc.extend(One(Decl::new(DeclF::MacroDecl(decl), vec[0].pos)));
+            Ok(())
           }
           "define-symbol-macro" => {
             Expecting::at_least(2).validate("define-symbol-macro", decl.pos, &vec[1..])?;
@@ -330,7 +336,8 @@ impl IncCompiler {
             for m in mods {
               m.apply_to_symbol_macro(&mut decl);
             }
-            Ok(Decl::new(DeclF::SymbolMacroDecl(decl), vec[0].pos))
+            acc.extend(One(Decl::new(DeclF::SymbolMacroDecl(decl), vec[0].pos)));
+            Ok(())
           }
           "defconst" => {
             Expecting::at_least(2).validate("defconst", decl.pos, &vec[1..])?;
@@ -342,7 +349,8 @@ impl IncCompiler {
             for m in mods {
               m.apply(&mut decl);
             }
-            Ok(Decl::new(DeclF::ConstDecl(decl), vec[0].pos))
+            acc.extend(One(Decl::new(DeclF::ConstDecl(decl), vec[0].pos)));
+            Ok(())
           }
           "defclass" => {
             Expecting::at_least(2).validate("defclass", decl.pos, &vec[1..])?;
@@ -366,7 +374,8 @@ impl IncCompiler {
             for decl in decl_body {
               self.compile_class_inner_decl(pipeline, &mut class, decl)?;
             }
-            Ok(Decl::new(DeclF::ClassDecl(class), vec[0].pos))
+            acc.extend(One(Decl::new(DeclF::ClassDecl(class), vec[0].pos)));
+            Ok(())
           }
           "defenum" => {
             Expecting::at_least(1).validate("defenum", decl.pos, &vec[1..])?;
@@ -391,7 +400,8 @@ impl IncCompiler {
             for m in mods {
               m.apply(&mut enum_decl);
             }
-            Ok(Decl::new(DeclF::EnumDecl(enum_decl), vec[0].pos))
+            acc.extend(One(Decl::new(DeclF::EnumDecl(enum_decl), vec[0].pos)));
+            Ok(())
           }
           "sys/declare" => {
             // (sys/declare value name)
@@ -441,7 +451,8 @@ impl IncCompiler {
             for m in mods {
               m.apply(&mut declare);
             }
-            Ok(Decl::new(DeclF::DeclareDecl(declare), vec[0].pos))
+            acc.extend(One(Decl::new(DeclF::DeclareDecl(declare), vec[0].pos)));
+            Ok(())
           }
           _ => {
             Err(PError::from(Error::new(ErrorF::UnknownDecl(decl.clone()), decl.pos)))
@@ -692,13 +703,19 @@ impl IncCompiler {
       }
       self.imports.push(imp);
     } else if IncCompiler::is_decl(curr) {
-      let d = self.compile_decl(pipeline, curr)?;
-      self.table.add_unless_exists(d.clone())?;
-      if let DeclF::MacroDecl(mdecl) = d.value {
-        self.bind_macro(pipeline, mdecl, d.pos, false, Namespace::Function)?;
-      } else if let DeclF::SymbolMacroDecl(mdecl) = d.value {
-        let mdecl = decl::MacroDecl::from(mdecl);
-        self.bind_macro(pipeline, mdecl, d.pos, true, Namespace::Value)?;
+      let mut new_decls: Vec<Decl> = Vec::new();
+      // Most declaration-level constructs produce exactly one
+      // declaration, but there are a handful (mainly bootstrapping
+      // primitives) that can produce several.
+      self.compile_decl(pipeline, &mut new_decls, curr)?;
+      for d in new_decls {
+        self.table.add_unless_exists(d.clone())?;
+        if let DeclF::MacroDecl(mdecl) = d.value {
+          self.bind_macro(pipeline, mdecl, d.pos, false, Namespace::Function)?;
+        } else if let DeclF::SymbolMacroDecl(mdecl) = d.value {
+          let mdecl = decl::MacroDecl::from(mdecl);
+          self.bind_macro(pipeline, mdecl, d.pos, true, Namespace::Value)?;
+        }
       }
     } else {
       main.push(self.compile_expr(pipeline, curr)?);

@@ -1,6 +1,7 @@
 
-pub mod local_binding;
 pub mod assignment;
+pub mod bootstrap;
+pub mod local_binding;
 
 use crate::sxp::ast::{AST, ASTF};
 use crate::sxp::dotted::DottedExpr;
