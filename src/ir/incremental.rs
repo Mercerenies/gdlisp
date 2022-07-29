@@ -29,7 +29,7 @@ use crate::compile::frame::MAX_QUOTE_REIFY_DEPTH;
 use crate::compile::body::class_initializer::InitTime;
 use crate::gdscript::library;
 use crate::gdscript::decl::Static;
-use crate::pipeline::error::{Error as PError, IOError};
+use crate::pipeline::error::{PError, IOError};
 use crate::pipeline::Pipeline;
 use crate::pipeline::translation_unit::TranslationUnit;
 use crate::pipeline::source::SourceOffset;

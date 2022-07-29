@@ -7,7 +7,7 @@ use super::common::dummy_config;
 use gdlisp::ir::identifier::{Id, Namespace};
 use gdlisp::compile::error::{GDError, GDErrorF};
 use gdlisp::pipeline::Pipeline;
-use gdlisp::pipeline::error::{Error as PError};
+use gdlisp::pipeline::error::PError;
 use gdlisp::pipeline::source::SourceOffset;
 
 fn setup_simple_file_loader(loader: &mut MockFileLoader) {

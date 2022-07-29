@@ -13,12 +13,8 @@ use lalrpop_util::ParseError;
 use std::io;
 use std::fmt;
 
-// TODO Rename this to PError and compile::Error to GDError
-// canonically so that we don't have two types with canonical name
-// "Error".
-
 #[derive(Debug)]
-pub enum Error {
+pub enum PError {
   ParseError(ParseError<SourceOffset, String, String>),
   IOError(IOError),
   GDError(GDError),
@@ -31,23 +27,23 @@ pub struct IOError {
   pub pos: SourceOffset,
 }
 
-/// [`Error`] is [`Sourced`] in a somewhat trivial way. It's not a
+/// [`PError`] is [`Sourced`] in a somewhat trivial way. It's not a
 /// recursive data type, so it doesn't "contain" a separate value in
 /// the same sense as other implementors like [`GDError`] (which
-/// contains [`GDErrorF`](crate::compile::error::ErrorF)). But an
-/// `Error` always has its `SourceOffset` nonetheless.
-impl Sourced for Error {
-  type Item = Error;
+/// contains [`GDErrorF`](crate::compile::error::GDErrorF)). But a
+/// `PError` always has its `SourceOffset` nonetheless.
+impl Sourced for PError {
+  type Item = PError;
 
   fn get_source(&self) -> SourceOffset {
     match self {
-      Error::ParseError(err) => get_source_from_parse_error(err),
-      Error::IOError(err) => err.pos,
-      Error::GDError(err) => err.get_source(),
+      PError::ParseError(err) => get_source_from_parse_error(err),
+      PError::IOError(err) => err.pos,
+      PError::GDError(err) => err.get_source(),
     }
   }
 
-  fn get_value(&self) -> &Error {
+  fn get_value(&self) -> &PError {
     self
   }
 
@@ -63,12 +59,12 @@ fn get_source_from_parse_error<T, E>(err: &ParseError<SourceOffset, T, E>) -> So
   }
 }
 
-impl fmt::Display for Error {
+impl fmt::Display for PError {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     match self {
-      Error::ParseError(err) => write!(f, "{}", err),
-      Error::IOError(err) => write!(f, "{}", err),
-      Error::GDError(err) => write!(f, "{}", err),
+      PError::ParseError(err) => write!(f, "{}", err),
+      PError::IOError(err) => write!(f, "{}", err),
+      PError::GDError(err) => write!(f, "{}", err),
     }
   }
 }
@@ -93,81 +89,81 @@ impl From<IOError> for io::Error {
   }
 }
 
-fn _impl_partial_eq_warning(err: Error) {
+fn _impl_partial_eq_warning(err: PError) {
   // If this function produces exhaustive match warnings, then
   // PartialEq is missing a case.
   match err {
-    Error::ParseError(_) => (),
-    Error::IOError(_) => (),
-    Error::GDError(_) => (),
+    PError::ParseError(_) => (),
+    PError::IOError(_) => (),
+    PError::GDError(_) => (),
   }
 }
 
-impl PartialEq<Error> for Error {
-  fn eq(&self, other: &Error) -> bool {
+impl PartialEq<PError> for PError {
+  fn eq(&self, other: &PError) -> bool {
     match (self, other) {
-      (Error::ParseError(a), Error::ParseError(b)) => a == b,
-      (Error::IOError(_), Error::IOError(_)) => true, // Best we can do
-      (Error::GDError(a), Error::GDError(b)) => a == b,
+      (PError::ParseError(a), PError::ParseError(b)) => a == b,
+      (PError::IOError(_), PError::IOError(_)) => true, // Best we can do
+      (PError::GDError(a), PError::GDError(b)) => a == b,
       (_, _) => false,
     }
   }
 }
 
-impl Eq for Error {}
+impl Eq for PError {}
 
-impl<L, T : fmt::Display, E : fmt::Display> From<ParseError<L, T, E>> for Error
+impl<L, T : fmt::Display, E : fmt::Display> From<ParseError<L, T, E>> for PError
 where SourceOffset : From<L> {
-  fn from(e: ParseError<L, T, E>) -> Error {
-    Error::ParseError(e.map_location(SourceOffset::from).map_token(|x| x.to_string()).map_error(|x| x.to_string()))
+  fn from(e: ParseError<L, T, E>) -> PError {
+    PError::ParseError(e.map_location(SourceOffset::from).map_token(|x| x.to_string()).map_error(|x| x.to_string()))
   }
 }
 
-impl From<IOError> for Error {
-  fn from(e: IOError) -> Error {
-    Error::IOError(e)
+impl From<IOError> for PError {
+  fn from(e: IOError) -> PError {
+    PError::IOError(e)
   }
 }
 
-impl From<GDError> for Error {
-  fn from(e: GDError) -> Error {
-    Error::GDError(e)
+impl From<GDError> for PError {
+  fn from(e: GDError) -> PError {
+    PError::GDError(e)
   }
 }
 
-impl From<TryFromDottedExprError> for Error {
-  fn from(e: TryFromDottedExprError) -> Error {
-    Error::from(GDError::from(e))
+impl From<TryFromDottedExprError> for PError {
+  fn from(e: TryFromDottedExprError) -> PError {
+    PError::from(GDError::from(e))
   }
 }
 
-impl From<ArgListParseError> for Error {
-  fn from(e: ArgListParseError) -> Error {
-    Error::from(GDError::from(e))
+impl From<ArgListParseError> for PError {
+  fn from(e: ArgListParseError) -> PError {
+    PError::from(GDError::from(e))
   }
 }
 
-impl From<ModifierParseError> for Error {
-  fn from(e: ModifierParseError) -> Error {
-    Error::from(GDError::from(e))
+impl From<ModifierParseError> for PError {
+  fn from(e: ModifierParseError) -> PError {
+    PError::from(GDError::from(e))
   }
 }
 
-impl From<DuplicateMainClassError> for Error {
-  fn from(e: DuplicateMainClassError) -> Error {
-    Error::from(GDError::from(e))
+impl From<DuplicateMainClassError> for PError {
+  fn from(e: DuplicateMainClassError) -> PError {
+    PError::from(GDError::from(e))
   }
 }
 
-impl<NS> From<ScopeError<NS>> for Error
+impl<NS> From<ScopeError<NS>> for PError
 where GDError: From<ScopeError<NS>> {
-  fn from(e: ScopeError<NS>) -> Error {
-    Error::from(GDError::from(e))
+  fn from(e: ScopeError<NS>) -> PError {
+    PError::from(GDError::from(e))
   }
 }
 
-impl From<DependencyError> for Error {
-  fn from(e: DependencyError) -> Error {
-    Error::from(GDError::from(e))
+impl From<DependencyError> for PError {
+  fn from(e: DependencyError) -> PError {
+    PError::from(GDError::from(e))
   }
 }

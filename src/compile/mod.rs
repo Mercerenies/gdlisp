@@ -38,7 +38,7 @@ use crate::ir::identifier::{Namespace, ClassNamespace};
 use crate::ir::access_type::AccessType;
 use crate::ir::decl::InstanceFunctionName;
 use crate::runner::path::RPathBuf;
-use crate::pipeline::error::{Error as PError};
+use crate::pipeline::error::PError;
 use crate::pipeline::Pipeline;
 use crate::pipeline::can_load::CanLoad;
 use crate::pipeline::source::SourceOffset;

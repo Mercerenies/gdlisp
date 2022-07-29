@@ -31,7 +31,7 @@ use decl::Decl;
 use macros::MacroData;
 use identifier::Id;
 use crate::sxp::ast::AST;
-use crate::pipeline::error::{Error as PError};
+use crate::pipeline::error::PError;
 use crate::pipeline::Pipeline;
 
 use std::collections::HashMap;

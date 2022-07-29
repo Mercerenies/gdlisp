@@ -22,7 +22,7 @@ use super::body::class_scope::ClassScope;
 use super::stmt_wrapper::{self, StmtWrapper};
 use super::constant::MaybeConstant;
 use crate::pipeline::Pipeline;
-use crate::pipeline::error::{Error as PError};
+use crate::pipeline::error::PError;
 use crate::pipeline::source::SourceOffset;
 use crate::ir;
 use crate::ir::expr::{FuncRefTarget, AssignTarget};

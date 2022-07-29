@@ -5,7 +5,7 @@ use gdlisp::ir::identifier::ClassNamespace;
 use gdlisp::ir::modifier::{ParseError as ModifierParseError, ParseErrorF as ModifierParseErrorF};
 use gdlisp::compile::args::Expecting;
 use gdlisp::compile::error::{GDError, GDErrorF};
-use gdlisp::pipeline::error::{Error as PError};
+use gdlisp::pipeline::error::PError;
 use gdlisp::pipeline::source::SourceOffset;
 
 use super::common::*;

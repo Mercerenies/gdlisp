@@ -8,7 +8,7 @@ use crate::gdscript::decl;
 use crate::gdscript::library;
 use crate::runner::into_gd_file::IntoGDFile;
 use crate::runner::macro_server::named_file_server::MacroID;
-use crate::pipeline::error::{Error as PError, IOError};
+use crate::pipeline::error::{PError, IOError};
 use crate::pipeline::Pipeline;
 use crate::pipeline::can_load::CanLoad;
 use crate::pipeline::source::SourceOffset;

@@ -19,7 +19,7 @@ use crate::gdscript::expr::{Expr as GDExpr};
 use crate::gdscript::stmt::Stmt;
 use crate::gdscript::library;
 use crate::ir::arglist::ArgList;
-use crate::pipeline::error::{Error as PError, IOError};
+use crate::pipeline::error::{PError, IOError};
 use crate::pipeline::source::SourceOffset;
 use crate::parser;
 use super::command::ServerCommand;

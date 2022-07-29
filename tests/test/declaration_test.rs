@@ -4,7 +4,7 @@ extern crate gdlisp;
 use gdlisp::ir::identifier::ClassNamespace;
 use gdlisp::ir::modifier::{ParseError as ModifierParseError, ParseErrorF as ModifierParseErrorF};
 use gdlisp::compile::error::{GDError, GDErrorF};
-use gdlisp::pipeline::error::{Error as PError};
+use gdlisp::pipeline::error::PError;
 use gdlisp::pipeline::source::SourceOffset;
 
 use super::common::{parse_compile_decl, parse_compile_decl_err};

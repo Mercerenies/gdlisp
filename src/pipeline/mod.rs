@@ -10,7 +10,7 @@ pub mod source;
 
 use translation_unit::TranslationUnit;
 use config::ProjectConfig;
-use error::{Error, IOError};
+use error::{PError, IOError};
 use source::SourceOffset;
 use resolver::{NameResolver, DefaultNameResolver};
 use crate::parser;
@@ -79,7 +79,7 @@ impl Pipeline {
   }
 
   pub fn compile_code<P : AsRef<Path> + ?Sized>(&mut self, filename: &P, input: &str)
-                                                -> Result<TranslationUnit, Error> {
+                                                -> Result<TranslationUnit, PError> {
 
     let file_path = filename.as_ref().strip_prefix(&self.config.root_directory).expect("Non-local file load detected").to_owned(); // TODO Expect
     let mut old_file_path = Some(RPathBuf::new(PathSrc::Res, file_path).expect("Non-local file load detected")); // TODO Expect
@@ -110,7 +110,7 @@ impl Pipeline {
   }
 
   fn load_file_unconditionally<'a, 'b, P>(&'a mut self, input_path: &'b P)
-                                          -> Result<&'a TranslationUnit, Error>
+                                          -> Result<&'a TranslationUnit, PError>
   where P : AsRef<Path> + ?Sized {
     let input_path = input_path.as_ref();
     let output_path = input_to_output_filename(input_path);
@@ -181,7 +181,7 @@ impl Pipeline {
   }
 
   pub fn load_file<'a, 'b, P>(&'a mut self, input_path: &'b P)
-                              -> Result<&'a TranslationUnit, Error>
+                              -> Result<&'a TranslationUnit, PError>
   where P : AsRef<Path> + ?Sized {
     let input_path = self.to_absolute_path(input_path);
     // if-let here causes Rust to complain due to lifetime rules, so

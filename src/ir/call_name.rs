@@ -8,7 +8,7 @@ use crate::sxp::ast::{AST, ASTF};
 use crate::sxp::dotted::DottedExpr;
 use crate::compile::error::{GDError, GDErrorF};
 use crate::pipeline::Pipeline;
-use crate::pipeline::error::{Error as PError};
+use crate::pipeline::error::PError;
 
 /// GDLisp is fairly conservative about what sort of [`AST`] values
 /// are allowed as the subject of a call. Excluding special forms and

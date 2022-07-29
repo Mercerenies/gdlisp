@@ -24,7 +24,7 @@ use gdlisp::ir::incremental::IncCompiler;
 use gdlisp::gdscript::library;
 use gdlisp::gdscript::decl;
 use gdlisp::pipeline::Pipeline;
-use gdlisp::pipeline::error::{Error as PError, IOError};
+use gdlisp::pipeline::error::{PError, IOError};
 use gdlisp::pipeline::config::ProjectConfig;
 use gdlisp::pipeline::source::SourceOffset;
 

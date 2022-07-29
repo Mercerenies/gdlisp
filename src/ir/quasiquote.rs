@@ -4,8 +4,10 @@ use crate::ir::incremental::IncCompiler;
 use crate::compile::error::{GDError, GDErrorF};
 use super::expr::{Expr, ExprF};
 use super::literal::Literal;
-use crate::pipeline::error::Error;
+use crate::pipeline::error::PError;
 use crate::pipeline::Pipeline;
+
+// TODO Where do I pick up PError in this file? Can we do all of this in GDError?
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 enum QQSpliced {
@@ -60,7 +62,7 @@ impl<'a> From<&'a AST> for UnquotedValue<'a> {
 pub fn quasiquote(icompiler: &mut IncCompiler,
                   pipeline: &mut Pipeline,
                   arg: &AST)
-                  -> Result<Expr, Error> {
+                  -> Result<Expr, PError> {
   quasiquote_with_depth(icompiler, pipeline, arg, u32::MAX)
 }
 
@@ -68,7 +70,7 @@ pub fn quasiquote_with_depth(icompiler: &mut IncCompiler,
                              pipeline: &mut Pipeline,
                              arg: &AST,
                              max_depth: u32)
-                  -> Result<Expr, Error> {
+                  -> Result<Expr, PError> {
   let mut engine = QuasiquoteEngine::new(icompiler, pipeline, max_depth);
   engine.quasiquote_indexed(arg, 0, 0)
 }
@@ -96,7 +98,7 @@ impl<'a, 'b> QuasiquoteEngine<'a, 'b> {
                         arg: &AST,
                         nesting_depth: u32,
                         current_depth: u32)
-                        -> Result<Expr, Error> {
+                        -> Result<Expr, PError> {
     let (needs_split_wrapper, current_depth) =
       if current_depth > self.max_depth {
         (true, 0)
@@ -120,7 +122,7 @@ impl<'a, 'b> QuasiquoteEngine<'a, 'b> {
                         arg: &AST,
                         nesting_depth: u32,
                         current_depth: u32)
-                        -> Result<QQSpliced, Error> {
+                        -> Result<QQSpliced, PError> {
     let unquoted_value = UnquotedValue::from(arg);
 
     // Deal with nesting issues
@@ -213,7 +215,7 @@ impl<'a, 'b> QuasiquoteEngine<'a, 'b> {
             Expr::call(String::from("+"), acc, arg.pos)
           }
           ASTF::Dictionary(v) => {
-            let v1 = v.iter().map(|(k, v)| Ok((self.quasiquote_indexed(k, nesting_depth, current_depth + 1)?, self.quasiquote_indexed(v, nesting_depth, current_depth + 1)?))).collect::<Result<Vec<_>, Error>>()?;
+            let v1 = v.iter().map(|(k, v)| Ok((self.quasiquote_indexed(k, nesting_depth, current_depth + 1)?, self.quasiquote_indexed(v, nesting_depth, current_depth + 1)?))).collect::<Result<Vec<_>, PError>>()?;
             Expr::new(ExprF::Dictionary(v1), arg.pos)
           }
         };
