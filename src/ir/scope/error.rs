@@ -13,12 +13,14 @@ pub enum ScopeError<NS> {
   /// The same name was declared twice in the same namespace and
   /// scope.
   DuplicateName(NS, String, SourceOffset),
+  NameConflictWithMainClass(NS, String, SourceOffset),
 }
 
 impl From<ScopeError<Namespace>> for ScopeError<ClassNamespace> {
   fn from(error: ScopeError<Namespace>) -> ScopeError<ClassNamespace> {
     match error {
       ScopeError::DuplicateName(n, s, p) => ScopeError::DuplicateName(n.into(), s, p),
+      ScopeError::NameConflictWithMainClass(n, s, p) => ScopeError::NameConflictWithMainClass(n.into(), s, p),
     }
   }
 }

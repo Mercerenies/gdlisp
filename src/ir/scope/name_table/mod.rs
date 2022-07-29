@@ -32,6 +32,13 @@ impl<NS: Hash + Eq + Clone> NameTable<NS> {
     self.data.get::<dyn IdLike<NS=NS>>((&key) as &(dyn IdLike<NS=NS>)).copied()
   }
 
+  /// Returns whether or not this name table contains the given name
+  /// in the given namespace. Equivalent to `self.get_name(namespace,
+  /// name).is_some()`.
+  pub fn has_name(&self, namespace: NS, name: &str) -> bool {
+    self.get_name(namespace, name).is_some()
+  }
+
   /// Adds a name to the name table, marking it as appearing at the
   /// given source position. If that name already appears as a
   /// declaration somewhere in the source code, this method overwrites
@@ -67,6 +74,15 @@ impl<NS: Hash + Eq + Clone> NameTable<NS> {
       result.add_name(function(ns), name, pos);
     }
     result
+  }
+
+  pub fn retain<F>(&mut self, mut f: F)
+  where F: FnMut(NS, &str, SourceOffset) -> bool {
+    self.data.retain(|k, v| f(k.0.clone(), &k.1, *v));
+  }
+
+  pub fn iter(&self) -> impl Iterator<Item=(NS, &str, SourceOffset)> {
+    self.data.iter().map(|(k, v)| (k.0.clone(), &*k.1, *v))
   }
 
 }

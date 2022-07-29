@@ -232,6 +232,8 @@ pub enum GDErrorF {
   /// An attempt was made to import a name from another file, but that
   /// name was not (publicly) declared in that file.
   UnknownImportedName(Id),
+  /// The same name was declared twice in the same namespace and scope.
+  DuplicateNameConflictInMainClass(ClassNamespace, String),
 }
 
 /// Variant of [`ErrorF`] with source offset information. See
@@ -345,6 +347,7 @@ impl GDErrorF {
       GDErrorF::BadEnumClause => 48,
       GDErrorF::BadSysDeclare(_) => 49,
       GDErrorF::UnknownImportedName(_) => 50,
+      GDErrorF::DuplicateNameConflictInMainClass(_, _) => 51,
     }
   }
 
@@ -486,6 +489,9 @@ impl fmt::Display for GDErrorF {
       GDErrorF::UnknownImportedName(id) => {
         write!(f, "Unknown {} name '{}' in import", id.namespace.name(), &id.name)?;
       }
+      GDErrorF::DuplicateNameConflictInMainClass(ns, name) => {
+        write!(f, "The {} '{}' was declared at the top-level and is also declared in the main class", ns.name(), name)?; // TODO Would be nice to have the source offset of the *original* name here as well.
+      }
     }
     if self.is_internal() {
       write!(f, " ({})", INTERNAL_ERROR_NOTE)?;
@@ -594,6 +600,8 @@ impl From<ScopeError<ClassNamespace>> for GDError {
     match err {
       ScopeError::DuplicateName(n, s, p) =>
         GDError::new(GDErrorF::DuplicateName(n, s), p),
+      ScopeError::NameConflictWithMainClass(n, s, p) =>
+        GDError::new(GDErrorF::DuplicateNameConflictInMainClass(n, s), p),
     }
   }
 }

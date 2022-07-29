@@ -203,6 +203,22 @@ pub fn duplicate_const_test() {
 }
 
 #[test]
+pub fn duplicate_const_in_main_class_test() {
+  assert_eq!(
+    parse_compile_decl_err(r#"((defconst A 1) (defclass Foo () main (defconst A 1)))"#),
+    Err(PError::from(GDError::new(GDErrorF::DuplicateNameConflictInMainClass(ClassNamespace::Value, String::from("A")), SourceOffset(39)))),
+  );
+}
+
+#[test]
+pub fn duplicate_const_with_var_in_main_class_test() {
+  assert_eq!(
+    parse_compile_decl_err(r#"((defconst A 1) (defclass Foo () main (defvar A 1)))"#),
+    Err(PError::from(GDError::new(GDErrorF::DuplicateNameConflictInMainClass(ClassNamespace::Value, String::from("A")), SourceOffset(39)))),
+  );
+}
+
+#[test]
 pub fn duplicate_const_in_class_test() {
   assert_eq!(
     parse_compile_decl_err(r#"((defclass Foo () (defconst A 1) (defconst A 1)))"#),
@@ -235,6 +251,22 @@ pub fn duplicate_fn_in_class_test() {
 }
 
 #[test]
+pub fn duplicate_static_fn_in_class_test_1() {
+  assert_eq!(
+    parse_compile_decl_err(r#"((defclass Foo () (defn foo ()) (defn foo () static)))"#),
+    Err(PError::from(GDError::new(GDErrorF::DuplicateName(ClassNamespace::Function, String::from("foo")), SourceOffset(33)))),
+  );
+}
+
+#[test]
+pub fn duplicate_static_fn_in_class_test_2() {
+  assert_eq!(
+    parse_compile_decl_err(r#"((defclass Foo () (defn foo () static) (defn foo () static)))"#),
+    Err(PError::from(GDError::new(GDErrorF::DuplicateName(ClassNamespace::Function, String::from("foo")), SourceOffset(40)))),
+  );
+}
+
+#[test]
 pub fn duplicate_signal_in_class_test() {
   assert_eq!(
     parse_compile_decl_err(r#"((defclass Foo () (defsignal foo) (defsignal foo ())))"#),
@@ -247,6 +279,22 @@ pub fn duplicate_fn_test() {
   assert_eq!(
     parse_compile_decl_err(r#"((defn foo () 1) (defn foo () 2))"#),
     Err(PError::from(GDError::new(GDErrorF::DuplicateName(ClassNamespace::Function, String::from("foo")), SourceOffset(18)))),
+  );
+}
+
+#[test]
+pub fn duplicate_fn_main_class_test() {
+  assert_eq!(
+    parse_compile_decl_err(r#"((defn foo () 1) (defclass Foo (Reference) main (defn foo () 2)))"#),
+    Err(PError::from(GDError::new(GDErrorF::DuplicateNameConflictInMainClass(ClassNamespace::Function, String::from("foo")), SourceOffset(49)))),
+  );
+}
+
+#[test]
+pub fn duplicate_fn_main_class_test_static() {
+  assert_eq!(
+    parse_compile_decl_err(r#"((defn foo () 1) (defclass Foo (Reference) main (defn foo () static 2)))"#),
+    Err(PError::from(GDError::new(GDErrorF::DuplicateNameConflictInMainClass(ClassNamespace::Function, String::from("foo")), SourceOffset(49)))),
   );
 }
 
