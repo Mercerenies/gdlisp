@@ -48,7 +48,6 @@ const KNOWN_GDSCRIPT_KEYWORDS: &[&str] = &[
   "Rect2", "Vector3", "Transform2D", "Plane", "Quat", "AABB", "Basis", "Transform",
   "Color", "NodePath", "RID", "Object", "PI", "SPKEY", "typeof",
 ];
-// TODO Add all of the @GDScript built-in names here, since we (based on cursory testing) cannot override those names locally and expect anything good to come of it.
 
 /// A `NameTrans` is stored information about how a given GDLisp name
 /// translates into a GDScript name.

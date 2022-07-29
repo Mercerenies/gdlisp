@@ -18,9 +18,6 @@ use crate::pipeline::source::{SourceOffset, Sourced};
 
 use std::fmt;
 
-// TODO Rename this to GDError and the pipeline one to PError, to be
-// completely unambiguous.
-
 /// This type captures all errors that can occur during compilation of
 /// GDLisp code.
 ///
@@ -66,7 +63,7 @@ pub enum ErrorF {
   /// This error includes the name of the callable object, the faulty
   /// argument that was passed, and a freeform text description of the
   /// sort of argument that was expected.
-  InvalidArg(String, AST, ExpectedShape), // TODO Audit usage
+  InvalidArg(String, AST, ExpectedShape),
   /// A name was referenced in the variable namespace, but no such
   /// name was found in the symbol table.
   NoSuchVar(String),

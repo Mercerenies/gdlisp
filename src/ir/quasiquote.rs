@@ -213,7 +213,6 @@ impl<'a, 'b> QuasiquoteEngine<'a, 'b> {
             Expr::call(String::from("+"), acc, arg.pos)
           }
           ASTF::Dictionary(v) => {
-            // TODO Does unquote-spliced make sense in this context?
             let v1 = v.iter().map(|(k, v)| Ok((self.quasiquote_indexed(k, nesting_depth, current_depth + 1)?, self.quasiquote_indexed(v, nesting_depth, current_depth + 1)?))).collect::<Result<Vec<_>, Error>>()?;
             Expr::new(ExprF::Dictionary(v1), arg.pos)
           }

@@ -583,21 +583,21 @@ impl<'a, 'b, 'c, 'd, 'e> CompilerFrame<'a, 'b, 'c, 'd, 'e, StmtBuilder> {
       SpecialRef::ThisFile => {
         let current_filename =
           inner_class::get_current_filename(self.pipeline, self.compiler.preload_resolver())
-          .expect("Error identifying current file"); // TODO Expect
+          .expect("Error identifying current file");
         let expr = VarName::load_expr(current_filename, pos);
         StExpr { expr, side_effects: SideEffects::None }
       }
       SpecialRef::ThisFileName => {
         let current_filename =
           inner_class::get_current_filename(self.pipeline, self.compiler.preload_resolver())
-          .expect("Error identifying current file"); // TODO Expect
+          .expect("Error identifying current file");
         let expr = Expr::from_value(current_filename, pos);
         StExpr { expr, side_effects: SideEffects::None }
       }
       SpecialRef::ThisTrueFileName => {
         let current_filename =
           inner_class::get_current_filename(self.pipeline, &DefaultPreloadResolver)
-          .expect("Error identifying current file"); // TODO Expect
+          .expect("Error identifying current file");
         let expr = Expr::from_value(current_filename, pos);
         StExpr { expr, side_effects: SideEffects::None }
       }

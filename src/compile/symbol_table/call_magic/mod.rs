@@ -324,11 +324,6 @@ impl CallMagic {
           }
         }
       }
-      // TODO Integer division (both the regular function and the call
-      // magic) still does floating-point division if the first
-      // argument is a vector. I want to do integer division to each
-      // component of the vector, which GDScript has no built-in way
-      // to do.
       CallMagic::IntDivOperation => {
         let mut args = strip_st(args);
         Expecting::at_least(1).validate(&call.function, pos, &args)?;

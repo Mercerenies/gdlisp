@@ -7,9 +7,6 @@ use gdlisp::pipeline::source::SourceOffset;
 
 use super::common::*;
 
-// TODO Object with non-nullary constructor should probably be an
-// error, since it will always be lazy-constructed with no arguments.
-
 #[test]
 pub fn empty_object_test() {
   assert_eq!(parse_compile_decl("((defobject Foo (Reference)))"),
@@ -180,11 +177,7 @@ pub fn macro_uses_object_test() {
 /* /////
 #[test]
 pub fn reference_to_outer_in_object_test_1() {
-  // TODO This one raises an interesting point. An outer Reference
-  // class and an inner Reference singleton object will instantly be
-  // in a cycle and never get freed (and Godot issues a warning at
-  // exit time if this happens). Should we detect this? Should it be
-  // allowed? Can we hack it with weakref somehow?
+  // See Issue #85
   let output = parse_and_run(r#"
     ((defn outer () 100)
      (defobject Foo (Reference)

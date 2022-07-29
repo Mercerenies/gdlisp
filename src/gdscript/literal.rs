@@ -6,9 +6,6 @@
 //! evaluate to themselves. This includes literal integers, strings,
 //! and the special value `null`.
 
-// TODO Just a basic stub right now; we'll support all Godot literal
-// types soon.
-
 use crate::ir::literal::{Literal as IRLiteral};
 
 use ordered_float::OrderedFloat;
