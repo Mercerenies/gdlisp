@@ -13,7 +13,7 @@ use config::ProjectConfig;
 use error::{PError, IOError};
 use source::SourceOffset;
 use resolver::{NameResolver, DefaultNameResolver};
-use crate::parser;
+use crate::SOME_AST_PARSER;
 use crate::ir;
 use crate::compile::Compiler;
 use crate::compile::names::fresh::FreshNameGenerator;
@@ -85,8 +85,7 @@ impl Pipeline {
     let mut old_file_path = Some(RPathBuf::new(PathSrc::Res, file_path).expect("Non-local file load detected")); // TODO Expect
     mem::swap(&mut old_file_path, &mut self.current_file_path);
 
-    let parser = parser::SomeASTParser::new();
-    let ast = parser.parse(input)?;
+    let ast = SOME_AST_PARSER.parse(input)?;
 
     let mut compiler = Compiler::new(FreshNameGenerator::new(ast.all_symbols()), Box::new(DefaultPreloadResolver));
 
@@ -137,8 +136,7 @@ impl Pipeline {
     input_path_store_name.set_extension("gd");
     self.known_files_paths.insert(input_path_store_name, tmpfile.path().to_owned());
 
-    let parser = parser::SomeASTParser::new();
-    let ast = parser.parse(&contents)?;
+    let ast = SOME_AST_PARSER.parse(&contents)?;
     let resolver = self.make_preload_resolver();
     let mut compiler = Compiler::new(FreshNameGenerator::new(ast.all_symbols()), Box::new(resolver));
     let mut table = SymbolTable::new();

@@ -458,14 +458,13 @@ impl Sourced for ArgListParseError {
 #[cfg(test)]
 mod tests {
   use super::*;
-  use crate::parser;
+  use crate::AST_PARSER;
   use crate::sxp::dotted::DottedExpr;
   use crate::compile::names::fresh::FreshNameGenerator;
   use std::convert::TryInto;
 
   fn parse_ast(input: &str) -> AST {
-    let parser = parser::ASTParser::new();
-    parser.parse(input).unwrap()
+    AST_PARSER.parse(input).unwrap()
   }
 
   fn parse_arglist(input: &str) -> Result<ArgList, ArgListParseError> {

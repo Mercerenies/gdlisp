@@ -321,11 +321,10 @@ impl fmt::Display for ImportNameResolutionError {
 #[cfg(test)]
 mod tests {
   use super::*;
-  use crate::parser;
+  use crate::AST_PARSER;
 
   fn parse_ast(input: &str) -> AST {
-    let parser = parser::ASTParser::new();
-    parser.parse(input).unwrap()
+    AST_PARSER.parse(input).unwrap()
   }
 
   fn parse_import(input: &str) -> Result<ImportDecl, ImportDeclParseError> {

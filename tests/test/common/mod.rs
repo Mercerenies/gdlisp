@@ -18,7 +18,7 @@ use gdlisp::compile::preload_resolver::DefaultPreloadResolver;
 use gdlisp::runner;
 use gdlisp::runner::into_gd_file::IntoGDFile;
 use gdlisp::runner::path::{RPathBuf, PathSrc};
-use gdlisp::parser;
+use gdlisp::AST_PARSER;
 use gdlisp::ir;
 use gdlisp::ir::incremental::IncCompiler;
 use gdlisp::gdscript::library;
@@ -139,8 +139,7 @@ GDLisp="*res://GDLisp.gd"
 }
 
 pub fn parse_and_run_err(input: &str) -> Result<String, PError> {
-  let parser = parser::ASTParser::new();
-  let value = parser.parse(input)?;
+  let value = AST_PARSER.parse(input)?;
   let used_names = value.all_symbols();
   let mut compiler = Compiler::new(FreshNameGenerator::new(used_names), Box::new(DefaultPreloadResolver));
   let mut table = SymbolTable::new();
@@ -188,8 +187,7 @@ pub fn parse_compile_and_output_err(input: &str) -> Result<String, PError> {
 }
 
 pub fn parse_compile_and_output_err_h(input: &str) -> Result<(String, String), PError> {
-  let parser = parser::ASTParser::new();
-  let value = parser.parse(input)?;
+  let value = AST_PARSER.parse(input)?;
   let used_names = value.all_symbols();
   let mut compiler = Compiler::new(FreshNameGenerator::new(used_names), Box::new(DefaultPreloadResolver));
   let mut table = SymbolTable::new();
@@ -224,8 +222,7 @@ pub fn parse_compile_and_output_h(input: &str) -> (String, String) {
 }
 
 pub fn parse_compile_decl_err(input: &str) -> Result<String, PError> {
-  let parser = parser::ASTParser::new();
-  let value = parser.parse(input)?;
+  let value = AST_PARSER.parse(input)?;
   let used_names = value.all_symbols();
   let mut compiler = Compiler::new(FreshNameGenerator::new(used_names), Box::new(DefaultPreloadResolver));
   let mut table = SymbolTable::new();

@@ -5,7 +5,7 @@ use gdlisp::ir;
 use gdlisp::ir::declaration_table::DeclarationTable;
 use gdlisp::ir::depends::Dependencies;
 use gdlisp::ir::identifier::{IdLike, Id, Namespace};
-use gdlisp::parser;
+use gdlisp::AST_PARSER;
 use gdlisp::pipeline::source::SourceOffset;
 
 use std::collections::{HashMap, HashSet};
@@ -13,8 +13,7 @@ use std::collections::{HashMap, HashSet};
 // TODO Test some dependency analysis that involves importing multiple files.
 
 fn dependencies_of<'a>(input: &str, target_name: &(dyn IdLike<NS=Namespace> + 'a), pos: SourceOffset) -> Dependencies {
-  let parser = parser::ASTParser::new();
-  let ast = parser.parse(input).unwrap();
+  let ast = AST_PARSER.parse(input).unwrap();
   let (toplevel, _macros) = ir::compile_toplevel(&mut dummy_pipeline(), &ast).unwrap();
   ir::scope::check_scopes(&toplevel).unwrap();
   let table = DeclarationTable::from(toplevel.decls);

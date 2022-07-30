@@ -21,7 +21,7 @@ use crate::gdscript::library;
 use crate::ir::arglist::ArgList;
 use crate::pipeline::error::{PError, IOError};
 use crate::pipeline::source::SourceOffset;
-use crate::parser;
+use crate::AST_PARSER;
 use super::command::ServerCommand;
 use super::response;
 
@@ -243,8 +243,7 @@ impl NamedFileServer {
     Stmt::write_gd_stmts(stmts.iter(), &mut exec_str, 4).expect("Could not write to string in do_macro_call");
     let result = server.issue_command(&ServerCommand::Exec(exec_str)).map_err(|err| IOError::new(err, pos))?;
     let result = response_to_string(result).map_err(|err| IOError::new(err, pos))?;
-    let parser = parser::ASTParser::new();
-    let parsed = parser.parse(&result)?;
+    let parsed = AST_PARSER.parse(&result)?;
     //println!("{}", parsed);
     Ok(parsed)
   }

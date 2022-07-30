@@ -85,7 +85,7 @@ impl CallName {
 #[cfg(test)]
 mod tests {
   use super::*;
-  use crate::parser;
+  use crate::AST_PARSER;
   use crate::pipeline::Pipeline;
   use crate::pipeline::source::SourceOffset;
   use crate::pipeline::config::ProjectConfig;
@@ -95,8 +95,7 @@ mod tests {
   use std::path::PathBuf;
 
   fn parse_ast(input: &str) -> AST {
-    let parser = parser::ASTParser::new();
-    parser.parse(input).unwrap()
+    AST_PARSER.parse(input).unwrap()
   }
 
   fn dummy_config() -> ProjectConfig {

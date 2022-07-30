@@ -172,7 +172,7 @@ impl Drop for MacroServer {
 mod tests {
   use super::*;
   use crate::sxp::reify::Reify;
-  use crate::parser;
+  use crate::AST_PARSER;
   use std::convert::TryFrom;
 
   fn issue_command_and_unwrap(server: &mut MacroServer, value: &ServerCommand) -> String {
@@ -181,8 +181,7 @@ mod tests {
   }
 
   fn roundtrip_value(server: &mut MacroServer, value: &str) {
-    let parser = parser::ASTParser::new();
-    let ast = parser.parse(value).unwrap();
+    let ast = AST_PARSER.parse(value).unwrap();
     let result = issue_command_and_unwrap(server, &ServerCommand::Eval(ast.reify().to_gd()));
     assert_eq!(value, &result);
   }

@@ -19,3 +19,12 @@ mod parser_test;
 
 lalrpop_mod!(#[allow(clippy::all)] pub parser);
 
+lazy_static! {
+
+  pub static ref AST_PARSER: parser::ASTParser =
+    parser::ASTParser::new();
+
+  pub static ref SOME_AST_PARSER: parser::SomeASTParser =
+    parser::SomeASTParser::new();
+
+}
