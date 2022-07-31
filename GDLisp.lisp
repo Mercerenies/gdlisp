@@ -815,6 +815,8 @@
 (defclass _GDLisp (Node) main
   (defvar global_name_generator)
 
+  (defvar symbol_table)
+
   ;; Primitive types
   (defvar Null)
   (defvar Bool)
@@ -857,6 +859,8 @@
 
   (defn _init ()
     (set self:global_name_generator (FreshNameGenerator:new [] 0))
+    (set self:symbol_table {})
+
     (set self:Null (PrimitiveType:new TYPE_NIL))
     (set self:Bool (PrimitiveType:new TYPE_BOOL))
     (set self:Int (PrimitiveType:new TYPE_INT))
@@ -1135,7 +1139,9 @@
   (set a:cdr b))
 
 (defn intern (a)
-  (Symbol:new a))
+  (cond
+    ((member? a GDLisp:symbol_table) (elt GDLisp:symbol_table a))
+    (#t (set (elt GDLisp:symbol_table a) (Symbol:new a)))))
 
 (defn length (x)
   (let ((result 0))

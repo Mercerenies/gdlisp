@@ -397,3 +397,35 @@ pub fn min_max_run_test() {
   assert_eq!(parse_and_run("((print (min 1 2 3)))"), "\n1\n");
   assert_eq!(parse_and_run("((print (max 1 2 3)))"), "\n3\n");
 }
+
+#[test]
+fn eq_num_test() {
+  assert_eq!(parse_and_run("((print (= 4 4)) (print (= 4 3)) (print (= 4 4.0)))"), "\nTrue\nFalse\nTrue\n");
+}
+
+#[test]
+fn eq_str_test() {
+  assert_eq!(parse_and_run("((print (= \"a\" \"a\")))"), "\nTrue\n");
+}
+
+#[test]
+fn eq_symbol_test() {
+  assert_eq!(parse_and_run("((print (= 'a 'a)) (print (= 'b 'c)) (print (= 'b 'B)))"), "\nTrue\nFalse\nFalse\n");
+}
+
+#[test]
+fn eq_array_test() {
+  assert_eq!(parse_and_run("((print (= [1] [1])))"), "\nTrue\n");
+}
+
+#[test]
+fn eq_dict_test() {
+  assert_eq!(parse_and_run("((print (= {'a 1} {'a 1})))"), "\nFalse\n");
+}
+
+#[test]
+fn eq_cons_test() {
+  // Cons cells follow reference semantics, since they're mutable and
+  // (according to GDScript) non-primitive.
+  assert_eq!(parse_and_run("((print (= '(1 2) '(1 2))))"), "\nFalse\n");
+}
