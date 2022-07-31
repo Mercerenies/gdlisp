@@ -139,6 +139,10 @@ pub struct DeclareDecl {
   pub visibility: Visibility,
   pub declare_type: DeclareType,
   pub name: String,
+  // If this doesn't exist, it will be treated as
+  // `lisp_to_gd(self.name)` after compilation. The declaration is
+  // allowed to override this, however.
+  pub target_name: Option<String>,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]

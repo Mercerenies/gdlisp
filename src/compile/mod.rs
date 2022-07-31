@@ -337,14 +337,25 @@ impl Compiler {
         table.set_var(name, var);
       }
       IRDeclF::DeclareDecl(ddecl) => {
-        let ir::decl::DeclareDecl { visibility: _, declare_type, name } = ddecl;
+        let ir::decl::DeclareDecl { visibility: _, declare_type, name, target_name } = ddecl;
+        let target_name: String = match target_name {
+          // Default behavior: Target name is `lisp_to_gd` on the
+          // declared name. Overriding built-ins is forbidden in this
+          // case.
+          None => names::lisp_to_gd(name),
+          // Custom behavior: Target name is `lisp_to_gd_bare` on the
+          // specified name. Overriding built-ins is allowed in this
+          // case. This essentially acts as though the target name was
+          // placed inside a `(literally ...)` block.
+          Some(target_name) => names::lisp_to_gd_bare(target_name),
+        };
         match declare_type {
           ir::decl::DeclareType::Value => {
-            let var = LocalVar::file_constant(names::lisp_to_gd(name));
+            let var = LocalVar::file_constant(target_name);
             table.set_var(name.clone(), var);
           }
           ir::decl::DeclareType::Superglobal => {
-            let var = LocalVar::superglobal(names::lisp_to_gd(name))
+            let var = LocalVar::superglobal(target_name)
               .with_hint(ValueHint::Superglobal);
             table.set_var(name.clone(), var);
           }
@@ -352,7 +363,7 @@ impl Compiler {
             let func = function_call::FnCall::file_constant(
               function_call::FnSpecs::from(args.to_owned()),
               function_call::FnScope::Global,
-              names::lisp_to_gd(name),
+              target_name,
             );
             table.set_fn(name.clone(), func, CallMagic::DefaultCall);
           }
@@ -360,7 +371,7 @@ impl Compiler {
             let func = function_call::FnCall::superglobal(
               function_call::FnSpecs::from(args.to_owned()),
               function_call::FnScope::Superglobal,
-              names::lisp_to_gd(name),
+              target_name,
             );
             table.set_fn(name.clone(), func, CallMagic::DefaultCall);
           }

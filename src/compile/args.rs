@@ -75,6 +75,8 @@ pub enum ExpectedShape {
   /// of the form `(set name)` or `(get name)`, where `name` is an
   /// arbitrary symbol.
   InstanceFnName,
+  /// A symbol, or a pair of symbols as a 2-element list.
+  SymbolOrPairOfSymbols,
 }
 
 impl Expecting {
@@ -221,6 +223,7 @@ impl fmt::Display for ExpectedShape {
       ExpectedShape::SingletonList => write!(f, "singleton list"),
       ExpectedShape::YieldArg => write!(f, "additional argument (yield takes 0 or 2 arguments)"),
       ExpectedShape::InstanceFnName => write!(f, "instance function name"),
+      ExpectedShape::SymbolOrPairOfSymbols => write!(f, "symbol or 2-element list of symbols"),
     }
   }
 }

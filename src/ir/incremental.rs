@@ -21,7 +21,7 @@ use crate::sxp::ast::{AST, ASTF};
 use crate::sxp::reify::pretty::reify_pretty_expr;
 use crate::compile::error::{GDError, GDErrorF};
 use crate::compile::resource_type::ResourceType;
-use crate::compile::args::{Expecting, ExpectedShape};
+use crate::compile::args::{self, Expecting, ExpectedShape};
 use crate::compile::names;
 use crate::compile::names::fresh::FreshNameGenerator;
 use crate::compile::names::generator::NameGenerator;
@@ -410,7 +410,7 @@ impl IncCompiler {
             let value_type = ExpectedShape::extract_symbol("sys/declare", vec[1].clone())?;
             let (mut declare, body) = match &*value_type {
               "value" | "superglobal" => {
-                let name = ExpectedShape::extract_symbol("sys/declare", vec[2].clone())?;
+                let (name, target_name) = IncCompiler::get_declare_decl_name(vec[2])?;
                 let declare_type =
                   if value_type == "superglobal" {
                     decl::DeclareType::Superglobal
@@ -420,13 +420,14 @@ impl IncCompiler {
                 let decl = decl::DeclareDecl {
                   visibility: Visibility::DECLARE,
                   declare_type,
-                  name
+                  name,
+                  target_name,
                 };
                 (decl, &vec[3..])
               }
               "function" | "superfunction" => {
                 Expecting::at_least(3).validate("sys/declare", decl.pos, &vec[1..])?;
-                let name = ExpectedShape::extract_symbol("sys/declare", vec[2].clone())?;
+                let (name, target_name) = IncCompiler::get_declare_decl_name(vec[2])?;
                 let args: Vec<_> = DottedExpr::new(vec[3]).try_into()?;
                 let args = ArgList::parse(args)?;
                 let declare_type =
@@ -438,7 +439,8 @@ impl IncCompiler {
                 let decl = decl::DeclareDecl {
                   visibility: Visibility::DECLARE,
                   declare_type,
-                  name
+                  name,
+                  target_name,
                 };
                 (decl, &vec[4..])
               }
@@ -854,6 +856,46 @@ impl IncCompiler {
 
   pub fn name_generator(&mut self) -> &mut FreshNameGenerator {
     &mut self.names
+  }
+
+  // The name of the declaration in a `sys/declare` form can take one
+  // of two forms. It can either be a single symbol literal or a list
+  // of two symbol literals. In the former case, the symbol is
+  // considered to be both the GDLisp name and the target GDScript
+  // name, with the latter being escaped using `lisp_to_gd`. In the
+  // latter case, the first symbol is the GDLisp name, and the second
+  // is the target GDScript name, escaped with `lisp_to_gd_bare` (note
+  // that we use the "bare" variant in this case, to allow explicit
+  // overriding of GDScript identifiers in this case).
+  //
+  // This function returns the GDLisp name and, if present, the
+  // GDScript target name. No escaping is done by this function.
+  fn get_declare_decl_name(form: &AST) -> Result<(String, Option<String>), GDError> {
+    fn inner(form: &AST) -> Option<(String, Option<String>)> {
+      if let ASTF::Symbol(name) = &form.value {
+        // Single symbol; target GDScript name should be determined
+        // automatically.
+        Some((name.to_owned(), None))
+      } else {
+        let list: Vec<&AST> = DottedExpr::new(form).try_into().ok()?;
+        Expecting::exactly(2).validate("sys/declare", form.pos, &list).ok()?;
+        let (name, target_name) = args::two(list);
+        if let (ASTF::Symbol(name), ASTF::Symbol(target_name)) = (&name.value, &target_name.value) {
+          Some((name.to_owned(), Some(target_name.to_owned())))
+        } else {
+          None
+        }
+      }
+    }
+    // Replace any errors with the expected shape, since that will be
+    // more helpful in this case than a vague "unexpected dotted list"
+    // or something.
+    inner(form).ok_or_else(|| {
+      GDError::new(
+        GDErrorF::InvalidArg(String::from("sys/declare"), form.to_owned(), ExpectedShape::SymbolOrPairOfSymbols),
+        form.pos,
+      )
+    })
   }
 
 }
