@@ -429,3 +429,51 @@ fn eq_cons_test() {
   // (according to GDScript) non-primitive.
   assert_eq!(parse_and_run("((print (= '(1 2) '(1 2))))"), "\nFalse\n");
 }
+
+#[test]
+fn equal_num_test() {
+  assert_eq!(parse_and_run("((print (equal? 4 4)) (print (equal? 4 3)) (print (equal? 4 4.0)))"),
+             "\nTrue\nFalse\nTrue\n");
+}
+
+#[test]
+fn equal_str_test() {
+  assert_eq!(parse_and_run("((print (equal? \"a\" \"a\")))"), "\nTrue\n");
+}
+
+#[test]
+fn equal_symbol_test() {
+  assert_eq!(parse_and_run("((print (equal? 'a 'a)) (print (equal? 'b 'c)) (print (equal? 'b 'B)))"),
+             "\nTrue\nFalse\nFalse\n");
+}
+
+#[test]
+fn equal_array_test() {
+  assert_eq!(parse_and_run("((print (equal? [1] [1])) (print (equal? [1] [1 2])))"), "\nTrue\nFalse\n");
+}
+
+#[test]
+fn equal_dict_test() {
+  assert_eq!(parse_and_run("((print (equal? {'a 1} {'a 1})))"), "\nTrue\n");
+  assert_eq!(parse_and_run("((print (equal? {'a 1} {'a 2})))"), "\nFalse\n");
+  assert_eq!(parse_and_run("((print (equal? {\"b\" 2 'a 1} {'a 1 \"b\" 2})))"), "\nTrue\n");
+}
+
+#[test]
+fn equal_cons_test() {
+  assert_eq!(parse_and_run("((print (equal? '(1 2) '(1 2))))"), "\nTrue\n");
+  assert_eq!(parse_and_run("((print (equal? '(1 2) '(1))))"), "\nFalse\n");
+  assert_eq!(parse_and_run("((print (equal? '(1) '(1 2))))"), "\nFalse\n");
+}
+
+#[test]
+fn equal_nonmatching_test() {
+  assert_eq!(parse_and_run("((print (equal? '(1 2) [1 2])))"), "\nFalse\n");
+  assert_eq!(parse_and_run("((print (equal? 0 \"0\")))"), "\nFalse\n");
+  assert_eq!(parse_and_run("((print (equal? {'a 1} nil)))"), "\nFalse\n");
+}
+
+#[test]
+fn equal_nested_test() {
+  assert_eq!(parse_and_run("((print (equal? {'a ['b '(7)]} {'a ['b '(7)]})))"), "\nTrue\n");
+}
