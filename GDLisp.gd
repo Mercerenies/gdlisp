@@ -824,12 +824,10 @@ static func append(args):
         args = args.cdr
     return outer.cdr
 static func sys_DIV_qq_smart_list(a):
-    var t = typeof(a)
-    var _cond = array_to_list(a) if TYPE_ARRAY <= t && t <= TYPE_COLOR_ARRAY else a
+    var _cond = array_to_list(a) if is_instance(a, GDLisp.BaseArray) else a
     return _cond
 static func sys_DIV_qq_smart_array(a):
-    var t = typeof(a)
-    var _cond = a if TYPE_ARRAY <= t && t <= TYPE_COLOR_ARRAY else list_to_array(a)
+    var _cond = a if is_instance(a, GDLisp.BaseArray) else list_to_array(a)
     return _cond
 static func _PI():
     return GDLisp.cons(GDLisp.intern("literally"), GDLisp.cons(GDLisp.intern("PI"), null))
@@ -977,9 +975,9 @@ static func defobject(name, parent, visibility, body):
     elif !is_instance(visibility, Symbol):
         body = cons(visibility, body)
         visibility = GDLisp.intern("public")
-    elif visibility.contents == "public":
+    elif visibility == GDLisp.intern("public"):
         pass
-    elif visibility.contents == "private":
+    elif visibility == GDLisp.intern("private"):
         pass
     else:
         body = cons(visibility, body)
