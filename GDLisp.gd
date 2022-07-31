@@ -679,6 +679,54 @@ static func _DIV__EQ_(x, args):
             inner = inner.cdr
         outer = outer.cdr
     return true
+static func equal(x, args):
+    while args is Cons:
+        if bin_equal(x, args.car):
+            pass
+        else:
+            return false
+        x = args.car
+        args = args.cdr
+    return true
+static func bin_equal(a, b):
+    var _cond = null
+    var _cond_2 = is_instance(b, GDLisp.BaseArray) if is_instance(a, GDLisp.BaseArray) else false
+    if _cond_2:
+        _cond = array_equal(a, b)
+    else:
+        var _cond_1 = is_instance(b, GDLisp._Dictionary) if is_instance(a, GDLisp._Dictionary) else false
+        if _cond_1:
+            _cond = dict_equal(a, b)
+        else:
+            var _cond_0 = is_instance(b, Cons) if is_instance(a, Cons) else false
+            _cond = cons_equal(a, b) if _cond_0 else a == b if GDLisp._typeof(a) == GDLisp._typeof(b) else false
+    return _cond
+static func array_equal(a, b):
+    var _cond = null
+    if len(a) != len(b):
+        _cond = false
+    else:
+        var i = 0
+        var upper = len(a)
+        while i < upper:
+            if !bin_equal(a[i], b[i]):
+                return false
+            i = i + 1
+        _cond = true
+    return _cond
+static func dict_equal(a, b):
+    var _cond = null
+    if len(a) != len(b):
+        _cond = false
+    else:
+        for key in a.keys():
+            if !bin_equal(a[key], b[key]):
+                return false
+        _cond = true
+    return _cond
+static func cons_equal(a, b):
+    var _cond = bin_equal(cdr(a), cdr(b)) if bin_equal(car(a), car(b)) else false
+    return _cond
 static func _not(x):
     return !x
 static func list(args):

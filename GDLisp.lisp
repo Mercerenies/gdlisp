@@ -1319,6 +1319,49 @@
       (set outer outer:cdr)))
   #t)
 
+(defn equal (x &rest args)
+  (while (sys/instance-direct? args Cons)
+    (cond
+      ((bin-equal x args:car) ())
+      (#t (return #f)))
+    (set x args:car)
+    (set args args:cdr))
+  #t)
+
+(defn bin-equal (a b) private
+  (cond
+    ((cond ((instance? a GDLisp:BaseArray) (instance? b GDLisp:BaseArray)) (#t #f))
+     (array-equal a b))
+    ((cond ((instance? a GDLisp:Dictionary) (instance? b GDLisp:Dictionary)) (#t #f))
+     (dict-equal a b))
+    ((cond ((instance? a Cons) (instance? b Cons)) (#t #f))
+     (cons-equal a b))
+    ((= (GDLisp:typeof a) (GDLisp:typeof b))
+     (= a b))
+    (#t #f)))
+
+(defn array-equal (a b) private
+  (cond
+    ((/= (len a) (len b)) #f)
+    (#t (let ((i 0)
+              (upper (len a)))
+          (while (< i upper)
+            (cond ((not (bin-equal (elt a i) (elt b i))) (return #f)))
+            (set i (+ i 1)))
+          #t))))
+
+(defn dict-equal (a b) private
+  (cond
+    ((/= (len a) (len b)) #f)
+    (#t (for key (a:keys)
+          (cond ((not (bin-equal (elt a key) (elt b key))) (return #f))))
+        #t)))
+
+(defn cons-equal (a b) private
+  (cond
+    ((bin-equal (car a) (car b)) (bin-equal (cdr a) (cdr b)))
+    (#t #f)))
+
 (defn not (x)
   (sys/call-magic BOOLEAN-NOT)
   (not x))
