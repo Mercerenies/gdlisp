@@ -1319,7 +1319,7 @@
       (set outer outer:cdr)))
   #t)
 
-(defn equal (x &rest args)
+(defn equal? (x &rest args)
   (while (sys/instance-direct? args Cons)
     (cond
       ((bin-equal x args:car) ())
@@ -1336,6 +1336,8 @@
      (dict-equal a b))
     ((cond ((instance? a Cons) (instance? b Cons)) (#t #f))
      (cons-equal a b))
+    ((= (instance? a GDLisp:Number) (instance? b GDLisp:Number))
+     (= a b))
     ((= (GDLisp:typeof a) (GDLisp:typeof b))
      (= a b))
     (#t #f)))

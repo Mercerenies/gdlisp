@@ -679,7 +679,7 @@ static func _DIV__EQ_(x, args):
             inner = inner.cdr
         outer = outer.cdr
     return true
-static func equal(x, args):
+static func is_equal(x, args):
     while args is Cons:
         if bin_equal(x, args.car):
             pass
@@ -699,7 +699,7 @@ static func bin_equal(a, b):
             _cond = dict_equal(a, b)
         else:
             var _cond_0 = is_instance(b, Cons) if is_instance(a, Cons) else false
-            _cond = cons_equal(a, b) if _cond_0 else a == b if GDLisp._typeof(a) == GDLisp._typeof(b) else false
+            _cond = cons_equal(a, b) if _cond_0 else a == b if is_instance(a, GDLisp.Number) == is_instance(b, GDLisp.Number) else a == b if GDLisp._typeof(a) == GDLisp._typeof(b) else false
     return _cond
 static func array_equal(a, b):
     var _cond = null
