@@ -856,6 +856,7 @@
 
   ;; GDScript native types lookup table
   (defvar native_types_lookup)
+  (defvar primitive_types_lookup)
 
   (defn _init ()
     (set self:global_name_generator (FreshNameGenerator:new [] 0))
@@ -894,6 +895,15 @@
     (set self:Number (NumberType:new))
     (set self:BaseArray (BaseArrayType:new))
     (set self:Nothing (NothingType:new))
+
+    (set self:primitive_types_lookup
+         {TYPE_NIL @Null TYPE_BOOL @Bool TYPE_INT @Int TYPE_REAL @Float TYPE_STRING @String TYPE_VECTOR2 @Vector2
+          TYPE_RECT2 @Rect2 TYPE_VECTOR3 @Vector3 TYPE_TRANSFORM2D @Transform2D TYPE_PLANE @Plane TYPE_QUAT @Quat
+          TYPE_AABB @AABB TYPE_BASIS @Basis TYPE_TRANSFORM @Transform TYPE_COLOR @Color TYPE_NODE_PATH @NodePath
+          TYPE_RID @RID TYPE_OBJECT @Object TYPE_DICTIONARY @Dictionary TYPE_ARRAY @Array
+          TYPE_RAW_ARRAY @PoolByteArray TYPE_INT_ARRAY @PoolIntArray TYPE_REAL_ARRAY @PoolRealArray
+          TYPE_STRING_ARRAY @PoolStringArray TYPE_VECTOR2_ARRAY @PoolVector2Array
+          TYPE_VECTOR3_ARRAY @PoolVector3Array TYPE_COLOR_ARRAY @PoolColorArray})
 
     (set self:native_types_lookup
          {"AcceptDialog" AcceptDialog "AnimatedSprite" AnimatedSprite "AnimatedSprite3D" AnimatedSprite3D
@@ -1109,7 +1119,7 @@
   (defn typeof (value)
     (let ((t ((literally typeof) value)))
       (cond
-        ((/= t TYPE_OBJECT) (PrimitiveType:new t))
+        ((/= t TYPE_OBJECT) (elt self:primitive_types_lookup t))
         ((value:get_script))
         (#t (self:native_types_lookup:get (value:get_class) self:Any))))))
 
