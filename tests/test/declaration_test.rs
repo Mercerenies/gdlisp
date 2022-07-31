@@ -364,3 +364,76 @@ pub fn duplicate_signal_in_lambda_class_test() {
     Err(PError::from(GDError::new(GDErrorF::DuplicateName(ClassNamespace::Signal, String::from("foo")), SourceOffset(33)))),
   );
 }
+
+#[test]
+pub fn declare_value_reserved_word_test_1() {
+  assert_eq!(parse_compile_decl("((sys/declare superglobal while) (defconst y while))"), r#"extends Reference
+const y = _while
+static func run():
+    return null
+"#);
+}
+
+#[test]
+pub fn declare_value_reserved_word_test_2() {
+  // Invalid syntax in GDScript, but that's what you get for using a
+  // `sys/` primitive irresponsibly ¯\_(ツ)_/¯
+  assert_eq!(parse_compile_decl("((sys/declare superglobal (x while)) (defconst y x))"), r#"extends Reference
+const y = while
+static func run():
+    return null
+"#);
+}
+
+#[test]
+pub fn declare_function_reserved_word_test_1() {
+  assert_eq!(parse_compile_decl("((sys/declare superfunction self ()) (self))"), r#"extends Reference
+static func run():
+    return _self()
+"#);
+}
+
+#[test]
+pub fn declare_function_reserved_word_test_2() {
+  // Invalid syntax in GDScript, but that's what you get for using a
+  // `sys/` primitive irresponsibly ¯\_(ツ)_/¯
+  assert_eq!(parse_compile_decl("((sys/declare superfunction (x self) ()) (x))"), r#"extends Reference
+static func run():
+    return self()
+"#);
+}
+
+#[test]
+pub fn declare_value_custom_name_test_1() {
+  assert_eq!(parse_compile_decl("((sys/declare superglobal (x pizza)) (defconst y x))"), r#"extends Reference
+const y = pizza
+static func run():
+    return null
+"#);
+}
+
+#[test]
+pub fn declare_value_custom_name_test_2() {
+  assert_eq!(parse_compile_decl("((sys/declare superglobal (x pepperoni-pizza)) (defconst y x))"),
+             r#"extends Reference
+const y = pepperoni_pizza
+static func run():
+    return null
+"#);
+}
+
+#[test]
+pub fn declare_function_custom_name_test_1() {
+  assert_eq!(parse_compile_decl("((sys/declare superfunction (x pizza) ()) (x))"), r#"extends Reference
+static func run():
+    return pizza()
+"#);
+}
+
+#[test]
+pub fn declare_function_custom_name_test_2() {
+  assert_eq!(parse_compile_decl("((sys/declare superfunction (x pepperoni-pizza) ()) (x))"), r#"extends Reference
+static func run():
+    return pepperoni_pizza()
+"#);
+}
