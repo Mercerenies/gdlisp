@@ -57,6 +57,7 @@ pub fn dispatch_form(icompiler: &mut IncCompiler,
     "sys/context-filename" => context_filename_form(icompiler, pipeline, tail, pos).map(Some),
     "literally" => literally_form(tail, pos).map(Some),
     "sys/split" => split_form(icompiler, pipeline, tail, pos).map(Some),
+    "preload" => preload_form(icompiler, pipeline, tail, pos).map(Some),
     _ => Ok(None),
   }
 }
@@ -552,4 +553,15 @@ where E : From<PError>,
       }
     }
   }
+}
+
+pub fn preload_form(_icompiler: &mut IncCompiler,
+                    _pipeline: &mut Pipeline,
+                    tail: &[&AST],
+                    pos: SourceOffset)
+                    -> Result<Expr, PError> {
+  /////
+  Expecting::exactly(1).validate("preload", pos, tail)?;
+  let s = ExpectedShape::extract_string("preload", tail[0].clone())?;
+  Ok(Expr::new(ExprF::Preload(s), pos))
 }

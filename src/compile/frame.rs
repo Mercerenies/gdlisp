@@ -538,6 +538,12 @@ impl<'a, 'b, 'c, 'd, 'e> CompilerFrame<'a, 'b, 'c, 'd, 'e, StmtBuilder> {
           side_effects: SideEffects::None,
         })
       }
+      IRExprF::Preload(arg) => {
+        Ok(StExpr {
+          expr: Expr::preload_expr(arg.to_owned(), expr.pos),
+          side_effects: SideEffects::None,
+        })
+      }
       /* // This will eventually be an optimization.
       IRExprF::Funcall(f, args) => {
         let func_expr = self.compile_expr(builder, table, f, NeedsResult::Yes)?.0;

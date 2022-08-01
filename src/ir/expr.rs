@@ -45,6 +45,7 @@ pub enum ExprF {
   AtomicName(String),
   AtomicCall(String, Vec<Expr>),
   Split(String, Box<Expr>), // Compiles the inner expression, but forces it to be stored in a local variable with a generated name (the string argument is a prefix for the name)
+  Preload(String),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -359,6 +360,7 @@ impl Expr {
         // matter for our purposes.
         expr.walk_locals(acc_vars, acc_fns);
       }
+      ExprF::Preload(_) => {}
     };
   }
 

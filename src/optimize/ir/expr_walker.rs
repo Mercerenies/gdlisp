@@ -193,6 +193,9 @@ impl<'a, E> ExprWalker<'a, E> {
           Box::new(self.walk_expr(&*body)?),
         )
       }
+      ExprF::Preload(name) => {
+        ExprF::Preload(name.to_owned())
+      }
     };
     let new_expr = Expr::new(new_expr, expr.pos);
     (self.imp)(&new_expr)

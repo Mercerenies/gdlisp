@@ -146,6 +146,11 @@ impl Expr {
     Expr::simple_call("yield", args, pos)
   }
 
+  /// A GDScript `preload` call.
+  pub fn preload_expr(arg: String, pos: SourceOffset) -> Expr {
+    Expr::simple_call("preload", vec!(Expr::from_value(arg, pos)), pos)
+  }
+
   /// Uses a [`From`] instance of [`ExprF`] to construct an `Expr`.
   pub fn from_value<T>(value: T, pos: SourceOffset) -> Expr
   where ExprF : From<T> {
