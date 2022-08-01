@@ -25,10 +25,13 @@ jobs:
         ln -s Godot_v3.3.3-stable_linux_headless.64 godot
         ls -l
         cd ..
-        PATH="$PWD/godot-build/:$PATH"
     - name: Build
-      run: rake build[--verbose]
+      run: |
+        PATH="$PWD/godot-build/:$PATH"
+        echo "$PATH"
+        rake build[--verbose]
     - name: Run Standard Test Suite
       run: |
+        PATH="$PWD/godot-build/:$PATH"
         echo "$PATH"
         rake 'test[--verbose]'
