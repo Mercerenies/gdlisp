@@ -16,11 +16,16 @@ use crate::runner::dump_json_api;
 use serde_json;
 
 use std::io;
+use std::collections::HashMap;
 
-pub fn get_api_from_godot() -> io::Result<Vec<Class>> {
+pub const GLOBAL_CONSTANTS_CLASS: &str = "GlobalConstants";
+
+pub fn get_api_from_godot() -> io::Result<HashMap<String, Class>> {
   let tempfile = dump_json_api()?;
   let classes: Vec<Class> = serde_json::from_reader(tempfile)?;
-  Ok(classes)
+  Ok(
+    classes.into_iter().map(|cls| (cls.name.clone(), cls)).collect(),
+  )
 }
 
 #[cfg(test)]

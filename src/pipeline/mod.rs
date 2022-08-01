@@ -47,7 +47,7 @@ pub struct Pipeline {
   current_file_path: Option<RPathBuf>,
 }
 
-type NativeClasses = Vec<gdnative::class::Class>;
+type NativeClasses = HashMap<String, gdnative::class::Class>;
 
 impl Pipeline {
 
@@ -69,12 +69,6 @@ impl Pipeline {
 
   fn get_native_classes_impl() -> NativeClasses {
     let result = gdnative::get_api_from_godot();
-    // TODO Because of the way Lazy is (currently) implemented, I
-    // can't extract the io::Error like I'd really like to. Ideally,
-    // this would return io::Error and then, when we
-    // get_native_classes, we'd also return either io::Error or
-    // PError. Panicking for now, but I'd like to fix this at some
-    // point.
     result.expect("Could not read GDNative API from Godot binary")
   }
 
@@ -223,7 +217,7 @@ impl Pipeline {
     &self.config
   }
 
-  pub fn get_native_classes(&mut self) -> &[gdnative::class::Class] {
+  pub fn get_native_classes(&mut self) -> &HashMap<String, gdnative::class::Class> {
     self.native_classes.force_mut()
   }
 
