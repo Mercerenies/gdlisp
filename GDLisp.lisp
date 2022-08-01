@@ -1593,10 +1593,10 @@
 (sys/declare superfunction (var2str var2str) (a) public)
 (sys/declare superfunction (weakref weakref) (a) public)
 
-(define-symbol-macro PI '(literally PI))
-(define-symbol-macro TAU '(literally TAU))
-(define-symbol-macro SPKEY '(literally SPKEY))
-(define-symbol-macro INF '(literally INF))
+(sys/declare superglobal (PI PI))
+(sys/declare superglobal (TAU TAU))
+(sys/declare superglobal (SPKEY SPKEY))
+(sys/declare superglobal (INF INF))
 
 ;; TYPE_* Constants
 
