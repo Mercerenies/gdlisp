@@ -9,6 +9,7 @@ pub mod contextual;
 pub mod fresh;
 pub mod generator;
 pub mod registered;
+pub mod reserved;
 
 // Note: Many of these translations are based on the similar
 // translations performed by the Scala compiler.
@@ -35,19 +36,6 @@ const TRANSLATIONS: phf::Map<char, &'static str> = phf_map! {
   '@' => "_AT_",
   '$' => "_DSIGN_",
 };
-
-const KNOWN_GDSCRIPT_KEYWORDS: &[&str] = &[
-  "if", "elif", "else", "for", "while", "match", "break",
-  "continue", "pass", "return", "class", "class_name", "extends",
-  "is", "as", "self", "tool", "signal", "func", "static", "const",
-  "enum", "var", "onready", "export", "setget", "breakpoint", "preload",
-  "yield", "assert", "remote", "master", "puppet", "remotesync", "mastersync",
-  "puppetsync", "TAU", "INF", "NAN", "not", "and", "or", "Array",
-  "Dictionary", "PoolByteArray", "PoolIntArray", "PoolRealArray", "PoolStringArray",
-  "PoolVector2Array", "PoolVector3Array", "PoolColorArray", "String", "Vector2",
-  "Rect2", "Vector3", "Transform2D", "Plane", "Quat", "AABB", "Basis", "Transform",
-  "Color", "NodePath", "RID", "Object", "PI", "SPKEY", "typeof",
-];
 
 /// A `NameTrans` is stored information about how a given GDLisp name
 /// translates into a GDScript name.
@@ -129,7 +117,7 @@ pub fn is_valid_gd_char(ch: char) -> bool {
 /// ```
 pub fn lisp_to_gd(name: &str) -> String {
   // Escape known GDScript keywords
-  if KNOWN_GDSCRIPT_KEYWORDS.iter().any(|kw| *kw == name) {
+  if reserved::RESERVED_WORDS.contains(name) {
     format!("_{}", name)
   } else {
     lisp_to_gd_bare(name)
