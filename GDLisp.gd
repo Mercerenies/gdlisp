@@ -829,14 +829,6 @@ static func sys_DIV_qq_smart_list(a):
 static func sys_DIV_qq_smart_array(a):
     var _cond = a if is_instance(a, GDLisp.BaseArray) else list_to_array(a)
     return _cond
-static func _PI():
-    return GDLisp.cons(GDLisp.intern("literally"), GDLisp.cons(GDLisp.intern("PI"), null))
-static func _TAU():
-    return GDLisp.cons(GDLisp.intern("literally"), GDLisp.cons(GDLisp.intern("TAU"), null))
-static func _SPKEY():
-    return GDLisp.cons(GDLisp.intern("literally"), GDLisp.cons(GDLisp.intern("SPKEY"), null))
-static func _INF():
-    return GDLisp.cons(GDLisp.intern("literally"), GDLisp.cons(GDLisp.intern("INF"), null))
 class GDLispSpecialType extends Reference:
     func _init():
         pass
