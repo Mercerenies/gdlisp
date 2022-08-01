@@ -2,6 +2,7 @@
 //! Helper constants for the collection of reserved words in GDScript.
 
 use std::collections::HashSet;
+use std::borrow::Cow;
 
 /// All of the words which have special syntactic meaning in GDScript.
 const GDSCRIPT_KEYWORDS: [&str; 40] = [
@@ -28,16 +29,19 @@ const NAMED_TYPES: [&str; 23] = [
   "Color", "NodePath", "RID", "Object",
 ];
 
+fn get_all_reserved_words() -> HashSet<Cow<'static, str>> {
+  let mut set: HashSet<Cow<'static, str>> = HashSet::with_capacity(100);
+  set.extend(GDSCRIPT_KEYWORDS.iter().map(|x| Cow::Borrowed(*x)));
+  set.extend(GLOBAL_CONSTANTS.iter().map(|x| Cow::Borrowed(*x)));
+  set.extend(NAMED_TYPES.iter().map(|x| Cow::Borrowed(*x)));
+  set
+}
+
 lazy_static! {
 
   /// All of the reserved words, as a hash set which can be checked
   /// for membership efficiently.
-  pub static ref RESERVED_WORDS: HashSet<&'static str> = {
-    let mut set = HashSet::with_capacity(100);
-    set.extend(GDSCRIPT_KEYWORDS);
-    set.extend(GLOBAL_CONSTANTS);
-    set.extend(NAMED_TYPES);
-    set
-  };
+  pub static ref RESERVED_WORDS: HashSet<Cow<'static, str>> =
+    get_all_reserved_words();
 
 }
