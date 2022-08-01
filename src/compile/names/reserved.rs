@@ -7,29 +7,35 @@ use std::collections::HashSet;
 use std::borrow::Cow;
 
 /// All of the words which have special syntactic meaning in GDScript.
-const GDSCRIPT_KEYWORDS: [&str; 40] = [
+///
+/// Pulled from `godot/modules/gdscript_editor.cpp`.
+const GDSCRIPT_KEYWORDS: [&str; 43] = [
   "if", "elif", "else", "for", "while", "match", "break",
   "continue", "pass", "return", "class", "class_name", "extends",
   "is", "as", "self", "tool", "signal", "func", "static", "const",
   "enum", "var", "onready", "export", "setget", "breakpoint", "preload",
-  "yield", "assert", "remote", "master", "puppet", "remotesync", "mastersync",
-  "puppetsync", "not", "and", "or",
+  "yield", "assert", "remote", "master", "slave", "puppet", "remotesync",
+  "mastersync", "puppetsync", "sync", "not", "and", "or", "in",
   // NOTE: This will be a separate case in a moment :)
   "typeof",
 ];
 
 /// The GDScript top-level global constant names which are not
 /// included in `api.json`.
-const GLOBAL_CONSTANTS: [&str; 4] = [
-  "TAU", "INF", "NAN", "PI",
+///
+/// Pulled from `godot/modules/gdscript_editor.cpp`.
+const GLOBAL_CONSTANTS: [&str; 6] = [
+  "TAU", "INF", "NAN", "PI", "true", "false",
 ];
 
 /// The types in GDScript whose names are considered reserved.
-const NAMED_TYPES: [&str; 23] = [
+///
+/// Pulled from `godot/modules/gdscript_editor.cpp`.
+const NAMED_PRIMITIVE_TYPES: [&str; 27] = [
+  "null", "bool", "int", "float", "String", "Vector2", "Rect2", "Vector3", "Transform2D",
+  "Plane", "Quat", "AABB", "Basis", "Transform", "Color", "NodePath", "RID", "Object",
   "Array", "Dictionary", "PoolByteArray", "PoolIntArray", "PoolRealArray", "PoolStringArray",
-  "PoolVector2Array", "PoolVector3Array", "PoolColorArray", "String", "Vector2",
-  "Rect2", "Vector3", "Transform2D", "Plane", "Quat", "AABB", "Basis", "Transform",
-  "Color", "NodePath", "RID", "Object",
+  "PoolVector2Array", "PoolVector3Array", "PoolColorArray",
 ];
 
 fn get_all_reserved_words() -> HashSet<Cow<'static, str>> {
@@ -47,8 +53,8 @@ fn get_all_reserved_words() -> HashSet<Cow<'static, str>> {
   // Extra global constants
   set.extend(GLOBAL_CONSTANTS.iter().map(|x| Cow::Borrowed(*x)));
 
-  // Named types
-  set.extend(NAMED_TYPES.iter().map(|x| Cow::Borrowed(*x)));
+  // Named primitive types
+  set.extend(NAMED_PRIMITIVE_TYPES.iter().map(|x| Cow::Borrowed(*x)));
 
   set
 }
