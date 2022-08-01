@@ -21,6 +21,6 @@ jobs:
         rustup update
         rustup component add clippy
     - name: Build
-      run: rake build[--verbose]
+      run: rake build_rs[--verbose] # Only build Rust, not stdlib
     - name: Run Clippy
       run: rake clippy[--verbose]

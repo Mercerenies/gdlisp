@@ -10,8 +10,11 @@ task :clippy do |t, args|
   sh 'cargo', 'clippy', *args
 end
 
-task :build do |t, args|
+task :build_rs do |t, args|
   sh 'cargo', 'build'
+end
+
+task build: :build_rs do |t, args|
   sh 'cargo', 'run', '--', '--compile-stdlib'
 end
 
