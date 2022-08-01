@@ -1592,6 +1592,8 @@
 (sys/declare superfunction (str2var str2var) (a) public)
 (sys/declare superfunction (var2str var2str) (a) public)
 (sys/declare superfunction (weakref weakref) (a) public)
+(sys/declare superfunction (ease ease) (a b) public)
+(sys/declare superfunction (funcref funcref) (a b) public)
 
 (sys/declare superglobal (PI PI) public)
 (sys/declare superglobal (TAU TAU) public)
