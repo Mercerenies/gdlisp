@@ -8,6 +8,7 @@ use crate::gdscript::decl;
 use crate::gdscript::literal::Literal;
 use crate::gdscript::library::cell::CELL_CONTENTS;
 use crate::pipeline::source::SourceOffset;
+use crate::compile::names;
 
 use serde::{Serialize, Deserialize};
 
@@ -463,7 +464,7 @@ impl ValueHint {
   /// iterator of unowned strings. Implicitly clones the strings and
   /// stores them in a `ValueHint::Enum`.
   pub fn enumeration<'a>(values: impl Iterator<Item=&'a str>) -> ValueHint {
-    ValueHint::Enum(values.map(str::to_owned).collect())
+    ValueHint::Enum(values.map(names::lisp_to_gd).collect())
   }
 
 }

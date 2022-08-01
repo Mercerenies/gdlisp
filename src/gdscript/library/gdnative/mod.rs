@@ -74,8 +74,8 @@ mod tests {
 
   }
 
-  fn find_class_by_name<'a, 'b>(classes: &'a [Class], name: &'b str) -> Option<&'a Class> {
-    classes.iter().find(|class| class.name == name)
+  fn find_class_by_name<'a, 'b>(classes: &'a HashMap<String, Class>, name: &'b str) -> Option<&'a Class> {
+    classes.get(name)
   }
 
 }

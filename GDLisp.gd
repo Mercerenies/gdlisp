@@ -154,8 +154,8 @@ enum KeyMask {
     GROUP_SWITCH = KEY_MASK_GROUP_SWITCH,
 }
 enum Orientation {
-    VERTICAL = VERTICAL,
-    HORIZONTAL = HORIZONTAL,
+    _VERTICAL = VERTICAL,
+    _HORIZONTAL = HORIZONTAL,
 }
 enum VAlign {
     TOP = VALIGN_TOP,

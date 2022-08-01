@@ -216,6 +216,7 @@ mod tests {
     assert_eq!(lisp_to_gd("while"), "_while");
     assert_eq!(lisp_to_gd("While"), "While"); // No translation necessary
     assert_eq!(lisp_to_gd("PI"), "_PI");
+    assert_eq!(lisp_to_gd("BUTTON_LEFT"), "_BUTTON_LEFT");
   }
 
   #[test]
@@ -238,6 +239,7 @@ mod tests {
     assert_eq!(lisp_to_gd_bare("while"), "while");
     assert_eq!(lisp_to_gd_bare("While"), "While"); // No translation necessary
     assert_eq!(lisp_to_gd_bare("PI"), "PI");
+    assert_eq!(lisp_to_gd_bare("BUTTON_LEFT"), "BUTTON_LEFT");
   }
 
   #[test]
