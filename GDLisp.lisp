@@ -1621,6 +1621,38 @@
        (set result (+ result (str arg))))
     (printraw result)))
 
+(defn print-debug (&arr args)
+  (sys/call-magic VARARG-PRINTDEBUG)
+  (let ((result ""))
+    (for arg args
+       (set result (+ result (str arg))))
+    (print-debug result)))
+
+(defn print (&arr args)
+  (sys/call-magic VARARG-PRINT)
+  (let ((result ""))
+    (for arg args
+       (set result (+ result (str arg))))
+    (print result)))
+
+(defn prints (&arr args)
+  (sys/call-magic VARARG-PRINTS)
+  (let ((result "")
+        (first #t))
+    (for arg args
+       (set result (+ result (cond (first "") (#t " ")) (str arg)))
+       (set first #f))
+    (print result)))
+
+(defn printt (&arr args)
+  (sys/call-magic VARARG-PRINTT)
+  (let ((result "")
+        (first #t))
+    (for arg args
+       (set result (+ result (cond (first "") (#t "\t")) (str arg)))
+       (set first #f))
+    (print result)))
+
 ;; Global constants
 
 (sys/declare superglobal (PI PI) public)

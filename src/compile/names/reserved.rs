@@ -9,7 +9,7 @@ use std::borrow::Cow;
 /// All of the words which have special syntactic meaning in GDScript.
 ///
 /// Pulled from `godot/modules/gdscript_editor.cpp`.
-const GDSCRIPT_KEYWORDS: [&str; 49] = [
+const GDSCRIPT_KEYWORDS: [&str; 50] = [
   "if", "elif", "else", "for", "while", "match", "break",
   "continue", "pass", "return", "class", "class_name", "extends",
   "is", "as", "self", "tool", "signal", "func", "static", "const",
@@ -18,6 +18,7 @@ const GDSCRIPT_KEYWORDS: [&str; 49] = [
   "mastersync", "puppetsync", "sync", "not", "and", "or", "in",
   // TODO This will be a separate case in a moment :)
   "typeof", "str", "printerr", "printraw", "print_debug", "prints", "printt",
+  "print",
 ];
 
 /// The GDScript top-level global constant names which are not

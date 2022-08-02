@@ -844,6 +844,32 @@ static func _printraw(args):
     for arg_1 in args:
         result = result + str(arg_1)
     return printraw(result)
+static func print_debug(args):
+    var result = ""
+    for arg_2 in args:
+        result = result + str(arg_2)
+    return print_debug(result)
+static func _print(args):
+    var result = ""
+    for arg_3 in args:
+        result = result + str(arg_3)
+    return print(result)
+static func _prints(args):
+    var result = ""
+    var first = true
+    for arg_4 in args:
+        var _cond = "" if first else " "
+        result = result + _cond + str(arg_4)
+        first = false
+    return print(result)
+static func _printt(args):
+    var result = ""
+    var first = true
+    for arg_5 in args:
+        var _cond = "" if first else "\t"
+        result = result + _cond + str(arg_5)
+        first = false
+    return print(result)
 class GDLispSpecialType extends Reference:
     func _init():
         pass

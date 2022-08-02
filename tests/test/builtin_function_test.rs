@@ -286,8 +286,28 @@ pub fn printerr_test() {
 }
 
 #[test]
+pub fn print_test() {
+  assert_eq!(parse_compile_and_output("(print 3 \"a\")"), "return print(3, \"a\")\n");
+}
+
+#[test]
+pub fn printt_test() {
+  assert_eq!(parse_compile_and_output("(printt 3 \"a\")"), "return printt(3, \"a\")\n");
+}
+
+#[test]
+pub fn prints_test() {
+  assert_eq!(parse_compile_and_output("(prints 3 \"a\")"), "return prints(3, \"a\")\n");
+}
+
+#[test]
 pub fn printraw_test() {
   assert_eq!(parse_compile_and_output("(printraw 3 \"a\")"), "return printraw(3, \"a\")\n");
+}
+
+#[test]
+pub fn print_debug_test() {
+  assert_eq!(parse_compile_and_output("(print-debug 3 \"a\")"), "return print_debug(3, \"a\")\n");
 }
 
 #[test]
@@ -322,6 +342,16 @@ pub fn printraw_running_test() {
 #[test]
 pub fn printraw_running_test_indirect() {
   assert_eq!(parse_and_run("((funcall #'printraw 1 2 #t))"), "\n12True"); // Note: No \n at end
+}
+
+#[test]
+pub fn print_running_test() {
+  assert_eq!(parse_and_run("((print 1 2 #t))"), "\n12True\n");
+}
+
+#[test]
+pub fn print_running_test_indirect() {
+  assert_eq!(parse_and_run("((funcall #'print 1 2 #t))"), "\n12True\n");
 }
 
 // TODO Test gensym at runtime once we can pretty-print symbols

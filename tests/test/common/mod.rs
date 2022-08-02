@@ -80,11 +80,8 @@ pub fn dummy_pipeline() -> Pipeline {
   pipeline
 }
 
-fn bind_helper_symbols(table: &mut SymbolTable) {
-  // TODO This is just a single-argument shim which calls print. It
-  // will be obsolete once we have an actual print function in the
-  // language.
-  table.set_fn(String::from("print"), FnCall::superglobal(FnSpecs::new(1, 0, None), FnScope::Global, String::from("print")), CallMagic::DefaultCall);
+fn bind_helper_symbols(_table: &mut SymbolTable) {
+  // Does nothing right now. May remove this later.
 }
 
 pub fn dump_files<T>(dir: &mut TempDir, data: &T) -> io::Result<()>
