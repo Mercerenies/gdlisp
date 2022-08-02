@@ -103,9 +103,6 @@ pub enum GDErrorF {
   BadUnquoteSpliced(AST),
   /// The current preload resolver failed to resolve the file with the
   /// given path.
-  ///
-  /// TODO Is this an internal-only error? Is there ever a reasonable
-  /// time that a user should see this error?
   NoSuchFile(RPathBuf),
   /// An import declaration includes an explicit named import whose
   /// namespace is ambiguous.
@@ -234,6 +231,8 @@ pub enum GDErrorF {
   UnknownImportedName(Id),
   /// The same name was declared twice in the same namespace and scope.
   DuplicateNameConflictInMainClass(ClassNamespace, String),
+  /// An explicit `preload` call was made with a bad path.
+  BadPreloadArgument(String),
 }
 
 /// Variant of [`ErrorF`] with source offset information. See
@@ -348,6 +347,7 @@ impl GDErrorF {
       GDErrorF::BadSysDeclare(_) => 49,
       GDErrorF::UnknownImportedName(_) => 50,
       GDErrorF::DuplicateNameConflictInMainClass(_, _) => 51,
+      GDErrorF::BadPreloadArgument(_) => 52,
     }
   }
 
@@ -491,6 +491,9 @@ impl fmt::Display for GDErrorF {
       }
       GDErrorF::DuplicateNameConflictInMainClass(ns, name) => {
         write!(f, "The {} '{}' was declared at the top-level and is also declared in the main class", ns.name(), name)?; // TODO Would be nice to have the source offset of the *original* name here as well.
+      }
+      GDErrorF::BadPreloadArgument(name) => {
+        write!(f, "Argument to 'preload' must be a valid resource path, got '{}'", name)?;
       }
     }
     if self.is_internal() {

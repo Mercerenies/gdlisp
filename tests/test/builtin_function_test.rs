@@ -212,6 +212,12 @@ pub fn wrapped_load_functions_test() {
 }
 
 #[test]
+pub fn failed_preload_function_test() {
+  assert_eq!(parse_compile_and_output_err("(preload \"A\")"),
+             Err(PError::from(GDError::new(GDErrorF::BadPreloadArgument(String::from("A")), SourceOffset(0)))));
+}
+
+#[test]
 pub fn wrapped_range_functions_test() {
   assert_eq!(parse_compile_and_output("(inverse-lerp 0 10 6)"), "return inverse_lerp(0, 10, 6)\n");
   assert_eq!(parse_compile_and_output("(lerp 0 10 0.4)"), "return lerp(0, 10, 4e-1)\n");

@@ -32,8 +32,10 @@ use crate::gdscript::stmt::Stmt;
 use crate::gdscript::decl::{self, Decl, DeclF};
 use crate::gdscript::inner_class;
 use crate::sxp::reify::pretty::reify_pretty_expr;
+use crate::runner::path::RPathBuf;
 
 use std::cmp::max;
+use std::convert::TryFrom;
 
 type IRExpr = ir::expr::Expr;
 type IRExprF = ir::expr::ExprF;
@@ -539,8 +541,12 @@ impl<'a, 'b, 'c, 'd, 'e> CompilerFrame<'a, 'b, 'c, 'd, 'e, StmtBuilder> {
         })
       }
       IRExprF::Preload(arg) => {
+        let path = RPathBuf::try_from(arg.to_owned()).map_err(|_| {
+          GDError::new(GDErrorF::BadPreloadArgument(arg.to_owned()), expr.pos)
+        })?;
+        let preload_call = self.compiler.make_preload_expr(&path, expr.pos)?;
         Ok(StExpr {
-          expr: Expr::preload_expr(arg.to_owned(), expr.pos),
+          expr: preload_call,
           side_effects: SideEffects::None,
         })
       }

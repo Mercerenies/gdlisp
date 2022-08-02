@@ -560,7 +560,6 @@ pub fn preload_form(_icompiler: &mut IncCompiler,
                     tail: &[&AST],
                     pos: SourceOffset)
                     -> Result<Expr, PError> {
-  /////
   Expecting::exactly(1).validate("preload", pos, tail)?;
   let s = ExpectedShape::extract_string("preload", tail[0].clone())?;
   Ok(Expr::new(ExprF::Preload(s), pos))

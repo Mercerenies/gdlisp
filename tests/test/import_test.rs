@@ -9,6 +9,9 @@ use gdlisp::compile::error::{GDError, GDErrorF};
 use gdlisp::pipeline::Pipeline;
 use gdlisp::pipeline::error::PError;
 use gdlisp::pipeline::source::SourceOffset;
+use gdlisp::runner::path::RPathBuf;
+
+use std::convert::TryFrom;
 
 fn setup_simple_file_loader(loader: &mut MockFileLoader) {
   loader.add_file("example.lisp", "(defn one () 1) (defn two () 2)");
@@ -145,6 +148,47 @@ static func f(x):
 static func run():
     return 44
 "#);
+}
+
+#[test]
+fn macro_uses_preload_test() {
+  let mut loader = MockFileLoader::new();
+  loader.add_file("example.lisp", "(defn add-one (x) (+ x 1))");
+  // Note: We have to explicitly import the file, even if we later
+  // load it using `preload`. Macro expansion only uses imports for
+  // resolution. I may loosen this constraint later, but for right now
+  // it is required.
+  loader.add_file("main.lisp", r#"
+    (use "res://example.lisp")
+    (defmacro f (x) ((preload "res://example.lisp"):add-one x))
+    (f 43)
+  "#);
+  let mut pipeline = Pipeline::with_resolver(dummy_config(), Box::new(loader));
+  let result = pipeline.load_file("main.lisp").unwrap().gdscript.to_gd();
+  assert_eq!(result, r#"extends Node
+const example_0 = preload("res://example.gd")
+static func f(x):
+    return preload("res://example.gd").add_one(x)
+static func run():
+    return 44
+"#);
+}
+
+#[test]
+fn macro_uses_preload_without_import_test() {
+  let mut loader = MockFileLoader::new();
+  loader.add_file("example.lisp", "(defn add-one (x) (+ x 1))");
+  loader.add_file("main.lisp", r#"
+    (defmacro f (x) ((preload "res://example.lisp"):add-one x))
+    (f 43)
+  "#);
+  let mut pipeline = Pipeline::with_resolver(dummy_config(), Box::new(loader));
+  let result = pipeline.load_file("main.lisp");
+  let expected_error_path = RPathBuf::try_from(String::from("res://example.gd")).unwrap();
+  assert_eq!(result.map(|_| ()),
+             Err(PError::from(
+               GDError::new(GDErrorF::NoSuchFile(expected_error_path), SourceOffset(22)),
+             )));
 }
 
 #[test]

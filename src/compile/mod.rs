@@ -382,16 +382,23 @@ impl Compiler {
   }
 
   fn make_preload_line(&self, var: String, path: &RPathBuf, pos: SourceOffset) -> Result<Decl, GDError> {
+    let expr = self.make_preload_expr(path, pos)?;
+    Ok(Decl::new(
+      DeclF::ConstDecl(var, expr),
+      pos,
+    ))
+  }
+
+  /// Compile a `preload` call, using the current preload resolver on
+  /// `self` to resolve the path.
+  pub fn make_preload_expr(&self, path: &RPathBuf, pos: SourceOffset) -> Result<Expr, GDError> {
     if self.resolver.include_resource(ResourceType::from(path.path())) {
       let mut path = path.clone();
       if path.path().extension() == Some(OsStr::new("lisp")) {
         path.path_mut().set_extension("gd");
       }
       let path = self.resolver.resolve_preload(&path).ok_or_else(|| GDError::new(GDErrorF::NoSuchFile(path.clone()), pos))?;
-      Ok(Decl::new(
-        DeclF::ConstDecl(var, Expr::call(None, "preload", vec!(Expr::from_value(path, pos)), pos)),
-        pos,
-      ))
+      Ok(Expr::simple_call("preload", vec!(Expr::from_value(path, pos)), pos))
     } else {
       // We null out any resources we don't understand. This means
       // that GDScript source files (those NOT written in GDLisp) and
@@ -400,10 +407,7 @@ impl Compiler {
       // resolution. I do not verify that you follow this rule; you
       // are expected to be responsible with your macro resource
       // usage.
-      Ok(Decl::new(
-        DeclF::ConstDecl(var, Expr::new(ExprF::Literal(Literal::Null), pos)),
-        pos,
-      ))
+      Ok(Expr::null(pos))
     }
   }
 
