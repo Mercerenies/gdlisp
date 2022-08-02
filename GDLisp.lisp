@@ -1594,6 +1594,8 @@
 (sys/declare superfunction (weakref weakref) (a) public)
 (sys/declare superfunction (ease ease) (a b) public)
 (sys/declare superfunction (funcref funcref) (a b) public)
+(sys/declare superfunction (type-exists type-exists) (a) public)
+(sys/declare superfunction (smoothstep smoothstep) (a b c) public)
 
 (sys/declare superglobal (PI PI) public)
 (sys/declare superglobal (TAU TAU) public)

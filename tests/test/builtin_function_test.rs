@@ -225,6 +225,7 @@ pub fn wrapped_range_functions_test() {
   assert_eq!(parse_compile_and_output("(range-lerp 5 0 10 -10 -20)"), "return range_lerp(5, 0, 10, -10, -20)\n");
   assert_eq!(parse_compile_and_output("(move-toward 10 5 1)"), "return move_toward(10, 5, 1)\n");
   assert_eq!(parse_compile_and_output("(ease 0.7 2.0)"), "return ease(7e-1, 2e0)\n");
+  assert_eq!(parse_compile_and_output("(smoothstep 1.0 5.0 0.5)"), "return smoothstep(1e0, 5e0, 5e-1)\n");
 }
 
 #[test]
@@ -242,6 +243,7 @@ pub fn wrapped_misc_functions_test() {
   assert_eq!(parse_compile_and_output("(var2str (Reference:new))"), "return var2str(Reference.new())\n");
   assert_eq!(parse_compile_and_output("(weakref (Reference:new))"), "return weakref(Reference.new())\n");
   assert_eq!(parse_compile_and_output("(funcref (Reference:new) \"potato\")"), "return funcref(Reference.new(), \"potato\")\n");
+  assert_eq!(parse_compile_and_output("(type-exists \"Reference\")"), "return type_exists(\"Reference\")\n");
 }
 
 #[test]
