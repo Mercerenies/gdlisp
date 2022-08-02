@@ -1607,15 +1607,16 @@
        (set result (+ result (str arg))))
     result))
 
-(defn printerr (&rest args)
+(defn printerr (&arr args)
   (sys/call-magic VARARG-PRINTERR)
   ;; TODO Poor man's `apply` call (can't generate the code for a real
   ;; function reference; we're in stdlib and the code to call an
   ;; `&arr` function requires preload-level access to stdlib). Should
   ;; probably fix this awkwardness at some point.
-  (cond
-    ((= args nil) (printerr))
-    (#t (printerr ((funcref GDLisp "_str"):call-func (car args) (list->array (cdr args)))))))
+  (let ((result ""))
+    (for arg args
+       (set result (+ result (str arg))))
+    (printerr result)))
 
 ;; Global constants
 

@@ -835,8 +835,10 @@ static func _str(x, args):
         result = result + str(arg)
     return result
 static func _printerr(args):
-    var _cond = printerr() if args == nil else printerr(funcref(GDLisp, "_str").call_func(car(args), list_to_array(cdr(args))))
-    return _cond
+    var result = ""
+    for arg_0 in args:
+        result = result + str(arg_0)
+    return printerr(result)
 class GDLispSpecialType extends Reference:
     func _init():
         pass
