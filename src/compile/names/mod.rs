@@ -59,14 +59,10 @@ pub fn is_valid_gd_char(ch: char) -> bool {
 
 /// Converts `name` to a GDScript-friendly name.
 ///
-/// First, if `name` is a known GDScript keyword (such as `if` or
-/// `preload`), then an underscore is prefixed and the name is
-/// returned. No further modifications are necessary.
-///
-/// Second, if the name begins with a digit, then an underscore is
+/// First, if the name begins with a digit, then an underscore is
 /// prefixed before continuing to the next steps.
 ///
-/// Finally, for every character which is *not* a valid GDScript
+/// Second, for every character which is *not* a valid GDScript
 /// character (under [`is_valid_gd_char`]), a transformation takes
 /// place to translate that character. The following transformations
 /// are tried, in order.
@@ -83,6 +79,10 @@ pub fn is_valid_gd_char(ch: char) -> bool {
 /// the hex value (minimum four digits) of the Unicode code point for
 /// the character. If the character lies outside the basic
 /// multilingual plane, then all digits will be printed.
+///
+/// Finally, if the resulting string is a GDScript reserved word (See
+/// [`super::reserved`]), then an underscore is added before the
+/// beginning of the string.
 ///
 /// # Examples
 ///
@@ -114,13 +114,16 @@ pub fn is_valid_gd_char(ch: char) -> bool {
 /// // Known GDScript keywords
 /// assert_eq!(lisp_to_gd("preload"), "_preload");
 /// assert_eq!(lisp_to_gd("assert"), "_assert");
+/// assert_eq!(lisp_to_gd("class_name"), "_class_name");
+/// assert_eq!(lisp_to_gd("class-name"), "_class_name");
 /// ```
 pub fn lisp_to_gd(name: &str) -> String {
   // Escape known GDScript keywords
-  if reserved::RESERVED_WORDS.contains(name) {
-    format!("_{}", name)
+  let transformed = lisp_to_gd_bare(name);
+  if reserved::RESERVED_WORDS.contains(&*transformed) {
+    format!("_{}", transformed)
   } else {
-    lisp_to_gd_bare(name)
+    transformed
   }
 }
 

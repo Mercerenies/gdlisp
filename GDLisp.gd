@@ -844,7 +844,7 @@ static func _printraw(args):
     for arg_1 in args:
         result = result + str(arg_1)
     return printraw(result)
-static func print_debug(args):
+static func _print_debug(args):
     var result = ""
     for arg_2 in args:
         result = result + str(arg_2)
