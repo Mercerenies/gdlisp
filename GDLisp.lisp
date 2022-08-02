@@ -1520,7 +1520,6 @@
 ;; explicit `sys/declare` naming syntax and force it to use the name
 ;; anyway.
 
-(sys/declare superfunction (str str) (a) public)
 (sys/declare superfunction (int int) (a) public)
 (sys/declare superfunction (bool bool) (a) public)
 (sys/declare superfunction (randomize randomize) () public)
@@ -1596,6 +1595,19 @@
 (sys/declare superfunction (funcref funcref) (a b) public)
 (sys/declare superfunction (type-exists type-exists) (a) public)
 (sys/declare superfunction (smoothstep smoothstep) (a b c) public)
+
+;; Varargs functions (see
+;; https://github.com/Mercerenies/gdlisp/issues/79 for details on why
+;; we have to wrap these ourselves)
+
+(defn str (x &arr args)
+  (sys/call-magic VARARG-STR)
+  (let ((result (str x)))
+    (for arg args
+       (set result (+ result (str arg))))
+    result))
+
+;; Global constants
 
 (sys/declare superglobal (PI PI) public)
 (sys/declare superglobal (TAU TAU) public)

@@ -273,4 +273,20 @@ pub fn instance_from_id_function_run_test() {
              "\nmystring\n");
 }
 
+#[test]
+pub fn str_test() {
+  assert_eq!(parse_compile_and_output("(str 3)"), "return str(3)\n");
+  assert_eq!(parse_compile_and_output("(str 3 \"a\")"), "return str(3, \"a\")\n");
+}
+
+#[test]
+pub fn str_running_test() {
+  assert_eq!(parse_and_run("((print (str 1 2 #t)))"), "\n12True\n");
+}
+
+#[test]
+pub fn str_running_test_indirect() {
+  assert_eq!(parse_and_run("((print (funcall #'str 1 2 #t)))"), "\n12True\n");
+}
+
 // TODO Test gensym at runtime once we can pretty-print symbols

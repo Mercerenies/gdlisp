@@ -104,6 +104,9 @@ pub fn bind_magic(table: &mut MagicTable) {
   // Node access (sys/get-node)
   table.set(String::from("GET-NODE-SYNTAX"), CallMagic::GetNodeSyntax);
 
+  // Str function
+  table.set(String::from("VARARG-STR"), CallMagic::CompileToVarargCall(String::from("str")));
+
 }
 
 /// Produce a new [`MagicTable`] with all of the magic bound as though

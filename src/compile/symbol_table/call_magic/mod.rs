@@ -148,6 +148,17 @@ pub enum CallMagic {
   /// handled by [`CallMagic::NEqOperation`] due to its unique (non-transitive)
   /// behavior.
   CompileToTransCmp(op::BinaryOp),
+  /// `CompileToVarargCall` is a [`CallMagic`] which compiles a
+  /// function call to a literal function call (to a GDScript global
+  /// function) with the same set of arguments.
+  ///
+  /// This is used for variable-argument built-in functions like
+  /// `print`. Since we can't (meaningfully) make a GDLisp function
+  /// reference object for the built-in `print` function, GDLisp
+  /// provides its own `print` function that wraps the built-in one,
+  /// and we provide call magic to compile that directly to the
+  /// original `print` in all situations except indirect ones.
+  CompileToVarargCall(String),
 }
 
 /// Associativity of an operator.
@@ -478,6 +489,11 @@ impl CallMagic {
           ),
         )
 
+      }
+      CallMagic::CompileToVarargCall(name) => {
+        let args = strip_st(args);
+        Expecting::from(call.specs).validate(&call.function, pos, &args)?;
+        Ok(Expr::simple_call(name, args, pos))
       }
     }
   }

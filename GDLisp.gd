@@ -829,6 +829,11 @@ static func sys_DIV_qq_smart_list(a):
 static func sys_DIV_qq_smart_array(a):
     var _cond = a if is_instance(a, GDLisp.BaseArray) else list_to_array(a)
     return _cond
+static func _str(x, args):
+    var result = str(x)
+    for arg in args:
+        result = result + str(arg)
+    return result
 class GDLispSpecialType extends Reference:
     func _init():
         pass
