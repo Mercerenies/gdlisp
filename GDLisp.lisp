@@ -1614,6 +1614,13 @@
        (set result (+ result (str arg))))
     (printerr result)))
 
+(defn printraw (&arr args)
+  (sys/call-magic VARARG-PRINTRAW)
+  (let ((result ""))
+    (for arg args
+       (set result (+ result (str arg))))
+    (printraw result)))
+
 ;; Global constants
 
 (sys/declare superglobal (PI PI) public)

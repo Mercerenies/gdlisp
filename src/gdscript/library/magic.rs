@@ -110,6 +110,9 @@ pub fn bind_magic(table: &mut MagicTable) {
   // printerr function
   table.set(String::from("VARARG-PRINTERR"), CallMagic::CompileToVarargCall(String::from("printerr")));
 
+  // printraw function
+  table.set(String::from("VARARG-PRINTRAW"), CallMagic::CompileToVarargCall(String::from("printraw")));
+
 }
 
 /// Produce a new [`MagicTable`] with all of the magic bound as though

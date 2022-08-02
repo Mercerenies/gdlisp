@@ -286,6 +286,11 @@ pub fn printerr_test() {
 }
 
 #[test]
+pub fn printraw_test() {
+  assert_eq!(parse_compile_and_output("(printraw 3 \"a\")"), "return printraw(3, \"a\")\n");
+}
+
+#[test]
 pub fn str_running_test() {
   assert_eq!(parse_and_run("((print (str 1 2 #t)))"), "\n12True\n");
 }
@@ -307,6 +312,16 @@ pub fn printerr_running_test_indirect() {
   let runner::Output { stdout, stderr } = parse_and_run_with_stderr("((funcall #'printerr \"printerr_running_test_indirect OUTPUT\"))");
   assert_eq!(stdout, "\n");
   assert!(stderr.contains("printerr_running_test_indirect OUTPUT"));
+}
+
+#[test]
+pub fn printraw_running_test() {
+  assert_eq!(parse_and_run("((printraw 1 2 #t))"), "\n12True"); // Note: No \n at end
+}
+
+#[test]
+pub fn printraw_running_test_indirect() {
+  assert_eq!(parse_and_run("((funcall #'printraw 1 2 #t))"), "\n12True"); // Note: No \n at end
 }
 
 // TODO Test gensym at runtime once we can pretty-print symbols

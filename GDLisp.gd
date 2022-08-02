@@ -839,6 +839,11 @@ static func _printerr(args):
     for arg_0 in args:
         result = result + str(arg_0)
     return printerr(result)
+static func _printraw(args):
+    var result = ""
+    for arg_1 in args:
+        result = result + str(arg_1)
+    return printraw(result)
 class GDLispSpecialType extends Reference:
     func _init():
         pass
