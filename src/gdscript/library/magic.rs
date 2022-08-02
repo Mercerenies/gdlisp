@@ -104,8 +104,11 @@ pub fn bind_magic(table: &mut MagicTable) {
   // Node access (sys/get-node)
   table.set(String::from("GET-NODE-SYNTAX"), CallMagic::GetNodeSyntax);
 
-  // Str function
+  // str function
   table.set(String::from("VARARG-STR"), CallMagic::CompileToVarargCall(String::from("str")));
+
+  // printerr function
+  table.set(String::from("VARARG-PRINTERR"), CallMagic::CompileToVarargCall(String::from("printerr")));
 
 }
 

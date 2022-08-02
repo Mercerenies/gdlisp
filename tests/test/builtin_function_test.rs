@@ -280,6 +280,11 @@ pub fn str_test() {
 }
 
 #[test]
+pub fn printerr_test() {
+  assert_eq!(parse_compile_and_output("(printerr 3 \"a\")"), "return printerr(3, \"a\")\n");
+}
+
+#[test]
 pub fn str_running_test() {
   assert_eq!(parse_and_run("((print (str 1 2 #t)))"), "\n12True\n");
 }
@@ -287,6 +292,22 @@ pub fn str_running_test() {
 #[test]
 pub fn str_running_test_indirect() {
   assert_eq!(parse_and_run("((print (funcall #'str 1 2 #t)))"), "\n12True\n");
+}
+
+#[test]
+pub fn printerr_running_test() {
+  // We intentionally don't capture stderr (so Godot-side errors don't
+  // accidentally get swallowed), so I just want to know that this
+  // runs without erring. It should not print anything to stdout.
+  assert_eq!(parse_and_run("((printerr \"INFO: This message is being printed by printerr_running_test and is entirely normal.\"))"), "\n");
+}
+
+#[test]
+pub fn printerr_running_test_indirect() {
+  // We intentionally don't capture stderr (so Godot-side errors don't
+  // accidentally get swallowed), so I just want to know that this
+  // runs without erring. It should not print anything to stdout.
+  assert_eq!(parse_and_run("((funcall #'printerr \"INFO: This message is being printed by printerr_running_test_indirect and is entirely normal.\"))"), "\n");
 }
 
 // TODO Test gensym at runtime once we can pretty-print symbols
