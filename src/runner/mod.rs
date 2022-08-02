@@ -6,6 +6,9 @@
 //! [`macro_server`] provides the more specific use-case of starting
 //! up a Godot process as a server and communicating with it via TCP.
 
+// TODO Clean this up. I'm envisioning a DSL for the different ways of
+// running things.
+
 pub mod named_file;
 pub mod into_gd_file;
 pub mod macro_server;
@@ -21,6 +24,13 @@ use std::process::{Command, Stdio, Child};
 use std::path::Path;
 use std::io::{self, Write, Seek, SeekFrom};
 use std::ffi::OsStr;
+
+/// A type containing string output from both `stdout` and `stderr`.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Output {
+  pub stdout: String,
+  pub stderr: String,
+}
 
 /// Runs a Godot process, with `path` as a script file. The script
 /// file should inherit from `SceneTree` or `MainLoop`. This function
@@ -79,7 +89,7 @@ where P : AsRef<Path>,
 /// stderr, and stdout will be collected into a `String` and then
 /// returned. Anything in stdout which is not valid UTF-8 will be
 /// replaced with `U+FFFD`.
-pub fn run_project<P : AsRef<Path>>(path: P) -> io::Result<String> {
+pub fn run_project<P : AsRef<Path>>(path: P) -> io::Result<String> { // TODO Consider returning Cow?
   let out =
     Command::new("godot")
     .arg("--no-window")
@@ -90,6 +100,22 @@ pub fn run_project<P : AsRef<Path>>(path: P) -> io::Result<String> {
     .output()?;
   let text = String::from_utf8_lossy(&out.stdout);
   Ok(text.into())
+}
+
+/// Identical to [`run_project`] except that `stderr` is also captured
+/// and returned. The two return values are `stdout` and `stderr`, respectively.
+pub fn run_project_capturing_stderr<P : AsRef<Path>>(path: P) -> io::Result<Output> { // TODO Consider returning Cow?
+  let out =
+    Command::new("godot")
+    .arg("--no-window")
+    .arg("--path")
+    .arg(path.as_ref().as_os_str())
+    .stderr(Stdio::piped())
+    .stdout(Stdio::piped())
+    .output()?;
+  let stdout = String::from(String::from_utf8_lossy(&out.stdout));
+  let stderr = String::from(String::from_utf8_lossy(&out.stderr));
+  Ok(Output { stdout, stderr })
 }
 
 /// Runs a Godot process to dump the JSON API for GDNative to a

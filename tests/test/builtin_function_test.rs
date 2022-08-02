@@ -2,6 +2,7 @@
 use gdlisp::compile::error::{GDError, GDErrorF};
 use gdlisp::pipeline::error::PError;
 use gdlisp::pipeline::source::SourceOffset;
+use gdlisp::runner;
 
 use super::common::*;
 
@@ -296,18 +297,16 @@ pub fn str_running_test_indirect() {
 
 #[test]
 pub fn printerr_running_test() {
-  // We intentionally don't capture stderr (so Godot-side errors don't
-  // accidentally get swallowed), so I just want to know that this
-  // runs without erring. It should not print anything to stdout.
-  assert_eq!(parse_and_run("((printerr \"INFO: This message is being printed by printerr_running_test and is entirely normal.\"))"), "\n");
+  let runner::Output { stdout, stderr } = parse_and_run_with_stderr("((printerr \"printerr_running_test OUTPUT\"))");
+  assert_eq!(stdout, "\n");
+  assert!(stderr.contains("printerr_running_test OUTPUT"));
 }
 
 #[test]
 pub fn printerr_running_test_indirect() {
-  // We intentionally don't capture stderr (so Godot-side errors don't
-  // accidentally get swallowed), so I just want to know that this
-  // runs without erring. It should not print anything to stdout.
-  assert_eq!(parse_and_run("((funcall #'printerr \"INFO: This message is being printed by printerr_running_test_indirect and is entirely normal.\"))"), "\n");
+  let runner::Output { stdout, stderr } = parse_and_run_with_stderr("((funcall #'printerr \"printerr_running_test_indirect OUTPUT\"))");
+  assert_eq!(stdout, "\n");
+  assert!(stderr.contains("printerr_running_test_indirect OUTPUT"));
 }
 
 // TODO Test gensym at runtime once we can pretty-print symbols

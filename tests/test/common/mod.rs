@@ -138,7 +138,7 @@ GDLisp="*res://GDLisp.gd"
 
 }
 
-pub fn parse_and_run_err(input: &str) -> Result<String, PError> {
+fn parse_and_run_err_impl<T>(input: &str, runner_fn: fn(TempDir) -> io::Result<T>) -> Result<T, PError> {
   let value = AST_PARSER.parse(input)?;
   let used_names = value.all_symbols();
   let mut compiler = Compiler::new(FreshNameGenerator::new(used_names), Box::new(DefaultPreloadResolver));
@@ -157,17 +157,33 @@ pub fn parse_and_run_err(input: &str) -> Result<String, PError> {
   let code_output = builder.build();
   // println!("{}", code_output.to_gd());
   dump_files(&mut temp_dir, &code_output).map_err(|err| IOError::new(err, SourceOffset(0)))?;
-  let result = runner::run_project(temp_dir).map_err(|err| IOError::new(err, SourceOffset(0)))?;
 
+  runner_fn(temp_dir).map_err(|err| PError::from(IOError::new(err, SourceOffset(0))))
+}
+
+pub fn parse_and_run_err(input: &str) -> Result<String, PError> {
+  let result = parse_and_run_err_impl(input, runner::run_project)?;
   match result.find(BEGIN_GDLISP_TESTS) {
     None => Ok(result),
     Some(idx) => Ok(result[idx + BEGIN_GDLISP_TESTS.bytes().count()..].to_owned()),
   }
-
 }
 
 pub fn parse_and_run(input: &str) -> String {
   parse_and_run_err(input).unwrap()
+}
+
+pub fn parse_and_run_with_stderr_err(input: &str) -> Result<runner::Output, PError> {
+  let runner::Output { stdout, stderr } = parse_and_run_err_impl(input, runner::run_project_capturing_stderr)?;
+  let stdout = match stdout.find(BEGIN_GDLISP_TESTS) {
+    None => stdout,
+    Some(idx) => stdout[idx + BEGIN_GDLISP_TESTS.bytes().count()..].to_owned(),
+  };
+  Ok(runner::Output { stdout, stderr })
+}
+
+pub fn parse_and_run_with_stderr(input: &str) -> runner::Output {
+  parse_and_run_with_stderr_err(input).unwrap()
 }
 
 fn bind_helper_symbols_comp(table: &mut SymbolTable) {

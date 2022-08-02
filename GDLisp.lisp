@@ -1609,10 +1609,6 @@
 
 (defn printerr (&arr args)
   (sys/call-magic VARARG-PRINTERR)
-  ;; TODO Poor man's `apply` call (can't generate the code for a real
-  ;; function reference; we're in stdlib and the code to call an
-  ;; `&arr` function requires preload-level access to stdlib). Should
-  ;; probably fix this awkwardness at some point.
   (let ((result ""))
     (for arg args
        (set result (+ result (str arg))))
