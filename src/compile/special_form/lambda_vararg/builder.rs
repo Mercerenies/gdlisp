@@ -1,6 +1,6 @@
 
 use crate::gdscript::stmt::{self, Stmt};
-use crate::gdscript::expr::Expr;
+use crate::gdscript::expr::{Expr, ExprF};
 use crate::gdscript::op;
 use crate::pipeline::source::SourceOffset;
 
@@ -9,7 +9,7 @@ use std::iter;
 pub struct LambdaVarargBuilder {
   args_variable: String,
   stmts: Vec<Stmt>,
-  args: Vec<String>,
+  args: Vec<Expr>,
   pos: SourceOffset,
 }
 
@@ -19,7 +19,7 @@ impl LambdaVarargBuilder {
     LambdaVarargBuilder::with_existing_args(args_variable, iter::empty(), pos)
   }
 
-  pub fn with_existing_args(args_variable: String, args: impl Iterator<Item=String>, pos: SourceOffset) -> LambdaVarargBuilder {
+  pub fn with_existing_args(args_variable: String, args: impl Iterator<Item=Expr>, pos: SourceOffset) -> LambdaVarargBuilder {
     LambdaVarargBuilder {
       args_variable: args_variable,
       stmts: Vec::new(),
@@ -40,7 +40,7 @@ impl LambdaVarargBuilder {
 
   pub fn declare_argument_var(&mut self, name: String) {
     self.stmts.push(Stmt::var_decl(name.clone(), Expr::null(self.pos), self.pos));
-    self.args.push(name);
+    self.args.push(Expr::new(ExprF::Var(name), self.pos));
   }
 
   pub fn push_error(&mut self, message: &str) {
@@ -62,8 +62,23 @@ impl LambdaVarargBuilder {
     ));
   }
 
+  pub fn assign_to_var(&mut self, variable_name: &str, value: Expr) {
+    self.stmts.push(Stmt::simple_assign(Expr::var(variable_name, self.pos), value, self.pos));
+  }
+
+  pub fn pop_rest_of_arguments_with<F>(&mut self, function: F)
+  where F : FnOnce(Expr) -> Expr {
+    let args_var = Expr::new(ExprF::Var(self.args_variable.to_owned()), self.pos);
+    self.args.push(function(args_var));
+  }
+
   pub fn pop_rest_of_arguments(&mut self) {
-    self.args.push(self.args_variable.to_owned());
+    self.pop_rest_of_arguments_with(|x| x);
+  }
+
+  pub fn call_function_with_arguments(&mut self, function_name: &str) {
+    let all_args = self.args.clone();
+    self.stmts.push(Stmt::return_stmt(Expr::simple_call(function_name, all_args, self.pos), self.pos));
   }
 
   pub fn if_args_is_empty<F1, F2>(&mut self, empty_block: F1, nonempty_block: F2)

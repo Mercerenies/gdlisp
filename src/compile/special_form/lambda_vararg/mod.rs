@@ -1,90 +1,68 @@
 
 pub mod builder;
 
+use builder::LambdaVarargBuilder;
 use crate::ir::arglist::VarArg;
 use crate::compile::symbol_table::function_call::FnSpecs;
 use crate::gdscript::decl::{self, Decl, DeclF, VarDecl};
-use crate::gdscript::expr::{Expr, ExprF};
-use crate::gdscript::stmt::{self, Stmt};
-use crate::gdscript::op;
+use crate::gdscript::expr::Expr;
+use crate::gdscript::stmt::Stmt;
 use crate::gdscript::library;
 use crate::gdscript::arglist::ArgList;
 use crate::pipeline::source::SourceOffset;
 
 use std::convert::TryInto;
 
-pub fn generate_lambda_vararg(specs: FnSpecs, pos: SourceOffset) -> decl::FnDecl {
-  let mut stmts = Vec::new();
+const ARGS_VAR: &str = "args";
 
-  let args = "args";
+pub fn generate_lambda_vararg(specs: FnSpecs, pos: SourceOffset) -> decl::FnDecl {
+  let mut builder = LambdaVarargBuilder::new(ARGS_VAR.to_owned(), pos);
+
   let required: Vec<_> = (0..specs.required).map(|i| format!("required_{}", i)).collect();
   let optional: Vec<_> = (0..specs.optional).map(|i| format!("optional_{}", i)).collect();
 
   for req in &required {
-    stmts.push(Stmt::var_decl(req.to_owned(), Expr::null(pos), pos));
-    stmts.push(stmt::if_else(
-      Expr::binary(Expr::var(args, pos), op::BinaryOp::Eq, Expr::null(pos), pos),
-      vec!(
-        Stmt::expr(Expr::simple_call("push_error", vec!(Expr::str_lit("Not enough arguments", pos)), pos))
-      ),
-      vec!(
-        Stmt::simple_assign(Expr::var(req, pos), Expr::var(args, pos).attribute("car", pos), pos),
-        Stmt::simple_assign(Expr::var(args, pos), Expr::var(args, pos).attribute("cdr", pos), pos),
-      ),
-      pos,
-    ));
+    builder.declare_argument_var(req.to_owned());
+    builder.if_args_is_empty(|builder| {
+      builder.push_error("Not enough arguments");
+    }, |builder| {
+      builder.pop_argument(req);
+    });
   }
 
   for opt in &optional {
-    stmts.push(Stmt::var_decl(opt.to_owned(), Expr::null(pos), pos));
-    stmts.push(stmt::if_else(
-      Expr::binary(Expr::var(args, pos), op::BinaryOp::Eq, Expr::null(pos), pos),
-      vec!(
-        Stmt::simple_assign(Expr::var(opt, pos), Expr::null(pos), pos),
-      ),
-      vec!(
-        Stmt::simple_assign(Expr::var(opt, pos), Expr::var(args, pos).attribute("car", pos), pos),
-        Stmt::simple_assign(Expr::var(args, pos), Expr::var(args, pos).attribute("cdr", pos), pos),
-      ),
-      pos,
-    ));
+    builder.declare_argument_var(opt.to_owned());
+    builder.if_args_is_empty(|builder| {
+      builder.assign_to_var(opt, Expr::null(pos));
+    }, |builder| {
+      builder.pop_argument(opt);
+    });
   }
 
-  let mut all_args: Vec<_> =
-    required.into_iter()
-    .chain(optional.into_iter())
-    .map(|x| Expr::new(ExprF::Var(x), pos))
-    .collect();
   match specs.rest {
     Some(VarArg::RestArg) => {
-      all_args.push(Expr::var(args, pos));
-      stmts.push(Stmt::return_stmt(Expr::simple_call("call_func", all_args, pos), pos));
+      builder.pop_rest_of_arguments();
+      builder.call_function_with_arguments("call_func");
     }
     Some(VarArg::ArrArg) => {
-      let array = Expr::call(Some(Expr::var("GDLisp", pos)), "list_to_array", vec!(Expr::var(args, pos)), pos);
-      all_args.push(array);
-      stmts.push(Stmt::return_stmt(Expr::simple_call("call_func", all_args, pos), pos));
+      builder.pop_rest_of_arguments_with(|args| {
+        Expr::call(Some(Expr::var(library::GDLISP_NAME, pos)), "list_to_array", vec!(args), pos)
+      });
+      builder.call_function_with_arguments("call_func");
     }
     None => {
-      stmts.push(
-        stmt::if_else(
-          Expr::binary(Expr::var(args, pos), op::BinaryOp::Eq, Expr::null(pos), pos),
-          vec!(
-            Stmt::return_stmt(Expr::simple_call("call_func", all_args, pos), pos),
-          ),
-          vec!(
-            Stmt::expr(Expr::simple_call("push_error", vec!(Expr::str_lit("Too many arguments", pos)), pos)),
-          ),
-          pos,
-        )
-      );
+      builder.if_args_is_empty(|builder| {
+        builder.call_function_with_arguments("call_func");
+      }, |builder| {
+        builder.push_error("Too many arguments");
+      });
     }
   }
 
   decl::FnDecl {
     name: String::from("call_funcv"),
-    args: ArgList::required(vec!(String::from("args"))),
-    body: stmts,
+    args: ArgList::required(vec!(String::from(ARGS_VAR))),
+    body: builder.build(),
   }
 }
 
