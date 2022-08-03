@@ -1,4 +1,6 @@
 
+pub mod builder;
+
 use crate::ir::arglist::VarArg;
 use crate::compile::symbol_table::function_call::FnSpecs;
 use crate::gdscript::decl::{self, Decl, DeclF, VarDecl};
