@@ -251,7 +251,7 @@ impl Compiler {
   ///
   /// Additionally, if the scope of the [`LocalVar`] is *not*
   /// [`VarScope::GlobalVar`](crate::compile::symbol_table::local_var::VarScope::GlobalVar),
-  /// then [`ErrorF::CannotExtend`] is returned. This situation should
+  /// then [`GDErrorF::CannotExtend`] is returned. This situation should
   /// never happen for top-level class or object declarations, but it
   /// can occur in lambda classes.
   pub fn resolve_extends(table: &SymbolTable, extends: &str, pos: SourceOffset) -> Result<ClassExtends, GDError> {

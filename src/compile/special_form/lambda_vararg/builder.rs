@@ -142,7 +142,7 @@ impl LambdaVarargBuilder {
   ///
   /// The two branches are created by passing `empty_block` and
   /// `nonempty_block`, respectively, to
-  /// [`LambdaVararg::with_inner_builder`].
+  /// [`LambdaVarargBuilder::with_inner_builder`].
   pub fn if_args_is_empty<F1, F2>(&mut self, empty_block: F1, nonempty_block: F2)
   where F1 : FnOnce(&mut LambdaVarargBuilder),
         F2 : FnOnce(&mut LambdaVarargBuilder) {

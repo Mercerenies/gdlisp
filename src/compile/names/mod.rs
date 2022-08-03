@@ -81,8 +81,8 @@ pub fn is_valid_gd_char(ch: char) -> bool {
 /// multilingual plane, then all digits will be printed.
 ///
 /// Finally, if the resulting string is a GDScript reserved word (See
-/// [`super::reserved`]), then an underscore is added before the
-/// beginning of the string.
+/// the [`reserved`] module documentation), then an underscore is
+/// added before the beginning of the string.
 ///
 /// # Examples
 ///

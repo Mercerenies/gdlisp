@@ -147,8 +147,9 @@ impl<'a, 'b, 'c, 'd, 'e, B> CompilerFrame<'a, 'b, 'c, 'd, 'e, B> {
   /// the compilation. If the temporary builder ends up being used
   /// (i.e. if the compilation constructs any intermediate statements
   /// or declarations that require its use), then this method will
-  /// return an [`ErrorF::NotConstantEnough`] error. If the temporary
-  /// builder goes unused, then the resulting [`Expr`] is returned.
+  /// return an [`GDErrorF::NotConstantEnough`] error. If the
+  /// temporary builder goes unused, then the resulting [`Expr`] is
+  /// returned.
   pub fn compile_simple_expr(&mut self,
                              src_name: &str,
                              expr: &IRExpr,

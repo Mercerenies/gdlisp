@@ -235,7 +235,7 @@ pub enum GDErrorF {
   BadPreloadArgument(String),
 }
 
-/// Variant of [`ErrorF`] with source offset information. See
+/// Variant of [`GDErrorF`] with source offset information. See
 /// [`Sourced`].
 #[derive(PartialEq, Eq, Debug)]
 pub struct GDError {
@@ -266,7 +266,7 @@ impl GDError {
   }
 
   /// Returns whether the error is internal to GDLisp. See
-  /// [`ErrorF::is_internal`].
+  /// [`GDErrorF::is_internal`].
   pub fn is_internal(&self) -> bool {
     self.value.is_internal()
   }
