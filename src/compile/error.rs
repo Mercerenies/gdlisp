@@ -233,6 +233,10 @@ pub enum GDErrorF {
   DuplicateNameConflictInMainClass(ClassNamespace, String),
   /// An explicit `preload` call was made with a bad path.
   BadPreloadArgument(String),
+  /// A non-function was marked as a GDScript built-in function. This
+  /// is an internal error and should only occur if the user abuses
+  /// `sys/declare`.
+  NonFunctionMarkedAsBuiltin(String),
 }
 
 /// Variant of [`GDErrorF`] with source offset information. See
@@ -348,6 +352,7 @@ impl GDErrorF {
       GDErrorF::UnknownImportedName(_) => 50,
       GDErrorF::DuplicateNameConflictInMainClass(_, _) => 51,
       GDErrorF::BadPreloadArgument(_) => 52,
+      GDErrorF::NonFunctionMarkedAsBuiltin(_) => 53,
     }
   }
 
@@ -362,6 +367,7 @@ impl GDErrorF {
       GDErrorF::NoSuchMagic(_) => true,
       GDErrorF::MacroInMinimalistError(_) => true,
       GDErrorF::ContextualFilenameUnresolved => true,
+      GDErrorF::NonFunctionMarkedAsBuiltin(_) => true,
       _ => false,
     }
   }
@@ -494,6 +500,9 @@ impl fmt::Display for GDErrorF {
       }
       GDErrorF::BadPreloadArgument(name) => {
         write!(f, "Argument to 'preload' must be a valid resource path, got '{}'", name)?;
+      }
+      GDErrorF::NonFunctionMarkedAsBuiltin(name) => {
+        write!(f, "Declared value or superglobal {} was marked as a functional built-in", name)?;
       }
     }
     if self.is_internal() {

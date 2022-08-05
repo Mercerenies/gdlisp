@@ -451,7 +451,7 @@ impl IncCompiler {
             let (mods, body) = modifier::declare::parser().parse(body)?;
             ExpectedShape::validate_end_of_list("sys/declare", body, decl.pos)?;
             for m in mods {
-              m.apply(&mut declare);
+              m.apply(&mut declare, decl.pos)?;
             }
             acc.extend(One(Decl::new(DeclF::DeclareDecl(declare), vec[0].pos)));
             Ok(())

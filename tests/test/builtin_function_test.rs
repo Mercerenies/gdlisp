@@ -199,6 +199,9 @@ pub fn wrapped_math_functions_test() {
 pub fn wrapped_list_functions_test() {
   assert_eq!(parse_compile_and_output("(len [1 2])"), "return len([1, 2])\n");
   assert_eq!(parse_compile_and_output("(len [])"), "return len([])\n");
+  assert_eq!(parse_compile_and_output("(range 10)"), "return range(10)\n");
+  assert_eq!(parse_compile_and_output("(range 1 10)"), "return range(1, 10)\n");
+  assert_eq!(parse_compile_and_output("(range 1 10 2)"), "return range(1, 10, 2)\n");
 }
 
 #[test]
@@ -347,6 +350,12 @@ pub fn printraw_running_test_indirect() {
 #[test]
 pub fn print_running_test() {
   assert_eq!(parse_and_run("((print 1 2 #t))"), "\n12True\n");
+}
+
+#[test]
+pub fn range_running_test() {
+  assert_eq!(parse_and_run("((print (range 5)) (print (range 1 5)) (print (range 1 5 2)) (print (range 5 1 -1)))"),
+             "\n[0, 1, 2, 3, 4]\n[1, 2, 3, 4]\n[1, 3]\n[5, 4, 3, 2]\n");
 }
 
 #[test]

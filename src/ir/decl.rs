@@ -157,6 +157,7 @@ pub enum DeclareType {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct DeclaredFunction {
   pub args: ArgList,
+  pub is_gdscript_builtin: bool,
 }
 
 // TODO This is a bit confusing, since "export" is used in GDLisp to
@@ -528,7 +529,7 @@ impl InstanceFunctionName {
 impl DeclaredFunction {
 
   pub fn new(args: ArgList) -> DeclaredFunction {
-    DeclaredFunction { args }
+    DeclaredFunction { args, is_gdscript_builtin: false }
   }
 
 }
@@ -593,7 +594,9 @@ impl From<DeclaredFunction> for FnSpecs {
   /// See [`FnSpecs as From<ArgList>`]. This implementation delegates
   /// to that one, except that `is_gdscript_builtin` is also set.
   fn from(func: DeclaredFunction) -> FnSpecs {
-    FnSpecs::from(func.args)
+    let mut specs = FnSpecs::from(func.args);
+    specs.is_gdscript_builtin = func.is_gdscript_builtin;
+    specs
   }
 
 }
