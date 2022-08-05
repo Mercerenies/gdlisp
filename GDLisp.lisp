@@ -1336,7 +1336,7 @@
      (dict-equal a b))
     ((cond ((instance? a Cons) (instance? b Cons)) (#t #f))
      (cons-equal a b))
-    ((= (instance? a GDLisp:Number) (instance? b GDLisp:Number))
+    ((cond ((instance? a GDLisp:Number) (instance? b GDLisp:Number)) (#t #f))
      (= a b))
     ((= (GDLisp:typeof a) (GDLisp:typeof b))
      (= a b))

@@ -690,16 +690,20 @@ static func is_equal(x, args):
     return true
 static func bin_equal(a, b):
     var _cond = null
-    var _cond_2 = is_instance(b, GDLisp.BaseArray) if is_instance(a, GDLisp.BaseArray) else false
-    if _cond_2:
+    var _cond_3 = is_instance(b, GDLisp.BaseArray) if is_instance(a, GDLisp.BaseArray) else false
+    if _cond_3:
         _cond = array_equal(a, b)
     else:
-        var _cond_1 = is_instance(b, GDLisp._Dictionary) if is_instance(a, GDLisp._Dictionary) else false
-        if _cond_1:
+        var _cond_2 = is_instance(b, GDLisp._Dictionary) if is_instance(a, GDLisp._Dictionary) else false
+        if _cond_2:
             _cond = dict_equal(a, b)
         else:
-            var _cond_0 = is_instance(b, Cons) if is_instance(a, Cons) else false
-            _cond = cons_equal(a, b) if _cond_0 else a == b if is_instance(a, GDLisp.Number) == is_instance(b, GDLisp.Number) else a == b if GDLisp._typeof(a) == GDLisp._typeof(b) else false
+            var _cond_1 = is_instance(b, Cons) if is_instance(a, Cons) else false
+            if _cond_1:
+                _cond = cons_equal(a, b)
+            else:
+                var _cond_0 = is_instance(b, GDLisp.Number) if is_instance(a, GDLisp.Number) else false
+                _cond = a == b if _cond_0 else a == b if GDLisp._typeof(a) == GDLisp._typeof(b) else false
     return _cond
 static func array_equal(a, b):
     var _cond = null
