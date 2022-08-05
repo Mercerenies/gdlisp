@@ -1653,6 +1653,13 @@
        (set first #f))
     (print result)))
 
+(defn range (a &opt b c)
+  (sys/call-magic VARARG-RANGE)
+  (cond
+    ((= b nil) (range a))
+    ((= c nil) (range a b))
+    (#t (range a b c))))
+
 ;; Global constants
 
 (sys/declare superglobal (PI PI) public)

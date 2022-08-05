@@ -125,6 +125,9 @@ pub fn bind_magic(table: &mut MagicTable) {
   // print function
   table.set(String::from("VARARG-PRINT"), CallMagic::CompileToVarargCall(String::from("print")));
 
+  // range function
+  table.set(String::from("VARARG-RANGE"), CallMagic::CompileToVarargCall(String::from("range")));
+
 }
 
 /// Produce a new [`MagicTable`] with all of the magic bound as though
