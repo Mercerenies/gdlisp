@@ -416,7 +416,7 @@ pub fn compile_function_ref(compiler: &mut Compiler,
     let object = func.object.clone().into_inner_scope(&OuterStaticRef::InnerStatic, compiler.preload_resolver(), pipeline).into_expr(pos);
     let body = Stmt::new(
       StmtF::ReturnStmt(
-        Expr::call(object, &func.function, arglist.args.iter().map(|x| Expr::var(x, pos)).collect(), pos)
+        Expr::call(object, &func.function, arglist.all_args_iter().map(|x| Expr::var(x, pos)).collect(), pos)
       ),
       pos,
     );

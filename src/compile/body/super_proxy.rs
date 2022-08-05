@@ -47,7 +47,7 @@ impl From<SuperProxy> for FnDecl {
   fn from(proxy: SuperProxy) -> FnDecl {
 
     let proxy_params = simple_arg_names(proxy.args);
-    let call_args: Vec<_> = proxy_params.args.iter().map(|name| Expr::var(name, proxy.pos)).collect();
+    let call_args: Vec<_> = proxy_params.all_args_iter().map(|name| Expr::var(name, proxy.pos)).collect();
 
     let body = vec!(
       Stmt::return_stmt(Expr::super_call(&proxy.super_name, call_args, proxy.pos), proxy.pos),
