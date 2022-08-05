@@ -169,7 +169,7 @@ fn compile_lambda_class_constructor(frame: &mut CompilerFrame<impl HasDecls>,
                                     pos: SourceOffset)
                                     -> Result<(decl::InitFnDecl, Vec<decl::FnDecl>), GDError> {
   let (mut constructor, constructor_helpers) = factory::declare_constructor(frame, constructor)?;
-  constructor.args.prepend_required(gd_closure_vars.into_iter().cloned());
+  constructor.args.prepend_required(gd_closure_vars.iter().cloned());
   for name in gd_closure_vars.iter().rev() {
     constructor.body.insert(0, super::assign_to_compiler(name.to_string(), name.to_string(), pos));
   }
