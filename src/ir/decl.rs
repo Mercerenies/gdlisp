@@ -9,6 +9,7 @@ use crate::gdscript::decl::Static;
 use crate::pipeline::source::{SourceOffset, Sourced};
 use crate::compile::body::class_initializer::InitTime;
 use crate::compile::body::synthetic_field::{Getter, Setter};
+use crate::compile::symbol_table::function_call::FnSpecs;
 
 use std::collections::HashMap;
 use std::borrow::Cow;
@@ -148,9 +149,14 @@ pub struct DeclareDecl {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum DeclareType {
   Value,
-  Function(ArgList),
+  Function(DeclaredFunction),
   Superglobal,
-  SuperglobalFn(ArgList),
+  SuperglobalFn(DeclaredFunction),
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct DeclaredFunction {
+  pub args: ArgList,
 }
 
 // TODO This is a bit confusing, since "export" is used in GDLisp to
@@ -519,6 +525,14 @@ impl InstanceFunctionName {
 
 }
 
+impl DeclaredFunction {
+
+  pub fn new(args: ArgList) -> DeclaredFunction {
+    DeclaredFunction { args }
+  }
+
+}
+
 impl Sourced for Decl {
   type Item = DeclF;
 
@@ -572,6 +586,16 @@ impl From<(ClassDecl, Vec<Expr>)> for expr::LambdaClass {
       decls: decl.decls,
     }
   }
+}
+
+impl From<DeclaredFunction> for FnSpecs {
+
+  /// See [`FnSpecs as From<ArgList>`]. This implementation delegates
+  /// to that one, except that `is_gdscript_builtin` is also set.
+  fn from(func: DeclaredFunction) -> FnSpecs {
+    FnSpecs::from(func.args)
+  }
+
 }
 
 #[cfg(test)]

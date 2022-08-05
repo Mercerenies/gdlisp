@@ -432,9 +432,9 @@ impl IncCompiler {
                 let args = ArgList::parse(args)?;
                 let declare_type =
                   if value_type == "superfunction" {
-                    decl::DeclareType::SuperglobalFn(args)
+                    decl::DeclareType::SuperglobalFn(decl::DeclaredFunction::new(args))
                   } else {
-                    decl::DeclareType::Function(args)
+                    decl::DeclareType::Function(decl::DeclaredFunction::new(args))
                   };
                 let decl = decl::DeclareDecl {
                   visibility: Visibility::DECLARE,
