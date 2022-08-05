@@ -1660,6 +1660,30 @@
     ((= c nil) (range a b))
     (#t (range a b c))))
 
+(defn Color8 (a b c &opt d)
+  (sys/call-magic VARARG-COLOR8)
+  (cond
+    ((= d nil) (Color8 a b c))
+    (#t (Color8 a b c d))))
+
+(defn ColorN (a &opt b)
+  (sys/call-magic VARARG-COLORN)
+  (cond
+    ((= b nil) (ColorN a))
+    (#t (ColorN a b))))
+
+(defn bytes2var (a &opt b)
+  (sys/call-magic VARARG-BYTES2VAR)
+  (cond
+    ((= b nil) (bytes2var a))
+    (#t (bytes2var a b))))
+
+(defn var2bytes (a &opt b)
+  (sys/call-magic VARARG-VAR2BYTES)
+  (cond
+    ((= b nil) (var2bytes a))
+    (#t (var2bytes a b))))
+
 ;; Global constants
 
 (sys/declare superglobal (PI PI) public)

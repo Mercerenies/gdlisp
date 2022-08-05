@@ -128,6 +128,18 @@ pub fn bind_magic(table: &mut MagicTable) {
   // range function
   table.set(String::from("VARARG-RANGE"), CallMagic::CompileToVarargCall(String::from("range")));
 
+  // Color8 function
+  table.set(String::from("VARARG-COLOR8"), CallMagic::CompileToVarargCall(String::from("Color8")));
+
+  // ColorN function
+  table.set(String::from("VARARG-COLORN"), CallMagic::CompileToVarargCall(String::from("ColorN")));
+
+  // bytes2var function
+  table.set(String::from("VARARG-BYTES2VAR"), CallMagic::CompileToVarargCall(String::from("bytes2var")));
+
+  // var2bytes function
+  table.set(String::from("VARARG-VAR2BYTES"), CallMagic::CompileToVarargCall(String::from("var2bytes")));
+
 }
 
 /// Produce a new [`MagicTable`] with all of the magic bound as though

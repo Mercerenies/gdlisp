@@ -245,6 +245,16 @@ pub fn wrapped_misc_functions_test() {
   assert_eq!(parse_compile_and_output("(weakref (Reference:new))"), "return weakref(Reference.new())\n");
   assert_eq!(parse_compile_and_output("(funcref (Reference:new) \"potato\")"), "return funcref(Reference.new(), \"potato\")\n");
   assert_eq!(parse_compile_and_output("(type-exists \"Reference\")"), "return type_exists(\"Reference\")\n");
+  assert_eq!(parse_compile_and_output("(Color8 0 0 0)"), "return Color8(0, 0, 0)\n");
+  assert_eq!(parse_compile_and_output("(Color8 0 0 0 255)"), "return Color8(0, 0, 0, 255)\n");
+  assert_eq!(parse_compile_and_output("(ColorN \"red\")"), "return ColorN(\"red\")\n");
+  assert_eq!(parse_compile_and_output("(ColorN \"red\" 1.0)"), "return ColorN(\"red\", 1e0)\n");
+  assert_eq!(parse_compile_and_output("(assert #t)"), "return assert(true)\n");
+  assert_eq!(parse_compile_and_output("(assert #t \"a\")"), "return assert(true, \"a\")\n");
+  assert_eq!(parse_compile_and_output("(var2bytes 0)"), "return var2bytes(0)\n");
+  assert_eq!(parse_compile_and_output("(var2bytes 0 #f)"), "return var2bytes(0, false)\n");
+  assert_eq!(parse_compile_and_output("(bytes2var ())"), "return bytes2var(null)\n");
+  assert_eq!(parse_compile_and_output("(bytes2var () #f)"), "return bytes2var(null, false)\n");
 }
 
 #[test]

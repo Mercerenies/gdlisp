@@ -877,6 +877,18 @@ static func _printt(args):
 static func _range(a, b, c):
     var _cond = range(a) if b == nil else range(a, b) if c == nil else range(a, b, c)
     return _cond
+static func _Color8(a, b, c, d):
+    var _cond = Color8(a, b, c) if d == nil else Color8(a, b, c, d)
+    return _cond
+static func _ColorN(a, b):
+    var _cond = ColorN(a) if b == nil else ColorN(a, b)
+    return _cond
+static func _bytes2var(a, b):
+    var _cond = bytes2var(a) if b == nil else bytes2var(a, b)
+    return _cond
+static func _var2bytes(a, b):
+    var _cond = var2bytes(a) if b == nil else var2bytes(a, b)
+    return _cond
 class GDLispSpecialType extends Reference:
     func _init():
         pass
