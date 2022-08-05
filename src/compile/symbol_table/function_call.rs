@@ -127,6 +127,11 @@ pub struct FnSpecs {
   /// the "rest" parameter. If there is no "rest" parameter and there
   /// are excess arguments, then an error is issued.
   pub rest: Option<VarArg>,
+  /// Whether or not this function is a GDScript built-in function.
+  /// For compatibility with GDScript, this flag changes the way
+  /// function references are compiled. Functions written in GDLisp
+  /// will never have this flag set.
+  pub is_gdscript_builtin: bool,
 }
 
 /// When referencing enclosing static data from an inner class scope,
@@ -203,7 +208,7 @@ impl FnSpecs {
 
   /// Convenience constructor for a `FnSpecs`.
   pub fn new(required: usize, optional: usize, rest: Option<VarArg>) -> FnSpecs {
-    FnSpecs { required, optional, rest }
+    FnSpecs { required, optional, rest, is_gdscript_builtin: false }
   }
 
   /// Returns whether `self` has a "rest" argument of any kind (list

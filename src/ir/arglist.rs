@@ -32,6 +32,11 @@ pub struct ArgList {
   /// The "rest" argument. If present, this indicates the name of the
   /// argument and the type of "rest" argument.
   pub rest_arg: Option<(String, VarArg)>,
+  /// Whether or not this function is a GDScript built-in function.
+  /// For compatibility with GDScript, this flag changes the way
+  /// function references are compiled. Functions written in GDLisp
+  /// will never have this flag set.
+  pub is_gdscript_builtin: bool,
 }
 
 /// A simple argument list consists only of required arguments and
@@ -153,6 +158,7 @@ impl ArgList {
       required_args: vec!(),
       optional_args: vec!(),
       rest_arg: None,
+      is_gdscript_builtin: false,
     }
   }
 
@@ -164,6 +170,7 @@ impl ArgList {
       required_args: vec!(),
       optional_args: vec!(),
       rest_arg: Some((String::from("rest-arg"), VarArg::RestArg)),
+      is_gdscript_builtin: false,
     }
   }
 
@@ -174,6 +181,7 @@ impl ArgList {
       required_args: args,
       optional_args: vec!(),
       rest_arg: None,
+      is_gdscript_builtin: false,
     }
   }
 
@@ -188,7 +196,7 @@ impl ArgList {
     let required_args = (0..specs.required).into_iter().map(|i| format!("required_arg{}", i)).collect();
     let optional_args = (0..specs.optional).into_iter().map(|i| format!("optional_arg{}", i)).collect();
     let rest_arg = specs.rest.map(|arg| (String::from("rest_arg"), arg));
-    ArgList { required_args, optional_args, rest_arg }
+    ArgList { required_args, optional_args, rest_arg, is_gdscript_builtin: specs.is_gdscript_builtin }
   }
 
   /// Parse an argument list from an iterator of `AST` values. Returns
@@ -272,6 +280,7 @@ impl ArgList {
       required_args: req,
       optional_args: opt,
       rest_arg: rest,
+      is_gdscript_builtin: false,
     })
   }
 
@@ -389,11 +398,12 @@ impl From<ArgList> for FnSpecs {
   fn from(arglist: ArgList) -> FnSpecs {
     // TODO We need to define an upper limit on argument list length
     // (and check if Godot already has one we need to respect)
-    FnSpecs::new(
-      arglist.required_args.len(),
-      arglist.optional_args.len(),
-      arglist.rest_arg.map(|x| x.1),
-    )
+    FnSpecs {
+      required: arglist.required_args.len(),
+      optional: arglist.optional_args.len(),
+      rest: arglist.rest_arg.map(|x| x.1),
+      is_gdscript_builtin: arglist.is_gdscript_builtin,
+    }
   }
 
 }
@@ -478,6 +488,7 @@ mod tests {
       required_args: req.into_iter().map(|x| x.to_owned()).collect(),
       optional_args: opt.into_iter().map(|x| x.to_owned()).collect(),
       rest_arg: rest.map(|(x, y)| (x.to_owned(), y)),
+      is_gdscript_builtin: false,
     }
   }
 
