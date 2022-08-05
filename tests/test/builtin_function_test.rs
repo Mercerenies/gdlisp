@@ -359,6 +359,12 @@ pub fn range_running_test() {
 }
 
 #[test]
+pub fn range_running_test_indirect() {
+  assert_eq!(parse_and_run("((print (funcall #'range 5)) (print (funcall #'range 1 5)) (print (funcall #'range 1 5 2)) (print (funcall #'range 5 1 -1)))"),
+             "\n[0, 1, 2, 3, 4]\n[1, 2, 3, 4]\n[1, 3]\n[5, 4, 3, 2]\n");
+}
+
+#[test]
 pub fn print_running_test_indirect() {
   assert_eq!(parse_and_run("((funcall #'print 1 2 #t))"), "\n12True\n");
 }
