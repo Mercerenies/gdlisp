@@ -199,9 +199,6 @@ pub fn wrapped_math_functions_test() {
 pub fn wrapped_list_functions_test() {
   assert_eq!(parse_compile_and_output("(len [1 2])"), "return len([1, 2])\n");
   assert_eq!(parse_compile_and_output("(len [])"), "return len([])\n");
-  assert_eq!(parse_compile_and_output("(range 10)"), "return range(10)\n");
-  assert_eq!(parse_compile_and_output("(range 1 10)"), "return range(1, 10)\n");
-  assert_eq!(parse_compile_and_output("(range 1 10 2)"), "return range(1, 10, 2)\n");
 }
 
 #[test]

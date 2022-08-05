@@ -186,24 +186,18 @@ fn strip_st(x: Vec<StExpr>) -> Vec<Expr> {
 /// [`CallMagic::DefaultCall`] case to perform its work.
 pub fn compile_default_call(call: FnCall, mut args: Vec<Expr>, pos: SourceOffset) -> Result<Expr, GDError> {
   let FnCall { scope: _, object, function, specs, is_macro: _ } = call;
-
   // First, check arity
   Expecting::from(specs).validate(&function, pos, &args)?;
-
   // Get the "rest" arguments
   let rest = if args.len() < (specs.required + specs.optional) as usize {
     vec!()
   } else {
     args.split_off((specs.required + specs.optional) as usize)
   };
-
-  // Extend with nil, unless the function is a GDScript built-in.
-  if !specs.is_gdscript_builtin {
-    while args.len() < (specs.required + specs.optional) as usize {
-      args.push(Expr::null(pos));
-    }
+  // Extend with nil
+  while args.len() < (specs.required + specs.optional) as usize {
+    args.push(Expr::null(pos));
   }
-
   // Bind the "rest" arguments
   match specs.rest {
     None => {
@@ -218,11 +212,9 @@ pub fn compile_default_call(call: FnCall, mut args: Vec<Expr>, pos: SourceOffset
       args.push(Expr::new(ExprF::ArrayLit(rest), pos));
     }
   }
-
   // Then compile the call.
   let object: Option<Expr> = object.into_expr(pos);
   Ok(Expr::new(ExprF::Call(object.map(Box::new), function, args), pos))
-
 }
 
 impl CallMagic {
