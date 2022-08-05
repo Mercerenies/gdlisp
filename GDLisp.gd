@@ -874,7 +874,7 @@ static func _printt(args):
         result = result + _cond + str(arg_5)
         first = false
     return print(result)
-static func range(a, b, c):
+static func _range(a, b, c):
     var _cond = range(a) if b == nil else range(a, b) if c == nil else range(a, b, c)
     return _cond
 class GDLispSpecialType extends Reference:
