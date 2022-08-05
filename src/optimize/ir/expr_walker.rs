@@ -178,6 +178,11 @@ impl<'a, E> ExprWalker<'a, E> {
           Box::new(self.walk_expr(b)?),
         )))
       }
+      ExprF::Assert(cond, message) => {
+        let cond = self.walk_expr(cond)?;
+        let message = message.as_ref().map(|x| self.walk_expr(&*x)).transpose()?;
+        ExprF::Assert(Box::new(cond), message.map(Box::new))
+      }
       ExprF::Return(v) => {
         ExprF::Return(Box::new(self.walk_expr(v)?))
       }

@@ -39,6 +39,7 @@ pub enum ExprF {
   SuperCall(String, Vec<Expr>),
   LambdaClass(Box<LambdaClass>),
   Yield(Option<(Box<Expr>, Box<Expr>)>),
+  Assert(Box<Expr>, Option<Box<Expr>>),
   Return(Box<Expr>),
   SpecialRef(SpecialRef),
   ContextualFilename(RPathBuf),
@@ -132,6 +133,10 @@ impl Expr {
 
   pub fn yield_some(lhs: Expr, rhs: Expr, pos: SourceOffset) -> Expr {
     Expr::new(ExprF::Yield(Some((Box::new(lhs), Box::new(rhs)))), pos)
+  }
+
+  pub fn assert_expr(cond: Expr, message: Option<Expr>, pos: SourceOffset) -> Expr {
+    Expr::new(ExprF::Assert(Box::new(cond), message.map(Box::new)), pos)
   }
 
   /// Wraps the expression in a 0-ary lambda which is immediately
@@ -341,6 +346,12 @@ impl Expr {
         if let Some((x, y)) = arg {
           x.walk_locals(acc_vars, acc_fns);
           y.walk_locals(acc_vars, acc_fns);
+        }
+      }
+      ExprF::Assert(cond, message) => {
+        cond.walk_locals(acc_vars, acc_fns);
+        if let Some(message) = message {
+          message.walk_locals(acc_vars, acc_fns);
         }
       }
       ExprF::Return(expr) => {

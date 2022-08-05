@@ -25,6 +25,12 @@ pub fn yield_test() {
 }
 
 #[test]
+pub fn assert_test() {
+  assert_eq!(parse_compile_and_output("(assert #t)"), "return assert(true)\n");
+  assert_eq!(parse_compile_and_output("(assert #t \"a\")"), "return assert(true, \"a\")\n");
+}
+
+#[test]
 pub fn attribute_test() {
   assert_eq!(parse_compile_and_output("(let ((foo 1)) foo:bar)"), "var foo = 1\nreturn foo.bar\n");
   assert_eq!(parse_compile_and_output("(let ((foo 1)) foo:bar 2)"), "var foo = 1\nreturn 2\n");
@@ -249,8 +255,6 @@ pub fn wrapped_misc_functions_test() {
   assert_eq!(parse_compile_and_output("(Color8 0 0 0 255)"), "return Color8(0, 0, 0, 255)\n");
   assert_eq!(parse_compile_and_output("(ColorN \"red\")"), "return ColorN(\"red\")\n");
   assert_eq!(parse_compile_and_output("(ColorN \"red\" 1.0)"), "return ColorN(\"red\", 1e0)\n");
-  assert_eq!(parse_compile_and_output("(assert #t)"), "return assert(true)\n");
-  assert_eq!(parse_compile_and_output("(assert #t \"a\")"), "return assert(true, \"a\")\n");
   assert_eq!(parse_compile_and_output("(var2bytes 0)"), "return var2bytes(0)\n");
   assert_eq!(parse_compile_and_output("(var2bytes 0 #f)"), "return var2bytes(0, false)\n");
   assert_eq!(parse_compile_and_output("(bytes2var ())"), "return bytes2var(null)\n");

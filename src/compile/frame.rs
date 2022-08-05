@@ -506,6 +506,11 @@ impl<'a, 'b, 'c, 'd, 'e> CompilerFrame<'a, 'b, 'c, 'd, 'e, StmtBuilder> {
           }
         }
       }
+      IRExprF::Assert(cond, message) => {
+        let cond = self.compile_expr(cond, NeedsResult::Yes)?.expr;
+        let message = message.as_ref().map(|x| self.compile_expr(&*x, NeedsResult::Yes).map(|y| y.expr)).transpose()?;
+        Ok(StExpr { expr: Expr::assert_expr(cond, message, expr.pos), side_effects: SideEffects::ModifiesState })
+      }
       IRExprF::Return(expr) => {
         self.compile_stmt(&stmt_wrapper::Return, expr)?;
         Ok(Compiler::nil_expr(expr.pos))

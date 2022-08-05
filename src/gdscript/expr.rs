@@ -146,6 +146,17 @@ impl Expr {
     Expr::simple_call("yield", args, pos)
   }
 
+  /// A GDScript `assert` call.
+  ///
+  /// `assert` takes either one or two arguments.
+  pub fn assert_expr(cond: Expr, message: Option<Expr>, pos: SourceOffset) -> Expr {
+    let args = match message {
+      None => vec!(cond),
+      Some(message) => vec!(cond, message),
+    };
+    Expr::simple_call("assert", args, pos)
+  }
+
   /// A GDScript `preload` call.
   pub fn preload_expr(arg: String, pos: SourceOffset) -> Expr {
     Expr::simple_call("preload", vec!(Expr::from_value(arg, pos)), pos)

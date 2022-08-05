@@ -50,6 +50,7 @@ pub fn dispatch_form(icompiler: &mut IncCompiler,
     "access-slot" => access_slot_form(icompiler, pipeline, tail, pos).map(Some),
     "new" => new_form(icompiler, pipeline, tail, pos).map(Some),
     "yield" => yield_form(icompiler, pipeline, tail, pos).map(Some),
+    "assert" => assert_form(icompiler, pipeline, tail, pos).map(Some),
     "return" => return_form(icompiler, pipeline, tail, pos).map(Some),
     "macrolet" => macrolet_form(icompiler, pipeline, tail, pos).map(Some),
     "symbol-macrolet" => symbol_macrolet_form(icompiler, pipeline, tail, pos).map(Some),
@@ -332,6 +333,28 @@ pub fn yield_form(icompiler: &mut IncCompiler,
       let lhs = icompiler.compile_expr(pipeline, tail[0])?;
       let rhs = icompiler.compile_expr(pipeline, tail[1])?;
       Ok(Expr::yield_some(lhs, rhs, pos))
+    }
+    _ => {
+      unreachable!()
+    }
+  }
+}
+
+pub fn assert_form(icompiler: &mut IncCompiler,
+                   pipeline: &mut Pipeline,
+                   tail: &[&AST],
+                   pos: SourceOffset)
+                   -> Result<Expr, PError> {
+  Expecting::between(1, 2).validate("assert", pos, tail)?;
+  match tail.len() {
+    1 => {
+      let cond = icompiler.compile_expr(pipeline, tail[0])?;
+      Ok(Expr::assert_expr(cond, None, pos))
+    }
+    2 => {
+      let cond = icompiler.compile_expr(pipeline, tail[0])?;
+      let message = icompiler.compile_expr(pipeline, tail[1])?;
+      Ok(Expr::assert_expr(cond, Some(message), pos))
     }
     _ => {
       unreachable!()
