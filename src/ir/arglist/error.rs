@@ -1,4 +1,7 @@
 
+//! Provides [`ArgListParseError`], the type of argument list parse
+//! errors.
+
 use crate::sxp::ast::AST;
 use crate::pipeline::source::{Sourced, SourceOffset};
 
