@@ -108,7 +108,7 @@ pub fn closure_and_args_lambda_class_test() {
 }
 
 #[test]
-pub fn closure_and_init_args_lambda_class_test() {
+pub fn closure_and_init_args_lambda_class_test_1() {
 
   let result0 = parse_compile_and_output_h("(let ((a 1)) (new (Node 77) (defvar z) (defvar t) (defn _init (z @t) (set self:z z)) (defn foo () (+ self:z a))))");
   assert_eq!(result0.0, "var a = 1\nreturn _AnonymousClass.new(a, 77)\n");
@@ -118,6 +118,28 @@ pub fn closure_and_init_args_lambda_class_test() {
         self.t = t_0
         self.z = z
     var a
+    var z
+    var t
+    func foo():
+        return self.z + a
+"#);
+
+}
+
+#[test]
+pub fn closure_and_init_args_lambda_class_test_2() {
+
+  let result0 = parse_compile_and_output_h("(let ((a 1)) (new (Node 77) (defvar w (sys/split 1)) (defvar z) (defvar t) (defn _init (z @t) (set self:z z)) (defn foo () (+ self:z a))))");
+  assert_eq!(result0.0, "var a = 1\nreturn _AnonymousClass.new(a, 77)\n");
+  assert_eq!(result0.1, r#"class _AnonymousClass extends Node:
+    func _init(a, z, t_0):
+        var _split_0 = 1
+        self.w = _split_0
+        self.a = a
+        self.t = t_0
+        self.z = z
+    var a
+    var w
     var z
     var t
     func foo():
