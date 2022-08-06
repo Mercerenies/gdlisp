@@ -4,7 +4,7 @@
 use super::declaration_table::DeclarationTable;
 use super::MAIN_BODY_NAME;
 use super::call_name::CallName;
-use super::arglist::ArgList;
+use super::arglist::ordinary::ArgList;
 use super::arglist::simple::SimpleArgList;
 use super::literal::Literal;
 use super::import::{ImportDecl, ImportName};

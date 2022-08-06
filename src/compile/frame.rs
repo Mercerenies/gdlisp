@@ -41,7 +41,7 @@ type IRExpr = ir::expr::Expr;
 type IRExprF = ir::expr::ExprF;
 type IRDecl = ir::decl::Decl;
 type IRDeclF = ir::decl::DeclF;
-type IRArgList = ir::arglist::ArgList;
+type IRArgList = ir::arglist::ordinary::ArgList;
 
 /// Quoted S-expressions which are nested deeper than this constant
 /// will be split into several local variables, for efficiency

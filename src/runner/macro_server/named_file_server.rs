@@ -18,7 +18,7 @@ use crate::compile::stmt_wrapper::{self, StmtWrapper};
 use crate::gdscript::expr::{Expr as GDExpr};
 use crate::gdscript::stmt::Stmt;
 use crate::gdscript::library;
-use crate::ir::arglist::ArgList;
+use crate::ir::arglist::ordinary::ArgList;
 use crate::pipeline::error::{PError, IOError};
 use crate::pipeline::source::SourceOffset;
 use crate::AST_PARSER;

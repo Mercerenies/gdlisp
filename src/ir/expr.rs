@@ -1,7 +1,7 @@
 
 use super::literal;
 use super::decl;
-use super::arglist::ArgList;
+use super::arglist::ordinary::ArgList;
 use super::closure_names::ClosureNames;
 use super::access_type::AccessType;
 use super::identifier::{Namespace, Id};

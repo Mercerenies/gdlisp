@@ -16,7 +16,7 @@ use crate::compile::Compiler;
 use crate::compile::names;
 use crate::compile::symbol_table::SymbolTable;
 use crate::compile::symbol_table::local_var::{LocalVar, VarName};
-use crate::ir::arglist::ArgList;
+use crate::ir::arglist::ordinary::ArgList;
 use crate::ir::identifier::{Id, Namespace};
 use crate::ir::macros::MacroData;
 use crate::pipeline::Pipeline;

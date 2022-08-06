@@ -22,7 +22,7 @@ use super::lambda;
 use std::convert::AsRef;
 
 type IRExpr = ir::expr::Expr;
-type IRArgList = ir::arglist::ArgList;
+type IRArgList = ir::arglist::ordinary::ArgList;
 
 pub fn compile_flet(frame: &mut CompilerFrame<StmtBuilder>,
                     clauses: &[LocalFnClause],

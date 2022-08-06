@@ -53,7 +53,7 @@ type IRDecl = ir::decl::Decl;
 type IRDeclF = ir::decl::DeclF;
 type IRExpr = ir::expr::Expr;
 type IRExprF = ir::expr::ExprF;
-type IRArgList = ir::arglist::ArgList;
+type IRArgList = ir::arglist::ordinary::ArgList;
 
 pub struct Compiler {
   gen: FreshNameGenerator,

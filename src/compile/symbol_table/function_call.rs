@@ -231,7 +231,7 @@ impl FnSpecs {
   ///
   /// ```
   /// # use gdlisp::compile::symbol_table::function_call::FnSpecs;
-  /// # use gdlisp::ir::arglist::VarArg;
+  /// # use gdlisp::ir::arglist::vararg::VarArg;
   /// assert_eq!(FnSpecs::new(0, 0, None).runtime_arity(), 0);
   /// assert_eq!(FnSpecs::new(5, 0, None).runtime_arity(), 5);
   /// assert_eq!(FnSpecs::new(0, 5, None).runtime_arity(), 5);
@@ -252,7 +252,7 @@ impl FnSpecs {
   ///
   /// ```
   /// # use gdlisp::compile::symbol_table::function_call::FnSpecs;
-  /// # use gdlisp::ir::arglist::VarArg;
+  /// # use gdlisp::ir::arglist::vararg::VarArg;
   /// assert_eq!(FnSpecs::new(0, 0, None).min_arity(), 0);
   /// assert_eq!(FnSpecs::new(5, 0, None).min_arity(), 5);
   /// assert_eq!(FnSpecs::new(0, 5, None).min_arity(), 0);
@@ -276,7 +276,7 @@ impl FnSpecs {
   ///
   /// ```
   /// # use gdlisp::compile::symbol_table::function_call::FnSpecs;
-  /// # use gdlisp::ir::arglist::VarArg;
+  /// # use gdlisp::ir::arglist::vararg::VarArg;
   /// assert_eq!(FnSpecs::new(0, 0, None).max_arity(), 0);
   /// assert_eq!(FnSpecs::new(5, 0, None).max_arity(), 5);
   /// assert_eq!(FnSpecs::new(0, 5, None).max_arity(), 5);

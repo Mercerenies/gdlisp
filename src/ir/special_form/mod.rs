@@ -8,7 +8,7 @@ use crate::sxp::dotted::DottedExpr;
 use super::expr::{ExprF, Expr, FuncRefTarget, AssignTarget, LambdaClass, LocalVarClause, LocalFnClause};
 use super::special_ref::SpecialRef;
 use super::decl::{self, Decl, DeclF};
-use super::arglist::ArgList;
+use super::arglist::ordinary::ArgList;
 use super::quasiquote::quasiquote_with_depth;
 use crate::compile::error::{GDError, GDErrorF};
 use crate::compile::args::{Expecting, ExpectedShape};

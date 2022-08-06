@@ -52,7 +52,7 @@ mod tests {
   use crate::ir::literal::Literal;
   use crate::ir::expr::{Expr, ExprF, AssignTarget};
   use crate::ir::decl::DeclF;
-  use crate::ir::arglist::ArgList;
+  use crate::ir::arglist::ordinary::ArgList;
   use crate::ir::export::Visibility;
   use crate::pipeline::Pipeline;
   use crate::pipeline::config::ProjectConfig;

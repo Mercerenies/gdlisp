@@ -25,7 +25,7 @@ use crate::ir::access_type::AccessType;
 
 type IRLiteral = ir::literal::Literal;
 type IRExpr = ir::expr::Expr;
-type IRArgList = ir::arglist::ArgList;
+type IRArgList = ir::arglist::ordinary::ArgList;
 
 /// This is the structure returned by [`declare_function_with_init`].
 struct DeclaredFnWithInit {

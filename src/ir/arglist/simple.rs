@@ -3,7 +3,7 @@
 //! consist of simple names and no other features.
 
 use super::error::{ArgListParseError, ArgListParseErrorF};
-use super::ArgList;
+use super::ordinary::ArgList;
 use crate::sxp::ast::AST;
 use crate::gdscript::arglist::ArgList as GDArgList;
 use crate::compile::names::generator::NameGenerator;

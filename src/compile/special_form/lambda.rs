@@ -33,7 +33,7 @@ use std::borrow::Borrow;
 use std::cmp::max;
 
 type IRExpr = ir::expr::Expr;
-type IRArgList = ir::arglist::ArgList;
+type IRArgList = ir::arglist::ordinary::ArgList;
 
 pub fn compile_labels_scc(frame: &mut CompilerFrame<StmtBuilder>,
                           clauses: &[&LocalFnClause],

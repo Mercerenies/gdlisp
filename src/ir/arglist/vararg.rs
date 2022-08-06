@@ -1,4 +1,7 @@
 
+//! Defines the [`VarArg`] enum, which indicates the types of variable
+//! argument tails available to lambda lists.
+
 use serde::{Serialize, Deserialize};
 
 /// The type of "rest" argument which accumulates any extra arguments

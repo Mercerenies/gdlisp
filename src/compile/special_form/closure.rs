@@ -8,7 +8,7 @@ use crate::compile::symbol_table::SymbolTable;
 use crate::pipeline::source::SourceOffset;
 use super::lambda::closure_fn_to_gd_var; // TODO Move this function over to this module
 
-type IRArgList = crate::ir::arglist::ArgList;
+type IRArgList = crate::ir::arglist::ordinary::ArgList;
 type IRExpr = crate::ir::expr::Expr;
 
 /// A `ClosureData` contains information about collections of

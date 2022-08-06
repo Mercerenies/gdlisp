@@ -1,5 +1,5 @@
 
-use super::arglist::ArgList;
+use super::arglist::ordinary::ArgList;
 use super::arglist::simple::SimpleArgList;
 use super::expr::{self, Expr, Locals, Functions};
 use super::literal::Literal;
