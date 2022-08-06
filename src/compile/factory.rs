@@ -22,6 +22,9 @@ use crate::gdscript::inner_class::{self, NeedsOuterClassRef};
 use crate::pipeline::source::SourceOffset;
 use crate::ir;
 use crate::ir::access_type::AccessType;
+use crate::ir::arglist::simple::SimpleArgList;
+
+use std::borrow::Cow;
 
 type IRLiteral = ir::literal::Literal;
 type IRExpr = ir::expr::Expr;
@@ -204,18 +207,45 @@ pub fn declare_class(frame: &mut CompilerFrame<impl HasDecls>,
 pub fn declare_constructor(frame: &mut CompilerFrame<impl HasDecls>,
                            constructor: &ir::decl::ConstructorDecl)
                            -> Result<(decl::InitFnDecl, Vec<decl::FnDecl>), GDError> {
+
+  // We have to copy the constructor and modify it if there are
+  // instance fields. If there aren't, then don't waste time doing the
+  // copy.
+  let mut constructor: Cow<'_, ir::decl::ConstructorDecl> = Cow::Borrowed(constructor);
+
+  if constructor.args.has_any_instance_fields() {
+    let mut cloned_constructor = constructor.into_owned();
+    initialize_instance_fields(frame.compiler.name_generator(), &mut cloned_constructor);
+    constructor = Cow::Owned(cloned_constructor);
+  }
+
+  // By the guarantees of `initialize_instance_fields` below, at this
+  // point, all constructor arguments should be ordinary.
+  assert!(!constructor.args.has_any_instance_fields(), "Failed to desugar instance field arguments in constructor {:?}", constructor);
+  let simple_arglist = SimpleArgList { args: constructor.args.args.iter().map(|(name, _)| name.to_owned()).collect() };
+
   let constructor_with_init = declare_function_with_init(frame,
                                                          String::from(library::CONSTRUCTOR_NAME),
-                                                         IRArgList::from(constructor.args.clone()),
+                                                         IRArgList::from(simple_arglist),
                                                          &constructor.super_call.call,
                                                          &constructor.body,
                                                          &stmt_wrapper::Vacuous)?;
+
   let DeclaredFnWithInit { function: constructor, inits } = constructor_with_init;
   let decl::FnDecl { name: _, args, body } = constructor;
 
   let constructor = decl::InitFnDecl { args, super_call: inits, body };
 
   Ok((constructor, vec!()))
+}
+
+/// Modifies the constructor declaration to initialize all instance
+/// fields, as needed. The resulting constructor will have an argument
+/// list for which none of the arguments are declared as instance
+/// fields.
+fn initialize_instance_fields(_gen: &mut impl NameGenerator,
+                              _constructor: &mut ir::decl::ConstructorDecl) {
+  todo!() /////
 }
 
 /// Compiles a GDLisp literal to a GDScript expression, using `pos` as

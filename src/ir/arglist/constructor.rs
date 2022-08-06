@@ -44,6 +44,11 @@ impl ConstructorArgList {
     (gd_arglist, names)
   }
 
+  /// Returns true iff any arguments are marked as instance fields.
+  pub fn has_any_instance_fields(&self) -> bool {
+    self.args.iter().any(|(_, b)| *b)
+  }
+
   /// An iterator over all variable names, together with whether or
   /// not they are instance variables, mentioned in the argument list,
   /// in order.

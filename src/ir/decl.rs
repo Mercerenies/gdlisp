@@ -1,5 +1,6 @@
 
 use super::arglist::ordinary::ArgList;
+use super::arglist::constructor::ConstructorArgList;
 use super::arglist::simple::SimpleArgList;
 use super::expr::{self, Expr, Locals, Functions};
 use super::literal::Literal;
@@ -88,7 +89,7 @@ pub struct ClassDecl {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ConstructorDecl {
-  pub args: SimpleArgList,
+  pub args: ConstructorArgList,
   pub super_call: SuperCall,
   pub body: Expr,
 }
@@ -383,7 +384,7 @@ impl ConstructorDecl {
   /// be the position of the start of the class declaration.
   pub fn empty(pos: SourceOffset) -> ConstructorDecl {
     ConstructorDecl {
-      args: SimpleArgList { args: vec!() },
+      args: ConstructorArgList { args: vec!() },
       super_call: SuperCall::empty(pos),
       body: Expr::literal(Literal::Nil, pos),
     }
@@ -396,8 +397,12 @@ impl ConstructorDecl {
         ids.insert(id, pos);
       }
     }
-    for name in self.args.iter_vars() {
-      ids.remove(&*Id::build(Namespace::Value, name));
+    for (name, is_instance_field) in self.args.iter_vars() {
+      // Instance field arguments are accessed directly on `self` and
+      // are not available as GDLisp-side local variables.
+      if !is_instance_field {
+        ids.remove(&*Id::build(Namespace::Value, name));
+      }
     }
     ids.remove(&*Id::build(Namespace::Value, "self"));
     ids
@@ -405,8 +410,12 @@ impl ConstructorDecl {
 
   pub fn get_names(&self) -> (Locals, Functions) {
     let (mut loc, func) = self.body.get_names();
-    for name in self.args.iter_vars() {
-      loc.remove(name);
+    for (name, is_instance_field) in self.args.iter_vars() {
+      // Instance field arguments are accessed directly on `self` and
+      // are not available as GDLisp-side local variables.
+      if !is_instance_field {
+        loc.remove(name);
+      }
     }
     loc.remove("self");
     (loc, func)

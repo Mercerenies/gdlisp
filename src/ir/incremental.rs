@@ -4,7 +4,10 @@
 use super::declaration_table::DeclarationTable;
 use super::MAIN_BODY_NAME;
 use super::call_name::CallName;
+use super::arglist;
+use super::arglist::error::ArgListParseError;
 use super::arglist::ordinary::ArgList;
+use super::arglist::constructor::ConstructorArgList;
 use super::arglist::simple::SimpleArgList;
 use super::literal::Literal;
 use super::import::{ImportDecl, ImportName};
@@ -555,7 +558,7 @@ impl IncCompiler {
           Expecting::at_least(2).validate("defn", curr.pos, &vec[1..])?;
           if let Some(fname) = IncCompiler::compile_instance_function_name(vec[1]) {
             let args: Vec<_> = DottedExpr::new(vec[2]).try_into()?;
-            let args = SimpleArgList::parse(args, vec[2].pos)?;
+            let args = arglist::parser::parse(args)?;
 
             // Determine if static
             let (mods, body) = modifier::instance_method::parser().parse(&vec[3..])?;
@@ -577,6 +580,10 @@ impl IncCompiler {
                 return Err(PError::from(GDError::new(GDErrorF::DuplicateConstructor, vec[0].pos)));
               }
 
+              let args = ConstructorArgList::try_from(args).map_err(|err| {
+                ArgListParseError::new(err, vec[0].pos)
+              })?;
+
               let super_call = super_call.unwrap_or_else(|| decl::SuperCall::empty(vec[0].pos));
               let mut constructor = decl::ConstructorDecl { args, super_call, body: Expr::progn(body, vec[0].pos) };
               for m in mods {
@@ -587,6 +594,10 @@ impl IncCompiler {
             } else {
               // Ordinary functions cannot have init super calls (The
               // `(super:foo)` syntax is handled separately).
+
+              let args = SimpleArgList::try_from(args).map_err(|err| {
+                ArgListParseError::new(err, vec[0].pos)
+              })?;
 
               if let Some(super_call) = &super_call {
                 return Err(PError::from(GDError::new(GDErrorF::BadSuperCall(String::from("(init)")), super_call.pos)));
