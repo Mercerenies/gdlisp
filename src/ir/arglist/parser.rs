@@ -104,21 +104,21 @@ impl ParseState {
       let pos = arg.pos;
       match self {
         ParseState::Required => {
-          let s = must_be_symbol(arg)?;
-          arglist.required_args.push(GeneralArg::new(s.to_owned()));
+          let general_arg = GeneralArg::parse(arg)?;
+          arglist.required_args.push(general_arg);
         }
         ParseState::Optional => {
-          let s = must_be_symbol(arg)?;
-          arglist.optional_args.push(GeneralArg::new(s.to_owned()));
+          let general_arg = GeneralArg::parse(arg)?;
+          arglist.optional_args.push(general_arg);
         }
         ParseState::Rest => {
-          let s = must_be_symbol(arg)?;
-          arglist.rest_arg = Some((GeneralArg::new(s.to_owned()), VarArg::RestArg));
+          let general_arg = GeneralArg::parse(arg)?;
+          arglist.rest_arg = Some((general_arg, VarArg::RestArg));
           *self = ParseState::RestInvalid;
         }
         ParseState::Arr => {
-          let s = must_be_symbol(arg)?;
-          arglist.rest_arg = Some((GeneralArg::new(s.to_owned()), VarArg::ArrArg));
+          let general_arg = GeneralArg::parse(arg)?;
+          arglist.rest_arg = Some((general_arg, VarArg::ArrArg));
           *self = ParseState::RestInvalid;
         }
         ParseState::RestInvalid => {
@@ -167,15 +167,4 @@ pub fn parse<'a>(args: impl IntoIterator<Item = &'a AST>)
     state.parse_once(&mut result, arg)?;
   }
   Ok(result)
-}
-
-/// If `arg` contains an [`ASTF::Symbol`], then the string value of
-/// the symbol is returned. Otherwise, an
-/// [`ArgListParseErrorF::InvalidArgument`] error is returned.
-fn must_be_symbol(arg: &AST) -> Result<&str, ArgListParseError> {
-  if let ASTF::Symbol(s) = &arg.value {
-    Ok(s)
-  } else {
-    Err(ArgListParseError::new(ArgListParseErrorF::InvalidArgument(arg.clone()), arg.pos))
-  }
 }

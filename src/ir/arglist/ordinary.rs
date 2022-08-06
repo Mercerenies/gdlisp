@@ -152,9 +152,9 @@ impl From<ArgList> for FnSpecs {
 impl From<ArgList> for GeneralArgList {
 
   fn from(arglist: ArgList) -> GeneralArgList {
-    let required_args: Vec<_> = arglist.required_args.into_iter().map(GeneralArg::new).collect();
-    let optional_args: Vec<_> = arglist.optional_args.into_iter().map(GeneralArg::new).collect();
-    let rest_arg: Option<_> = arglist.rest_arg.map(|(name, vararg)| (GeneralArg::new(name), vararg));
+    let required_args: Vec<_> = arglist.required_args.into_iter().map(GeneralArg::simple).collect();
+    let optional_args: Vec<_> = arglist.optional_args.into_iter().map(GeneralArg::simple).collect();
+    let rest_arg: Option<_> = arglist.rest_arg.map(|(name, vararg)| (GeneralArg::simple(name), vararg));
     GeneralArgList {
       required_args,
       optional_args,
@@ -167,12 +167,10 @@ impl From<ArgList> for GeneralArgList {
 impl TryFrom<GeneralArgList> for ArgList {
   type Error = ArgListParseErrorF;
 
-  // Note: Can't fail right now, but it will be able to once
-  // GeneralArgList supports constructor fields.
   fn try_from(arglist: GeneralArgList) -> Result<Self, Self::Error> {
-    let required_args: Vec<_> = arglist.required_args.into_iter().map(|x| x.name).collect();
-    let optional_args: Vec<_> = arglist.optional_args.into_iter().map(|x| x.name).collect();
-    let rest_arg: Option<_> = arglist.rest_arg.map(|(arg, vararg)| (arg.name, vararg));
+    let required_args: Vec<_> = arglist.required_args.into_iter().map(|x| x.into_simple_name()).collect::<Result<_, _>>()?;
+    let optional_args: Vec<_> = arglist.optional_args.into_iter().map(|x| x.into_simple_name()).collect::<Result<_, _>>()?;
+    let rest_arg: Option<_> = arglist.rest_arg.map(|(arg, vararg)| Ok((arg.into_simple_name()?, vararg))).transpose()?;
     Ok(ArgList {
       required_args,
       optional_args,

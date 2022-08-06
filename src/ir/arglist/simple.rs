@@ -65,7 +65,7 @@ impl SimpleArgList {
 
 impl From<SimpleArgList> for GeneralArgList {
   fn from(arglist: SimpleArgList) -> GeneralArgList {
-    let required_args: Vec<_> = arglist.args.into_iter().map(GeneralArg::new).collect();
+    let required_args: Vec<_> = arglist.args.into_iter().map(GeneralArg::simple).collect();
     GeneralArgList {
       required_args: required_args,
       optional_args: vec!(),
@@ -79,7 +79,7 @@ impl TryFrom<GeneralArgList> for SimpleArgList {
 
   fn try_from(arglist: GeneralArgList) -> Result<Self, Self::Error> {
     if arglist.optional_args.is_empty() && arglist.rest_arg.is_none() {
-      let required_args: Vec<_> = arglist.required_args.into_iter().map(|x| x.name).collect();
+      let required_args: Vec<_> = arglist.required_args.into_iter().map(|x| x.into_simple_name()).collect::<Result<_, _>>()?;
       Ok(SimpleArgList { args: required_args })
     } else {
       Err(ArgListParseErrorF::SimpleArgListExpected)

@@ -27,6 +27,9 @@ pub enum ArgListParseErrorF {
   /// A simple argument list with no directives was expected, but
   /// directives were used.
   SimpleArgListExpected,
+  /// A simple (unmodified) argument was expected, but an instance
+  /// field was named.
+  SimpleArgExpected,
 }
 
 /// An [`ArgListParseErrorF`] together with [`SourceOffset`] data.
@@ -59,6 +62,9 @@ impl fmt::Display for ArgListParseError {
       }
       ArgListParseErrorF::SimpleArgListExpected => {
         write!(f, "Only simple arglists are allowed in this context")
+      }
+      ArgListParseErrorF::SimpleArgExpected => {
+        write!(f, "Only simple arguments (not instance variables) are allowed in this context")
       }
     }
   }
