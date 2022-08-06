@@ -3,8 +3,10 @@
 //! lists which allow for instance variables to be initialized
 //! directly from them.
 
-use super::error::ArgListParseError;
+use super::error::{ArgListParseError, ArgListParseErrorF};
 use super::simple::SimpleArgList;
+use super::general::{GeneralArgList, GeneralArg};
+use super::parser;
 use crate::sxp::ast::AST;
 use crate::compile::names::NameTrans;
 use crate::compile::names::generator::NameGenerator;
@@ -12,6 +14,7 @@ use crate::pipeline::source::SourceOffset;
 use crate::gdscript::arglist::ArgList as GDArgList;
 
 use std::borrow::Borrow;
+use std::convert::TryFrom;
 
 /// A constructor argument list consists of only required arguments,
 /// similar to [`SimpleArgList`]. However, some of the arguments can
@@ -61,9 +64,11 @@ impl ConstructorArgList {
   ///
   /// In that case, the argument will be marked as a constructor
   /// instance field argument.
-  pub fn parse<'a>(_args: impl IntoIterator<Item = &'a AST>, _pos: SourceOffset)
+  pub fn parse<'a>(args: impl IntoIterator<Item = &'a AST>, pos: SourceOffset)
                    -> Result<ConstructorArgList, ArgListParseError> {
-    todo!() /////
+    parser::parse(args).and_then(|arglist| {
+      ConstructorArgList::try_from(arglist).map_err(|err| ArgListParseError::new(err, pos))
+    })
   }
 
   /// The length of the argument list.
@@ -74,6 +79,35 @@ impl ConstructorArgList {
   /// Whether the argument list consists of zero arguments.
   pub fn is_empty(&self) -> bool {
     self.args.is_empty()
+  }
+
+}
+
+impl From<ConstructorArgList> for GeneralArgList {
+  fn from(arglist: ConstructorArgList) -> GeneralArgList {
+    let required_args: Vec<_> = arglist.args.into_iter().map(|(name, is_instance_field)| {
+      GeneralArg { name, is_instance_field }
+    }).collect();
+    GeneralArgList {
+      required_args: required_args,
+      optional_args: vec!(),
+      rest_arg: None,
+    }
+  }
+}
+
+impl TryFrom<GeneralArgList> for ConstructorArgList {
+  type Error = ArgListParseErrorF;
+
+  fn try_from(arglist: GeneralArgList) -> Result<Self, Self::Error> {
+    if arglist.optional_args.is_empty() && arglist.rest_arg.is_none() {
+      let required_args: Vec<_> = arglist.required_args.into_iter().map(|x| {
+        (x.name, x.is_instance_field)
+      }).collect();
+      Ok(ConstructorArgList { args: required_args })
+    } else {
+      Err(ArgListParseErrorF::ConstructorArgListExpected)
+    }
   }
 
 }

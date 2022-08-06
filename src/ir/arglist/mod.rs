@@ -92,4 +92,6 @@ mod tests {
     assert_eq!(into_gd(arglist(vec!("a"), vec!("b"), Some(("r", VarArg::ArrArg)))).0, gdarglist(vec!("a_0", "b_1", "r_2")));
   }
 
+  // TODO Test constructor and simple arglists
+
 }

@@ -290,6 +290,7 @@ impl GDErrorF {
           ArgListParseErrorF::SimpleArgListExpected => 5,
           ArgListParseErrorF::BadSelf(_) => 53,
           ArgListParseErrorF::SimpleArgExpected => 54,
+          ArgListParseErrorF::ConstructorArgListExpected => 55,
         }
       }
       GDErrorF::ImportDeclParseError(err) => {
@@ -353,6 +354,8 @@ impl GDErrorF {
       // NOTE: 53 is ArgListParseErrorF::BadSelf above.
       //
       // NOTE: 54 is ArgListParseErrorF::SimpleArgExpected above.
+      //
+      // NOTE: 55 is ArgListParseErrorF::ConstructorArgListExpected above.
     }
   }
 
