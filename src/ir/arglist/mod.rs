@@ -12,6 +12,7 @@ pub mod parser;
 pub mod simple;
 pub mod vararg;
 
+// TODO Split these tests up into the new submodules.
 #[cfg(test)]
 mod tests {
   use super::*;

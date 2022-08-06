@@ -73,86 +73,109 @@ impl PartialOrd for ParseState {
   }
 }
 
+impl ParseState {
+
+  /// The state to begin parsing an argument list in.
+  pub const START_STATE: ParseState =
+    ParseState::Required;
+
+  /// Given an argument directive, returns the state represented by
+  /// that directive, or `None` if the string is not a valid argument
+  /// directive.
+  ///
+  /// Note that [`ParseState::Required`] is not represented by an
+  /// argument directive, as it is the start state and never requires
+  /// (or admits) an `&` directive to transition *to* that state.
+  pub fn state_transition(self, arg: &str) -> Option<ParseState> {
+    match arg.borrow() {
+      "&opt" => Some(ParseState::Optional),
+      "&rest" => Some(ParseState::Rest),
+      "&arr" => Some(ParseState::Arr),
+      _ => None
+    }
+  }
+
+  /// Parse the given [`AST`] value, modifying the current parse
+  /// state, and the [`GeneralArgList`] being built, as necessary.
+  pub fn parse_once(&mut self, arglist: &mut GeneralArgList, arg: &AST) -> Result<(), ArgListParseError> {
+    if self.parse_state_transition(arg)? {
+      Ok(())
+    } else {
+      let pos = arg.pos;
+      match self {
+        ParseState::Required => {
+          let s = must_be_symbol(arg)?;
+          arglist.required_args.push(GeneralArg::new(s.to_owned()));
+        }
+        ParseState::Optional => {
+          let s = must_be_symbol(arg)?;
+          arglist.optional_args.push(GeneralArg::new(s.to_owned()));
+        }
+        ParseState::Rest => {
+          let s = must_be_symbol(arg)?;
+          arglist.rest_arg = Some((GeneralArg::new(s.to_owned()), VarArg::RestArg));
+          *self = ParseState::RestInvalid;
+        }
+        ParseState::Arr => {
+          let s = must_be_symbol(arg)?;
+          arglist.rest_arg = Some((GeneralArg::new(s.to_owned()), VarArg::ArrArg));
+          *self = ParseState::RestInvalid;
+        }
+        ParseState::RestInvalid => {
+          return Err(ArgListParseError::new(ArgListParseErrorF::InvalidArgument(arg.clone()), pos));
+        }
+      }
+      Ok(())
+    }
+  }
+
+  fn parse_state_transition(&mut self, arg: &AST) -> Result<bool, ArgListParseError> {
+    // Returns whether or not a transition was parsed.
+    let pos = arg.pos;
+    match &arg.value {
+      ASTF::Symbol(arg) if arg.starts_with('&') => {
+        let new_state = self.state_transition(arg.borrow());
+        match new_state {
+          None => {
+            Err(ArgListParseError::new(ArgListParseErrorF::UnknownDirective(arg.to_owned()), pos))
+          }
+          Some(new_state) => {
+            if *self < new_state {
+              *self = new_state;
+              Ok(true)
+            } else {
+              Err(ArgListParseError::new(ArgListParseErrorF::DirectiveOutOfOrder(arg.to_owned()), pos))
+            }
+          }
+        }
+      }
+      _ => {
+        Ok(false)
+      }
+    }
+  }
+
+}
+
 /// Parse an argument list from an iterator of `AST` values. Returns
 /// either the [`GeneralArgList`] or an appropriate error.
 pub fn parse<'a>(args: impl IntoIterator<Item = &'a AST>)
                  -> Result<GeneralArgList, ArgListParseError> {
-  let mut state = ParseState::Required;
-  let mut req: Vec<GeneralArg> = Vec::new();
-  let mut opt: Vec<GeneralArg> = Vec::new();
-  let mut rest: Option<(GeneralArg, VarArg)> = None;
+  let mut state = ParseState::START_STATE;
+  let mut result = GeneralArgList::empty();
   for arg in args {
-    let pos = arg.pos;
-    if let ASTF::Symbol(arg) = &arg.value {
-      if arg.starts_with('&') {
-        match arg.borrow() {
-          "&opt" => {
-            if state < ParseState::Optional {
-              state = ParseState::Optional;
-            } else {
-              return Err(ArgListParseError::new(ArgListParseErrorF::DirectiveOutOfOrder(arg.to_owned()), pos));
-            }
-          }
-          "&rest" => {
-            if state < ParseState::Rest {
-              state = ParseState::Rest;
-            } else {
-              return Err(ArgListParseError::new(ArgListParseErrorF::DirectiveOutOfOrder(arg.to_owned()), pos));
-            }
-          }
-          "&arr" => {
-            if state < ParseState::Arr {
-              state = ParseState::Arr;
-            } else {
-              return Err(ArgListParseError::new(ArgListParseErrorF::DirectiveOutOfOrder(arg.to_owned()), pos));
-            }
-          }
-          _ => {
-            return Err(ArgListParseError::new(ArgListParseErrorF::UnknownDirective(arg.to_owned()), pos));
-          }
-        }
-        continue;
-      }
-    }
-    match state {
-      ParseState::Required => {
-        match &arg.value {
-          ASTF::Symbol(s) => req.push(GeneralArg::new(s.to_owned())),
-          _ => return Err(ArgListParseError::new(ArgListParseErrorF::InvalidArgument(arg.clone()), pos)),
-        }
-      }
-      ParseState::Optional => {
-        match &arg.value {
-          ASTF::Symbol(s) => opt.push(GeneralArg::new(s.to_owned())),
-          _ => return Err(ArgListParseError::new(ArgListParseErrorF::InvalidArgument(arg.clone()), pos)),
-        }
-      }
-      ParseState::Rest => {
-        match &arg.value {
-          ASTF::Symbol(s) => {
-            rest = Some((GeneralArg::new(s.to_owned()), VarArg::RestArg));
-            state = ParseState::RestInvalid;
-          },
-          _ => return Err(ArgListParseError::new(ArgListParseErrorF::InvalidArgument(arg.clone()), pos)),
-        }
-      }
-      ParseState::Arr => {
-        match &arg.value {
-          ASTF::Symbol(s) => {
-            rest = Some((GeneralArg::new(s.to_owned()), VarArg::ArrArg));
-            state = ParseState::RestInvalid;
-          },
-          _ => return Err(ArgListParseError::new(ArgListParseErrorF::InvalidArgument(arg.clone()), pos)),
-        }
-      }
-      ParseState::RestInvalid => {
-        return Err(ArgListParseError::new(ArgListParseErrorF::InvalidArgument(arg.clone()), pos));
-      }
-    }
+    state.parse_once(&mut result, arg)?;
   }
-  Ok(GeneralArgList {
-    required_args: req,
-    optional_args: opt,
-    rest_arg: rest,
-  })
+  Ok(result)
+}
+
+/// If `arg` contains an [`ASTF::Symbol`], then the string value of
+/// the symbol is returned. Otherwise, an
+/// [`ArgListParseErrorF::InvalidArgument`] error is returned.
+fn must_be_symbol(arg: &AST) -> Result<&str, ArgListParseError> {
+  if let ASTF::Symbol(s) = &arg.value {
+    Ok(s)
+  } else {
+    Err(ArgListParseError::new(ArgListParseErrorF::InvalidArgument(arg.clone()), arg.pos))
+  }
 }
