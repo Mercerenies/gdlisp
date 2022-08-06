@@ -1,5 +1,6 @@
 
-use super::arglist::{ArgList, SimpleArgList};
+use super::arglist::ArgList;
+use super::arglist::simple::SimpleArgList;
 use super::expr::{self, Expr, Locals, Functions};
 use super::literal::Literal;
 use super::import::ImportDecl;

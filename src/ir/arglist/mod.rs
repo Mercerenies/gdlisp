@@ -5,6 +5,7 @@
 //! GDScript side.
 
 pub mod error;
+pub mod simple;
 
 use crate::gdscript::arglist::ArgList as GDArgList;
 use crate::compile::names::{self, NameTrans};
@@ -13,10 +14,10 @@ use crate::compile::symbol_table::function_call::FnSpecs;
 use crate::sxp::ast::{AST, ASTF};
 use crate::pipeline::source::SourceOffset;
 use error::{ArgListParseError, ArgListParseErrorF};
+use simple::SimpleArgList;
 
 use serde::{Serialize, Deserialize};
 
-use std::convert::TryFrom;
 use std::borrow::Borrow;
 use std::cmp::Ordering;
 
@@ -34,16 +35,6 @@ pub struct ArgList {
   /// The "rest" argument. If present, this indicates the name of the
   /// argument and the type of "rest" argument.
   pub rest_arg: Option<(String, VarArg)>,
-}
-
-/// A simple argument list consists only of required arguments and
-/// nothing more. This is required in contexts where GDLisp cannot
-/// determine the arity of a call, such as when invoking instance
-/// methods on an unknown object in GDLisp.
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub struct SimpleArgList {
-  /// The list of required arguments.
-  pub args: Vec<String>,
 }
 
 /// A constructor argument list consists of only required arguments,
@@ -307,44 +298,6 @@ impl ArgList {
 
 }
 
-impl SimpleArgList {
-
-  /// Converts the argument list into a GDScript argument list, using
-  /// the given name generator to produce unique names, similar to
-  /// [`ArgList::into_gd_arglist`].
-  pub fn into_gd_arglist(self, gen: &mut impl NameGenerator) -> (GDArgList, Vec<NameTrans>) {
-    ArgList::from(self).into_gd_arglist(gen)
-  }
-
-  /// An iterator over all variable names mentioned in the argument
-  /// list, in order.
-  pub fn iter_vars(&self) -> impl Iterator<Item = &str> {
-    self.args.iter().map(|x| x.borrow())
-  }
-
-  /// Attempts to parse a simple argument list from the iterator, as
-  /// though by [`ArgList::parse`], and then attempts to convert that
-  /// argument list into a [`SimpleArgList`]. If either step fails, an
-  /// error is reported.
-  pub fn parse<'a>(args: impl IntoIterator<Item = &'a AST>, pos: SourceOffset)
-                   -> Result<SimpleArgList, ArgListParseError> {
-    ArgList::parse(args).and_then(|arglist| {
-      SimpleArgList::try_from(arglist).map_err(|err| ArgListParseError::new(err, pos))
-    })
-  }
-
-  /// The length of the argument list.
-  pub fn len(&self) -> usize {
-    self.args.len()
-  }
-
-  /// Whether the argument list consists of zero arguments.
-  pub fn is_empty(&self) -> bool {
-    self.args.is_empty()
-  }
-
-}
-
 impl ConstructorArgList {
 
   /// Converts the argument list into a GDScript argument list, using
@@ -382,7 +335,7 @@ impl ConstructorArgList {
   ///
   /// In that case, the argument will be marked as a constructor
   /// instance field argument.
-  pub fn parse<'a>(args: impl IntoIterator<Item = &'a AST>, pos: SourceOffset)
+  pub fn parse<'a>(_args: impl IntoIterator<Item = &'a AST>, _pos: SourceOffset)
                    -> Result<ConstructorArgList, ArgListParseError> {
     todo!() /////
   }
@@ -435,25 +388,6 @@ impl From<ArgList> for FnSpecs {
       arglist.optional_args.len(),
       arglist.rest_arg.map(|x| x.1),
     )
-  }
-
-}
-
-impl From<SimpleArgList> for ArgList {
-  fn from(arglist: SimpleArgList) -> ArgList {
-    ArgList::required(arglist.args)
-  }
-}
-
-impl TryFrom<ArgList> for SimpleArgList {
-  type Error = ArgListParseErrorF;
-
-  fn try_from(arglist: ArgList) -> Result<Self, Self::Error> {
-    if arglist.optional_args.is_empty() && arglist.rest_arg.is_none() {
-      Ok(SimpleArgList { args: arglist.required_args })
-    } else {
-      Err(ArgListParseErrorF::SimpleArgListExpected)
-    }
   }
 
 }
