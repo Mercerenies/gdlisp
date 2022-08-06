@@ -6,6 +6,7 @@
 
 pub mod constructor;
 pub mod error;
+pub mod general;
 pub mod ordinary;
 pub mod simple;
 pub mod vararg;

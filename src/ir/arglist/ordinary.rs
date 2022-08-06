@@ -9,7 +9,9 @@ use crate::compile::symbol_table::function_call::FnSpecs;
 use crate::gdscript::arglist::ArgList as GDArgList;
 use super::error::{ArgListParseError, ArgListParseErrorF};
 use super::vararg::VarArg;
+use super::general::{GeneralArg, GeneralArgList};
 
+use std::convert::TryFrom;
 use std::borrow::Borrow;
 use std::cmp::Ordering;
 
@@ -282,6 +284,39 @@ impl From<ArgList> for FnSpecs {
       arglist.optional_args.len(),
       arglist.rest_arg.map(|x| x.1),
     )
+  }
+
+}
+
+impl From<ArgList> for GeneralArgList {
+
+  fn from(arglist: ArgList) -> GeneralArgList {
+    let required_args: Vec<_> = arglist.required_args.into_iter().map(GeneralArg::new).collect();
+    let optional_args: Vec<_> = arglist.optional_args.into_iter().map(GeneralArg::new).collect();
+    let rest_arg: Option<_> = arglist.rest_arg.map(|(name, vararg)| (GeneralArg::new(name), vararg));
+    GeneralArgList {
+      required_args,
+      optional_args,
+      rest_arg,
+    }
+  }
+
+}
+
+impl TryFrom<GeneralArgList> for ArgList {
+  type Error = ArgListParseErrorF;
+
+  // Note: Can't fail right now, but it will be able to once
+  // GeneralArgList supports constructor fields.
+  fn try_from(arglist: GeneralArgList) -> Result<Self, Self::Error> {
+    let required_args: Vec<_> = arglist.required_args.into_iter().map(|x| x.name).collect();
+    let optional_args: Vec<_> = arglist.optional_args.into_iter().map(|x| x.name).collect();
+    let rest_arg: Option<_> = arglist.rest_arg.map(|(arg, vararg)| (arg.name, vararg));
+    Ok(ArgList {
+      required_args,
+      optional_args,
+      rest_arg,
+    })
   }
 
 }
