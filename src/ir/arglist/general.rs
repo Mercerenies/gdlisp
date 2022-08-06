@@ -88,7 +88,7 @@ impl GeneralArg {
 /// type converted to [`ArgListParseError`]. The original error's
 /// [`SourceOffset`](crate::pipeline::source::SourceOffset) will be
 /// preserved.
-fn parse_access_slot<'a>(ast: &'a AST) -> Result<AccessSlotSyntax<'a>, ArgListParseError> {
+fn parse_access_slot(ast: &AST) -> Result<AccessSlotSyntax<'_>, ArgListParseError> {
   AccessSlotSyntax::parse_ast(ast)
     .map_err(|err| ArgListParseError::new(ArgListParseErrorF::InvalidArgument(ast.clone()), err.pos))
 }
