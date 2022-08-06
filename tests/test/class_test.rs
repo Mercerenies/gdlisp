@@ -90,6 +90,78 @@ static func run():
 }
 
 #[test]
+pub fn parent_constructor_class_test_4() {
+  assert_eq!(parse_compile_decl("((defclass ClassName (Node) (defvar x) (defn _init (@x y) (super (if y 1 2))) (defn foo () 2)))"), r#"extends Reference
+class _LambdaBlock extends GDLisp.Function:
+    var y
+    func _init(y):
+        self.y = y
+        self.__gdlisp_required = 0
+        self.__gdlisp_optional = 0
+        self.__gdlisp_rest = 0
+    func call_func():
+        var _cond = null
+        if y:
+            _cond = 1
+        else:
+            if true:
+                _cond = 2
+            else:
+                _cond = null
+        return _cond
+    func call_funcv(args):
+        if args == null:
+            return call_func()
+        else:
+            push_error("Too many arguments")
+class ClassName extends Node:
+    func _init(x_0, y).(GDLisp.sys_DIV_funcall(_LambdaBlock.new(y), null)):
+        self.x = x_0
+    var x
+    func foo():
+        return 2
+static func run():
+    return null
+"#);
+}
+
+#[test]
+pub fn parent_constructor_class_test_5() {
+  assert_eq!(parse_compile_decl("((defclass ClassName (Node) (defvar x-x) (defn _init (@x-x y) (super (if y 1 2))) (defn foo () 2)))"), r#"extends Reference
+class _LambdaBlock extends GDLisp.Function:
+    var y
+    func _init(y):
+        self.y = y
+        self.__gdlisp_required = 0
+        self.__gdlisp_optional = 0
+        self.__gdlisp_rest = 0
+    func call_func():
+        var _cond = null
+        if y:
+            _cond = 1
+        else:
+            if true:
+                _cond = 2
+            else:
+                _cond = null
+        return _cond
+    func call_funcv(args):
+        if args == null:
+            return call_func()
+        else:
+            push_error("Too many arguments")
+class ClassName extends Node:
+    func _init(x_x_0, y).(GDLisp.sys_DIV_funcall(_LambdaBlock.new(y), null)):
+        self.x_x = x_x_0
+    var x_x
+    func foo():
+        return 2
+static func run():
+    return null
+"#);
+}
+
+#[test]
 pub fn parent_constructor_class_running_test() {
   assert_eq!(parse_and_run("((defclass A (Reference) (defvar x) (defn _init (x) (set self:x x))) (defclass B (A) (defn _init (y) (super (if y 1 2)))) (print (B:new #t):x))"), "\n1\n");
 }
@@ -311,6 +383,57 @@ func _init(x):
 export(String, "foo", "bar") var x = "foo"
 func get_x():
     return self.x
+static func run():
+    return null
+"#);
+}
+
+#[test]
+pub fn init_member_var_class_test_1() {
+  assert_eq!(parse_compile_decl("((defclass ClassName (Node) (defvars x y z) (defn _init (@x))))"),
+             r#"extends Reference
+class ClassName extends Node:
+    func _init(x_0):
+        self.x = x_0
+    var x
+    var y
+    var z
+static func run():
+    return null
+"#);
+}
+
+#[test]
+pub fn init_member_var_class_test_2() {
+  assert_eq!(parse_compile_decl("((defclass ClassName (Node) (defvars x y) (defvar z 10) (defn _init (@x @y))))"),
+             r#"extends Reference
+class ClassName extends Node:
+    func _init(x_0, y_1):
+        self.x = x_0
+        self.y = y_1
+    var x
+    var y
+    var z = 10
+static func run():
+    return null
+"#);
+}
+
+#[test]
+pub fn init_member_var_class_test_3() {
+  // sys/split is just to force the variable initialization to go into
+  // the constructor rather than be inline on the 'var' line.
+  assert_eq!(parse_compile_decl("((defclass ClassName (Node) (defvars x y) (defvar z (sys/split 3)) (defn _init (@x @y))))"),
+             r#"extends Reference
+class ClassName extends Node:
+    func _init(x_0, y_1):
+        var _split_0 = 3
+        self.z = _split_0
+        self.x = x_0
+        self.y = y_1
+    var x
+    var y
+    var z
 static func run():
     return null
 "#);

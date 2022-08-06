@@ -540,7 +540,7 @@ impl<'a, 'b, 'c, 'd, 'e> CompilerFrame<'a, 'b, 'c, 'd, 'e, StmtBuilder> {
         let pos = expr.pos;
         let expr = self.compile_expr(expr, NeedsResult::Yes)?.expr;
         let mut gen = RegisteredNameGenerator::new_local_var(self.table);
-        let tmp_var = factory::declare_var(&mut gen, self.builder, name, Some(expr), pos);
+        let tmp_var = factory::declare_var(&mut gen, self.builder, name, Some(expr), pos); // TODO Contextual name generator?
         Ok(StExpr {
           expr: Expr::new(ExprF::Var(tmp_var), pos),
           side_effects: SideEffects::None,

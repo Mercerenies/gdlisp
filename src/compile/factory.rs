@@ -4,6 +4,7 @@
 
 use super::frame::CompilerFrame;
 use super::stateful::NeedsResult;
+use super::names;
 use super::names::generator::NameGenerator;
 use super::names::registered::RegisteredNameGenerator;
 use super::body::builder::{StmtBuilder, CodeBuilder, HasDecls};
@@ -23,8 +24,6 @@ use crate::pipeline::source::SourceOffset;
 use crate::ir;
 use crate::ir::access_type::AccessType;
 use crate::ir::arglist::simple::SimpleArgList;
-
-use std::borrow::Cow;
 
 type IRLiteral = ir::literal::Literal;
 type IRExpr = ir::expr::Expr;
@@ -207,22 +206,23 @@ pub fn declare_class(frame: &mut CompilerFrame<impl HasDecls>,
 pub fn declare_constructor(frame: &mut CompilerFrame<impl HasDecls>,
                            constructor: &ir::decl::ConstructorDecl)
                            -> Result<(decl::InitFnDecl, Vec<decl::FnDecl>), GDError> {
+  let pos = constructor.body.pos;
 
-  // We have to copy the constructor and modify it if there are
-  // instance fields. If there aren't, then don't waste time doing the
-  // copy.
-  let mut constructor: Cow<'_, ir::decl::ConstructorDecl> = Cow::Borrowed(constructor);
+  // First, we save which original arguments which are instance
+  // fields.
+  let has_any_instance_field_args = constructor.args.has_any_instance_fields();
+  let instance_fields_to_init: Vec<(String, bool)> =
+    constructor.args.iter_vars()
+    .map(|(name, is_instance_field)| (name.to_owned(), is_instance_field))
+    .collect();
 
-  if constructor.args.has_any_instance_fields() {
-    let mut cloned_constructor = constructor.into_owned();
-    initialize_instance_fields(frame.compiler.name_generator(), &mut cloned_constructor);
-    constructor = Cow::Owned(cloned_constructor);
-  }
-
-  // By the guarantees of `initialize_instance_fields` below, at this
-  // point, all constructor arguments should be ordinary.
-  assert!(!constructor.args.has_any_instance_fields(), "Failed to desugar instance field arguments in constructor {:?}", constructor);
-  let simple_arglist = SimpleArgList { args: constructor.args.args.iter().map(|(name, _)| name.to_owned()).collect() };
+  let simple_arglist = SimpleArgList { args: constructor.args.args.iter().map(|(name, is_instance_field)| {
+    if *is_instance_field {
+      frame.compiler.name_generator().generate_with(&names::lisp_to_gd(name))
+    } else {
+      name.to_owned()
+    }
+  }).collect() };
 
   let constructor_with_init = declare_function_with_init(frame,
                                                          String::from(library::CONSTRUCTOR_NAME),
@@ -232,20 +232,44 @@ pub fn declare_constructor(frame: &mut CompilerFrame<impl HasDecls>,
                                                          &stmt_wrapper::Vacuous)?;
 
   let DeclaredFnWithInit { function: constructor, inits } = constructor_with_init;
-  let decl::FnDecl { name: _, args, body } = constructor;
+  let decl::FnDecl { name: _, args, mut body } = constructor;
+
+  // Handle the instance field initialization
+  if has_any_instance_field_args {
+    let mut new_body: Vec<Stmt> = Vec::new();
+    let all_args: Vec<&str> = args.all_args_iter().collect();
+
+    // It should be the case that the argument list we put in at the
+    // beginning should have the same length as the one we got out at
+    // the end. I'm asserting that here, because if I change the
+    // calling convention somewhere down the line and this assumption
+    // breaks, I want to know.
+    assert!(all_args.len() == instance_fields_to_init.len(), "Calling convention not compatible with factory.rs assumptions");
+
+    for (arg_name, (field_name, is_instance_field)) in all_args.into_iter().zip(instance_fields_to_init.into_iter()) {
+      if is_instance_field {
+        let field_name = names::lisp_to_gd(&field_name);
+        new_body.push(make_instance_var_initializer(&field_name, arg_name, pos));
+      }
+    }
+
+    new_body.append(&mut body);
+    body = new_body;
+  }
 
   let constructor = decl::InitFnDecl { args, super_call: inits, body };
 
   Ok((constructor, vec!()))
 }
 
-/// Modifies the constructor declaration to initialize all instance
-/// fields, as needed. The resulting constructor will have an argument
-/// list for which none of the arguments are declared as instance
-/// fields.
-fn initialize_instance_fields(_gen: &mut impl NameGenerator,
-                              _constructor: &mut ir::decl::ConstructorDecl) {
-  todo!() /////
+/// Returns a statement which assigns the value of the given local
+/// variable to an instance variable with the given name.
+fn make_instance_var_initializer(instance_var_name: &str, local_var_name: &str, pos: SourceOffset) -> Stmt {
+  Stmt::simple_assign(
+    Expr::self_var(pos).attribute(instance_var_name, pos),
+    Expr::var(local_var_name, pos),
+    pos,
+  )
 }
 
 /// Compiles a GDLisp literal to a GDScript expression, using `pos` as

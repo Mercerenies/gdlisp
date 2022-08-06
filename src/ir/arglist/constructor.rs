@@ -56,6 +56,12 @@ impl ConstructorArgList {
     self.args.iter().map(|(name, field)| (name.borrow(), *field))
   }
 
+  /// An iterator over all variable names, together with whether or
+  /// not they are instance variables, as a mutable iterator.
+  pub fn iter_vars_mut(&mut self) -> impl Iterator<Item = &mut (String, bool)> {
+    self.args.iter_mut()
+  }
+
   /// Attempts to parse a constructor argument list from the iterator.
   /// A constructor argument list can contain ordinary names, just
   /// like a [`SimpleArgList`], but those names can also be written in
