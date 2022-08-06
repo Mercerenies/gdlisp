@@ -28,7 +28,7 @@ impl ConstructorArgList {
 
   /// Converts the argument list into a GDScript argument list, using
   /// the given name generator to produce unique names, similar to
-  /// [`ArgList::into_gd_arglist`].
+  /// [`ArgList::into_gd_arglist`](super::ordinary::ArgList::into_gd_arglist).
   ///
   /// The second return value of this function includes, in addition
   /// to the name translations, whether or not each argument is marked

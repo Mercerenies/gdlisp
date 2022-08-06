@@ -108,9 +108,9 @@ pub enum FnName {
 }
 
 /// A specification of the parameters a function takes. `FnSpecs` is
-/// similar to [`ArgList`](crate::ir::arglist::ArgList) except that
-/// the latter specifies names for its arguments, whereas this
-/// structure simply designates the shape of the function.
+/// similar to [`ArgList`](crate::ir::arglist::ordinary::ArgList)
+/// except that the latter specifies names for its arguments, whereas
+/// this structure simply designates the shape of the function.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub struct FnSpecs {
   /// The number of required parameters to the function. If the
@@ -213,8 +213,8 @@ impl FnSpecs {
   }
 
   /// In GDLisp, a function can have a "rich" argument list (as per
-  /// [`ArgList`](crate::ir::arglist::ArgList)), consisting of
-  /// required arguments, optional arguments, and a rest argument.
+  /// [`ArgList`](crate::ir::arglist::ordinary::ArgList)), consisting
+  /// of required arguments, optional arguments, and a rest argument.
   /// However, on the GDScript side, we always compile down to a set
   /// number of required arguments. Given an `FnSpecs`, this method
   /// returns the number of arguments that will be present in that
