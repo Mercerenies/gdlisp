@@ -8,6 +8,7 @@ pub mod constructor;
 pub mod error;
 pub mod general;
 pub mod ordinary;
+pub mod parser;
 pub mod simple;
 pub mod vararg;
 
@@ -24,6 +25,7 @@ mod tests {
   use crate::compile::names::fresh::FreshNameGenerator;
   use crate::compile::names::NameTrans;
   use crate::gdscript::arglist::ArgList as GDArgList;
+  use crate::pipeline::source::SourceOffset;
 
   use std::convert::TryInto;
 
@@ -34,7 +36,7 @@ mod tests {
   fn parse_arglist(input: &str) -> Result<ArgList, ArgListParseError> {
     let ast = parse_ast(input);
     let dotted: Vec<_> = DottedExpr::new(&ast).try_into().unwrap();
-    ArgList::parse(dotted)
+    ArgList::parse(dotted, SourceOffset(0))
   }
 
   fn arglist(req: Vec<&str>, opt: Vec<&str>, rest: Option<(&str, VarArg)>) -> ArgList {

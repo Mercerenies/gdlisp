@@ -155,7 +155,7 @@ pub fn lambda_form(icompiler: &mut IncCompiler,
                    -> Result<Expr, PError> {
   Expecting::at_least(1).validate("lambda", pos, tail)?;
   let args: Vec<_> = DottedExpr::new(tail[0]).try_into()?;
-  let args = ArgList::parse(args)?;
+  let args = ArgList::parse(args, pos)?;
   let body = tail[1..].iter().map(|expr| icompiler.compile_expr(pipeline, expr)).collect::<Result<Vec<_>, _>>()?;
   Ok(Expr::new(ExprF::Lambda(args, Box::new(Expr::progn(body, pos))), pos))
 }
@@ -242,7 +242,7 @@ pub fn flet_form(icompiler: &mut IncCompiler,
         _ => Err(PError::from(GDError::new(GDErrorF::InvalidArg(String::from("flet"), (*clause).clone(), ExpectedShape::FnDecl), pos))),
       }?;
       let args: Vec<_> = DottedExpr::new(func[1]).try_into()?;
-      let args = ArgList::parse(args)?;
+      let args = ArgList::parse(args, pos)?;
       let body = func[2..].iter().map(|expr| icompiler.compile_expr(pipeline, expr)).collect::<Result<Vec<_>, _>>()?;
       Ok(LocalFnClause { name, args, body: Expr::progn(body, clause.pos) })
     }).collect::<Result<Vec<_>, _>>()?;
@@ -389,7 +389,7 @@ pub fn macrolet_form(icompiler: &mut IncCompiler,
       _ => Err(PError::from(GDError::new(GDErrorF::InvalidArg(String::from("macrolet"), (*clause).clone(), ExpectedShape::MacroDecl), pos))),
     }?;
     let args: Vec<_> = DottedExpr::new(func[1]).try_into()?;
-    let args = ArgList::parse(args)?;
+    let args = ArgList::parse(args, pos)?;
     let body = func[2..].iter().map(|expr| icompiler.compile_expr(pipeline, expr)).collect::<Result<Vec<_>, _>>()?;
     Ok(decl::MacroDecl { visibility: Visibility::MACRO, name, args, body: Expr::progn(body, clause.pos) })
   }).collect::<Result<Vec<_>, _>>()?;

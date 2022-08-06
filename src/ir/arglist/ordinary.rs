@@ -2,18 +2,19 @@
 //! Provides the ordinary argument list type [`ArgList`] for
 //! module-level functions and for lambda expressions.
 
-use crate::sxp::ast::{AST, ASTF};
+use crate::sxp::ast::AST;
 use crate::compile::names::{self, NameTrans};
 use crate::compile::names::generator::NameGenerator;
 use crate::compile::symbol_table::function_call::FnSpecs;
 use crate::gdscript::arglist::ArgList as GDArgList;
+use crate::pipeline::source::SourceOffset;
 use super::error::{ArgListParseError, ArgListParseErrorF};
 use super::vararg::VarArg;
 use super::general::{GeneralArg, GeneralArgList};
+use super::parser;
 
 use std::convert::TryFrom;
 use std::borrow::Borrow;
-use std::cmp::Ordering;
 
 /// An argument list in GDLisp consists of a sequence of zero or more
 /// required arguments, followed by zero or more optional arguments,
@@ -29,70 +30,6 @@ pub struct ArgList {
   /// The "rest" argument. If present, this indicates the name of the
   /// argument and the type of "rest" argument.
   pub rest_arg: Option<(String, VarArg)>,
-}
-
-/// The current type of argument we're looking for when parsing an
-/// argument list.
-///
-/// This is an internal type to this module and, generally, callers
-/// from outside the module should not need to interface with it.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-enum ParseState {
-  /// We're expecting required arguments. This is the state we begin
-  /// in.
-  Required,
-  /// We're expecting optional arguments. This is the state following
-  /// `&opt`.
-  Optional,
-  /// We're expecting the single `&rest` argument.
-  Rest,
-  /// We're expecting the single `&arr` argument.
-  Arr,
-  /// We have passed the "rest" argument and are expecting the end of
-  /// an argument list. If *any* arguments occur in this state, an
-  /// error will be issued.
-  RestInvalid,
-}
-
-/// `ParseState` implements `PartialOrd` to indicate valid orderings
-/// in which the argument type directives can occur. Specifically, we
-/// can transition from a state `u` to a state `v` if and only if `u
-/// <= v` is true. If we attempt a state transition where that is not
-/// true, then an [`ArgListParseErrorF::DirectiveOutOfOrder`] error
-/// will be issued.
-///
-/// There are two chains in this ordering:
-///
-/// * `Required < Optional < Rest < RestInvalid`
-///
-/// * `Required < Optional < Arr < RestInvalid`
-///
-/// The two states `Rest` and `Arr` are incomparable.
-impl PartialOrd for ParseState {
-  fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-    if *self == *other {
-      return Some(Ordering::Equal);
-    }
-    if *self == ParseState::Required {
-      return Some(Ordering::Less);
-    }
-    if *other == ParseState::Required {
-      return Some(Ordering::Greater);
-    }
-    if *self == ParseState::Optional {
-      return Some(Ordering::Less);
-    }
-    if *other == ParseState::Optional {
-      return Some(Ordering::Greater);
-    }
-    if *self == ParseState::RestInvalid {
-      return Some(Ordering::Greater);
-    }
-    if *other == ParseState::RestInvalid {
-      return Some(Ordering::Less);
-    }
-    None
-  }
 }
 
 impl ArgList {
@@ -143,87 +80,11 @@ impl ArgList {
   }
 
   /// Parse an argument list from an iterator of `AST` values. Returns
-  /// either the [`ArgList`] or an appropriate error.
-  pub fn parse<'a>(args: impl IntoIterator<Item = &'a AST>)
+  /// either the [`GeneralArgList`] or an appropriate error.
+  pub fn parse<'a>(args: impl IntoIterator<Item = &'a AST>, pos: SourceOffset)
                    -> Result<ArgList, ArgListParseError> {
-    let mut state = ParseState::Required;
-    let mut req = Vec::new();
-    let mut opt = Vec::new();
-    let mut rest = None;
-    for arg in args {
-      let pos = arg.pos;
-      if let ASTF::Symbol(arg) = &arg.value {
-        if arg.starts_with('&') {
-          match arg.borrow() {
-            "&opt" => {
-              if state < ParseState::Optional {
-                state = ParseState::Optional;
-              } else {
-                return Err(ArgListParseError::new(ArgListParseErrorF::DirectiveOutOfOrder(arg.to_owned()), pos));
-              }
-            }
-            "&rest" => {
-              if state < ParseState::Rest {
-                state = ParseState::Rest;
-              } else {
-                return Err(ArgListParseError::new(ArgListParseErrorF::DirectiveOutOfOrder(arg.to_owned()), pos));
-              }
-            }
-            "&arr" => {
-              if state < ParseState::Arr {
-                state = ParseState::Arr;
-              } else {
-                return Err(ArgListParseError::new(ArgListParseErrorF::DirectiveOutOfOrder(arg.to_owned()), pos));
-              }
-            }
-            _ => {
-              return Err(ArgListParseError::new(ArgListParseErrorF::UnknownDirective(arg.to_owned()), pos));
-            }
-          }
-          continue;
-        }
-      }
-      match state {
-        ParseState::Required => {
-          match &arg.value {
-            ASTF::Symbol(s) => req.push(s.to_owned()),
-            _ => return Err(ArgListParseError::new(ArgListParseErrorF::InvalidArgument(arg.clone()), pos)),
-          }
-        }
-        ParseState::Optional => {
-          match &arg.value {
-            ASTF::Symbol(s) => opt.push(s.to_owned()),
-            _ => return Err(ArgListParseError::new(ArgListParseErrorF::InvalidArgument(arg.clone()), pos)),
-          }
-        }
-        ParseState::Rest => {
-          match &arg.value {
-            ASTF::Symbol(s) => {
-              rest = Some((s.to_owned(), VarArg::RestArg));
-              state = ParseState::RestInvalid;
-            },
-            _ => return Err(ArgListParseError::new(ArgListParseErrorF::InvalidArgument(arg.clone()), pos)),
-          }
-        }
-        ParseState::Arr => {
-          match &arg.value {
-            ASTF::Symbol(s) => {
-              rest = Some((s.to_owned(), VarArg::ArrArg));
-              state = ParseState::RestInvalid;
-            },
-            _ => return Err(ArgListParseError::new(ArgListParseErrorF::InvalidArgument(arg.clone()), pos)),
-          }
-        }
-        ParseState::RestInvalid => {
-          return Err(ArgListParseError::new(ArgListParseErrorF::InvalidArgument(arg.clone()), pos));
-        }
-      }
-    }
-    Ok(ArgList {
-      required_args: req,
-      optional_args: opt,
-      rest_arg: rest,
-    })
+    let general_arglist = parser::parse(args)?;
+    ArgList::try_from(general_arglist).map_err(|err| ArgListParseError::new(err, pos))
   }
 
   /// Converts the argument list into a GDScript argument list, using

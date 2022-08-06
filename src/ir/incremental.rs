@@ -288,7 +288,7 @@ impl IncCompiler {
             Expecting::at_least(2).validate("defn", decl.pos, &vec[1..])?;
             let name = ExpectedShape::extract_symbol("defn", vec[1].clone())?;
             let args: Vec<_> = DottedExpr::new(vec[2]).try_into()?;
-            let args = ArgList::parse(args)?;
+            let args = ArgList::parse(args, decl.pos)?;
             let (mods, body) = modifier::function::parser().parse(&vec[3..])?;
             let body = body.iter().map(|expr| self.compile_expr(pipeline, expr)).collect::<Result<Vec<_>, _>>()?;
             let mut decl = decl::FnDecl {
@@ -308,7 +308,7 @@ impl IncCompiler {
             Expecting::at_least(2).validate("defmacro", decl.pos, &vec[1..])?;
             let name = ExpectedShape::extract_symbol("defmacro", vec[1].clone())?;
             let args: Vec<_> = DottedExpr::new(vec[2]).try_into()?;
-            let args = ArgList::parse(args)?;
+            let args = ArgList::parse(args, decl.pos)?;
             let (mods, body) = modifier::macros::parser().parse(&vec[3..])?;
             let body = body.iter().map(|expr| self.compile_expr(pipeline, expr)).collect::<Result<Vec<_>, _>>()?;
             let mut decl = decl::MacroDecl {
@@ -430,7 +430,7 @@ impl IncCompiler {
                 Expecting::at_least(3).validate("sys/declare", decl.pos, &vec[1..])?;
                 let (name, target_name) = IncCompiler::get_declare_decl_name(vec[2])?;
                 let args: Vec<_> = DottedExpr::new(vec[3]).try_into()?;
-                let args = ArgList::parse(args)?;
+                let args = ArgList::parse(args, decl.pos)?;
                 let declare_type =
                   if value_type == "superfunction" {
                     decl::DeclareType::SuperglobalFn(args)

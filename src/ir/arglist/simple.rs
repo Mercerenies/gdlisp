@@ -44,7 +44,8 @@ impl SimpleArgList {
   /// error is reported.
   pub fn parse<'a>(args: impl IntoIterator<Item = &'a AST>, pos: SourceOffset)
                    -> Result<SimpleArgList, ArgListParseError> {
-    ArgList::parse(args).and_then(|arglist| {
+    // TODO Change this to go through GeneralArgList instead of ArgList
+    ArgList::parse(args, pos).and_then(|arglist| {
       SimpleArgList::try_from(arglist).map_err(|err| ArgListParseError::new(err, pos))
     })
   }
