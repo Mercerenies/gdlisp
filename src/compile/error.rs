@@ -4,7 +4,7 @@
 use super::args::{Expecting, ExpectedShape};
 use crate::sxp;
 use crate::sxp::ast::AST;
-use crate::ir::arglist::{ArgListParseError, ArgListParseErrorF};
+use crate::ir::arglist::error::{ArgListParseError, ArgListParseErrorF};
 use crate::ir::identifier::{Id, Namespace, ClassNamespace};
 use crate::ir::decl::DuplicateMainClassError;
 use crate::ir::import::{ImportDeclParseError, ImportNameResolutionError};

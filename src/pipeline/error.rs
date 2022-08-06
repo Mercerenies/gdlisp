@@ -2,7 +2,7 @@
 use crate::compile::error::GDError;
 use crate::pipeline::source::{SourceOffset, Sourced};
 use crate::sxp::dotted::TryFromDottedExprError;
-use crate::ir::arglist::ArgListParseError;
+use crate::ir::arglist::error::ArgListParseError;
 use crate::ir::modifier::{ParseError as ModifierParseError};
 use crate::ir::decl::DuplicateMainClassError;
 use crate::ir::scope::error::ScopeError;

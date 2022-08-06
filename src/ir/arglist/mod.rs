@@ -4,19 +4,21 @@
 //! See [`crate::gdscript::arglist`] for the companion module on the
 //! GDScript side.
 
+pub mod error;
+
 use crate::gdscript::arglist::ArgList as GDArgList;
 use crate::compile::names::{self, NameTrans};
 use crate::compile::names::generator::NameGenerator;
 use crate::compile::symbol_table::function_call::FnSpecs;
 use crate::sxp::ast::{AST, ASTF};
-use crate::pipeline::source::{SourceOffset, Sourced};
+use crate::pipeline::source::SourceOffset;
+use error::{ArgListParseError, ArgListParseErrorF};
 
 use serde::{Serialize, Deserialize};
 
 use std::convert::TryFrom;
 use std::borrow::Borrow;
 use std::cmp::Ordering;
-use std::fmt;
 
 /// An argument list in GDLisp consists of a sequence of zero or more
 /// required arguments, followed by zero or more optional arguments,
@@ -63,32 +65,6 @@ pub enum VarArg {
   RestArg,
   /// An `&arr` argument accumulates the arguments into a Godot array.
   ArrArg,
-}
-
-/// `ArgListParseErrorF` describes the types of errors that can occur
-/// when parsing an [`AST`] argument list.
-#[derive(Debug, Clone, Eq, PartialEq)]
-pub enum ArgListParseErrorF {
-  /// An argument of some specific type was expected but something
-  /// else was provided. (TODO Remove this in favor of more specific
-  /// errors)
-  InvalidArgument(AST),
-  /// An `&` directive was provided but the name was unknown.
-  UnknownDirective(String),
-  /// An `&` directive appeared in the wrong place in an argument
-  /// list, such as attempting to specify `&opt` arguments after
-  /// `&rest`.
-  DirectiveOutOfOrder(String),
-  /// A simple argument list with no directives was expected, but
-  /// directives were used.
-  SimpleArgListExpected,
-}
-
-/// An [`ArgListParseErrorF`] together with [`SourceOffset`] data.
-#[derive(Debug, Clone, Eq, PartialEq)]
-pub struct ArgListParseError {
-  pub value: ArgListParseErrorF,
-  pub pos: SourceOffset,
 }
 
 /// The current type of argument we're looking for when parsing an
@@ -478,44 +454,6 @@ impl TryFrom<ArgList> for SimpleArgList {
     } else {
       Err(ArgListParseErrorF::SimpleArgListExpected)
     }
-  }
-
-}
-
-impl ArgListParseError {
-  pub fn new(value: ArgListParseErrorF, pos: SourceOffset) -> ArgListParseError {
-    ArgListParseError { value, pos }
-  }
-}
-
-impl fmt::Display for ArgListParseError {
-  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-    match &self.value {
-      ArgListParseErrorF::InvalidArgument(ast) => {
-        write!(f, "Invalid arglist argument {}", ast)
-      }
-      ArgListParseErrorF::UnknownDirective(s) => {
-        write!(f, "Unknown arglist directive {}", s)
-      }
-      ArgListParseErrorF::DirectiveOutOfOrder(s) => {
-        write!(f, "Arglist directive appeared out of order {}", s)
-      }
-      ArgListParseErrorF::SimpleArgListExpected => {
-        write!(f, "Only simple arglists are allowed in this context")
-      }
-    }
-  }
-}
-
-impl Sourced for ArgListParseError {
-  type Item = ArgListParseErrorF;
-
-  fn get_source(&self) -> SourceOffset {
-    self.pos
-  }
-
-  fn get_value(&self) -> &ArgListParseErrorF {
-    &self.value
   }
 
 }
