@@ -15,6 +15,9 @@ pub enum ArgListParseErrorF {
   /// else was provided. (TODO Remove this in favor of more specific
   /// errors)
   InvalidArgument(AST),
+  /// An `@` (or `self:`) argument was found in a non-constructor
+  /// context.
+  BadSelf(AST),
   /// An `&` directive was provided but the name was unknown.
   UnknownDirective(String),
   /// An `&` directive appeared in the wrong place in an argument
@@ -44,6 +47,9 @@ impl fmt::Display for ArgListParseError {
     match &self.value {
       ArgListParseErrorF::InvalidArgument(ast) => {
         write!(f, "Invalid arglist argument {}", ast)
+      }
+      ArgListParseErrorF::BadSelf(_) => {
+        write!(f, "'@' arguments are not supported here")
       }
       ArgListParseErrorF::UnknownDirective(s) => {
         write!(f, "Unknown arglist directive {}", s)

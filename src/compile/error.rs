@@ -288,6 +288,7 @@ impl GDErrorF {
           ArgListParseErrorF::UnknownDirective(_) => 3,
           ArgListParseErrorF::DirectiveOutOfOrder(_) => 4,
           ArgListParseErrorF::SimpleArgListExpected => 5,
+          ArgListParseErrorF::BadSelf(_) => 53,
         }
       }
       GDErrorF::ImportDeclParseError(err) => {
@@ -348,6 +349,7 @@ impl GDErrorF {
       GDErrorF::UnknownImportedName(_) => 50,
       GDErrorF::DuplicateNameConflictInMainClass(_, _) => 51,
       GDErrorF::BadPreloadArgument(_) => 52,
+      // NOTE: 53 is ArgListParseErrorF::BadSelf above.
     }
   }
 
