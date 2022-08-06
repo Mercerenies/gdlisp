@@ -39,7 +39,7 @@ use crate::compile::stateful::StExpr;
 use crate::compile::stmt_wrapper::{self, StmtWrapper};
 use crate::compile::args::{self, Expecting};
 use crate::compile::names::registered::RegisteredNameGenerator;
-use crate::ir::arglist::VarArg;
+use crate::ir::arglist::vararg::VarArg;
 use crate::util;
 use crate::pipeline::source::SourceOffset;
 use super::function_call::FnCall;

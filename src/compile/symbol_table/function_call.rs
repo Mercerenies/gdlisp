@@ -4,7 +4,7 @@
 
 use crate::gdscript::expr::Expr;
 use crate::gdscript::inner_class;
-use crate::ir::arglist::VarArg;
+use crate::ir::arglist::vararg::VarArg;
 use crate::compile::Compiler;
 use crate::compile::error::GDError;
 use crate::compile::body::builder::StmtBuilder;

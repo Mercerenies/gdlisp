@@ -2,7 +2,7 @@
 pub mod builder;
 
 use builder::LambdaVarargBuilder;
-use crate::ir::arglist::VarArg;
+use crate::ir::arglist::vararg::VarArg;
 use crate::compile::symbol_table::function_call::FnSpecs;
 use crate::gdscript::decl::{self, Decl, DeclF, VarDecl};
 use crate::gdscript::expr::Expr;
@@ -115,7 +115,7 @@ pub fn generate_lambda_class(class_name: String,
 #[cfg(test)]
 mod tests {
   use super::*;
-  use crate::ir::arglist::VarArg;
+  use crate::ir::arglist::vararg::VarArg;
 
   fn compile_vararg(specs: FnSpecs) -> String {
     let result = generate_lambda_vararg(specs, SourceOffset::default());
