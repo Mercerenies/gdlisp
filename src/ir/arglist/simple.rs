@@ -3,7 +3,9 @@
 //! consist of simple names and no other features.
 
 use super::error::{ArgListParseError, ArgListParseErrorF};
+use super::general::{GeneralArgList, GeneralArg};
 use super::ordinary::ArgList;
+use super::parser;
 use crate::sxp::ast::AST;
 use crate::gdscript::arglist::ArgList as GDArgList;
 use crate::compile::names::generator::NameGenerator;
@@ -44,8 +46,7 @@ impl SimpleArgList {
   /// error is reported.
   pub fn parse<'a>(args: impl IntoIterator<Item = &'a AST>, pos: SourceOffset)
                    -> Result<SimpleArgList, ArgListParseError> {
-    // TODO Change this to go through GeneralArgList instead of ArgList
-    ArgList::parse(args, pos).and_then(|arglist| {
+    parser::parse(args).and_then(|arglist| {
       SimpleArgList::try_from(arglist).map_err(|err| ArgListParseError::new(err, pos))
     })
   }
@@ -62,21 +63,38 @@ impl SimpleArgList {
 
 }
 
-impl From<SimpleArgList> for ArgList {
-  fn from(arglist: SimpleArgList) -> ArgList {
-    ArgList::required(arglist.args)
+impl From<SimpleArgList> for GeneralArgList {
+  fn from(arglist: SimpleArgList) -> GeneralArgList {
+    let required_args: Vec<_> = arglist.args.into_iter().map(GeneralArg::new).collect();
+    GeneralArgList {
+      required_args: required_args,
+      optional_args: vec!(),
+      rest_arg: None,
+    }
   }
 }
 
-impl TryFrom<ArgList> for SimpleArgList {
+impl TryFrom<GeneralArgList> for SimpleArgList {
   type Error = ArgListParseErrorF;
 
-  fn try_from(arglist: ArgList) -> Result<Self, Self::Error> {
+  fn try_from(arglist: GeneralArgList) -> Result<Self, Self::Error> {
     if arglist.optional_args.is_empty() && arglist.rest_arg.is_none() {
-      Ok(SimpleArgList { args: arglist.required_args })
+      let required_args: Vec<_> = arglist.required_args.into_iter().map(|x| x.name).collect();
+      Ok(SimpleArgList { args: required_args })
     } else {
       Err(ArgListParseErrorF::SimpleArgListExpected)
     }
   }
 
+}
+
+impl From<SimpleArgList> for ArgList {
+  fn from(arglist: SimpleArgList) -> ArgList {
+    let required_args: Vec<_> = arglist.args;
+    ArgList {
+      required_args: required_args,
+      optional_args: vec!(),
+      rest_arg: None,
+    }
+  }
 }
