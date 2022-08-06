@@ -1,4 +1,5 @@
 
+pub mod access_slot;
 pub mod assignment;
 pub mod bootstrap;
 pub mod local_binding;
@@ -22,6 +23,7 @@ use crate::pipeline::source::SourceOffset;
 use crate::pipeline::error::PError;
 use local_binding::{FLetLocalBinding, LabelsLocalBinding, LocalBinding};
 use assignment::AssignmentForm;
+use access_slot::AccessSlotSyntax;
 
 use std::convert::{TryFrom, TryInto};
 use std::borrow::Borrow;
@@ -272,10 +274,9 @@ pub fn access_slot_form(icompiler: &mut IncCompiler,
                         tail: &[&AST],
                         pos: SourceOffset)
                         -> Result<Expr, PError> {
-  Expecting::exactly(2).validate("access-slot", pos, tail)?;
-  let lhs = icompiler.compile_expr(pipeline, tail[0])?;
-  let slot_name = ExpectedShape::extract_symbol("access-slot", tail[1].clone())?;
-  Ok(Expr::new(ExprF::FieldAccess(Box::new(lhs), slot_name), pos))
+  let AccessSlotSyntax { object, slot_name } = AccessSlotSyntax::parse_from_tail(tail, pos)?;
+  let object = icompiler.compile_expr(pipeline, object)?;
+  Ok(Expr::new(ExprF::FieldAccess(Box::new(object), slot_name), pos))
 }
 
 pub fn new_form(icompiler: &mut IncCompiler,

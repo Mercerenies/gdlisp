@@ -14,6 +14,7 @@
 use super::error::{GDError, GDErrorF};
 use crate::pipeline::source::SourceOffset;
 use crate::sxp::ast::{AST, ASTF};
+use crate::ir::special_form::access_slot::ACCESS_SLOT_FORM_NAME;
 
 use std::fmt;
 
@@ -77,6 +78,8 @@ pub enum ExpectedShape {
   InstanceFnName,
   /// A symbol, or a pair of symbols as a 2-element list.
   SymbolOrPairOfSymbols,
+  /// The `access-slot` literal name.
+  AccessSlotName,
 }
 
 impl Expecting {
@@ -224,6 +227,7 @@ impl fmt::Display for ExpectedShape {
       ExpectedShape::YieldArg => write!(f, "additional argument (yield takes 0 or 2 arguments)"),
       ExpectedShape::InstanceFnName => write!(f, "instance function name"),
       ExpectedShape::SymbolOrPairOfSymbols => write!(f, "symbol or 2-element list of symbols"),
+      ExpectedShape::AccessSlotName => write!(f, "the literal symbol '{}'", ACCESS_SLOT_FORM_NAME),
     }
   }
 }

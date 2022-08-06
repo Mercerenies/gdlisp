@@ -7,6 +7,7 @@
 
 use super::ast::AST;
 use crate::pipeline::source::SourceOffset;
+use crate::ir::special_form::access_slot::ACCESS_SLOT_FORM_NAME;
 
 /// Produces an arbitrary syntactic expression of the form `(a b)`,
 /// where `a` is a symbol and `b` is an arbitrary [`AST`].
@@ -77,7 +78,7 @@ pub fn vector3(x: AST, y: AST, z: AST, pos: SourceOffset) -> AST {
 
 /// Produces the syntactic form `(access-slot x y)`
 pub fn access_slot(x: AST, y: AST, pos: SourceOffset) -> AST {
-  binary("access-slot", x, y, pos)
+  binary(ACCESS_SLOT_FORM_NAME, x, y, pos)
 }
 
 /// Produces the form `(x:get-node y)`.
