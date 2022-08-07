@@ -20,14 +20,35 @@ use std::collections::HashMap;
 
 pub const GLOBAL_CONSTANTS_CLASS: &str = "GlobalConstants";
 
-pub type NativeClasses = HashMap<String, Class>;
+#[derive(Debug, Clone)]
+pub struct NativeClasses {
+  mapping: HashMap<String, Class>,
+}
 
-pub fn get_api_from_godot() -> io::Result<NativeClasses> {
-  let tempfile = dump_json_api()?;
-  let classes: Vec<Class> = serde_json::from_reader(tempfile)?;
-  Ok(
-    classes.into_iter().map(|cls| (cls.name.clone(), cls)).collect(),
-  )
+impl NativeClasses {
+
+  pub fn get_api_from_godot() -> io::Result<NativeClasses> {
+    let tempfile = dump_json_api()?;
+    let classes: Vec<Class> = serde_json::from_reader(tempfile)?;
+    Ok(
+      NativeClasses {
+        mapping: classes.into_iter().map(|cls| (cls.name.clone(), cls)).collect(),
+      }
+    )
+  }
+
+  pub fn len(&self) -> usize {
+    self.mapping.len()
+  }
+
+  pub fn get(&self, class_name: &str) -> Option<&Class> {
+    self.mapping.get(class_name)
+  }
+
+  pub fn get_global_constants(&self) -> &Class {
+    self.get(GLOBAL_CONSTANTS_CLASS).expect("Could not read global constants from GDNative API")
+  }
+
 }
 
 #[cfg(test)]
@@ -36,7 +57,7 @@ mod tests {
 
   #[test]
   fn test_get_api_from_godot() {
-    let classes = get_api_from_godot().unwrap();
+    let classes = NativeClasses::get_api_from_godot().unwrap();
     // Assert only a few basic facts about the classes, as we want to
     // maximize compatibility with forked or custom Godot builds that
     // have different classes available.
@@ -45,7 +66,7 @@ mod tests {
     assert!(classes.len() > 0);
 
     // There should be an Object class with the desired properties.
-    let object = find_class_by_name(&classes, "Object").unwrap();
+    let object = classes.get("Object").unwrap();
     assert_eq!(object.name, "Object");
     assert_eq!(object.base_class, "");
     assert_eq!(object.api_type, api_type::ApiType::Core);
@@ -55,7 +76,7 @@ mod tests {
     assert_eq!(object.is_reference, false);
 
     // There should be an Reference class with the desired properties.
-    let object = find_class_by_name(&classes, "Reference").unwrap();
+    let object = classes.get("Reference").unwrap();
     assert_eq!(object.name, "Reference");
     assert_eq!(object.base_class, "Object");
     assert_eq!(object.api_type, api_type::ApiType::Core);
@@ -65,7 +86,7 @@ mod tests {
     assert_eq!(object.is_reference, true);
 
     // There should be an Reference class with the desired properties.
-    let object = find_class_by_name(&classes, "Node").unwrap();
+    let object = classes.get("Node").unwrap();
     assert_eq!(object.name, "Node");
     assert_eq!(object.base_class, "Object");
     assert_eq!(object.api_type, api_type::ApiType::Core);
@@ -74,10 +95,6 @@ mod tests {
     assert_eq!(object.instanciable, true);
     assert_eq!(object.is_reference, false);
 
-  }
-
-  fn find_class_by_name<'a, 'b>(classes: &'a HashMap<String, Class>, name: &'b str) -> Option<&'a Class> {
-    classes.get(name)
   }
 
 }

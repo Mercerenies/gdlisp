@@ -1,7 +1,7 @@
 
 //! Helper constants for the collection of reserved words in GDScript.
 
-use crate::gdscript::library::gdnative;
+use crate::gdscript::library::gdnative::NativeClasses;
 
 use std::collections::HashSet;
 use std::borrow::Cow;
@@ -40,15 +40,14 @@ const NAMED_PRIMITIVE_TYPES: [&str; 27] = [
 ];
 
 fn get_all_reserved_words() -> HashSet<Cow<'static, str>> {
-  let api = gdnative::get_api_from_godot().expect("Could not read GDNative API from Godot binary");
+  let api = NativeClasses::get_api_from_godot().expect("Could not read GDNative API from Godot binary");
   let mut set: HashSet<Cow<'static, str>> = HashSet::with_capacity(100);
 
   // GDScript keywords (hard-coded into GDLisp above)
   set.extend(GDSCRIPT_KEYWORDS.iter().map(|x| Cow::Borrowed(*x)));
 
   // Global constants defined in the GlobalConstants class
-  let global_constants =
-    api.get(gdnative::GLOBAL_CONSTANTS_CLASS).expect("Could not read global constants from GDNative API");
+  let global_constants = api.get_global_constants();
   set.extend(global_constants.constants.keys().map(|x| Cow::Owned(x.clone())));
 
   // Extra global constants

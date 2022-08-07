@@ -22,7 +22,7 @@ use crate::compile::body::class_scope::OutsideOfClass;
 use crate::compile::symbol_table::SymbolTable;
 use crate::compile::preload_resolver::{DefaultPreloadResolver, LookupPreloadResolver};
 use crate::gdscript::library;
-use crate::gdscript::library::gdnative::{self, NativeClasses};
+use crate::gdscript::library::gdnative::NativeClasses;
 use crate::gdscript::decl;
 use crate::util;
 use crate::util::lazy::Lazy;
@@ -66,7 +66,7 @@ impl Pipeline {
   }
 
   fn get_native_classes_impl() -> NativeClasses {
-    let result = gdnative::get_api_from_godot();
+    let result = NativeClasses::get_api_from_godot();
     result.expect("Could not read GDNative API from Godot binary")
   }
 
