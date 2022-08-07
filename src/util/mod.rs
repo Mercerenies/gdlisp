@@ -5,6 +5,7 @@ pub mod debug_wrapper;
 pub mod lattice;
 pub mod lazy;
 pub mod one;
+pub mod prefix_matcher;
 pub mod recursive;
 
 use std::collections::HashMap;
