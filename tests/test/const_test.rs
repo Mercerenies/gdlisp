@@ -48,8 +48,6 @@ pub fn builtin_const_test() {
   // I don't care what this outputs; I just want to know that Godot
   // recognizes all of the constants I'm compiling these to.
   parse_and_run(r#"([
-    ;; Primitive type names
-    Int Null TYPE_MAX TYPE_ARRAY
     ;; GDScript primitive constants
     PI INF SPKEY
     ;; GDScript primitive types
@@ -60,5 +58,24 @@ pub fn builtin_const_test() {
     Key:A Key:THORN Key:EXCLAM Key:KP_8 Key:KP-9
     KeyMask:CTRL Joy:BUTTON-13 Joy:R3 Joy:ANALOG-R2
     MIDIMessage:NOTE_ON
+  ])"#);
+}
+
+#[test]
+pub fn builtin_type_const_test() {
+  // I don't care what this outputs; I just want to know that Godot
+  // recognizes all of the constants I'm compiling these to.
+  parse_and_run(r#"([
+    ;; GDLisp type names
+    Null Int Bool Float String Vector2 Rect2 Vector3 Transform2D Plane Quat AABB
+    Basis Transform Color NodePath RID Object Dictionary Array PoolByteArray PoolIntArray
+    PoolStringArray PoolRealArray PoolVector2Array PoolVector3Array PoolColorArray
+    Any AnyRef AnyVal Number BaseArray Nothing
+    ;; GDScript original names
+    TYPE_NIL TYPE_BOOL TYPE_INT TYPE_REAL TYPE_STRING TYPE_VECTOR2 TYPE_RECT2 TYPE_VECTOR3
+    TYPE_TRANSFORM2D TYPE_PLANE TYPE_QUAT TYPE_AABB TYPE_BASIS TYPE_TRANSFORM TYPE_COLOR
+    TYPE_NODE_PATH TYPE_RID TYPE_OBJECT TYPE_DICTIONARY TYPE_ARRAY TYPE_RAW_ARRAY
+    TYPE_INT_ARRAY TYPE_REAL_ARRAY TYPE_STRING_ARRAY TYPE_VECTOR2_ARRAY TYPE_VECTOR3_ARRAY
+    TYPE_COLOR_ARRAY
   ])"#);
 }
