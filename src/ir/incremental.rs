@@ -19,6 +19,7 @@ use super::macros::{self, MacroData};
 use super::identifier::{Id, IdLike, Namespace};
 use super::modifier::{self, ParseRule};
 use super::export::Visibility;
+use super::bootstrapping::compile_bootstrapping_decl;
 use crate::util::one::One;
 use crate::sxp::dotted::{DottedExpr, TryFromDottedExprError};
 use crate::sxp::ast::{AST, ASTF};
@@ -65,9 +66,9 @@ impl IncCompiler {
   /// construct treated in a special way by the compiler during
   /// parsing. It is *not* a declaration, even though it can look like
   /// one syntactically.
-  pub const DECL_HEADS: [&'static str; 7] = [
+  pub const DECL_HEADS: [&'static str; 8] = [
     "defn", "defmacro", "defconst", "defclass", "defenum", "sys/declare",
-    "define-symbol-macro",
+    "define-symbol-macro", "sys/bootstrap",
   ];
 
   pub fn new(names: Vec<&str>) -> IncCompiler {
@@ -458,6 +459,13 @@ impl IncCompiler {
               m.apply(&mut declare);
             }
             acc.extend(One(Decl::new(DeclF::DeclareDecl(declare), vec[0].pos)));
+            Ok(())
+          }
+          "sys/bootstrap" => {
+            // (sys/bootstrap directive)
+            Expecting::exactly(1).validate("sys/bootstrap", decl.pos, &vec[1..])?;
+            let directive = ExpectedShape::extract_symbol("sys/bootstrap", vec[1].clone())?;
+            compile_bootstrapping_decl(self, pipeline, acc, &directive, decl.pos)?;
             Ok(())
           }
           _ => {

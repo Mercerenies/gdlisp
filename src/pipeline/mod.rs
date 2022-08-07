@@ -22,7 +22,7 @@ use crate::compile::body::class_scope::OutsideOfClass;
 use crate::compile::symbol_table::SymbolTable;
 use crate::compile::preload_resolver::{DefaultPreloadResolver, LookupPreloadResolver};
 use crate::gdscript::library;
-use crate::gdscript::library::gdnative;
+use crate::gdscript::library::gdnative::{self, NativeClasses};
 use crate::gdscript::decl;
 use crate::util;
 use crate::util::lazy::Lazy;
@@ -46,8 +46,6 @@ pub struct Pipeline {
   native_classes: Lazy<NativeClasses, fn() -> NativeClasses>,
   current_file_path: Option<RPathBuf>,
 }
-
-type NativeClasses = HashMap<String, gdnative::class::Class>;
 
 impl Pipeline {
 
@@ -217,7 +215,7 @@ impl Pipeline {
     &self.config
   }
 
-  pub fn get_native_classes(&mut self) -> &HashMap<String, gdnative::class::Class> {
+  pub fn get_native_classes(&mut self) -> &NativeClasses {
     self.native_classes.force_mut()
   }
 

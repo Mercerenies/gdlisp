@@ -20,7 +20,9 @@ use std::collections::HashMap;
 
 pub const GLOBAL_CONSTANTS_CLASS: &str = "GlobalConstants";
 
-pub fn get_api_from_godot() -> io::Result<HashMap<String, Class>> {
+pub type NativeClasses = HashMap<String, Class>;
+
+pub fn get_api_from_godot() -> io::Result<NativeClasses> {
   let tempfile = dump_json_api()?;
   let classes: Vec<Class> = serde_json::from_reader(tempfile)?;
   Ok(

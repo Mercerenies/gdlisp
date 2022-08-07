@@ -6,10 +6,11 @@
 //! [`all_builtin_names`], though the module also provides several
 //! simpler helper functions for commonly-used GDLisp builtins.
 
-pub mod classes;
-pub mod magic;
 pub mod cell;
+pub mod classes;
+pub mod constant_loader;
 pub mod gdnative;
+pub mod magic;
 
 use super::expr::{Expr, ExprF};
 use crate::compile::Compiler;

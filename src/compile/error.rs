@@ -233,6 +233,8 @@ pub enum GDErrorF {
   DuplicateNameConflictInMainClass(ClassNamespace, String),
   /// An explicit `preload` call was made with a bad path.
   BadPreloadArgument(String),
+  /// The directive of a `sys/bootstrap` was invalid.
+  BadBootstrappingDirective(String),
 }
 
 /// Variant of [`GDErrorF`] with source offset information. See
@@ -356,6 +358,7 @@ impl GDErrorF {
       // NOTE: 54 is ArgListParseErrorF::SimpleArgExpected above.
       //
       // NOTE: 55 is ArgListParseErrorF::ConstructorArgListExpected above.
+      GDErrorF::BadBootstrappingDirective(_) => 56,
     }
   }
 
@@ -370,6 +373,7 @@ impl GDErrorF {
       GDErrorF::NoSuchMagic(_) => true,
       GDErrorF::MacroInMinimalistError(_) => true,
       GDErrorF::ContextualFilenameUnresolved => true,
+      GDErrorF::BadBootstrappingDirective(_) => true,
       _ => false,
     }
   }
@@ -502,6 +506,9 @@ impl fmt::Display for GDErrorF {
       }
       GDErrorF::BadPreloadArgument(name) => {
         write!(f, "Argument to 'preload' must be a valid resource path, got '{}'", name)?;
+      }
+      GDErrorF::BadBootstrappingDirective(name) => {
+        write!(f, "Bad directive to sys/bootstrap, got '{}'", name)?;
       }
     }
     if self.is_internal() {

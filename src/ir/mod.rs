@@ -26,6 +26,7 @@ pub mod access_type;
 pub mod closure_names;
 pub mod special_ref;
 pub mod scope;
+pub mod bootstrapping;
 
 use decl::Decl;
 use macros::MacroData;
