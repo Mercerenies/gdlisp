@@ -426,6 +426,13 @@ impl Sourced for Expr {
 
 }
 
+impl<T> From<T> for ExprF
+where literal::Literal: From<T> {
+  fn from(value: T) -> ExprF {
+    ExprF::Literal(literal::Literal::from(value))
+  }
+}
+
 #[cfg(test)]
 mod tests {
   use super::*;

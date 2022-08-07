@@ -1,7 +1,7 @@
 
 //! Helpers for managing GDLisp and GDScript names.
 
-use phf::{phf_map};
+use phf::phf_map;
 
 use std::fmt::Write;
 
