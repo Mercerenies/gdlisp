@@ -1,7 +1,13 @@
 
+/// Provides the [`PrefixMatcher`] type, for efficiently finding a
+/// matching prefix of a given string.
+
 use std::collections::HashMap;
 use std::iter;
+use std::borrow::Borrow;
 
+/// [`PrefixMatcher`] is a state machine designed for identifying one
+/// of a finite number of prefixes.
 pub struct PrefixMatcher<'a> {
   characters: HashMap<char, usize>,
   table: PrefixTable<usize>,
@@ -64,8 +70,14 @@ impl<T: Clone> PrefixTable<T> {
 
 impl<'a> PrefixMatcher<'a> {
 
-  pub fn build(options: &'a [String]) -> Self {
-    let characters = PrefixMatcher::build_chars_map(options);
+  /// Build a prefix matcher from a collection of strings. The slice
+  /// of strings should not contain any duplicates, but it is
+  /// permitted to contain strings which are prefixes of each other.
+  pub fn build<I, S>(options: I) -> Self
+  where S: Borrow<str> + ?Sized + 'a,
+        I: Iterator<Item=&'a S> {
+    let options: Vec<_> = options.collect();
+    let characters = PrefixMatcher::build_chars_map(&options);
 
     let mut table = PrefixTable::new(characters.len());
     let mut terminal_states = Vec::new();
@@ -75,7 +87,7 @@ impl<'a> PrefixMatcher<'a> {
 
     for opt in options {
       let mut current_state: usize = 0;
-      for ch in opt.chars() {
+      for ch in opt.borrow().chars() {
         let column = characters[&ch];
         let mut new_state = *table.get(current_state, column).unwrap();
         if new_state == EMPTY_CELL {
@@ -86,17 +98,18 @@ impl<'a> PrefixMatcher<'a> {
         }
         current_state = new_state;
       }
-      terminal_states[current_state] = Some(opt.as_ref());
+      terminal_states[current_state] = Some(opt.borrow());
     }
 
     PrefixMatcher { characters, table, terminal_states }
   }
 
-  fn build_chars_map(options: &[String]) -> HashMap<char, usize> {
+  fn build_chars_map<S>(options: &[&S]) -> HashMap<char, usize>
+  where S: Borrow<str> + ?Sized + 'a {
     let mut next_index: usize = 0;
     let mut result = HashMap::new();
     for string in options {
-      for ch in string.chars() {
+      for ch in (*string).borrow().chars() {
         result.entry(ch).or_insert_with(|| {
           next_index += 1;
           next_index - 1
@@ -106,6 +119,9 @@ impl<'a> PrefixMatcher<'a> {
     result
   }
 
+  /// Returns the longest prefix in this [`PrefixMatcher`] which is a
+  /// prefix of the input string. If there is no match, returns
+  /// `None`.
   pub fn identify_prefix(&self, string: &str) -> Option<&'a str> {
     let mut final_result: Option<&'a str> = None;
     let mut state: usize = 0;
@@ -144,7 +160,7 @@ mod tests {
 
   #[test]
   fn test_chars_map() {
-    let options = vec!(String::from("abc"), String::from("def"), String::from("aBC"), String::from("g"));
+    let options = vec!("abc", "def", "aBC", "g");
     let intended_result = HashMap::from([
       ('a', 0), ('b', 1), ('c', 2), ('d', 3), ('e', 4), ('f', 5), ('B', 6), ('C', 7), ('g', 8),
     ]);
@@ -153,8 +169,8 @@ mod tests {
 
   #[test]
   fn test_empty_prefix_identifier() {
-    let options: Vec<String> = vec!();
-    let matcher = PrefixMatcher::build(&options);
+    let options: Vec<&'static str> = vec!();
+    let matcher = PrefixMatcher::build(options.iter());
     assert_eq!(matcher.identify_prefix("abc"), None);
     assert_eq!(matcher.identify_prefix("def"), None);
     assert_eq!(matcher.identify_prefix(""), None);
@@ -163,8 +179,8 @@ mod tests {
 
   #[test]
   fn test_empty_string_prefix_identifier() {
-    let options: Vec<String> = vec!(String::from(""));
-    let matcher = PrefixMatcher::build(&options);
+    let options = vec!("");
+    let matcher = PrefixMatcher::build(options.iter());
     assert_eq!(matcher.identify_prefix("abc"), Some(""));
     assert_eq!(matcher.identify_prefix("def"), Some(""));
     assert_eq!(matcher.identify_prefix(""), Some(""));
@@ -173,8 +189,8 @@ mod tests {
 
   #[test]
   fn test_prefix_identifier_foobar() {
-    let options: Vec<String> = vec!(String::from("foo"), String::from("bar"), String::from("foobar"));
-    let matcher = PrefixMatcher::build(&options);
+    let options = vec!("foo", "bar", "foobar");
+    let matcher = PrefixMatcher::build(options.iter());
     assert_eq!(matcher.identify_prefix("abc"), None);
     assert_eq!(matcher.identify_prefix(""), None);
     assert_eq!(matcher.identify_prefix("foo"), Some("foo"));
@@ -189,8 +205,8 @@ mod tests {
   #[test]
   fn test_prefix_identifier_foobar_with_empty() {
     // Empty string should act as a fallback if nothing else matches.
-    let options: Vec<String> = vec!(String::from(""), String::from("foo"), String::from("bar"), String::from("foobar"));
-    let matcher = PrefixMatcher::build(&options);
+    let options = vec!("", "foo", "bar", "foobar");
+    let matcher = PrefixMatcher::build(options.iter());
     assert_eq!(matcher.identify_prefix("abc"), Some(""));
     assert_eq!(matcher.identify_prefix(""), Some(""));
     assert_eq!(matcher.identify_prefix("foo"), Some("foo"));
