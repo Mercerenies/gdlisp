@@ -41,6 +41,10 @@ impl NativeClasses {
     self.mapping.len()
   }
 
+  pub fn is_empty(&self) -> bool {
+    self.mapping.is_empty()
+  }
+
   pub fn get(&self, class_name: &str) -> Option<&Class> {
     self.mapping.get(class_name)
   }

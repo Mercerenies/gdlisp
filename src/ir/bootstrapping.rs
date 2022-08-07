@@ -19,7 +19,7 @@ pub fn compile_bootstrapping_decl(
   let native = pipeline.get_native_classes();
   match directive {
     "constants" => {
-      bootstrap_constant_names(&native, acc, pos);
+      bootstrap_constant_names(native, acc, pos);
     }
     _ => {
       return Err(GDError::new(GDErrorF::BadBootstrappingDirective(directive.to_owned()), pos));
