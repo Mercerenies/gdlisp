@@ -49,9 +49,17 @@ pub fn builtin_const_test() {
   // recognizes all of the constants I'm compiling these to.
   parse_and_run(r#"([
     ;; GDScript primitive constants
-    PI INF SPKEY
-    ;; GDScript primitive types
-    NodePath PoolStringArray
+    PI INF
+    ;; GDScript builtin names
+    BUTTON_LEFT CORNER_BOTTOM_LEFT ERR_BUSY ERR_BUG
+    FAILED HALIGN_CENTER HORIZONTAL
+    JOY_ANALOG_L2 JOY_BUTTON_10 KEY_A KEY_AE
+    KEY_SYSREQ OP_MAX OP_XOR PROPERTY_HINT_DIR
+    PROPERTY_HINT_ENUM PROPERTY_USAGE_GROUP
+    PROPERTY_USAGE_NETWORK SPKEY VALIGN_TOP
+    VERTICAL OK MIDI_MESSAGE_AFTERTOUCH
+    METHOD_FLAG_CONST METHOD_FLAG_NORMAL
+    MARGIN_TOP MARGIN_RIGHT
     ;; Our custom enums
     Mouse:LEFT Margin:BOTTOM Corner:TOP_RIGHT
     Orientation:VERTICAL HAlign:LEFT VAlign:TOP
