@@ -22,7 +22,7 @@ jobs:
         cd godot-build
         wget https://downloads.tuxfamily.org/godotengine/3.5/mono/Godot_v3.5-stable_mono_linux_headless_64.zip
         unzip Godot_v3.5-stable_mono_linux_headless_64.zip
-        ln -s Godot_v3.5-stable_mono_linux_headless_64/Godot_v3.5-stable_mono_linux_headless_64 godot
+        ln -s Godot_v3.5-stable_mono_linux_headless_64/Godot_v3.5-stable_mono_linux_headless.64 godot
         ls -l .
         ls -l Godot_v3.5-stable_mono_linux_headless_64/
         cd ..
