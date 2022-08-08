@@ -124,7 +124,9 @@ fn backing_class_name_of(class: &Class) -> String {
 }
 
 pub fn native_types_dictionary_literal(native: &NativeClasses, pos: SourceOffset) -> Expr {
-  let tuples: Vec<(Expr, Expr)> = native.values()
+  let mut class_names: Vec<&Class> = native.values().collect();
+  class_names.sort_unstable_by(|a, b| a.name.cmp(&b.name));
+  let tuples: Vec<(Expr, Expr)> = class_names.into_iter()
     .filter(|class| !CLASS_NAME_BLACKLIST.contains(&*class.name))
     .map(|class| {
       let original_name = class.name.to_owned();
