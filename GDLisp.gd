@@ -597,7 +597,6 @@ enum VAlign {
 }
 func _init():
     self.global_name_generator = FreshNameGenerator.new([], 0)
-    self.symbol_table = {}
     self.Null = PrimitiveType.new(TYPE_NIL)
     self.Bool = PrimitiveType.new(TYPE_BOOL)
     self.Int = PrimitiveType.new(TYPE_INT)
@@ -633,7 +632,7 @@ func _init():
     self.Nothing = NothingType.new()
     self.primitive_types_lookup = {TYPE_NIL: self.Null, TYPE_BOOL: self.Bool, TYPE_INT: self.Int, TYPE_REAL: self.Float, TYPE_STRING: self._String, TYPE_VECTOR2: self._Vector2, TYPE_RECT2: self._Rect2, TYPE_VECTOR3: self._Vector3, TYPE_TRANSFORM2D: self._Transform2D, TYPE_PLANE: self._Plane, TYPE_QUAT: self._Quat, TYPE_AABB: self._AABB, TYPE_BASIS: self._Basis, TYPE_TRANSFORM: self._Transform, TYPE_COLOR: self._Color, TYPE_NODE_PATH: self._NodePath, TYPE_RID: self._RID, TYPE_OBJECT: self._Object, TYPE_DICTIONARY: self._Dictionary, TYPE_ARRAY: self._Array, TYPE_RAW_ARRAY: self._PoolByteArray, TYPE_INT_ARRAY: self._PoolIntArray, TYPE_REAL_ARRAY: self._PoolRealArray, TYPE_STRING_ARRAY: self._PoolStringArray, TYPE_VECTOR2_ARRAY: self._PoolVector2Array, TYPE_VECTOR3_ARRAY: self._PoolVector3Array, TYPE_COLOR_ARRAY: self._PoolColorArray}
 var global_name_generator
-var symbol_table
+var symbol_table = {}
 var Null
 var Bool
 var Int
