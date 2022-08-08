@@ -35,5 +35,4 @@ jobs:
       run: |
         PATH="$PWD/godot-build/:$PATH"
         echo "$PATH"
-        godot --version
         rake 'test[--verbose]'
