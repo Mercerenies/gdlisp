@@ -1407,3 +1407,18 @@ pub fn bad_super_call_test() {
     Err(PError::from(GDError::new(GDErrorF::BadSuperCall(String::from("foo")), SourceOffset(14)))),
   );
 }
+
+#[test]
+pub fn builtin_patched_class_test() {
+  // Make sure the patched classes (`PATCHED_CLASS_NAMES` in
+  // `class_loader.rs`) are being loaded correctly.
+  assert_eq!(parse_and_run("((print (instance? (File:new) File))
+                             (print (= (typeof (File:new)) File)))"),
+             "\nTrue\nTrue\n");
+}
+
+#[test]
+pub fn builtin_singleton_class_test() {
+  assert_eq!(parse_and_run("((print (typeof Engine):name) (print _Engine:name) (print (Engine:get_class)))"),
+             "\n_Engine\n_Engine\n_Engine\n");
+}

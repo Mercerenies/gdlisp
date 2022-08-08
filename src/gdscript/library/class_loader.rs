@@ -183,6 +183,23 @@ mod tests {
     assert!(classes.contains("Spatial"));
     assert!(classes.contains("Texture"));
     assert!(!classes.contains("Object"));
+    assert!(!classes.contains("_Engine"));
+    assert!(!classes.contains("GlobalConstants"));
+  }
+
+  #[test]
+  fn test_singleton_classes() {
+    let native = NativeClasses::get_api_from_godot().unwrap();
+    let classes: HashSet<&str> = get_all_singleton_classes(&native)
+      .into_iter()
+      .map(|x| &*x.name)
+      .collect();
+    assert!(!classes.contains("Node"));
+    assert!(!classes.contains("Node2D"));
+    assert!(!classes.contains("Spatial"));
+    assert!(!classes.contains("Texture"));
+    assert!(!classes.contains("Object"));
+    assert!(classes.contains("_Engine"));
     assert!(!classes.contains("GlobalConstants"));
   }
 
