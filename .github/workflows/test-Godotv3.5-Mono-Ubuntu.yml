@@ -1,0 +1,39 @@
+name: "Ubuntu 20.04 (Godot v3.5)"
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  test-suite:
+
+    runs-on: "ubuntu-20.04"
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Install Godot
+      run: |
+        mkdir godot-build
+        cd godot-build
+        wget https://downloads.tuxfamily.org/godotengine/3.5/mono/Godot_v3.5-stable_mono_linux_headless_64.zip
+        unzip Godot_v3.5-stable_mono_linux_headless.64.zip
+        ln -s Godot_v3.5-stable_mono_linux_headless.64/Godot_v3.5-stable_mono_linux_headless.64 godot
+        ls -l .
+        ls -l Godot_v3.5-stable_mono_linux_headless.64/
+        cd ..
+    - name: Build
+      run: |
+        PATH="$PWD/godot-build/:$PATH"
+        echo "$PATH"
+        rake build[--verbose]
+    - name: Run Standard Test Suite
+      run: |
+        PATH="$PWD/godot-build/:$PATH"
+        echo "$PATH"
+        godot --version
+        rake 'test[--verbose]'
