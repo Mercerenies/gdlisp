@@ -76,12 +76,12 @@
 ;;; GLOBAL ENUMS ;;;
 
 (sys/bootstrap constants)
-
 (sys/bootstrap constant-enums)
 
 ;;; GDScript Types ;;;
 
 (sys/bootstrap non-singleton-types)
+(sys/bootstrap singleton-types)
 
 (defclass _GDLisp (Node) main
   (defvar global_name_generator)
