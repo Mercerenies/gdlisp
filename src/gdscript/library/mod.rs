@@ -8,6 +8,7 @@
 
 pub mod cell;
 pub mod classes;
+pub mod class_loader;
 pub mod constant_loader;
 pub mod gdnative;
 pub mod magic;
@@ -141,11 +142,6 @@ pub fn bind_builtins(table: &mut SymbolTable, minimalist: bool) {
 fn bind_builtins_unchecked(table: &mut SymbolTable, unit: Option<&StdlibUnit>) {
 
   // (Assumes minimalist compile iff unit is None)
-
-  // All built-in global class names
-  for name in &GDSCRIPT_CLASS_NAMES {
-    table.set_var((*name).to_owned(), LocalVar::superglobal((*name).to_owned()));
-  }
 
   // TODO Do we need to bind built-in macros here? Macros should have
   // no runtime presence so that makes me think no, but at the same

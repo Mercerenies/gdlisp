@@ -53,6 +53,10 @@ impl NativeClasses {
     self.get(GLOBAL_CONSTANTS_CLASS).expect("Could not read global constants from GDNative API")
   }
 
+  pub fn values(&self) -> impl Iterator<Item=&Class> {
+    self.mapping.values()
+  }
+
 }
 
 #[cfg(test)]
