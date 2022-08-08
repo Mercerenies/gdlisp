@@ -1,3 +1,5 @@
+[![GitHub Actions: Ubuntu](https://github.com/mercerenies/gdlisp/actions/workflows/test-Godotv3.5-Ubuntu.yml/badge.svg)](https://github.com/Mercerenies/gdlisp/actions/workflows/test-Godotv3.5-Ubuntu.yml)
+[![GitHub Actions: Ubuntu](https://github.com/mercerenies/gdlisp/actions/workflows/test-Godotv3.5-Mono-Ubuntu.yml/badge.svg)](https://github.com/Mercerenies/gdlisp/actions/workflows/test-Godotv3.5-Mono-Ubuntu.yml)
 [![GitHub Actions: Ubuntu](https://github.com/mercerenies/gdlisp/actions/workflows/test-Godotv3.4-Ubuntu.yml/badge.svg)](https://github.com/Mercerenies/gdlisp/actions/workflows/test-Godotv3.4-Ubuntu.yml)
 [![GitHub Actions: Ubuntu](https://github.com/mercerenies/gdlisp/actions/workflows/test-Godotv3.3.3-Ubuntu.yml/badge.svg)](https://github.com/Mercerenies/gdlisp/actions/workflows/test-Godotv3.3.3-Ubuntu.yml)
 
