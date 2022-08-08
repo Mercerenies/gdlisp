@@ -27,6 +27,9 @@ pub fn compile_bootstrapping_decl(
     "non-singleton-types" => {
       bootstrap_non_singletons(native, acc, pos);
     }
+    "singleton-types" => {
+      bootstrap_singletons(native, acc, pos);
+    }
     _ => {
       return Err(GDError::new(GDErrorF::BadBootstrappingDirective(directive.to_owned()), pos));
     }
@@ -76,4 +79,14 @@ fn bootstrap_non_singletons(
 ) {
   let all_non_singleton_classes = class_loader::get_non_singleton_declarations(native);
   acc.extend(all_non_singleton_classes.map(|decl| Decl::new(DeclF::DeclareDecl(decl), pos)));
+}
+
+
+fn bootstrap_singletons(
+  native: &NativeClasses,
+  acc: &mut impl Extend<Decl>,
+  pos: SourceOffset,
+) {
+  let all_singleton_classes = class_loader::get_singleton_declarations(native);
+  acc.extend(all_singleton_classes.into_iter().map(|decl| Decl::new(DeclF::DeclareDecl(decl), pos)));
 }
