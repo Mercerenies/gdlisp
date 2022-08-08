@@ -65,7 +65,9 @@ pub fn builtin_const_test() {
     Orientation:VERTICAL HAlign:LEFT VAlign:TOP
     Key:A Key:THORN Key:EXCLAM Key:KP_8 Key:KP-9
     KeyMask:CTRL Joy:BUTTON-13 Joy:R3 Joy:ANALOG-R2
-    MIDIMessage:NOTE_ON
+    MidiMessage:NOTE_ON Orientation:HORIZONTAL
+    PropertyHint:ENUM PropertyUsage:GROUP Op:MAX
+    Type:NIL Err:OK Err:FAILED MethodFlag:METHOD_FLAGS_DEFAULT
   ])"#);
 }
 

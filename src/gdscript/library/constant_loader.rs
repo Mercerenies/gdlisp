@@ -12,12 +12,13 @@ use std::borrow::Borrow;
 use std::collections::HashMap;
 
 const ENUM_GROUPINGS_BY_PREFIX: phf::Map<&'static str, &'static str> = phf_map! {
-  "BUTTON_" => "Button",
+  "BUTTON_" => "Mouse",
   "CORNER_" => "Corner",
   "ERR_" => "Err",
   "HALIGN_" => "HAlign",
   "JOY_" => "Joy",
   "KEY_" => "Key",
+  "KEY_MASK_" => "KeyMask",
   "MARGIN_" => "Margin",
   "METHOD_FLAG_" => "MethodFlag",
   "MIDI_MESSAGE_" => "MidiMessage",
@@ -103,8 +104,14 @@ fn get_all_constant_enums_with_leftovers(classes: &NativeClasses, pos: SourceOff
     }
   }
 
+  // For the sake of consistency, always return the enums (and their
+  // entries) in alphabetical order
   let mut enums: Vec<_> = enums.into_values().collect();
   enums.sort_unstable_by(|a, b| a.name.cmp(&b.name));
+  for constant_enum in &mut enums {
+    constant_enum.clauses.sort_unstable_by(|a, b| a.0.cmp(&b.0));
+  }
+
   (enums, unidentified)
 
 }
