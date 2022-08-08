@@ -139,7 +139,10 @@
           TYPE_RID @RID TYPE_OBJECT @Object TYPE_DICTIONARY @Dictionary TYPE_ARRAY @Array
           TYPE_RAW_ARRAY @PoolByteArray TYPE_INT_ARRAY @PoolIntArray TYPE_REAL_ARRAY @PoolRealArray
           TYPE_STRING_ARRAY @PoolStringArray TYPE_VECTOR2_ARRAY @PoolVector2Array
-          TYPE_VECTOR3_ARRAY @PoolVector3Array TYPE_COLOR_ARRAY @PoolColorArray}))
+          TYPE_VECTOR3_ARRAY @PoolVector3Array TYPE_COLOR_ARRAY @PoolColorArray})
+
+    (sys/bootstrap native-types-table)
+    (set (elt self:native_types_lookup "Object") @Object))
 
   (defn typeof (value)
     (let ((t ((literally typeof) value)))

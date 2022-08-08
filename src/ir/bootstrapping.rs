@@ -1,6 +1,7 @@
 
 use super::incremental::IncCompiler;
 use super::decl::{Decl, DeclF, DeclareDecl, DeclareType, EnumDecl, ClassDecl};
+use super::expr::Expr;
 use super::export::Visibility;
 use crate::compile::error::{GDError, GDErrorF};
 use crate::gdscript::library::gdnative::NativeClasses;
@@ -54,6 +55,23 @@ pub fn compile_bootstrapping_class_inner_decl(
     }
   }
   Ok(())
+}
+
+pub fn compile_bootstrapping_expr(
+  _icompiler: &mut IncCompiler,
+  pipeline: &mut Pipeline,
+  directive: &str,
+  pos: SourceOffset,
+) -> Result<Expr, GDError> {
+  let native = pipeline.get_native_classes();
+  match directive {
+    "native-types-table" => {
+      Ok(class_loader::native_types_dictionary_initializer(native, pos))
+    }
+    _ => {
+      Err(GDError::new(GDErrorF::BadBootstrappingDirective(directive.to_owned()), pos))
+    }
+  }
 }
 
 fn bootstrap_constant_names(

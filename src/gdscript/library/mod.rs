@@ -7,7 +7,6 @@
 //! simpler helper functions for commonly-used GDLisp builtins.
 
 pub mod cell;
-pub mod classes;
 pub mod class_loader;
 pub mod constant_loader;
 pub mod gdnative;
@@ -17,7 +16,7 @@ use super::expr::{Expr, ExprF};
 use crate::compile::Compiler;
 use crate::compile::names;
 use crate::compile::symbol_table::SymbolTable;
-use crate::compile::symbol_table::local_var::{LocalVar, VarName};
+use crate::compile::symbol_table::local_var::VarName;
 use crate::ir::arglist::ordinary::ArgList;
 use crate::ir::identifier::{Id, Namespace};
 use crate::ir::macros::MacroData;
@@ -26,7 +25,6 @@ use crate::pipeline::translation_unit::TranslationUnit;
 use crate::pipeline::stdlib_unit::StdlibUnit;
 use crate::pipeline::config::ProjectConfig;
 use crate::pipeline::source::SourceOffset;
-use classes::GDSCRIPT_CLASS_NAMES;
 
 use rmp_serde::{encode, decode};
 

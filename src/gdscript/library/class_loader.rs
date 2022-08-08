@@ -1,17 +1,13 @@
 
 use super::gdnative::NativeClasses;
 use super::gdnative::class::Class;
-use crate::ir::decl::{Decl, DeclF, DeclareDecl, DeclareType, ClassInnerDecl, ClassInnerDeclF, ClassVarDecl};
+use crate::ir::decl::{DeclareDecl, DeclareType, ClassInnerDecl, ClassInnerDeclF, ClassVarDecl};
 use crate::ir::export::Visibility;
-use crate::ir::expr::{Expr, ExprF};
+use crate::ir::expr::{Expr, ExprF, AssignTarget};
 use crate::compile::body::class_initializer::InitTime;
 use crate::pipeline::source::SourceOffset;
-use crate::util::prefix_matcher::PrefixMatcher;
 
 use phf::{phf_map, phf_set};
-
-use std::borrow::Borrow;
-use std::collections::HashMap;
 
 /// Classes which, for one reason or another, we do not want the
 /// bootstrapping engine to touch. This includes some "fake" classes
@@ -20,6 +16,18 @@ use std::collections::HashMap;
 /// manually in `GDLisp.lisp`.
 const CLASS_NAME_BLACKLIST: phf::Set<&'static str> = phf_set! {
   "GlobalConstants", "Object",
+};
+
+// For some reason I have yet to fathom, the GDNative API and GDScript
+// itself have different names for these classes. We use the GDScript
+// names, but `get_class` still returns the GDNative one, so we have
+// to be prepared to deal with that here.
+const PATCHED_CLASS_NAMES: phf::Map<&'static str, &'static str> = phf_map! {
+  "_Directory" => "Directory",
+  "_File" => "File",
+  "_Mutex" => "Mutex",
+  "_Semaphore" => "Semaphore",
+  "_Thread" => "Thread",
 };
 
 pub fn get_all_non_singleton_classes(native: &NativeClasses) -> Vec<&Class> {
@@ -40,13 +48,13 @@ pub fn get_all_singleton_classes(native: &NativeClasses) -> Vec<&Class> {
   classes
 }
 
-pub fn get_non_singleton_declarations<'a>(native: &'a NativeClasses) -> impl Iterator<Item=DeclareDecl> + 'a {
+pub fn get_non_singleton_declarations(native: &NativeClasses) -> impl Iterator<Item=DeclareDecl> + '_ {
   get_all_non_singleton_classes(native)
     .into_iter()
     .map(|cls| type_declaration_for_class(cls, DeclareType::Superglobal))
 }
 
-pub fn get_singleton_declarations<'a>(native: &'a NativeClasses) -> Vec<DeclareDecl> {
+pub fn get_singleton_declarations(native: &NativeClasses) -> Vec<DeclareDecl> {
   let classes = get_all_singleton_classes(native);
   let mut result: Vec<DeclareDecl> = Vec::with_capacity(classes.len() * 2);
   for class in classes {
@@ -56,7 +64,7 @@ pub fn get_singleton_declarations<'a>(native: &'a NativeClasses) -> Vec<DeclareD
   result
 }
 
-pub fn get_singleton_class_var_declarations<'a>(native: &'a NativeClasses, pos: SourceOffset) -> impl Iterator<Item=ClassInnerDecl> + 'a {
+pub fn get_singleton_class_var_declarations(native: &NativeClasses, pos: SourceOffset) -> impl Iterator<Item=ClassInnerDecl> + '_ {
   get_all_singleton_classes(native).into_iter().map(move |class| {
     let name = backing_class_name_of(class);
     let expr = Expr::new(
@@ -85,7 +93,7 @@ fn type_declaration_for_class(class: &Class, declare_type: DeclareType) -> Decla
     visibility: Visibility::Public,
     declare_type: declare_type,
     name: name.clone(),
-    target_name: Some(name.clone()),
+    target_name: Some(name),
   }
 }
 
@@ -106,11 +114,55 @@ fn backing_class_name_of(class: &Class) -> String {
   // some, like `ARVRServer`, have the *same* name for the type and
   // object. In that case, we keep the name for the object and force
   // an underscore at the beginning of the class name.
-  if class.singleton_name == class.name {
+  if let Some(translated_name) = PATCHED_CLASS_NAMES.get(&*class.name) {
+    (*translated_name).to_owned()
+  } else if class.singleton_name == class.name {
     format!("_{}", class.name)
   } else {
     class.name.to_owned()
   }
+}
+
+pub fn native_types_dictionary_literal(native: &NativeClasses, pos: SourceOffset) -> Expr {
+  let tuples: Vec<(Expr, Expr)> = native.values()
+    .filter(|class| !CLASS_NAME_BLACKLIST.contains(&*class.name))
+    .map(|class| {
+      let original_name = class.name.to_owned();
+      let gdlisp_name = backing_class_name_of(class);
+      let value: Expr = {
+        if class.singleton {
+          // It's a singleton, so we need to expose our
+          // NamedSyntheticType object.
+          Expr::new(
+            ExprF::FieldAccess(
+              Box::new(Expr::new(ExprF::LocalVar(String::from("self")), pos)),
+              gdlisp_name,
+            ),
+            pos,
+          )
+        } else {
+          // Not a singleton, so the name is globally available in
+          // GDScript; use that name.
+          Expr::new(ExprF::LocalVar(gdlisp_name), pos)
+        }
+      };
+      (Expr::from_value(original_name, pos), value)
+    })
+    .collect();
+  Expr::new(ExprF::Dictionary(tuples), pos)
+}
+
+pub fn native_types_dictionary_initializer(native: &NativeClasses, pos: SourceOffset) -> Expr {
+  let assign_target = AssignTarget::InstanceField(
+    pos,
+    Box::new(Expr::new(ExprF::LocalVar(String::from("self")), pos)),
+    String::from("native_types_lookup"),
+  );
+  let dict_literal = native_types_dictionary_literal(native, pos);
+  Expr::new(
+    ExprF::Assign(assign_target, Box::new(dict_literal)),
+    pos,
+  )
 }
 
 #[cfg(test)]

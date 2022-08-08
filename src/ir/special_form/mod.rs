@@ -11,6 +11,7 @@ use super::special_ref::SpecialRef;
 use super::decl::{self, Decl, DeclF};
 use super::arglist::ordinary::ArgList;
 use super::quasiquote::quasiquote_with_depth;
+use super::bootstrapping::compile_bootstrapping_expr;
 use crate::compile::error::{GDError, GDErrorF};
 use crate::compile::args::{Expecting, ExpectedShape};
 use crate::compile::frame::MAX_QUOTE_REIFY_DEPTH;
@@ -61,6 +62,7 @@ pub fn dispatch_form(icompiler: &mut IncCompiler,
     "literally" => literally_form(tail, pos).map(Some),
     "sys/split" => split_form(icompiler, pipeline, tail, pos).map(Some),
     "preload" => preload_form(icompiler, pipeline, tail, pos).map(Some),
+    "sys/bootstrap" => bootstrap_form(icompiler, pipeline, tail, pos).map(Some),
     _ => Ok(None),
   }
 }
@@ -587,4 +589,14 @@ pub fn preload_form(_icompiler: &mut IncCompiler,
   Expecting::exactly(1).validate("preload", pos, tail)?;
   let s = ExpectedShape::extract_string("preload", tail[0].clone())?;
   Ok(Expr::new(ExprF::Preload(s), pos))
+}
+
+pub fn bootstrap_form(icompiler: &mut IncCompiler,
+                      pipeline: &mut Pipeline,
+                      tail: &[&AST],
+                      pos: SourceOffset)
+                    -> Result<Expr, PError> {
+  Expecting::exactly(1).validate("sys/bootstrap", pos, tail)?;
+  let s = ExpectedShape::extract_symbol("sys/bootstrap", tail[0].clone())?;
+  compile_bootstrapping_expr(icompiler, pipeline, &s, pos).map_err(PError::from)
 }
