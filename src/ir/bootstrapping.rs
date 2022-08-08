@@ -1,6 +1,6 @@
 
 use super::incremental::IncCompiler;
-use super::decl::{Decl, DeclF, DeclareDecl, DeclareType, EnumDecl};
+use super::decl::{Decl, DeclF, DeclareDecl, DeclareType, EnumDecl, ClassDecl};
 use super::export::Visibility;
 use crate::compile::error::{GDError, GDErrorF};
 use crate::gdscript::library::gdnative::NativeClasses;
@@ -29,6 +29,25 @@ pub fn compile_bootstrapping_decl(
     }
     "singleton-types" => {
       bootstrap_singletons(native, acc, pos);
+    }
+    _ => {
+      return Err(GDError::new(GDErrorF::BadBootstrappingDirective(directive.to_owned()), pos));
+    }
+  }
+  Ok(())
+}
+
+pub fn compile_bootstrapping_class_inner_decl(
+  _icompiler: &mut IncCompiler,
+  pipeline: &mut Pipeline,
+  acc: &mut ClassDecl,
+  directive: &str,
+  pos: SourceOffset,
+) -> Result<(), GDError> {
+  let native = pipeline.get_native_classes();
+  match directive {
+    "singleton-backing-types" => {
+      bootstrap_singleton_backing_types(native, acc, pos);
     }
     _ => {
       return Err(GDError::new(GDErrorF::BadBootstrappingDirective(directive.to_owned()), pos));
@@ -81,7 +100,6 @@ fn bootstrap_non_singletons(
   acc.extend(all_non_singleton_classes.map(|decl| Decl::new(DeclF::DeclareDecl(decl), pos)));
 }
 
-
 fn bootstrap_singletons(
   native: &NativeClasses,
   acc: &mut impl Extend<Decl>,
@@ -89,4 +107,13 @@ fn bootstrap_singletons(
 ) {
   let all_singleton_classes = class_loader::get_singleton_declarations(native);
   acc.extend(all_singleton_classes.into_iter().map(|decl| Decl::new(DeclF::DeclareDecl(decl), pos)));
+}
+
+fn bootstrap_singleton_backing_types(
+  native: &NativeClasses,
+  acc: &mut ClassDecl,
+  pos: SourceOffset,
+) {
+  let all_singleton_classes = class_loader::get_singleton_class_var_declarations(native, pos);
+  acc.decls.extend(all_singleton_classes);
 }

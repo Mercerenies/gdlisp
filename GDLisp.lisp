@@ -129,6 +129,8 @@
   (defvar native_types_lookup)
   (defvar primitive_types_lookup)
 
+  (sys/bootstrap singleton-backing-types)
+
   (defn _init ()
     (set self:primitive_types_lookup
          {TYPE_NIL @Null TYPE_BOOL @Bool TYPE_INT @Int TYPE_REAL @Float TYPE_STRING @String TYPE_VECTOR2 @Vector2

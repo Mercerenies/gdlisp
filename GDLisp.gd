@@ -630,6 +630,29 @@ func _init():
     self.Number = NumberType.new()
     self.BaseArray = BaseArrayType.new()
     self.Nothing = NothingType.new()
+    self._ARVRServer = NamedSyntheticType.new("ARVRServer")
+    self._AudioServer = NamedSyntheticType.new("AudioServer")
+    self._CameraServer = NamedSyntheticType.new("CameraServer")
+    self._IP = NamedSyntheticType.new("IP")
+    self._Input = NamedSyntheticType.new("Input")
+    self._InputMap = NamedSyntheticType.new("InputMap")
+    self._JavaClassWrapper = NamedSyntheticType.new("JavaClassWrapper")
+    self._JavaScript = NamedSyntheticType.new("JavaScript")
+    self._Performance = NamedSyntheticType.new("Performance")
+    self._Physics2DServer = NamedSyntheticType.new("Physics2DServer")
+    self._PhysicsServer = NamedSyntheticType.new("PhysicsServer")
+    self._ProjectSettings = NamedSyntheticType.new("ProjectSettings")
+    self._TranslationServer = NamedSyntheticType.new("TranslationServer")
+    self._VisualServer = NamedSyntheticType.new("VisualServer")
+    self._ClassDB = NamedSyntheticType.new("_ClassDB")
+    self._Engine = NamedSyntheticType.new("_Engine")
+    self._Geometry = NamedSyntheticType.new("_Geometry")
+    self._JSON = NamedSyntheticType.new("_JSON")
+    self._Marshalls = NamedSyntheticType.new("_Marshalls")
+    self._OS = NamedSyntheticType.new("_OS")
+    self._ResourceLoader = NamedSyntheticType.new("_ResourceLoader")
+    self._ResourceSaver = NamedSyntheticType.new("_ResourceSaver")
+    self._VisualScriptEditor = NamedSyntheticType.new("_VisualScriptEditor")
     self.primitive_types_lookup = {TYPE_NIL: self.Null, TYPE_BOOL: self.Bool, TYPE_INT: self.Int, TYPE_REAL: self.Float, TYPE_STRING: self._String, TYPE_VECTOR2: self._Vector2, TYPE_RECT2: self._Rect2, TYPE_VECTOR3: self._Vector3, TYPE_TRANSFORM2D: self._Transform2D, TYPE_PLANE: self._Plane, TYPE_QUAT: self._Quat, TYPE_AABB: self._AABB, TYPE_BASIS: self._Basis, TYPE_TRANSFORM: self._Transform, TYPE_COLOR: self._Color, TYPE_NODE_PATH: self._NodePath, TYPE_RID: self._RID, TYPE_OBJECT: self._Object, TYPE_DICTIONARY: self._Dictionary, TYPE_ARRAY: self._Array, TYPE_RAW_ARRAY: self._PoolByteArray, TYPE_INT_ARRAY: self._PoolIntArray, TYPE_REAL_ARRAY: self._PoolRealArray, TYPE_STRING_ARRAY: self._PoolStringArray, TYPE_VECTOR2_ARRAY: self._PoolVector2Array, TYPE_VECTOR3_ARRAY: self._PoolVector3Array, TYPE_COLOR_ARRAY: self._PoolColorArray}
 var global_name_generator
 var symbol_table = {}
@@ -668,6 +691,29 @@ var BaseArray
 var Nothing
 var native_types_lookup
 var primitive_types_lookup
+var _ARVRServer
+var _AudioServer
+var _CameraServer
+var _IP
+var _Input
+var _InputMap
+var _JavaClassWrapper
+var _JavaScript
+var _Performance
+var _Physics2DServer
+var _PhysicsServer
+var _ProjectSettings
+var _TranslationServer
+var _VisualServer
+var _ClassDB
+var _Engine
+var _Geometry
+var _JSON
+var _Marshalls
+var _OS
+var _ResourceLoader
+var _ResourceSaver
+var _VisualScriptEditor
 func _typeof(value):
     var t = typeof(value)
     var _cond = null

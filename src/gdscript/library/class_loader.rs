@@ -1,9 +1,10 @@
 
 use super::gdnative::NativeClasses;
 use super::gdnative::class::Class;
-use crate::ir::decl::{Decl, DeclF, DeclareDecl, DeclareType};
+use crate::ir::decl::{Decl, DeclF, DeclareDecl, DeclareType, ClassInnerDecl, ClassInnerDeclF, ClassVarDecl};
 use crate::ir::export::Visibility;
 use crate::ir::expr::{Expr, ExprF};
+use crate::compile::body::class_initializer::InitTime;
 use crate::pipeline::source::SourceOffset;
 use crate::util::prefix_matcher::PrefixMatcher;
 
@@ -55,18 +56,41 @@ pub fn get_singleton_declarations<'a>(native: &'a NativeClasses) -> Vec<DeclareD
   result
 }
 
+pub fn get_singleton_class_var_declarations<'a>(native: &'a NativeClasses, pos: SourceOffset) -> impl Iterator<Item=ClassInnerDecl> + 'a {
+  get_all_singleton_classes(native).into_iter().map(move |class| {
+    let name = backing_class_name_of(class);
+    let expr = Expr::new(
+      ExprF::MethodCall(
+        Box::new(Expr::new(ExprF::LocalVar(String::from("NamedSyntheticType")), pos)),
+        String::from("new"),
+        vec!(Expr::from_value(class.name.clone(), pos)), // Note: *Original* class name, not the one we made in backing_class_name_of
+      ),
+      pos,
+    );
+    ClassInnerDecl::new(
+      ClassInnerDeclF::ClassVarDecl(ClassVarDecl {
+        export: None,
+        name: name,
+        value: Some(expr),
+        init_time: InitTime::Init,
+      }),
+      pos,
+    )
+  })
+}
+
 fn type_declaration_for_class(class: &Class, declare_type: DeclareType) -> DeclareDecl {
+  let name = backing_class_name_of(class);
   DeclareDecl {
     visibility: Visibility::Public,
     declare_type: declare_type,
-    name: class.name.clone(),
-    target_name: Some(class.name.clone()),
+    name: name.clone(),
+    target_name: Some(name.clone()),
   }
 }
 
 fn value_declaration_for_singleton(class: &Class, declare_type: DeclareType) -> DeclareDecl {
-  let singleton_name = singleton_name_of(class);
-  assert!(!singleton_name.is_empty());
+  let singleton_name = class.singleton_name.to_owned();
   DeclareDecl {
     visibility: Visibility::Public,
     declare_type: declare_type,
@@ -75,7 +99,7 @@ fn value_declaration_for_singleton(class: &Class, declare_type: DeclareType) -> 
   }
 }
 
-fn singleton_name_of(class: &Class) -> String {
+fn backing_class_name_of(class: &Class) -> String {
   // Some singletons in Godot have a class name and a distinct
   // singleton name. For instance, `_Engine` is the class name for
   // `Engine`. For these, it's fine to just use what Godot has. But
@@ -83,9 +107,9 @@ fn singleton_name_of(class: &Class) -> String {
   // object. In that case, we keep the name for the object and force
   // an underscore at the beginning of the class name.
   if class.singleton_name == class.name {
-    format!("_{}", class.singleton_name)
+    format!("_{}", class.name)
   } else {
-    class.singleton_name.to_owned()
+    class.name.to_owned()
   }
 }
 

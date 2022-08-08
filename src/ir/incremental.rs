@@ -19,7 +19,7 @@ use super::macros::{self, MacroData};
 use super::identifier::{Id, IdLike, Namespace};
 use super::modifier::{self, ParseRule};
 use super::export::Visibility;
-use super::bootstrapping::compile_bootstrapping_decl;
+use super::bootstrapping::{compile_bootstrapping_decl, compile_bootstrapping_class_inner_decl};
 use crate::util::one::One;
 use crate::sxp::dotted::{DottedExpr, TryFromDottedExprError};
 use crate::sxp::ast::{AST, ASTF};
@@ -636,6 +636,13 @@ impl IncCompiler {
           let args: Vec<_> = DottedExpr::new(args).try_into()?;
           let args = SimpleArgList::parse(args, args_pos)?;
           acc.decls.push(decl::ClassInnerDecl::new(decl::ClassInnerDeclF::ClassSignalDecl(decl::ClassSignalDecl { name, args }), vec[0].pos));
+          Ok(())
+        }
+        "sys/bootstrap" => {
+          // (sys/bootstrap directive)
+          Expecting::exactly(1).validate("sys/bootstrap", curr.pos, &vec[1..])?;
+          let directive = ExpectedShape::extract_symbol("sys/bootstrap", vec[1].clone())?;
+          compile_bootstrapping_class_inner_decl(self, pipeline, acc, &directive, curr.pos)?;
           Ok(())
         }
         _ => {
