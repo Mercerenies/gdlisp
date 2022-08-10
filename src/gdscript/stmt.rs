@@ -152,6 +152,21 @@ impl Stmt {
     Stmt::new(StmtF::VarDecl(var_name, value), pos)
   }
 
+  /// A `break` statement.
+  pub fn break_stmt(pos: SourceOffset) -> Stmt {
+    Stmt::new(StmtF::BreakStmt, pos)
+  }
+
+  /// A `continue` statement.
+  pub fn continue_stmt(pos: SourceOffset) -> Stmt {
+    Stmt::new(StmtF::ContinueStmt, pos)
+  }
+
+  /// A `pass` statement.
+  pub fn pass_stmt(pos: SourceOffset) -> Stmt {
+    Stmt::new(StmtF::PassStmt, pos)
+  }
+
   /// Write the statement, as GDScript code, to the [`fmt::Write`]
   /// instance `w`.
   ///
