@@ -221,6 +221,10 @@ impl TopLevel {
     }
   }
 
+  pub fn inner_exprs(&self) -> impl Iterator<Item=&Expr> + '_ {
+    self.decls.iter().flat_map(|x| x.inner_exprs())
+  }
+
 }
 
 impl Decl {
