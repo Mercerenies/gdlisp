@@ -10,6 +10,7 @@ use crate::ir::decl::DuplicateMainClassError;
 use crate::ir::import::{ImportDeclParseError, ImportNameResolutionError};
 use crate::ir::modifier::{ParseError as ModifierParseError, ParseErrorF as ModifierParseErrorF};
 use crate::ir::scope::error::ScopeError;
+use crate::ir::loops::error::LoopPrimitiveError;
 use crate::ir::depends::DependencyError;
 use crate::compile::symbol_table::local_var::VarNameIntoExtendsError;
 use crate::runner::path::RPathBuf;
@@ -235,6 +236,9 @@ pub enum GDErrorF {
   BadPreloadArgument(String),
   /// The directive of a `sys/bootstrap` was invalid.
   BadBootstrappingDirective(String),
+  /// An error in the placement of a loop primitive, i.e. `break` or
+  /// `continue`.
+  LoopPrimitiveError(LoopPrimitiveError),
 }
 
 /// Variant of [`GDErrorF`] with source offset information. See
@@ -359,6 +363,7 @@ impl GDErrorF {
       //
       // NOTE: 55 is ArgListParseErrorF::ConstructorArgListExpected above.
       GDErrorF::BadBootstrappingDirective(_) => 56,
+      GDErrorF::LoopPrimitiveError(_) => 57,
     }
   }
 
@@ -509,6 +514,9 @@ impl fmt::Display for GDErrorF {
       }
       GDErrorF::BadBootstrappingDirective(name) => {
         write!(f, "Bad directive to sys/bootstrap, got '{}'", name)?;
+      }
+      GDErrorF::LoopPrimitiveError(err) => {
+        write!(f, "{}", err)?;
       }
     }
     if self.is_internal() {
