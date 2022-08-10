@@ -18,10 +18,6 @@ struct ConcreteNamesAdaptor<'a>(&'a TopLevel);
 
 /// Convenience method to perform all scope checking on an IR file
 /// representation.
-///
-/// Currently, this simply delegates to
-/// [`decl::check_all_decl_scopes`] and broadens the error type, but
-/// it will be expanded in the future to perform more detailed checks.
 pub fn check_scopes(toplevel: &TopLevel) -> Result<(),  GDError> {
   check_all_decl_scopes(toplevel).map_err(GDError::from)?;
   check_main_class_conflicts(toplevel)
