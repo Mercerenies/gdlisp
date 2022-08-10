@@ -1,5 +1,8 @@
 
-use super::common::parse_compile_and_output;
+use super::common::*;
+use gdlisp::pipeline::error::PError;
+use gdlisp::pipeline::source::SourceOffset;
+use gdlisp::ir::loops::error::LoopPrimitiveError;
 
 #[test]
 pub fn while_tests() {
@@ -14,4 +17,96 @@ pub fn compound_while_tests() {
   // expression, so this forces the while loop to use the "compound"
   // form.
   assert_eq!(parse_compile_and_output("(while (if 1 2 3) (foo))"), "while true:\n    var _cond = null\n    if 1:\n        _cond = 2\n    else:\n        if true:\n            _cond = 3\n        else:\n            _cond = null\n    if !_cond:\n        break\n    foo()\nreturn null\n")
+}
+
+#[test]
+pub fn while_test_with_break() {
+  assert_eq!(parse_compile_and_output("(while 1 (break))"), r#"while 1:
+    break
+return null
+"#);
+}
+
+#[test]
+pub fn while_test_with_continue() {
+  assert_eq!(parse_compile_and_output("(while 1 (continue))"), r#"while 1:
+    continue
+return null
+"#);
+}
+
+#[test]
+pub fn while_test_with_break_in_if() {
+  assert_eq!(parse_compile_and_output("(while 1 (if 1 (break) (continue)))"), r#"while 1:
+    if 1:
+        break
+    else:
+        if true:
+            continue
+        else:
+            pass
+return null
+"#);
+}
+
+#[test]
+pub fn while_test_with_break_in_if_cond() {
+  assert_eq!(parse_compile_and_output("(while (if 1 (break) (continue)) (foo))"), r#"while true:
+    var _cond = null
+    if 1:
+        break
+        _cond = null
+    else:
+        if true:
+            continue
+            _cond = null
+        else:
+            _cond = null
+    if !_cond:
+        break
+    foo()
+return null
+"#);
+}
+
+#[test]
+pub fn bad_break_test() {
+  assert_eq!(parse_compile_and_output_err("(break)"),
+             Err(PError::from(LoopPrimitiveError::break_error(SourceOffset(0)))));
+}
+
+#[test]
+pub fn bad_continue_test() {
+  assert_eq!(parse_compile_and_output_err("(continue)"),
+             Err(PError::from(LoopPrimitiveError::continue_error(SourceOffset(0)))));
+}
+
+#[test]
+pub fn bad_break_in_plain_lambda_test() {
+  assert_eq!(parse_compile_and_output_err("(lambda () (break))"),
+             Err(PError::from(LoopPrimitiveError::break_error(SourceOffset(11)))));
+}
+
+#[test]
+pub fn bad_continue_in_plain_lambda_test() {
+  assert_eq!(parse_compile_and_output_err("(lambda () (continue))"),
+             Err(PError::from(LoopPrimitiveError::continue_error(SourceOffset(11)))));
+}
+
+#[test]
+pub fn bad_break_in_loop_lambda_test() {
+  assert_eq!(parse_compile_and_output_err("(while 1 (lambda () (break)))"),
+             Err(PError::from(LoopPrimitiveError::break_error(SourceOffset(20)).in_closure())));
+}
+
+#[test]
+pub fn bad_continue_in_loop_lambda_test() {
+  assert_eq!(parse_compile_and_output_err("(while 1 (lambda () (continue)))"),
+             Err(PError::from(LoopPrimitiveError::continue_error(SourceOffset(20)).in_closure())));
+}
+
+#[test]
+pub fn bad_continue_in_loop_lambda_class_test() {
+  assert_eq!(parse_compile_and_output_err("(while 1 (new Reference (defn foo () (continue))))"),
+             Err(PError::from(LoopPrimitiveError::continue_error(SourceOffset(37)).in_closure())));
 }
