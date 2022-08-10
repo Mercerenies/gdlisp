@@ -52,6 +52,7 @@ pub fn compile_and_check(pipeline: &mut Pipeline, body: &AST)
                         -> Result<(decl::TopLevel, HashMap<Id, MacroData>), PError> {
   let (ir, macros) = compile_toplevel(pipeline, body)?;
   scope::check_scopes(&ir)?;
+  loops::check_all_exprs(&ir)?;
   Ok((ir, macros))
 }
 
