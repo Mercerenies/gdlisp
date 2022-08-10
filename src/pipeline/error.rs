@@ -2,6 +2,7 @@
 use crate::compile::error::GDError;
 use crate::pipeline::source::{SourceOffset, Sourced};
 use crate::sxp::dotted::TryFromDottedExprError;
+use crate::ir::loops::error::LoopPrimitiveError;
 use crate::ir::arglist::error::ArgListParseError;
 use crate::ir::modifier::{ParseError as ModifierParseError};
 use crate::ir::decl::DuplicateMainClassError;
@@ -158,6 +159,12 @@ impl From<DuplicateMainClassError> for PError {
 impl<NS> From<ScopeError<NS>> for PError
 where GDError: From<ScopeError<NS>> {
   fn from(e: ScopeError<NS>) -> PError {
+    PError::from(GDError::from(e))
+  }
+}
+
+impl From<LoopPrimitiveError> for PError {
+  fn from(e: LoopPrimitiveError) -> PError {
     PError::from(GDError::from(e))
   }
 }

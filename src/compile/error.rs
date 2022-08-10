@@ -653,3 +653,13 @@ impl From<DependencyError> for GDError {
     }
   }
 }
+
+impl From<LoopPrimitiveError> for GDError {
+  fn from(err: LoopPrimitiveError) -> GDError {
+    let pos = err.pos;
+    GDError::new(
+      GDErrorF::LoopPrimitiveError(err),
+      pos,
+    )
+  }
+}
