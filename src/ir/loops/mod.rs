@@ -11,10 +11,21 @@ use crate::pipeline::source::SourceOffset;
 
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
 enum LoopWalker {
+  /// `LoopWalker::None` is the default state. If there are no loops
+  /// that the current expression is inside, either directly or
+  /// indirectly, then we are in this state.
   #[default]
-  NoLoop,
-  InLoop,
-  ClosureInLoop,
+  None,
+  /// The state of expressions that are inside a loop, and for which
+  /// there are no closures strictly between the current expression
+  /// and the innermost enclosing loop. This is the only state in
+  /// which it is permitted to use loop primitives.
+  Within,
+  /// The state of expressions that are inside a loop, but for which
+  /// there is a closure strictly between the current expression and
+  /// the innermost enclosing loop. Due to limitations in GDScript, we
+  /// are not capable of compiling loop primitives in this state.
+  ClosureWithin,
 }
 
 pub fn check_expr(expr: &Expr) -> Result<(), LoopPrimitiveError> {
@@ -35,15 +46,15 @@ impl LoopWalker {
   }
 
   fn enter_loop(self) -> Self {
-    LoopWalker::InLoop
+    LoopWalker::Within
   }
 
   fn enter_closure(self) -> Self {
-    if self == LoopWalker::NoLoop {
+    if self == LoopWalker::None {
       // There's no loop at all, so don't change that fact.
-      LoopWalker::NoLoop
+      LoopWalker::None
     } else {
-      LoopWalker::ClosureInLoop
+      LoopWalker::ClosureWithin
     }
   }
 
@@ -199,21 +210,21 @@ impl LoopWalker {
 
   /// This function is called when the walker encounters a loop
   /// primitive, either `break` or `continue`. For a loop primitive to
-  /// succeed, `self` *must* be [`LoopWalker::InLoop`]. If it's in
+  /// succeed, `self` *must* be [`LoopWalker::Within`]. If it's in
   /// either of the other states, then an appropriate error is issued.
   fn check_loop_primitive(self, primitive: LoopPrimitive, pos: SourceOffset) -> Result<(), LoopPrimitiveError> {
     match self {
-      LoopWalker::NoLoop => {
+      LoopWalker::None => {
         Err(LoopPrimitiveError::new(
           LoopPrimitiveErrorF { primitive, is_in_closure: false },
           pos,
         ))
       }
-      LoopWalker::InLoop => {
+      LoopWalker::Within => {
         // Everything is fine :)
         Ok(())
       }
-      LoopWalker::ClosureInLoop => {
+      LoopWalker::ClosureWithin => {
         Err(LoopPrimitiveError::new(
           LoopPrimitiveErrorF { primitive, is_in_closure: true },
           pos,
