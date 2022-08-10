@@ -56,6 +56,6 @@ pub fn bad_continue_in_for_loop_lambda_class_test() {
 
 #[test]
 pub fn bad_continue_in_for_loop_iter_test() {
-  assert_eq!(parse_compile_and_output_err("(for (continue) 1 2)"),
-             Err(PError::from(LoopPrimitiveError::continue_error(SourceOffset(5)))));
+  assert_eq!(parse_compile_and_output_err("(for i (continue) 2)"),
+             Err(PError::from(LoopPrimitiveError::continue_error(SourceOffset(7)))));
 }
