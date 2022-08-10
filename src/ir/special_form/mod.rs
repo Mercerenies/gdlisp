@@ -63,6 +63,8 @@ pub fn dispatch_form(icompiler: &mut IncCompiler,
     "sys/split" => split_form(icompiler, pipeline, tail, pos).map(Some),
     "preload" => preload_form(icompiler, pipeline, tail, pos).map(Some),
     "sys/bootstrap" => bootstrap_form(icompiler, pipeline, tail, pos).map(Some),
+    "break" => break_form(icompiler, pipeline, tail, pos).map(Some),
+    "continue" => continue_form(icompiler, pipeline, tail, pos).map(Some),
     _ => Ok(None),
   }
 }
@@ -599,4 +601,22 @@ pub fn bootstrap_form(icompiler: &mut IncCompiler,
   Expecting::exactly(1).validate("sys/bootstrap", pos, tail)?;
   let s = ExpectedShape::extract_symbol("sys/bootstrap", tail[0].clone())?;
   compile_bootstrapping_expr(icompiler, pipeline, &s, pos).map_err(PError::from)
+}
+
+pub fn break_form(_icompiler: &mut IncCompiler,
+                  _pipeline: &mut Pipeline,
+                  tail: &[&AST],
+                  pos: SourceOffset)
+                  -> Result<Expr, PError> {
+  Expecting::NONE.validate("break", pos, tail)?;
+  Ok(Expr::new(ExprF::Break, pos))
+}
+
+pub fn continue_form(_icompiler: &mut IncCompiler,
+                     _pipeline: &mut Pipeline,
+                     tail: &[&AST],
+                     pos: SourceOffset)
+                     -> Result<Expr, PError> {
+  Expecting::NONE.validate("continue", pos, tail)?;
+  Ok(Expr::new(ExprF::Continue, pos))
 }

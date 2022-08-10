@@ -515,6 +515,14 @@ impl<'a, 'b, 'c, 'd, 'e> CompilerFrame<'a, 'b, 'c, 'd, 'e, StmtBuilder> {
         self.compile_stmt(&stmt_wrapper::Return, expr)?;
         Ok(Compiler::nil_expr(expr.pos))
       }
+      IRExprF::Break => {
+        self.builder.append(Stmt::break_stmt(expr.pos));
+        Ok(Compiler::nil_expr(expr.pos))
+      }
+      IRExprF::Continue => {
+        self.builder.append(Stmt::continue_stmt(expr.pos));
+        Ok(Compiler::nil_expr(expr.pos))
+      }
       IRExprF::SpecialRef(special_ref) => {
         Ok(self.compile_special_ref(*special_ref, expr.pos))
       }

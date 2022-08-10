@@ -41,6 +41,8 @@ pub enum ExprF {
   Yield(Option<(Box<Expr>, Box<Expr>)>),
   Assert(Box<Expr>, Option<Box<Expr>>),
   Return(Box<Expr>),
+  Break,
+  Continue,
   SpecialRef(SpecialRef),
   ContextualFilename(RPathBuf),
   AtomicName(String),
@@ -357,6 +359,8 @@ impl Expr {
       ExprF::Return(expr) => {
         expr.walk_locals(acc_vars, acc_fns);
       }
+      ExprF::Break => {}
+      ExprF::Continue => {}
       ExprF::SpecialRef(_) => {}
       ExprF::ContextualFilename(_) => {}
       ExprF::AtomicName(_) => {}

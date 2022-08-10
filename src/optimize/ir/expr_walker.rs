@@ -186,6 +186,12 @@ impl<'a, E> ExprWalker<'a, E> {
       ExprF::Return(v) => {
         ExprF::Return(Box::new(self.walk_expr(v)?))
       }
+      ExprF::Break => {
+        ExprF::Break
+      }
+      ExprF::Continue => {
+        ExprF::Continue
+      }
       ExprF::AtomicCall(name, body) => {
         ExprF::AtomicCall(
           name.clone(),
