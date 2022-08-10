@@ -20,7 +20,7 @@ jobs:
       run: |
         mkdir godot-build
         cd godot-build
-        wget https://www.dropbox.com/s/9zi0ij7cqetaw34/godot_server.x11.opt.tools.64.zip?dl=1 -o godot_server.x11.opt.tools.64.zip
+        wget https://www.dropbox.com/s/9zi0ij7cqetaw34/godot_server.x11.opt.tools.64.zip?dl=1 -O godot_server.x11.opt.tools.64.zip
         unzip godot_server.x11.opt.tools.64.zip
         ln -s godot_server.x11.opt.tools.64 godot
         ls -l
