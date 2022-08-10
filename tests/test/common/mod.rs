@@ -145,8 +145,7 @@ fn parse_and_run_err_impl<T>(input: &str, runner_fn: fn(TempDir) -> io::Result<T
 
   let mut pipeline = dummy_pipeline();
 
-  let (decls, _macros) = ir::compile_toplevel(&mut pipeline, &value)?;
-  ir::scope::check_scopes(&decls)?;
+  let (decls, _macros) = ir::compile_and_check(&mut pipeline, &value)?;
   let mut builder = CodeBuilder::new(decl::ClassExtends::named(String::from("Reference")));
   compiler.frame(&mut pipeline, &mut builder, &mut table, &mut OutsideOfClass).compile_toplevel(&decls)?;
 
@@ -244,7 +243,7 @@ pub fn parse_compile_decl_err(input: &str) -> Result<String, PError> {
   let mut pipeline = dummy_pipeline();
 
   let mut builder = CodeBuilder::new(decl::ClassExtends::named("Reference".to_owned()));
-  let (decls, _macros) = ir::compile_toplevel(&mut pipeline, &value)?;
+  let (decls, _macros) = ir::compile_and_check(&mut pipeline, &value)?;
   ir::scope::check_scopes(&decls)?;
   compiler.frame(&mut pipeline, &mut builder, &mut table, &mut OutsideOfClass).compile_toplevel(&decls)?;
   let class = builder.build();

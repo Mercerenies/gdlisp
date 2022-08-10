@@ -81,8 +81,7 @@ impl Pipeline {
 
     let mut compiler = Compiler::new(FreshNameGenerator::new(ast.all_symbols()), Box::new(DefaultPreloadResolver));
 
-    let (ir, macros) = ir::compile_toplevel(self, &ast)?;
-    ir::scope::check_scopes(&ir)?;
+    let (ir, macros) = ir::compile_and_check(self, &ast)?;
 
     let mut table = SymbolTable::new();
     library::bind_builtins(&mut table, ir.minimalist_flag);

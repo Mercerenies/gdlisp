@@ -14,7 +14,7 @@ use std::collections::{HashMap, HashSet};
 
 fn dependencies_of<'a>(input: &str, target_name: &(dyn IdLike<NS=Namespace> + 'a), pos: SourceOffset) -> Dependencies {
   let ast = AST_PARSER.parse(input).unwrap();
-  let (toplevel, _macros) = ir::compile_toplevel(&mut dummy_pipeline(), &ast).unwrap();
+  let (toplevel, _macros) = ir::compile_and_check(&mut dummy_pipeline(), &ast).unwrap();
   ir::scope::check_scopes(&toplevel).unwrap();
   let table = DeclarationTable::from(toplevel.decls);
   Dependencies::identify(&table, &HashSet::new(), target_name, pos)

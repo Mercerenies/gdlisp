@@ -47,6 +47,13 @@ pub fn compile_toplevel(pipeline: &mut Pipeline, body: &AST)
   compiler.compile_toplevel(pipeline, body)
 }
 
+pub fn compile_and_check(pipeline: &mut Pipeline, body: &AST)
+                        -> Result<(decl::TopLevel, HashMap<Id, MacroData>), PError> {
+  let (ir, macros) = compile_toplevel(pipeline, body)?;
+  scope::check_scopes(&ir)?;
+  Ok((ir, macros))
+}
+
 #[cfg(test)]
 mod tests {
   use super::*;
