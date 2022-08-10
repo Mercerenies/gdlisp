@@ -84,6 +84,9 @@ pub enum ExpectedShape {
 
 impl Expecting {
 
+  /// `Expecting` instance which expects no arguments at all.
+  pub const NONE: Expecting = Expecting { minimum: 0, maximum: 0 };
+
   /// Convenience function for constructing general `Expecting`
   /// values.
   pub fn new(minimum: usize, maximum: usize) -> Expecting {
