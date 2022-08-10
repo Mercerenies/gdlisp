@@ -9,9 +9,7 @@
 (defclass Cons (Reference)
   (defvar car)
   (defvar cdr)
-  (defn _init (car cdr)
-    (set self:car car)
-    (set self:cdr cdr)))
+  (defn _init (@car @cdr)))
 
 (defclass Function (Reference)
   (defvar __is_gdlisp_function #t)
@@ -26,16 +24,14 @@
 
 (defclass Cell (Reference)
   (defvar contents)
-  (defn _init (contents)
-    (set self:contents contents)))
+  (defn _init (@contents)))
 
 (defclass Symbol (Reference)
   ;; Note: This will be obsolete once we have StringName in GDScript,
   ;; which seems to be coming in Godot 4. For now, this manual wrapper
   ;; stores symbols in the least efficient way possible.
   (defvar contents)
-  (defn _init (contents)
-    (set self:contents contents)))
+  (defn _init (@contents)))
 
 (defclass FreshNameGenerator (Reference)
   ;; This is meant to be identical to FreshNameGenerator in the Rust
@@ -49,9 +45,7 @@
   (defvar reserved)
   (defvar index)
 
-  (defn _init (reserved index) ; NOTE: Lack of arglist modifier
-    (set self:reserved reserved)
-    (set self:index index))
+  (defn _init (@reserved @index))
 
   (defn generate ()
     (self:generate_with FreshNameGenerator:DEFAULT_PREFIX))
