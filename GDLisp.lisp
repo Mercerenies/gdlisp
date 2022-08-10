@@ -719,8 +719,7 @@
 (defclass PrimitiveType (GDLispSpecialType) private
   (defvar primitive-value)
 
-  (defn _init (primitive-value)
-    (set self:primitive-value primitive-value))
+  (defn _init (@primitive-value))
 
   (defn satisfies? (value)
     (= ((literally typeof) value) self:primitive-value)))
@@ -731,8 +730,7 @@
 (defclass NamedSyntheticType (GDLispSpecialType) private
   (defvar name)
 
-  (defn _init (name)
-    (set self:name name))
+  (defn _init (@name))
 
   (defn satisfies? (value)
     (= (value:get-class) self:name)))
@@ -745,7 +743,7 @@
 ;; off-limits.
 
 (defclass AnyType (GDLispSpecialType) private
-  (defn satisfies? (value)
+  (defn satisfies? (_value)
     #t))
 
 (defclass AnyRefType (GDLispSpecialType) private
@@ -769,7 +767,7 @@
     (<= TYPE_ARRAY ((literally typeof) value) TYPE_COLOR_ARRAY)))
 
 (defclass NothingType (GDLispSpecialType) private
-  (defn satisfies? (value)
+  (defn satisfies? (_value)
     #f))
 
 (sys/declare value Any public)
