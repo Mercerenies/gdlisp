@@ -14,6 +14,7 @@ use crate::compile::body::synthetic_field::{Getter, Setter};
 
 use std::collections::HashMap;
 use std::borrow::Cow;
+use std::iter;
 
 #[derive(Clone, Debug, Eq, PartialEq, Default)]
 pub struct TopLevel {
@@ -345,6 +346,27 @@ impl Decl {
     }
   }
 
+  pub fn inner_exprs(&self) -> Box<dyn Iterator<Item=&Expr> + '_> {
+    match &self.value {
+      DeclF::FnDecl(cdecl) => Box::new(iter::once(&cdecl.body)),
+      DeclF::MacroDecl(cdecl) => Box::new(iter::once(&cdecl.body)),
+      DeclF::SymbolMacroDecl(cdecl) => Box::new(iter::once(&cdecl.body)),
+      DeclF::ConstDecl(cdecl) => Box::new(iter::once(&cdecl.value)),
+      DeclF::DeclareDecl(_) => Box::new(iter::empty()),
+      DeclF::EnumDecl(cdecl) => {
+        Box::new(cdecl.clauses.iter().flat_map(|(_name, value)| value))
+      }
+      DeclF::ClassDecl(cdecl) => {
+        let constructor_exprs = cdecl.constructor.iter().flat_map(|constructor| {
+          constructor.super_call.call.iter()
+            .chain(iter::once(&constructor.body))
+        });
+        let inner_exprs = cdecl.decls.iter().flat_map(ClassInnerDecl::inner_exprs);
+        Box::new(constructor_exprs.chain(inner_exprs))
+      }
+    }
+  }
+
 }
 
 impl EnumDecl {
@@ -495,6 +517,15 @@ impl ClassInnerDecl {
       ClassInnerDeclF::ClassSignalDecl(_) | ClassInnerDeclF::ClassVarDecl(_) => false,
       ClassInnerDeclF::ClassConstDecl(_) => true,
       ClassInnerDeclF::ClassFnDecl(decl) => decl.is_static.into(),
+    }
+  }
+
+  pub fn inner_exprs(&self) -> Box<dyn Iterator<Item=&Expr> + '_> {
+    match &self.value {
+      ClassInnerDeclF::ClassSignalDecl(_) => Box::new(iter::empty()),
+      ClassInnerDeclF::ClassConstDecl(cdecl) => Box::new(iter::once(&cdecl.value)),
+      ClassInnerDeclF::ClassVarDecl(cdecl) => Box::new(cdecl.value.iter()),
+      ClassInnerDeclF::ClassFnDecl(cdecl) => Box::new(iter::once(&cdecl.body)),
     }
   }
 
