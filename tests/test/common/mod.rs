@@ -212,8 +212,10 @@ pub fn parse_compile_and_output_err_h(input: &str) -> Result<(String, String), P
   let value = {
     let mut icompiler = IncCompiler::new(value.all_symbols());
     icompiler.bind_builtin_macros(&mut pipeline);
-    icompiler.compile_expr(&mut pipeline, &value)
-  }?;
+    let expr = icompiler.compile_expr(&mut pipeline, &value)?;
+    ir::loops::check_expr(&expr)?;
+    expr
+  };
   {
     let mut class_scope = OutsideOfClass;
     let mut frame = compiler.frame(&mut pipeline, &mut builder, &mut table, &mut class_scope);
@@ -244,7 +246,6 @@ pub fn parse_compile_decl_err(input: &str) -> Result<String, PError> {
 
   let mut builder = CodeBuilder::new(decl::ClassExtends::named("Reference".to_owned()));
   let (decls, _macros) = ir::compile_and_check(&mut pipeline, &value)?;
-  ir::scope::check_scopes(&decls)?;
   compiler.frame(&mut pipeline, &mut builder, &mut table, &mut OutsideOfClass).compile_toplevel(&decls)?;
   let class = builder.build();
 
