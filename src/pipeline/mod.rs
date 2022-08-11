@@ -73,8 +73,8 @@ impl Pipeline {
   pub fn compile_code<P : AsRef<Path> + ?Sized>(&mut self, filename: &P, input: &str)
                                                 -> Result<TranslationUnit, PError> {
 
-    let file_path = filename.as_ref().strip_prefix(&self.config.root_directory).expect("Non-local file load detected").to_owned(); // TODO Expect
-    let mut old_file_path = Some(RPathBuf::new(PathSrc::Res, file_path).expect("Non-local file load detected")); // TODO Expect
+    let file_path = filename.as_ref().strip_prefix(&self.config.root_directory).expect("Non-local file load detected").to_owned();
+    let mut old_file_path = Some(RPathBuf::new(PathSrc::Res, file_path).expect("Non-local file load detected"));
     mem::swap(&mut old_file_path, &mut self.current_file_path);
 
     let ast = SOME_AST_PARSER.parse(input)?;
@@ -111,8 +111,8 @@ impl Pipeline {
     let unit = self.compile_code(&input_path, &contents)?;
     write!(output_file, "{}", unit.gdscript.to_gd()).map_err(|err| IOError::new(err, SourceOffset(0)))?;
 
-    let file_path = input_path.strip_prefix(&self.config.root_directory).expect("Non-local file load detected").to_owned(); // TODO Expect
-    let mut old_file_path = Some(RPathBuf::new(PathSrc::Res, file_path).expect("Non-local file load detected")); // TODO Expect
+    let file_path = input_path.strip_prefix(&self.config.root_directory).expect("Non-local file load detected").to_owned();
+    let mut old_file_path = Some(RPathBuf::new(PathSrc::Res, file_path).expect("Non-local file load detected"));
     mem::swap(&mut old_file_path, &mut self.current_file_path);
 
     // Also output to a temporary file
@@ -123,7 +123,7 @@ impl Pipeline {
       .tempfile()
       .map_err(|err| IOError::new(err, SourceOffset(0)))?;
 
-    let mut input_path_store_name = input_path.strip_prefix(&self.config.root_directory).expect("Non-local file load detected").to_owned(); // TODO Expect
+    let mut input_path_store_name = input_path.strip_prefix(&self.config.root_directory).expect("Non-local file load detected").to_owned();
     input_path_store_name.set_extension("gd");
     self.known_files_paths.insert(input_path_store_name, tmpfile.path().to_owned());
 
