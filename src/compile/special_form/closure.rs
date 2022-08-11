@@ -3,10 +3,10 @@
 //! lambdas and lambda classes.
 
 use crate::ir::expr::{Locals, Functions, LambdaClass, LocalFnClause};
+use crate::compile::symbol_table::function_call::FnCall;
 use crate::compile::symbol_table::local_var::VarScope;
 use crate::compile::symbol_table::SymbolTable;
 use crate::pipeline::source::SourceOffset;
-use super::lambda::closure_fn_to_gd_var; // TODO Move this function over to this module
 
 type IRArgList = crate::ir::arglist::ordinary::ArgList;
 type IRExpr = crate::ir::expr::Expr;
@@ -222,4 +222,13 @@ pub fn purge_globals(vars: &mut Locals, table: &SymbolTable) {
   vars.retain(|var, _| {
     table.get_var(var).map_or(true, |v| v.scope != VarScope::GlobalVar)
   });
+}
+
+/// If the function call comes from a local variable (most commonly,
+/// if it was built out of `flet` or `labels`), then this function
+/// returns the name of that variable, as a `String`. If the function
+/// does *not* come from a local variable, then this function returns
+/// `None`.
+pub fn closure_fn_to_gd_var(call: &FnCall) -> Option<String> {
+  call.scope.local_name().map(str::to_owned)
 }

@@ -281,10 +281,6 @@ pub fn make_constructor_call(class_name: String,
   StExpr { expr, side_effects }
 }
 
-pub fn closure_fn_to_gd_var(call: &FnCall) -> Option<String> {
-  call.scope.local_name().map(str::to_owned)
-}
-
 fn wrap_in_cell_if_needed(name: &str, gd_name: &str, all_vars: &Locals, lambda_builder: &mut StmtBuilder, pos: SourceOffset) {
   if all_vars.get(name).unwrap_or(&AccessType::None).requires_cell() {
     lambda_builder.append(Stmt::simple_assign(Expr::var(gd_name, pos),
