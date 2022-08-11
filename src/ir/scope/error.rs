@@ -7,6 +7,8 @@ use crate::ir::identifier::{Namespace, ClassNamespace};
 
 // TODO Encode the offset of both duplicate names in this error type.
 
+///// Display and error
+
 /// The type of errors during scope resolution.
 #[derive(PartialEq, Eq, Debug)]
 pub enum ScopeError<NS> {

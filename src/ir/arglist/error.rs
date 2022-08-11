@@ -6,6 +6,7 @@ use crate::sxp::ast::AST;
 use crate::pipeline::source::{Sourced, SourceOffset};
 
 use std::fmt;
+use std::error::Error;
 
 /// `ArgListParseErrorF` describes the types of errors that can occur
 /// when parsing an [`AST`] argument list.
@@ -88,3 +89,5 @@ impl Sourced for ArgListParseError {
   }
 
 }
+
+impl Error for ArgListParseError {}

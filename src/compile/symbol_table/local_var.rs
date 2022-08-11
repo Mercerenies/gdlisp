@@ -15,6 +15,7 @@ use serde::{Serialize, Deserialize};
 use std::borrow::ToOwned;
 use std::convert::TryFrom;
 use std::fmt;
+use std::error::Error;
 
 /// All of the relevant information needed to understand a variable is
 /// stored in `LocalVar`. Despite its name, this structure is used to
@@ -488,6 +489,8 @@ impl fmt::Display for VarNameIntoExtendsError {
     }
   }
 }
+
+impl Error for VarNameIntoExtendsError {}
 
 #[cfg(test)]
 mod tests {

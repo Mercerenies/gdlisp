@@ -7,6 +7,7 @@ use super::identifier::{Namespace, Id, IdLike};
 
 use std::convert::{TryInto, TryFrom};
 use std::fmt;
+use std::error::Error;
 
 // Import syntax:
 //
@@ -317,6 +318,8 @@ impl fmt::Display for ImportNameResolutionError {
     }
   }
 }
+
+impl Error for ImportDeclParseError {}
 
 #[cfg(test)]
 mod tests {

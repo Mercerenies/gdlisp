@@ -6,6 +6,7 @@ use json::JsonValue;
 
 use std::convert::TryFrom;
 use std::fmt;
+use std::error::Error;
 
 /// A response received from the server as the result of a command.
 ///
@@ -123,3 +124,5 @@ impl fmt::Display for Failure {
     writeln!(f, "{} {}", self.error_code, self.error_string)
   }
 }
+
+impl Error for Failure {}

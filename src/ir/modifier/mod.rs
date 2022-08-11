@@ -21,6 +21,7 @@ use crate::sxp::ast::{AST, ASTF};
 use crate::pipeline::source::{SourceOffset, Sourced};
 
 use std::fmt;
+use std::error::Error;
 
 // TODO Can we use this for defvar export statements too?
 
@@ -199,6 +200,8 @@ impl fmt::Display for ParseError {
     }
   }
 }
+
+impl Error for ParseError {}
 
 impl<M> Constant<M> {
   pub fn new(symbol_value: &str, result: M) -> Constant<M> {
