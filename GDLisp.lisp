@@ -9,7 +9,8 @@
 (defclass Cons (Reference)
   (defvar car)
   (defvar cdr)
-  (defn _init (@car @cdr)))
+  (defn _init (@car @cdr)
+    (self:set-meta "__gdlisp_Primitive_Cons" 1)))
 
 (defclass Function (Reference)
   (defvar __is_gdlisp_function #t)
@@ -31,7 +32,8 @@
   ;; which seems to be coming in Godot 4. For now, this manual wrapper
   ;; stores symbols in the least efficient way possible.
   (defvar contents)
-  (defn _init (@contents)))
+  (defn _init (@contents)
+    (self:set-meta "__gdlisp_Primitive_Symbol" 1)))
 
 (defclass FreshNameGenerator (Reference)
   ;; This is meant to be identical to FreshNameGenerator in the Rust
