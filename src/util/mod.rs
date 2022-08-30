@@ -2,6 +2,7 @@
 //! Various utility functions that don't have a better home.
 
 pub mod debug_wrapper;
+pub mod group_by;
 pub mod lattice;
 pub mod lazy;
 pub mod one;
