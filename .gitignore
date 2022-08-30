@@ -1,6 +1,7 @@
 /target
 *~
 GDLisp.gd
+GDLisp.msgpack
 # Generated file that is always identical to /GDLisp.gd
 /MacroServer/GDLisp.gd
 /tmp/
