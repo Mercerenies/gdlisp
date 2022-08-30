@@ -82,8 +82,16 @@ func exec(input):
 func pretty(value):
     if value == null:
         return "()"
-    elif value is GDLisp.Cons:
-        return "(" + pretty(value.car) + " . " + pretty(value.cdr) + ")"
+    elif value is bool and value:
+        return "#t"
+    elif value is bool and not value:
+        return "#f"
+    elif value is int or value is float:
+        return str(value)
+    elif value is Vector2:
+        return "V{{} {}}".format([pretty(value.x), pretty(value.y)], "{}")
+    elif value is Vector3:
+        return "V{{} {} {}}".format([pretty(value.x), pretty(value.y), pretty(value.z)], "{}")
     elif value is Array:
         var s = "["
         var first = true
@@ -105,17 +113,9 @@ func pretty(value):
                 _:
                     s += char(x)
         return s + "\""
-    elif value is GDLisp.Symbol:
+    elif value.get_meta("__gdlisp_Primitive_Cons", false):
+        return "(" + pretty(value.car) + " . " + pretty(value.cdr) + ")"
+    elif value.get_meta("__gdlisp_Primitive_Symbol", false):
         return value.contents
-    elif value is bool and value:
-        return "#t"
-    elif value is bool and not value:
-        return "#f"
-    elif value is int or value is float:
-        return str(value)
-    elif value is Vector2:
-        return "V{{} {}}".format([pretty(value.x), pretty(value.y)], "{}")
-    elif value is Vector3:
-        return "V{{} {} {}}".format([pretty(value.x), pretty(value.y), pretty(value.z)], "{}")
     else:
         return str(value)
