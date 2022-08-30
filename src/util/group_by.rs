@@ -3,6 +3,10 @@
 
 use std::iter::Peekable;
 
+/// A grouping iterator. This iterator is constructed via [`group_by`]
+/// or [`group_with`] and produces vectors of elements in the original
+/// (input) iterator, grouped together by the predicate. See
+/// [`group_by`] for details.
 pub struct GroupBy<I: Iterator, F> {
   iter: Peekable<I>,
   function: F,
@@ -52,16 +56,29 @@ where I: Iterator,
 
 }
 
+/// Groups elements of the iterator based on the predicate function.
+/// The resulting output iterator will produce vectors of items from
+/// the original iterator, where the subvectors are the longest
+/// subsequences for which the predicate returns true on consecutive
+/// elements.
+///
+/// See also [`group_with`].
 pub fn group_by<I, F>(iter: I, function: F) -> GroupBy<I, F>
 where I: Iterator,
       F: FnMut(&<I as Iterator>::Item, &<I as Iterator>::Item) -> bool {
   GroupBy { iter: iter.peekable(), function }
 }
 
+/// Groups elements of the iterator based on the grouping function,
+/// similar to [`group_by`]. The grouping function takes one argument
+/// and returns a value that can be compared for equality. The
+/// resulting iterator is grouped by consecutive terms which, under
+/// the supplied unary function, produce values which are considered
+/// equal.
 pub fn group_with<I, F, G>(iter: I, mut function: F) -> GroupBy<I, impl FnMut(&<I as Iterator>::Item, &<I as Iterator>::Item) -> bool>
 where I: Iterator,
       F: FnMut(&<I as Iterator>::Item) -> G,
-      G: PartialEq {
+      G: Eq {
   group_by(iter, move |a, b| {
     function(a) == function(b)
   })
