@@ -212,3 +212,21 @@ pub fn assign_to_vec_test_2() {
   "#);
   assert_eq!(output, "\n1\n10\n");
 }
+
+#[test]
+pub fn compound_assignment_test() {
+  assert_eq!(parse_compile_and_output("(let ((a 1)) (update a (+ 2)))"), r#"var a = 1
+a = a + 2
+return a
+"#);
+}
+
+#[test]
+pub fn compound_assignment_run_test_1() {
+  assert_eq!(parse_and_run("((let ((a 1)) (update a (+ 2)) (print a)))"), "\n3\n");
+}
+
+#[test]
+pub fn compound_assignment_run_test_2() {
+  assert_eq!(parse_and_run("((defn foo (x) (* x 2)) (let ((a 9)) (update a foo) (print a)))"), "\n18\n");
+}

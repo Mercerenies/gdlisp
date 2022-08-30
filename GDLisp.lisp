@@ -858,6 +858,12 @@
      (,cnd ,t)
      (#t ,f)))
 
+(defmacro update (field updater)
+  (cond
+    ((not (instance? updater Cons)) (set updater (list updater))))
+  (set (cdr updater) (cons field (cdr updater)))
+  `(set ,field ,updater))
+
 (defmacro yield* (arg)
   (let ((symbol (gensym "_yield")))
     `(let ((,symbol ,arg))
