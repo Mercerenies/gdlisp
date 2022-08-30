@@ -25,7 +25,7 @@ static func _lazy_0():
 
 
 static func x():
-    return GDLisp.Cons.new(GDLisp.Cons.new(GDLisp.intern("access-slot"), GDLisp.Cons.new(GDLisp.Cons.new(GDLisp.intern("contextual-load"), GDLisp.Cons.new("res://TEST.gd", null)), GDLisp.Cons.new(GDLisp.intern("_lazy_0"), null))), null)
+    return GDLisp.cons(GDLisp.cons(GDLisp.intern("access-slot"), GDLisp.cons(GDLisp.cons(GDLisp.intern("contextual-load"), GDLisp.cons("res://TEST.gd", null)), GDLisp.cons(GDLisp.intern("_lazy_0"), null))), null)
 
 
 static func run():
@@ -57,7 +57,7 @@ static func _lazy_0():
 
 
 static func x():
-    return GDLisp.Cons.new(GDLisp.Cons.new(GDLisp.intern("access-slot"), GDLisp.Cons.new(GDLisp.Cons.new(GDLisp.intern("contextual-load"), GDLisp.Cons.new("res://TEST.gd", null)), GDLisp.Cons.new(GDLisp.intern("_lazy_0"), null))), null)
+    return GDLisp.cons(GDLisp.cons(GDLisp.intern("access-slot"), GDLisp.cons(GDLisp.cons(GDLisp.intern("contextual-load"), GDLisp.cons("res://TEST.gd", null)), GDLisp.cons(GDLisp.intern("_lazy_0"), null))), null)
 
 
 static func run():

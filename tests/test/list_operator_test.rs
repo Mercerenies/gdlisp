@@ -8,7 +8,7 @@ pub fn simple_length_test() {
 
 #[test]
 pub fn list_test() {
-  assert_eq!(parse_compile_and_output("(list 1 2 3)"), "return GDLisp.Cons.new(1, GDLisp.Cons.new(2, GDLisp.Cons.new(3, null)))\n");
+  assert_eq!(parse_compile_and_output("(list 1 2 3)"), "return GDLisp.cons(1, GDLisp.cons(2, GDLisp.cons(3, null)))\n");
 }
 
 #[test]

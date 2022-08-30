@@ -188,14 +188,14 @@ pub fn non_closure_lambda_test() {
 pub fn basic_funcall_test() {
   assert_eq!(parse_compile_and_output("(funcall 1)"), "return GDLisp.funcall(1, null)\n");
   assert_eq!(parse_compile_and_output("(progn (funcall 1) 2)"), "GDLisp.funcall(1, null)\nreturn 2\n");
-  assert_eq!(parse_compile_and_output("(funcall 1 2 3)"), "return GDLisp.funcall(1, GDLisp.Cons.new(2, GDLisp.Cons.new(3, null)))\n");
+  assert_eq!(parse_compile_and_output("(funcall 1 2 3)"), "return GDLisp.funcall(1, GDLisp.cons(2, GDLisp.cons(3, null)))\n");
 }
 
 #[test]
 pub fn funcall_lambda_test() {
 
   let result0 = parse_compile_and_output_h("(let ((f (lambda (a) a))) (funcall f 100))");
-  assert_eq!(result0.0, "var f = _LambdaBlock.new()\nreturn GDLisp.funcall(f, GDLisp.Cons.new(100, null))\n");
+  assert_eq!(result0.0, "var f = _LambdaBlock.new()\nreturn GDLisp.funcall(f, GDLisp.cons(100, null))\n");
   assert_eq!(result0.1, r#"class _LambdaBlock extends GDLisp.Function:
 
     func _init():

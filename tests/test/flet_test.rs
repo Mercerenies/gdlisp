@@ -67,7 +67,7 @@ pub fn semiglobal_flet_test() {
 pub fn semiglobal_flet_test_indirect() {
 
   let result0 = parse_compile_and_output_h("(flet ((f (x) (+ x 1))) (funcall (function f) 10))");
-  assert_eq!(result0.0, "return GDLisp.funcall(_FunctionRefBlock.new(), GDLisp.Cons.new(10, null))\n");
+  assert_eq!(result0.0, "return GDLisp.funcall(_FunctionRefBlock.new(), GDLisp.cons(10, null))\n");
   assert_eq!(result0.1, r#"static func _flet(x):
     return x + 1
 

@@ -56,7 +56,7 @@ pub fn semiglobal_labels_test() {
 pub fn semiglobal_labels_test_indirect() {
 
   let result0 = parse_compile_and_output_h("(labels ((f (x) (+ x 1))) (funcall (function f) 10))");
-  assert_eq!(result0.0, "return GDLisp.funcall(_FunctionRefBlock.new(), GDLisp.Cons.new(10, null))\n");
+  assert_eq!(result0.0, "return GDLisp.funcall(_FunctionRefBlock.new(), GDLisp.cons(10, null))\n");
   assert_eq!(result0.1, r#"static func _flet(x):
     return x + 1
 
@@ -208,7 +208,7 @@ class _LambdaBlock extends GDLisp.Function:
 #[test]
 pub fn recursive_single_indirect_labels_test() {
   let result0 = parse_compile_and_output_h("(labels ((f (x) (f x))) (funcall (function f) 1))");
-  assert_eq!(result0.0, "var _locals = _Labels.new()\nreturn GDLisp.funcall(_FunctionRefBlock.new(_locals), GDLisp.Cons.new(1, null))\n");
+  assert_eq!(result0.0, "var _locals = _Labels.new()\nreturn GDLisp.funcall(_FunctionRefBlock.new(_locals), GDLisp.cons(1, null))\n");
   assert_eq!(result0.1, r#"class _Labels extends Reference:
 
     func _init():

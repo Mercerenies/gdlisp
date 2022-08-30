@@ -335,7 +335,7 @@ pub fn ne_compile_test() {
   assert_eq!(parse_compile_and_output("(/= 1)"), "return true\n");
   assert_eq!(parse_compile_and_output("(/= (foo))"), "foo()\nreturn true\n");
   assert_eq!(parse_compile_and_output("(/= 1 2)"), "return 1 != 2\n");
-  assert_eq!(parse_compile_and_output("(/= 1 2 3)"), "return GDLisp._DIV__EQ_(1, GDLisp.Cons.new(2, GDLisp.Cons.new(3, null)))\n");
+  assert_eq!(parse_compile_and_output("(/= 1 2 3)"), "return GDLisp._DIV__EQ_(1, GDLisp.cons(2, GDLisp.cons(3, null)))\n");
 }
 
 #[test]

@@ -60,21 +60,11 @@ pub fn on_gdlisp_root(name: String, pos: SourceOffset) -> Expr {
   Expr::new(ExprF::Attribute(Box::new(gdlisp_root(pos)), name), pos)
 }
 
-/// An expression representing the GDLisp `Cons` class.
-pub fn cons_class(pos: SourceOffset) -> Expr {
-  on_gdlisp_root(String::from("Cons"), pos)
-}
-
-/// An expression representing the GDLisp `Symbol` class.
-pub fn symbol_class(pos: SourceOffset) -> Expr {
-  on_gdlisp_root(String::from("Symbol"), pos)
-}
-
 /// Given a vector of expressions `vec`, produce an expression which
 /// produces a GDLisp list containing those expressions in order.
 pub fn construct_list(vec: Vec<Expr>, pos: SourceOffset) -> Expr {
   vec.into_iter().rev().fold(Expr::null(pos), |rest, first| {
-    Expr::call(Some(cons_class(pos)), "new", vec!(first, rest), pos)
+    Expr::call(Some(gdlisp_root(pos)), "cons", vec!(first, rest), pos)
   })
 }
 

@@ -77,7 +77,7 @@ pub fn vector_quasiquote_test() {
 #[test]
 pub fn quasiquote_unquote_spliced_list_test() {
   assert_eq!(parse_compile_and_output("(let ((a [2 3])) `(1 ,.a 4))"),
-             "var a = [2, 3]\nreturn GDLisp.cons(1, GDLisp.append(GDLisp.Cons.new(GDLisp.sys_DIV_qq_smart_list(a), GDLisp.Cons.new(GDLisp.cons(4, null), null))))\n");
+             "var a = [2, 3]\nreturn GDLisp.cons(1, GDLisp.append(GDLisp.cons(GDLisp.sys_DIV_qq_smart_list(a), GDLisp.cons(GDLisp.cons(4, null), null))))\n");
 }
 
 #[test]
