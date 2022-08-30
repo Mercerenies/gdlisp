@@ -113,9 +113,9 @@ func pretty(value):
                 _:
                     s += char(x)
         return s + "\""
-    elif value.get_meta("__gdlisp_Primitive_Cons", false):
+    elif value.has_meta("__gdlisp_Primitive_Cons"):
         return "(" + pretty(value.car) + " . " + pretty(value.cdr) + ")"
-    elif value.get_meta("__gdlisp_Primitive_Symbol", false):
+    elif value.has_meta("__gdlisp_Primitive_Symbol"):
         return value.contents
     else:
         return str(value)
