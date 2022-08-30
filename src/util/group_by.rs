@@ -38,7 +38,7 @@ where I: Iterator,
           break;
         }
         Some(next) => {
-          if (self.function)(&head, &next) {
+          if (self.function)(&head, next) {
             // next is part of the current group, so continue.
             result.push(head);
             head = self.iter.next().expect("Inconsistent behavior in Peekable");

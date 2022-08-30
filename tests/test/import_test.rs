@@ -37,7 +37,11 @@ fn qualified_import_test() {
     (example/one)
     (example/two)
   "#), r#"extends Node
+
+
 const example_0 = preload("res://example.gd")
+
+
 static func run():
     example_0.one()
     return example_0.two()
@@ -51,7 +55,11 @@ fn aliased_import_test() {
     (example-name/one)
     (example-name/two)
   "#), r#"extends Node
+
+
 const example_name_0 = preload("res://example.gd")
+
+
 static func run():
     example_name_0.one()
     return example_name_0.two()
@@ -64,7 +72,11 @@ fn restricted_import_test() {
     (use "res://example.lisp" (one))
     (one)
   "#), r#"extends Node
+
+
 const _Import_0 = preload("res://example.gd")
+
+
 static func run():
     return _Import_0.one()
 "#);
@@ -87,7 +99,11 @@ fn restricted_import_alias_test() {
     (use "res://example.lisp" ((one as my-one)))
     (my-one)
   "#), r#"extends Node
+
+
 const _Import_0 = preload("res://example.gd")
+
+
 static func run():
     return _Import_0.one()
 "#);
@@ -111,7 +127,11 @@ fn open_import_test() {
     (one)
     (two)
   "#), r#"extends Node
+
+
 const _Import_0 = preload("res://example.gd")
+
+
 static func run():
     _Import_0.one()
     return _Import_0.two()
@@ -142,9 +162,15 @@ fn macro_uses_other_import_test() {
   let mut pipeline = Pipeline::with_resolver(dummy_config(), Box::new(loader));
   let result = pipeline.load_file("main.lisp").unwrap().gdscript.to_gd();
   assert_eq!(result, r#"extends Node
+
+
 const _Import_0 = preload("res://example.gd")
+
+
 static func f(x):
     return _Import_0.add_one(x)
+
+
 static func run():
     return 44
 "#);
@@ -166,9 +192,15 @@ fn macro_uses_preload_test() {
   let mut pipeline = Pipeline::with_resolver(dummy_config(), Box::new(loader));
   let result = pipeline.load_file("main.lisp").unwrap().gdscript.to_gd();
   assert_eq!(result, r#"extends Node
+
+
 const example_0 = preload("res://example.gd")
+
+
 static func f(x):
     return preload("res://example.gd").add_one(x)
+
+
 static func run():
     return 44
 "#);
@@ -203,9 +235,15 @@ fn symbol_macro_uses_other_import_test() {
   let mut pipeline = Pipeline::with_resolver(dummy_config(), Box::new(loader));
   let result = pipeline.load_file("main.lisp").unwrap().gdscript.to_gd();
   assert_eq!(result, r#"extends Node
+
+
 const _Import_0 = preload("res://example.gd")
+
+
 static func x():
     return _Import_0.add_one(2)
+
+
 static func run():
     return 3
 "#);
@@ -222,7 +260,11 @@ fn macro_from_other_file_import_test_1() {
   let mut pipeline = Pipeline::with_resolver(dummy_config(), Box::new(loader));
   let result = pipeline.load_file("main.lisp").unwrap().gdscript.to_gd();
   assert_eq!(result, r#"extends Node
+
+
 const _Import_0 = preload("res://example.gd")
+
+
 static func run():
     return 44
 "#);
@@ -239,7 +281,11 @@ fn macro_from_other_file_import_test_2() {
   let mut pipeline = Pipeline::with_resolver(dummy_config(), Box::new(loader));
   let result = pipeline.load_file("main.lisp").unwrap().gdscript.to_gd();
   assert_eq!(result, r#"extends Node
+
+
 const _Import_0 = preload("res://example.gd")
+
+
 static func run():
     return 44
 "#);
@@ -256,7 +302,11 @@ fn macro_from_other_file_import_test_3() {
   let mut pipeline = Pipeline::with_resolver(dummy_config(), Box::new(loader));
   let result = pipeline.load_file("main.lisp").unwrap().gdscript.to_gd();
   assert_eq!(result, r#"extends Node
+
+
 const _Import_0 = preload("res://example.gd")
+
+
 static func run():
     return 44
 "#);
@@ -273,7 +323,11 @@ fn symbol_macro_from_other_file_import_test_1() {
   let mut pipeline = Pipeline::with_resolver(dummy_config(), Box::new(loader));
   let result = pipeline.load_file("main.lisp").unwrap().gdscript.to_gd();
   assert_eq!(result, r#"extends Node
+
+
 const _Import_0 = preload("res://example.gd")
+
+
 static func run():
     return 10
 "#);
@@ -290,7 +344,11 @@ fn symbol_macro_from_other_file_import_test_2() {
   let mut pipeline = Pipeline::with_resolver(dummy_config(), Box::new(loader));
   let result = pipeline.load_file("main.lisp").unwrap().gdscript.to_gd();
   assert_eq!(result, r#"extends Node
+
+
 const _Import_0 = preload("res://example.gd")
+
+
 static func run():
     return 44
 "#);
@@ -307,7 +365,11 @@ fn symbol_macro_from_other_file_import_test_3() {
   let mut pipeline = Pipeline::with_resolver(dummy_config(), Box::new(loader));
   let result = pipeline.load_file("main.lisp").unwrap().gdscript.to_gd();
   assert_eq!(result, r#"extends Node
+
+
 const _Import_0 = preload("res://example.gd")
+
+
 static func run():
     return 44
 "#);
@@ -326,7 +388,11 @@ fn macro_several_files_import_test() {
   let mut pipeline = Pipeline::with_resolver(dummy_config(), Box::new(loader));
   let result = pipeline.load_file("main.lisp").unwrap().gdscript.to_gd();
   assert_eq!(result, r#"extends Node
+
+
 const c_0 = preload("res://c.gd")
+
+
 static func run():
     return 91
 "#);
@@ -345,7 +411,11 @@ fn symbol_macro_several_files_import_test() {
   let mut pipeline = Pipeline::with_resolver(dummy_config(), Box::new(loader));
   let result = pipeline.load_file("main.lisp").unwrap().gdscript.to_gd();
   assert_eq!(result, r#"extends Node
+
+
 const c_0 = preload("res://c.gd")
+
+
 static func run():
     return 4
 "#);
@@ -359,7 +429,11 @@ fn main_class_import_test_1() {
   let mut pipeline = Pipeline::with_resolver(dummy_config(), Box::new(loader));
   let result = pipeline.load_file("main.lisp").unwrap().gdscript.to_gd();
   assert_eq!(result, r#"extends Node
+
+
 const _Import_0 = preload("res://a.gd")
+
+
 static func run():
     return _Import_0
 "#);
@@ -373,7 +447,11 @@ fn main_class_import_test_2() {
   let mut pipeline = Pipeline::with_resolver(dummy_config(), Box::new(loader));
   let result = pipeline.load_file("main.lisp").unwrap().gdscript.to_gd();
   assert_eq!(result, r#"extends Node
+
+
 const _Import_0 = preload("res://a.gd")
+
+
 static func run():
     return [_Import_0, _Import_0.VALUE]
 "#);
@@ -411,7 +489,11 @@ fn public_fn_import_test() {
   let mut pipeline = Pipeline::with_resolver(dummy_config(), Box::new(loader));
   let result = pipeline.load_file("main.lisp").unwrap().gdscript.to_gd();
   assert_eq!(result, r#"extends Node
+
+
 const a_0 = preload("res://a.gd")
+
+
 static func run():
     return a_0.foo()
 "#);
@@ -425,7 +507,11 @@ fn private_fn_import_test_1() {
   let mut pipeline = Pipeline::with_resolver(dummy_config(), Box::new(loader));
   let result = pipeline.load_file("main.lisp").unwrap().gdscript.to_gd();
   assert_eq!(result, r#"extends Node
+
+
 const a_0 = preload("res://a.gd")
+
+
 static func run():
     return null
 "#);
@@ -439,7 +525,11 @@ fn private_fn_import_test_2() {
   let mut pipeline = Pipeline::with_resolver(dummy_config(), Box::new(loader));
   let result = pipeline.load_file("main.lisp").unwrap().gdscript.to_gd();
   assert_eq!(result, r#"extends Node
+
+
 const _Import_0 = preload("res://a.gd")
+
+
 static func run():
     return null
 "#);
@@ -477,7 +567,11 @@ fn public_macro_import_test() {
   let mut pipeline = Pipeline::with_resolver(dummy_config(), Box::new(loader));
   let result = pipeline.load_file("main.lisp").unwrap().gdscript.to_gd();
   assert_eq!(result, r#"extends Node
+
+
 const _Import_0 = preload("res://a.gd")
+
+
 static func run():
     return null
 "#);
@@ -503,7 +597,11 @@ fn public_const_import_test() {
   let mut pipeline = Pipeline::with_resolver(dummy_config(), Box::new(loader));
   let result = pipeline.load_file("main.lisp").unwrap().gdscript.to_gd();
   assert_eq!(result, r#"extends Node
+
+
 const _Import_0 = preload("res://a.gd")
+
+
 static func run():
     return null
 "#);
@@ -529,7 +627,11 @@ fn public_enum_import_test() {
   let mut pipeline = Pipeline::with_resolver(dummy_config(), Box::new(loader));
   let result = pipeline.load_file("main.lisp").unwrap().gdscript.to_gd();
   assert_eq!(result, r#"extends Node
+
+
 const _Import_0 = preload("res://a.gd")
+
+
 static func run():
     return null
 "#);
@@ -555,7 +657,11 @@ fn public_class_import_test_1() {
   let mut pipeline = Pipeline::with_resolver(dummy_config(), Box::new(loader));
   let result = pipeline.load_file("main.lisp").unwrap().gdscript.to_gd();
   assert_eq!(result, r#"extends Node
+
+
 const _Import_0 = preload("res://a.gd")
+
+
 static func run():
     return null
 "#);
@@ -569,7 +675,11 @@ fn public_class_import_test_2() {
   let mut pipeline = Pipeline::with_resolver(dummy_config(), Box::new(loader));
   let result = pipeline.load_file("main.lisp").unwrap().gdscript.to_gd();
   assert_eq!(result, r#"extends Node
+
+
 const _Import_0 = preload("res://a.gd")
+
+
 static func run():
     return null
 "#);
@@ -631,7 +741,11 @@ fn lazy_val_import_test() {
   let mut pipeline = Pipeline::with_resolver(dummy_config(), Box::new(loader));
   let result = pipeline.load_file("main.lisp").unwrap().gdscript.to_gd();
   assert_eq!(result, r#"extends Node
+
+
 const _Import_0 = preload("res://a.gd")
+
+
 static func run():
     return load("res://a.gd")._lazy_0()
 "#);
@@ -645,9 +759,15 @@ fn lazy_val_import_run_test() {
   let mut pipeline = Pipeline::with_resolver(dummy_config(), Box::new(loader));
   let result = pipeline.load_file("main.lisp").unwrap().gdscript.to_gd();
   assert_eq!(result, r#"extends Node
+
+
 const _Import_0 = preload("res://a.gd")
+
+
 static func bar():
     return load("res://a.gd")._lazy_0()
+
+
 static func run():
     return 10
 "#);
@@ -673,9 +793,15 @@ fn ambiguous_import_namespace_disambiguate_value_test() {
   let mut pipeline = Pipeline::with_resolver(dummy_config(), Box::new(loader));
   let result = pipeline.load_file("main.lisp").unwrap().gdscript.to_gd();
   assert_eq!(result, r#"extends Node
+
+
 const _Import_0 = preload("res://a.gd")
+
+
 static func bar():
     return _Import_0.foo
+
+
 static func run():
     return null
 "#);
@@ -689,9 +815,15 @@ fn ambiguous_import_namespace_disambiguate_function_test() {
   let mut pipeline = Pipeline::with_resolver(dummy_config(), Box::new(loader));
   let result = pipeline.load_file("main.lisp").unwrap().gdscript.to_gd();
   assert_eq!(result, r#"extends Node
+
+
 const _Import_0 = preload("res://a.gd")
+
+
 static func bar():
     return _Import_0.foo()
+
+
 static func run():
     return null
 "#);

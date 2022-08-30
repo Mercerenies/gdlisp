@@ -9,22 +9,67 @@ use super::common::*;
 
 #[test]
 pub fn empty_enum_test() {
-  assert_eq!(parse_compile_decl("((defenum MyEnum))"), "extends Reference\nenum MyEnum {\n}\nstatic func run():\n    return null\n");
+  assert_eq!(parse_compile_decl("((defenum MyEnum))"), r#"extends Reference
+
+
+enum MyEnum {
+}
+
+
+static func run():
+    return null
+"#);
 }
 
 #[test]
 pub fn unvalued_enum_test() {
-  assert_eq!(parse_compile_decl("((defenum MyEnum A B C))"), "extends Reference\nenum MyEnum {\n    A,\n    B,\n    C,\n}\nstatic func run():\n    return null\n");
+  assert_eq!(parse_compile_decl("((defenum MyEnum A B C))"), r#"extends Reference
+
+
+enum MyEnum {
+    A,
+    B,
+    C,
+}
+
+
+static func run():
+    return null
+"#);
 }
 
 #[test]
 pub fn valued_enum_test() {
-  assert_eq!(parse_compile_decl("((defenum MyEnum (A 1) (B 2) (C 3)))"), "extends Reference\nenum MyEnum {\n    A = 1,\n    B = 2,\n    C = 3,\n}\nstatic func run():\n    return null\n");
+  assert_eq!(parse_compile_decl("((defenum MyEnum (A 1) (B 2) (C 3)))"), r#"extends Reference
+
+
+enum MyEnum {
+    A = 1,
+    B = 2,
+    C = 3,
+}
+
+
+static func run():
+    return null
+"#);
 }
 
 #[test]
 pub fn mixed_enum_test() {
-  assert_eq!(parse_compile_decl("((defenum MyEnum A (B 2) (C 3)))"), "extends Reference\nenum MyEnum {\n    A,\n    B = 2,\n    C = 3,\n}\nstatic func run():\n    return null\n");
+  assert_eq!(parse_compile_decl("((defenum MyEnum A (B 2) (C 3)))"), r#"extends Reference
+
+
+enum MyEnum {
+    A,
+    B = 2,
+    C = 3,
+}
+
+
+static func run():
+    return null
+"#);
 }
 
 #[test]
@@ -43,5 +88,10 @@ pub fn invalid_enum_test() {
 
 #[test]
 pub fn builtin_enum_test() {
-  assert_eq!(parse_compile_decl("(Mouse:LEFT)"), "extends Reference\nstatic func run():\n    return GDLisp.Mouse.LEFT\n");
+  assert_eq!(parse_compile_decl("(Mouse:LEFT)"), r#"extends Reference
+
+
+static func run():
+    return GDLisp.Mouse.LEFT
+"#);
 }

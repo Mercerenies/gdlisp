@@ -7,6 +7,8 @@ use super::common::*;
 pub fn simple_lazy_test() {
   assert_eq!(parse_compile_decl("((deflazy x 100))"),
              r#"extends Reference
+
+
 static func _lazy_0():
     var _this_file_1 = load("res://TEST.gd")
     var _cond = null
@@ -20,8 +22,12 @@ static func _lazy_0():
         else:
             _cond = null
     return _cond
+
+
 static func x():
     return GDLisp.Cons.new(GDLisp.Cons.new(GDLisp.intern("access-slot"), GDLisp.Cons.new(GDLisp.Cons.new(GDLisp.intern("contextual-load"), GDLisp.Cons.new("res://TEST.gd", null)), GDLisp.Cons.new(GDLisp.intern("_lazy_0"), null))), null)
+
+
 static func run():
     return null
 "#);
@@ -33,6 +39,8 @@ pub fn simple_private_lazy_test() {
   // doesn't change the output compared to the simple_lazy_test case.
   assert_eq!(parse_compile_decl("((deflazy x 100 private))"),
              r#"extends Reference
+
+
 static func _lazy_0():
     var _this_file_1 = load("res://TEST.gd")
     var _cond = null
@@ -46,8 +54,12 @@ static func _lazy_0():
         else:
             _cond = null
     return _cond
+
+
 static func x():
     return GDLisp.Cons.new(GDLisp.Cons.new(GDLisp.intern("access-slot"), GDLisp.Cons.new(GDLisp.Cons.new(GDLisp.intern("contextual-load"), GDLisp.Cons.new("res://TEST.gd", null)), GDLisp.Cons.new(GDLisp.intern("_lazy_0"), null))), null)
+
+
 static func run():
     return null
 "#);

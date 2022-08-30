@@ -11,9 +11,14 @@ use super::common::*;
 pub fn empty_object_test() {
   assert_eq!(parse_compile_decl("((defobject Foo (Reference)))"),
              r#"extends Reference
+
+
 class _AnonymousClass extends Reference:
+
     func _init():
         pass
+
+
 static func _lazy_0():
     var _this_file_1 = load("res://TEST.gd")
     var _cond = null
@@ -27,8 +32,12 @@ static func _lazy_0():
         else:
             _cond = null
     return _cond
+
+
 static func Foo():
     return GDLisp.Cons.new(GDLisp.Cons.new(GDLisp.intern("access-slot"), GDLisp.Cons.new(GDLisp.Cons.new(GDLisp.intern("contextual-load"), GDLisp.Cons.new("res://TEST.gd", null)), GDLisp.Cons.new(GDLisp.intern("_lazy_0"), null))), null)
+
+
 static func run():
     return null
 "#);

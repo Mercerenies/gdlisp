@@ -23,6 +23,7 @@ use gdlisp::ir;
 use gdlisp::ir::incremental::IncCompiler;
 use gdlisp::gdscript::library;
 use gdlisp::gdscript::decl;
+use gdlisp::gdscript::spacing::SpacedDeclPrinter;
 use gdlisp::pipeline::Pipeline;
 use gdlisp::pipeline::error::{PError, IOError};
 use gdlisp::pipeline::config::ProjectConfig;
@@ -223,8 +224,15 @@ pub fn parse_compile_and_output_err_h(input: &str) -> Result<(String, String), P
   }
   let (stmts, helpers) = builder.build();
   let a = stmts.into_iter().map(|stmt| stmt.to_gd(0)).collect::<String>();
-  let b = helpers.into_iter().map(|decl| decl.to_gd(0)).collect::<String>();
+  let b = output_decls(helpers);
   Ok((a, b))
+}
+
+fn output_decls(decls: Vec<decl::Decl>) -> String {
+  let printer = SpacedDeclPrinter::new();
+  let mut string = String::new();
+  printer.write_gd(&mut string, decls.iter()).unwrap();
+  string
 }
 
 pub fn parse_compile_and_output(input: &str) -> String {

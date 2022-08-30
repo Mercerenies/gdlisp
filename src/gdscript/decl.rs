@@ -13,6 +13,7 @@ use crate::gdscript::indent;
 use crate::gdscript::library;
 use crate::gdscript::arglist::ArgList;
 use crate::pipeline::source::{SourceOffset, Sourced};
+use super::spacing::SpacedDeclPrinter;
 
 use std::fmt::{self, Write};
 
@@ -201,8 +202,13 @@ impl Decl {
         writeln!(w, "const {} = {}", name, value.to_gd())
       }
       DeclF::ClassDecl(ClassDecl { name, extends, body }) => {
-        writeln!(w, "class {} extends {}:", name, extends.to_gd())?;
-        Decl::write_gd_decls(body, &empty_class_body(self.pos), w, ind + 4)
+        write!(w, "class {} extends {}:\n\n", name, extends.to_gd())?;
+        if body.is_empty() {
+          empty_class_body(self.pos).write_gd(w, ind + 4)
+        } else {
+          let printer = SpacedDeclPrinter::new().with_spacing(1).with_indentation(ind + 4);
+          printer.write_gd(w, body.iter())
+        }
       }
       DeclF::FnDecl(stat, FnDecl { name, args, body }) => {
         if *stat == Static::IsStatic {
@@ -248,23 +254,6 @@ impl Decl {
         writeln!(w, "pass")
       }
     }
-  }
-
-  /// Write several declarations in sequence, using [`Decl::write_gd`].
-  ///
-  /// If `iter` is empty, then ``default` will be written instead.
-  pub fn write_gd_decls<'a, W, I>(iter: I, default: &Decl, w: &mut W, ind: u32) -> Result<(), fmt::Error>
-  where W : fmt::Write,
-        I : IntoIterator<Item = &'a Decl> {
-    let mut empty = true;
-    for decl in iter {
-      decl.write_gd(w, ind)?;
-      empty = false
-    }
-    if empty {
-      default.write_gd(w, ind)?;
-    }
-    Ok(())
   }
 
   /// Write the declaration to a string, using [`Decl::write_gd`].
@@ -330,8 +319,15 @@ impl TopLevelClass {
       writeln!(string, "class_name {}", name).expect("Could not write to string in TopLevelClass::to_gd");
     }
     writeln!(string, "extends {}", self.extends.to_gd()).expect("Could not write to string in TopLevelClass::to_gd");
-    Decl::write_gd_decls(self.body.iter(), &empty_class_body(SourceOffset(0)), &mut string, 0)
-      .expect("Could not write to string in TopLevelClass::to_gd");
+    write!(string, "\n\n").expect("Could not write to string in TopLevelClass::to_gd");
+    if self.body.is_empty() {
+      empty_class_body(SourceOffset(0)).write_gd(&mut string, 0)
+        .expect("Could not write to string in TopLevelClass::to_gd");
+    } else {
+      let printer = SpacedDeclPrinter::new();
+      printer.write_gd(&mut string, self.body.iter())
+        .expect("Could not write to string in TopLevelClass::to_gd");
+    }
     string
   }
 
@@ -582,7 +578,7 @@ mod tests {
       extends: ClassExtends::named(String::from("ParentClass")),
       body: vec!(),
     }));
-    assert_eq!(decl1.to_gd(0), "class MyClass extends ParentClass:\n    func _init():\n        pass\n");
+    assert_eq!(decl1.to_gd(0), "class MyClass extends ParentClass:\n\n    func _init():\n        pass\n");
 
     let decl2 = d(DeclF::ClassDecl(ClassDecl {
       name: String::from("MyClass"),
@@ -591,7 +587,10 @@ mod tests {
         d(DeclF::VarDecl(var(None, Onready::No, String::from("variable"), None, Setget::default()))),
       ),
     }));
-    assert_eq!(decl2.to_gd(0), "class MyClass extends ParentClass:\n    var variable\n");
+    assert_eq!(decl2.to_gd(0), r#"class MyClass extends ParentClass:
+
+    var variable
+"#);
 
     let decl3 = d(DeclF::ClassDecl(ClassDecl {
       name: String::from("MyClass"),
@@ -601,7 +600,13 @@ mod tests {
         sample_function.clone(),
       ),
     }));
-    assert_eq!(decl3.to_gd(0), "class MyClass extends ParentClass:\n    var variable\n    func sample():\n        pass\n");
+    assert_eq!(decl3.to_gd(0), r#"class MyClass extends ParentClass:
+
+    var variable
+
+    func sample():
+        pass
+"#);
 
     let decl4 = d(DeclF::ClassDecl(ClassDecl {
       name: String::from("MyClass"),
@@ -611,7 +616,13 @@ mod tests {
         sample_function.clone(),
       ),
     }));
-    assert_eq!(decl4.to_gd(0), "class MyClass extends ParentClass:\n    onready var variable\n    func sample():\n        pass\n");
+    assert_eq!(decl4.to_gd(0), r#"class MyClass extends ParentClass:
+
+    onready var variable
+
+    func sample():
+        pass
+"#);
 
   }
 

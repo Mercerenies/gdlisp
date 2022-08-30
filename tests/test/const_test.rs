@@ -7,8 +7,24 @@ use super::common::*;
 
 #[test]
 pub fn const_test() {
-  assert_eq!(parse_compile_decl("((defconst A 10))"), "extends Reference\nconst A = 10\nstatic func run():\n    return null\n");
-  assert_eq!(parse_compile_decl("((defconst A \"foo\"))"), "extends Reference\nconst A = \"foo\"\nstatic func run():\n    return null\n");
+  assert_eq!(parse_compile_decl("((defconst A 10))"), r#"extends Reference
+
+
+const A = 10
+
+
+static func run():
+    return null
+"#);
+  assert_eq!(parse_compile_decl("((defconst A \"foo\"))"), r#"extends Reference
+
+
+const A = "foo"
+
+
+static func run():
+    return null
+"#);
 }
 
 #[test]

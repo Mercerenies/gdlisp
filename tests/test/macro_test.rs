@@ -11,42 +11,119 @@ use super::common::*;
 
 #[test]
 pub fn simple_macro_test() {
-  assert_eq!(parse_compile_decl("((defmacro foo (x) x))"), "extends Reference\nstatic func foo(x):\n    return x\nstatic func run():\n    return null\n")
+  assert_eq!(parse_compile_decl("((defmacro foo (x) x))"), r#"extends Reference
+
+
+static func foo(x):
+    return x
+
+
+static func run():
+    return null
+"#)
 }
 
 #[test]
 pub fn constant_macro_test() {
-  assert_eq!(parse_compile_decl("((defmacro foo () 10) (foo))"), "extends Reference\nstatic func foo():\n    return 10\nstatic func run():\n    return 10\n");
+  assert_eq!(parse_compile_decl("((defmacro foo () 10) (foo))"), r#"extends Reference
+
+
+static func foo():
+    return 10
+
+
+static func run():
+    return 10
+"#);
 }
 
 #[test]
 pub fn symbol_macro_test() {
-  assert_eq!(parse_compile_decl("((define-symbol-macro foo 10) foo)"), "extends Reference\nstatic func foo():\n    return 10\nstatic func run():\n    return 10\n");
+  assert_eq!(parse_compile_decl("((define-symbol-macro foo 10) foo)"), r#"extends Reference
+
+
+static func foo():
+    return 10
+
+
+static func run():
+    return 10
+"#);
 }
 
 #[test]
 pub fn builtin_symbol_macro_test() {
-  assert_eq!(parse_compile_decl("([PI SPKEY (let ((PI 1)) PI)])"), "extends Reference\nstatic func run():\n    var _PI = 1\n    return [PI, SPKEY, _PI]\n");
+  assert_eq!(parse_compile_decl("([PI SPKEY (let ((PI 1)) PI)])"), r#"extends Reference
+
+
+static func run():
+    var _PI = 1
+    return [PI, SPKEY, _PI]
+"#);
 }
 
 #[test]
 pub fn arithmetic_macro_test() {
-  assert_eq!(parse_compile_decl("((defmacro foo (x) (+ x 100)) (foo 9))"), "extends Reference\nstatic func foo(x):\n    return x + 100\nstatic func run():\n    return 109\n");
+  assert_eq!(parse_compile_decl("((defmacro foo (x) (+ x 100)) (foo 9))"), r#"extends Reference
+
+
+static func foo(x):
+    return x + 100
+
+
+static func run():
+    return 109
+"#);
 }
 
 #[test]
 pub fn quote_macro_test() {
-  assert_eq!(parse_compile_decl("((defmacro my-quote (x) (cons 'quote (cons x ()))) (my-quote abc))"), "extends Reference\nstatic func my_quote(x):\n    return GDLisp.cons(GDLisp.intern(\"quote\"), GDLisp.cons(x, null))\nstatic func run():\n    return GDLisp.intern(\"abc\")\n");
+  assert_eq!(parse_compile_decl("((defmacro my-quote (x) (cons 'quote (cons x ()))) (my-quote abc))"), r#"extends Reference
+
+
+static func my_quote(x):
+    return GDLisp.cons(GDLisp.intern("quote"), GDLisp.cons(x, null))
+
+
+static func run():
+    return GDLisp.intern("abc")
+"#);
 }
 
 #[test]
 pub fn macro_in_macro_test() {
-  assert_eq!(parse_compile_decl("((defmacro foo (x) (+ x 1)) (defmacro bar () (foo 0)) (bar))"), "extends Reference\nstatic func foo(x):\n    return x + 1\nstatic func bar():\n    return 1\nstatic func run():\n    return 1\n");
+  assert_eq!(parse_compile_decl("((defmacro foo (x) (+ x 1)) (defmacro bar () (foo 0)) (bar))"), r#"extends Reference
+
+
+static func foo(x):
+    return x + 1
+
+
+static func bar():
+    return 1
+
+
+static func run():
+    return 1
+"#);
 }
 
 #[test]
 pub fn macro_from_macro_test() {
-  assert_eq!(parse_compile_decl("((defmacro foo (x) (+ x 1)) (defmacro bar (x) (cons 'foo (cons x ()))) (bar 2))"), "extends Reference\nstatic func foo(x):\n    return x + 1\nstatic func bar(x):\n    return GDLisp.cons(GDLisp.intern(\"foo\"), GDLisp.cons(x, null))\nstatic func run():\n    return 3\n");
+  assert_eq!(parse_compile_decl("((defmacro foo (x) (+ x 1)) (defmacro bar (x) (cons 'foo (cons x ()))) (bar 2))"), r#"extends Reference
+
+
+static func foo(x):
+    return x + 1
+
+
+static func bar(x):
+    return GDLisp.cons(GDLisp.intern("foo"), GDLisp.cons(x, null))
+
+
+static func run():
+    return 3
+"#);
 }
 
 #[test]
@@ -59,87 +136,127 @@ pub fn bad_args_macro_test() {
 
 #[test]
 pub fn rest_args_macro_test() {
-  assert_eq!(parse_compile_decl("((defmacro foo (&rest x) x) (foo + 1 2))"), "extends Reference\nstatic func foo(x):\n    return x\nstatic func run():\n    return 1 + 2\n");
+  assert_eq!(parse_compile_decl("((defmacro foo (&rest x) x) (foo + 1 2))"), r#"extends Reference
+
+
+static func foo(x):
+    return x
+
+
+static func run():
+    return 1 + 2
+"#);
 }
 
 #[test]
 pub fn optional_args_macro_test_1() {
-  assert_eq!(parse_compile_decl("((defmacro foo (&opt x) x) (foo 1))"), "extends Reference\nstatic func foo(x):\n    return x\nstatic func run():\n    return 1\n");
+  assert_eq!(parse_compile_decl("((defmacro foo (&opt x) x) (foo 1))"), r#"extends Reference
+
+
+static func foo(x):
+    return x
+
+
+static func run():
+    return 1
+"#);
 }
 
 #[test]
 pub fn optional_args_macro_test_2() {
-  assert_eq!(parse_compile_decl("((defmacro foo (&opt x) x) (foo))"), "extends Reference\nstatic func foo(x):\n    return x\nstatic func run():\n    return null\n");
+  assert_eq!(parse_compile_decl("((defmacro foo (&opt x) x) (foo))"), r#"extends Reference
+
+
+static func foo(x):
+    return x
+
+
+static func run():
+    return null
+"#);
 }
 
 #[test]
 pub fn to_decl_macro_test() {
-  assert_eq!(parse_compile_decl("((defmacro foo () '(defn bar () ())) (foo))"), "extends Reference\nstatic func foo():\n    return GDLisp.cons(GDLisp.intern(\"defn\"), GDLisp.cons(GDLisp.intern(\"bar\"), GDLisp.cons(null, GDLisp.cons(null, null))))\nstatic func bar():\n    return null\nstatic func run():\n    return null\n");
+  assert_eq!(parse_compile_decl("((defmacro foo () '(defn bar () ())) (foo))"), r#"extends Reference
+
+
+static func foo():
+    return GDLisp.cons(GDLisp.intern("defn"), GDLisp.cons(GDLisp.intern("bar"), GDLisp.cons(null, GDLisp.cons(null, null))))
+
+
+static func bar():
+    return null
+
+
+static func run():
+    return null
+"#);
 }
 
 #[test]
 pub fn to_progn_macro_test() {
-  assert_eq!(parse_and_run(r#"((defmacro foo () '(progn (defmacro bar (x) x) (print (bar 3)))) (foo))"#), "\n3\n");
+  assert_eq!(parse_and_run("((defmacro foo () '(progn (defmacro bar (x) x) (print (bar 3)))) (foo))"), "\n3\n");
 }
 
 #[test]
 pub fn symbol_macro_run_test() {
-  assert_eq!(parse_and_run(r#"((define-symbol-macro foo (progn 2)) (print foo))"#), "\n2\n");
+  assert_eq!(parse_and_run("((define-symbol-macro foo (progn 2)) (print foo))"), "\n2\n");
 }
 
 #[test]
 pub fn symbol_macro_shadowing_test() {
-  assert_eq!(parse_and_run(r#"((define-symbol-macro foo (progn 2)) (print foo) (print (let ((foo 3)) foo)) (print foo))"#), "\n2\n3\n2\n");
+  assert_eq!(parse_and_run("((define-symbol-macro foo (progn 2)) (print foo) (print (let ((foo 3)) foo)) (print foo))"), "\n2\n3\n2\n");
 }
 
 #[test]
 pub fn symbol_macro_to_macro_test_1() {
-  assert_eq!(parse_and_run(r#"((define-symbol-macro foo '(bar)) (defmacro bar () 9) (print foo))"#), "\n9\n");
+  assert_eq!(parse_and_run("((define-symbol-macro foo '(bar)) (defmacro bar () 9) (print foo))"), "\n9\n");
 }
 
 #[test]
 pub fn symbol_macro_to_macro_test_2() {
-  assert_eq!(parse_and_run(r#"((define-symbol-macro foo '(bar)) (defmacro bar () 9) (print (flet ((bar () 10)) foo)))"#), "\n10\n");
+  assert_eq!(parse_and_run("((define-symbol-macro foo '(bar)) (defmacro bar () 9) (print (flet ((bar () 10)) foo)))"), "\n10\n");
 }
 
 #[test]
 pub fn symbol_macro_to_macro_test_3() {
-  assert_eq!(parse_and_run(r#"((define-symbol-macro foo '(bar)) (defmacro bar () 9) (print (macrolet ((bar () 10)) foo)))"#), "\n10\n");
+  assert_eq!(parse_and_run("((define-symbol-macro foo '(bar)) (defmacro bar () 9) (print (macrolet ((bar () 10)) foo)))"), "\n10\n");
 }
 
 #[test]
 pub fn symbol_macro_to_symbol_macro_test_1() {
-  assert_eq!(parse_and_run(r#"((define-symbol-macro foo 'bar) (define-symbol-macro bar 9) (print foo))"#), "\n9\n");
+  assert_eq!(parse_and_run("((define-symbol-macro foo 'bar) (define-symbol-macro bar 9) (print foo))"), "\n9\n");
 }
 
 #[test]
 pub fn symbol_macro_to_symbol_macro_test_2() {
-  assert_eq!(parse_and_run(r#"((define-symbol-macro foo 'bar) (define-symbol-macro bar 9) (print (let ((bar 10)) foo)))"#), "\n10\n");
+  assert_eq!(parse_and_run("((define-symbol-macro foo 'bar) (define-symbol-macro bar 9) (print (let ((bar 10)) foo)))"), "\n10\n");
 }
 
 #[test]
 pub fn symbol_macro_to_symbol_macro_test_3() {
-  assert_eq!(parse_and_run(r#"((define-symbol-macro foo 'bar) (define-symbol-macro bar 9) (print (flet ((bar () 10)) foo)))"#), "\n9\n");
+  assert_eq!(parse_and_run("((define-symbol-macro foo 'bar) (define-symbol-macro bar 9) (print (flet ((bar () 10)) foo)))"), "\n9\n");
 }
 
 #[test]
 pub fn macro_to_symbol_macro_test_1() {
-  assert_eq!(parse_and_run(r#"((defmacro foo () 'bar) (define-symbol-macro bar 9) (print (foo)))"#), "\n9\n");
+  assert_eq!(parse_and_run("((defmacro foo () 'bar) (define-symbol-macro bar 9) (print (foo)))"), "\n9\n");
 }
 
 #[test]
 pub fn macro_to_symbol_macro_test_2() {
-  assert_eq!(parse_and_run(r#"((defmacro foo () 'bar) (define-symbol-macro bar 9) (print (let ((bar 10)) (foo))))"#), "\n10\n");
+  assert_eq!(parse_and_run("((defmacro foo () 'bar) (define-symbol-macro bar 9) (print (let ((bar 10)) (foo))))"), "\n10\n");
 }
 
 #[test]
 pub fn macro_uses_symbol_macro_test() {
-  assert_eq!(parse_and_run(r#"((define-symbol-macro bar 9) (defmacro foo () bar) (print (let ((bar 10)) (foo))))"#), "\n9\n");
+  assert_eq!(parse_and_run("((define-symbol-macro bar 9) (defmacro foo () bar) (print (let ((bar 10)) (foo))))"), "\n9\n");
 }
 
 #[test]
 pub fn symbol_macrolet_out_of_scope_test() {
-  assert_eq!(parse_and_run(r#"((defconst foo 3) (defn bar () foo) (symbol-macrolet ((foo 2)) (print foo) (print (bar))))"#), "\n2\n3\n");
+  assert_eq!(parse_and_run("((defconst foo 3) (defn bar () foo) (symbol-macrolet ((foo 2)) (print foo) (print (bar))))"), "\n2\n3\n");
 }
 
 #[test]
@@ -170,8 +287,12 @@ pub fn symbol_macrolet_shadowing_test() {
 pub fn macrolet_global_shadowing_test() {
   let result = parse_compile_decl("((defmacro foo () 100) [(foo) (macrolet ((foo () 99)) (foo)) (foo)])");
   assert_eq!(result, r#"extends Reference
+
+
 static func foo():
     return 100
+
+
 static func run():
     return [100, 99, 100]
 "#);
@@ -181,7 +302,11 @@ static func run():
 pub fn symbol_macrolet_global_shadowing_test() {
   let result = parse_compile_decl("((defconst foo 100) [foo (symbol-macrolet ((foo 99)) foo) foo])");
   assert_eq!(result, r#"extends Reference
+
+
 const foo = 100
+
+
 static func run():
     return [foo, 99, foo]
 "#);
@@ -191,8 +316,12 @@ static func run():
 pub fn macrolet_global_function_shadowing_test_1() {
   let result = parse_compile_decl("((defn foo () 100) [(foo) (macrolet ((foo () 99)) (foo)) (foo)])");
   assert_eq!(result, r#"extends Reference
+
+
 static func foo():
     return 100
+
+
 static func run():
     return [foo(), 99, foo()]
 "#);
@@ -202,8 +331,12 @@ static func run():
 pub fn macrolet_global_function_shadowing_test_2() {
   let result = parse_compile_decl("((defn foo () 100) [(foo) (macrolet ((foo () (foo))) (foo)) (foo)])");
   assert_eq!(result, r#"extends Reference
+
+
 static func foo():
     return 100
+
+
 static func run():
     return [foo(), 100, foo()]
 "#);
@@ -213,7 +346,11 @@ static func run():
 pub fn symbol_macrolet_global_function_shadowing_test_1() {
   let result = parse_compile_decl("((defconst foo 100) [foo (symbol-macrolet ((foo 99)) foo) foo])");
   assert_eq!(result, r#"extends Reference
+
+
 const foo = 100
+
+
 static func run():
     return [foo, 99, foo]
 "#);
@@ -223,7 +360,11 @@ static func run():
 pub fn symbol_macrolet_global_function_shadowing_test_2() {
   let result = parse_compile_decl("((defconst foo 100) [foo (symbol-macrolet ((foo foo)) foo) foo])");
   assert_eq!(result, r#"extends Reference
+
+
 const foo = 100
+
+
 static func run():
     return [foo, 100, foo]
 "#);
@@ -233,8 +374,12 @@ static func run():
 pub fn symbol_macrolet_global_function_shadowing_test_3() {
   let result = parse_compile_decl("((define-symbol-macro foo 100) [foo (symbol-macrolet ((foo foo)) foo) foo])");
   assert_eq!(result, r#"extends Reference
+
+
 static func foo():
     return 100
+
+
 static func run():
     return [100, 100, 100]
 "#);
@@ -244,8 +389,12 @@ static func run():
 pub fn symbol_macrolet_global_function_shadowing_test_4() {
   let result = parse_compile_decl("((define-symbol-macro foo 100) [foo (symbol-macrolet ((foo 99)) foo) foo])");
   assert_eq!(result, r#"extends Reference
+
+
 static func foo():
     return 100
+
+
 static func run():
     return [100, 99, 100]
 "#);
@@ -255,10 +404,16 @@ static func run():
 pub fn flet_global_macro_shadowing_test() {
   let result = parse_compile_decl("((defmacro foo () 100) [(foo) (flet ((foo () 99)) (foo)) (foo)])");
   assert_eq!(result, r#"extends Reference
+
+
 static func foo():
     return 100
+
+
 static func _flet():
     return 99
+
+
 static func run():
     return [100, _flet(), 100]
 "#);
@@ -284,13 +439,21 @@ pub fn closure_macrolet_test_2() {
 pub fn labels_global_macro_shadowing_test() {
   let result = parse_compile_decl("((defmacro foo () 100) [(foo) (labels ((foo () (foo))) (foo)) (foo)])");
   assert_eq!(result, r#"extends Reference
+
+
 static func foo():
     return 100
+
+
 class _Labels extends Reference:
+
     func _init():
         pass
+
     func _fn_foo_0():
         return _fn_foo_0()
+
+
 static func run():
     var _locals = _Labels.new()
     return [100, _locals._fn_foo_0(), 100]
@@ -301,10 +464,14 @@ static func run():
 pub fn gensym_test_1() {
   let result = parse_compile_decl("((defmacro foo (a) (let ((x (gensym))) `(let ((,x ,a)) [,x ,x]))) (foo 10))");
   assert_eq!(result, r#"extends Reference
+
+
 static func foo(a):
     var x = GDLisp.gensym(null)
     var _quasiquote = null
     return GDLisp.cons(GDLisp.intern("let"), GDLisp.cons(GDLisp.cons(GDLisp.cons(x, GDLisp.cons(a, _quasiquote)), null), GDLisp.cons([x, x], null)))
+
+
 static func run():
     var _G_0 = 10
     return [_G_0, _G_0]
@@ -315,10 +482,14 @@ static func run():
 pub fn gensym_test_2() {
   let result = parse_compile_decl("((defmacro foo (a) (let ((x (gensym))) `(let ((,x ,a)) [,x ,x]))) [(foo 10) '_G_0])");
   assert_eq!(result, r#"extends Reference
+
+
 static func foo(a):
     var x = GDLisp.gensym(null)
     var _quasiquote = null
     return GDLisp.cons(GDLisp.intern("let"), GDLisp.cons(GDLisp.cons(GDLisp.cons(x, GDLisp.cons(a, _quasiquote)), null), GDLisp.cons([x, x], null)))
+
+
 static func run():
     var _G_1 = 10
     return [[_G_1, _G_1], GDLisp.intern("_G_0")]
@@ -329,12 +500,19 @@ static func run():
 pub fn macro_inner_class_test_1() {
   let result = parse_compile_decl("((defclass Foo (Reference)) (defmacro foo () (Foo:new) 1) (foo))");
   assert_eq!(result, r#"extends Reference
+
+
 class Foo extends Reference:
+
     func _init():
         pass
+
+
 static func foo():
     Foo.new()
     return 1
+
+
 static func run():
     return 1
 "#);
@@ -344,16 +522,27 @@ static func run():
 pub fn macro_inner_class_test_2() {
   let result = parse_compile_decl("((defclass Foo (Reference) (defn g () (f))) (defn f () 9) (defmacro foo () ((Foo:new):g)) (foo))");
   assert_eq!(result, r#"extends Reference
+
+
 class Foo extends Reference:
+
     func _init():
         pass
+
     func g():
         return __gdlisp_outer_class_0.f()
+
     var __gdlisp_outer_class_0 = load("res://TEST.gd")
+
+
 static func f():
     return 9
+
+
 static func foo():
     return Foo.new().g()
+
+
 static func run():
     return 9
 "#);
@@ -363,15 +552,25 @@ static func run():
 pub fn macro_inner_class_test_3() {
   let result = parse_compile_decl("((defclass Foo (Reference) (defn g () static (f))) (defn f () 9) (defmacro foo () (Foo:g)) (foo))");
   assert_eq!(result, r#"extends Reference
+
+
 class Foo extends Reference:
+
     func _init():
         pass
+
     static func g():
         return load("res://TEST.gd").f()
+
+
 static func f():
     return 9
+
+
 static func foo():
     return Foo.g()
+
+
 static func run():
     return 9
 "#);
@@ -392,23 +591,39 @@ pub fn macro_inner_class_test_4() {
      (foo))
 "#);
   assert_eq!(result, r#"extends Reference
+
+
 static func add_one(x):
     return x + 1
+
+
 class Foo extends Reference:
+
     func _init():
         pass
+
     func f():
         return __gdlisp_outer_class_0.add_one(10)
+
     var __gdlisp_outer_class_0 = load("res://TEST.gd")
+
+
 class Bar extends Foo:
+
     func _init():
         pass
+
     func g():
         return __gdlisp_outer_class_1.add_one(5)
+
     var __gdlisp_outer_class_1 = load("res://TEST.gd")
+
+
 static func foo():
     var x = Bar.new()
     return x.f() + x.g()
+
+
 static func run():
     return 17
 "#);
@@ -433,6 +648,8 @@ pub fn macro_in_minimalist_test() {
 #[test]
 pub fn simple_minimalist_test() {
   assert_eq!(parse_compile_decl("((sys/nostdlib))"), r#"extends Reference
+
+
 static func run():
     return null
 "#);
