@@ -11,8 +11,46 @@
 (defclass Cons (Reference)
   (defvar car)
   (defvar cdr)
+
   (defn _init (@car @cdr)
-    (self:set-meta "__gdlisp_Primitive_Cons" 1)))
+    (self:set-meta "__gdlisp_Primitive_Cons" 1))
+
+  (defn (get caar) ()
+    self:car:car)
+
+  (defn (get cadr) ()
+    self:car:cdr)
+
+  (defn (get cdar) ()
+    self:cdr:car)
+
+  (defn (get cddr) ()
+    self:cdr:cdr)
+
+  (defn (get caaar) ()
+    self:car:car:car)
+
+  (defn (get caadr) ()
+    self:car:car:cdr)
+
+  (defn (get cadar) ()
+    self:car:cdr:car)
+
+  (defn (get caddr) ()
+    self:car:cdr:cdr)
+
+  (defn (get cdaar) ()
+    self:cdr:car:car)
+
+  (defn (get cdadr) ()
+    self:cdr:car:cdr)
+
+  (defn (get cddar) ()
+    self:cdr:cdr:car)
+
+  (defn (get cdddr) ()
+    self:cdr:cdr:cdr))
+
 
 (defclass Function (Reference)
   (defvar __is_gdlisp_function #t)
