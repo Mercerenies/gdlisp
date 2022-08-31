@@ -1,7 +1,6 @@
 
 pub mod access_slot;
 pub mod assignment;
-pub mod bootstrap;
 pub mod local_binding;
 
 use crate::sxp::ast::{AST, ASTF};
