@@ -109,3 +109,19 @@ pub fn append_test_4() {
   "#);
   assert_eq!(result, "\n[1, 2, 3, 4, 5, 6, 7, 8]\n");
 }
+
+#[test]
+pub fn list_tail_test_1() {
+  let result = parse_and_run(r#"
+    ((print (list->array (list-tail '(1 2 3 4) 0))))
+  "#);
+  assert_eq!(result, "\n[1, 2, 3, 4]\n");
+}
+
+#[test]
+pub fn list_tail_test_2() {
+  let result = parse_and_run(r#"
+    ((print (list->array (list-tail '(1 2 3 4) 2))))
+  "#);
+  assert_eq!(result, "\n[3, 4]\n");
+}

@@ -560,6 +560,11 @@
          (set curr:cdr args:car)
          outer:cdr)))))
 
+(defn list-tail (list k)
+  (for i (range k)
+    (set list list:cdr))
+  list)
+
 (defn sys/qq-smart-list (a)
   (cond
     ((instance? a GDLisp:BaseArray) (array->list a))
