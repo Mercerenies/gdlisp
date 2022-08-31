@@ -66,9 +66,9 @@ impl IncCompiler {
   /// construct treated in a special way by the compiler during
   /// parsing. It is *not* a declaration, even though it can look like
   /// one syntactically.
-  pub const DECL_HEADS: [&'static str; 8] = [
+  pub const DECL_HEADS: [&'static str; 9] = [
     "defn", "defmacro", "defconst", "defclass", "defenum", "sys/declare",
-    "define-symbol-macro", "sys/bootstrap",
+    "define-symbol-macro", "sys/bootstrap", "sys/min-godot-version",
   ];
 
   pub fn new(names: Vec<&str>) -> IncCompiler {
@@ -288,6 +288,21 @@ impl IncCompiler {
     match &vec[0].value {
       ASTF::Symbol(s) => {
         match s.borrow() {
+          "sys/min-godot-version" => {
+            // TODO In principle, this should be a macro that the user
+            // can use directly (`ifc`), but that requires us to be
+            // able to use macros in stdlib (#103), which is not
+            // currently possible. So it's a sys/ directive for now.
+            Expecting::at_least(1).validate("sys/min-godot-version", decl.pos, &vec[1..])?;
+            let min_version = ExpectedShape::extract_i32("sys/min-godot-version", vec[1].clone())?;
+            let actual_version = pipeline.config().godot_version.version;
+            if actual_version.into_i32() >= min_version {
+              for decl in &vec[2..] {
+                self.compile_decl(pipeline, acc, decl)?;
+              }
+            }
+            Ok(())
+          }
           "defn" => {
             Expecting::at_least(2).validate("defn", decl.pos, &vec[1..])?;
             let name = ExpectedShape::extract_symbol("defn", vec[1].clone())?;
@@ -967,6 +982,7 @@ mod tests {
     assert!(IncCompiler::is_decl(&parse_ast("(defenum MyEnum A B C)")));
     assert!(IncCompiler::is_decl(&parse_ast("(define-symbol-macro my-macro 3)")));
     assert!(IncCompiler::is_decl(&parse_ast("(sys/declare value xyz)")));
+    assert!(IncCompiler::is_decl(&parse_ast("(sys/min-godot-version 3030000)")));
   }
 
   #[test]

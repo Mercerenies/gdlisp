@@ -622,6 +622,9 @@
 (sys/declare superfunction (type-exists type-exists) (a) public)
 (sys/declare superfunction (smoothstep smoothstep) (a b c) public)
 
+(sys/min-godot-version 3050000
+  (sys/declare superfunction (deep-equal deep-equal) (a b) public))
+
 ;; Varargs functions (see
 ;; https://github.com/Mercerenies/gdlisp/issues/79 for details on why
 ;; we have to wrap these ourselves)

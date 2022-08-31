@@ -56,6 +56,8 @@ pub enum ExpectedShape {
   Symbol,
   /// A string literal.
   String,
+  /// An integer literal.
+  Integer,
   /// The empty list, as a literal.
   EmptyList,
   /// Equivalent to `EmptyList` but issues an error message of the
@@ -161,6 +163,16 @@ impl ExpectedShape {
     }
   }
 
+  /// Extracts an [`ASTF::Int`], or reports an error if the [`AST`]
+  /// is not an integer literal.
+  pub fn extract_i32(form_name: &str, ast: AST) -> Result<i32, GDError> {
+    let pos = ast.pos;
+    match ast.value {
+      ASTF::Int(n) => Ok(n),
+      _ => Err(GDError::new(GDErrorF::InvalidArg(form_name.to_owned(), ast, ExpectedShape::Integer), pos)),
+    }
+  }
+
   /// Validates that the vector is in fact empty. If it is, this
   /// function returns `()` harmlessly. If it is nonempty, then this
   /// function produces an appropriate error about the expected shape
@@ -223,6 +235,7 @@ impl fmt::Display for ExpectedShape {
       ExpectedShape::SpecialRefValue => write!(f, "special reference value"),
       ExpectedShape::Symbol => write!(f, "symbol"),
       ExpectedShape::String => write!(f, "string"),
+      ExpectedShape::Integer => write!(f, "integer"),
       ExpectedShape::EmptyList => write!(f, "empty list"),
       ExpectedShape::EndOfList => write!(f, "end of list"),
       ExpectedShape::NonemptyList => write!(f, "nonempty list"),

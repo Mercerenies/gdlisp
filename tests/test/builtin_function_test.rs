@@ -3,6 +3,7 @@ use gdlisp::compile::error::{GDError, GDErrorF};
 use gdlisp::pipeline::error::PError;
 use gdlisp::pipeline::source::SourceOffset;
 use gdlisp::runner;
+use gdlisp::runner::version::{get_godot_version, Version};
 
 use super::common::*;
 
@@ -382,6 +383,16 @@ pub fn range_running_test_indirect() {
 #[test]
 pub fn print_running_test_indirect() {
   assert_eq!(parse_and_run("((funcall #'print 1 2 #t))"), "\n12True\n");
+}
+
+#[test]
+pub fn deep_equal_test() {
+  // deep_equal is only available in Godot 3.5 and later, so we need
+  // to disable this test if we're running on an older version.
+  let godot_version = get_godot_version().unwrap().version;
+  if godot_version >= Version::new(3, 5, 0) {
+    assert_eq!(parse_and_run("((print (deep-equal {\"a\" 1} {\"a\" 1})))"), "\nTrue\n");
+  }
 }
 
 // TODO Test gensym at runtime once we can pretty-print symbols

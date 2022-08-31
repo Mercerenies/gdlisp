@@ -24,10 +24,10 @@ pub struct VersionInfo {
 
 impl Version {
 
-  /// Constructs a version object representing version 0.0.0 of
+  /// Constructs a version object representing a version of the
   /// software.
-  pub fn new() -> Self {
-    Version::default()
+  pub fn new(major: i32, minor: i32, patch: i32) -> Self {
+    Version { major, minor, patch }
   }
 
   /// Converts the version number into a single integer value which
