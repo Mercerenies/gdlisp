@@ -545,16 +545,20 @@
     rev))
 
 (defn append (&rest args)
-  (let ((outer (cons nil nil)))
-    (let ((curr outer))
-      (while (/= args nil)
-        (let ((inner-value args:car))
-          (while (/= inner-value nil)
-            (set curr:cdr (cons inner-value:car nil))
-            (set curr curr:cdr)
-            (set inner-value inner-value:cdr)))
-        (set args args:cdr))
-      outer:cdr)))
+  (cond
+    ((= args nil) nil)
+    (#t
+     (let ((outer (cons nil nil)))
+       (let ((curr outer))
+         (while (/= args:cdr nil)
+           (let ((inner-value args:car))
+             (while (/= inner-value nil)
+               (set curr:cdr (cons inner-value:car nil))
+               (set curr curr:cdr)
+               (set inner-value inner-value:cdr)))
+           (set args args:cdr))
+         (set curr:cdr args:car)
+         outer:cdr)))))
 
 (defn sys/qq-smart-list (a)
   (cond
