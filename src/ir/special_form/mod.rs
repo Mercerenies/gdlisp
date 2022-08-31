@@ -445,6 +445,7 @@ pub fn special_ref_form(_icompiler: &mut IncCompiler,
       "this-file" => Ok(Expr::from_value(SpecialRef::ThisFile, pos)),
       "this-filename" => Ok(Expr::from_value(SpecialRef::ThisFileName, pos)),
       "this-true-filename" => Ok(Expr::from_value(SpecialRef::ThisTrueFileName, pos)),
+      "godot-version" => Ok(Expr::from_value(SpecialRef::GodotVersion, pos)),
       _ => Err(PError::from(GDError::new(GDErrorF::InvalidArg(String::from("sys/special-ref"), tail[0].clone(), ExpectedShape::SpecialRefValue), pos))),
     }
   } else {

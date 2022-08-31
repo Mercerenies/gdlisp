@@ -36,7 +36,7 @@ impl Version {
   /// representing the same version, which preserves the [`Version`]
   /// order for reasonable values.
   pub fn into_i32(self) -> i32 {
-    self.major * 10000 + self.minor * 100 + self.patch
+    self.major * 1000000 + self.minor * 10000 + self.patch * 100
   }
 
 }

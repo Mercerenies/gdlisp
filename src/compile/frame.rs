@@ -627,6 +627,11 @@ impl<'a, 'b, 'c, 'd, 'e> CompilerFrame<'a, 'b, 'c, 'd, 'e, StmtBuilder> {
         let expr = Expr::from_value(current_filename, pos);
         StExpr { expr, side_effects: SideEffects::None }
       }
+      SpecialRef::GodotVersion => {
+        let godot_version = self.pipeline.config().godot_version.version;
+        let expr = Expr::from_value(godot_version.into_i32(), pos);
+        StExpr { expr, side_effects: SideEffects::None }
+      }
     }
   }
 

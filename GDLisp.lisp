@@ -6,6 +6,8 @@
 
 (defconst nil ())
 
+(defconst GODOT-VERSION (sys/special-ref godot-version))
+
 (defclass Cons (Reference)
   (defvar car)
   (defvar cdr)

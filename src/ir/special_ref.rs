@@ -30,6 +30,10 @@ pub enum SpecialRef {
   /// during macro expansion, this will expand into the *true* final
   /// name of the file, not the name of the virtual macro file.
   ThisTrueFileName,
+  /// `GodotVersion` returns the current Godot version, as an integer
+  /// such that later Godot versions compare greater than earlier
+  /// ones.
+  GodotVersion,
 }
 
 impl From<SpecialRef> for ExprF {
