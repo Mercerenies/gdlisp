@@ -268,8 +268,8 @@ pub fn wrapped_misc_functions_test() {
 
 #[test]
 pub fn convert_function_test() {
-  assert_eq!(parse_compile_and_output("(convert 1 Int)"), "return GDLisp.convert(1, GDLisp.Int)\n");
-  assert_eq!(parse_compile_and_output("(convert 1 TYPE_INT)"), "return GDLisp.convert(1, TYPE_INT)\n");
+  assert_eq!(parse_compile_and_output("(convert 1 Int)"), "return GDLisp._convert(1, GDLisp.Int)\n");
+  assert_eq!(parse_compile_and_output("(convert 1 TYPE_INT)"), "return GDLisp._convert(1, TYPE_INT)\n");
 }
 
 #[test]

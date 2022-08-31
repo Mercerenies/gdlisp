@@ -9,16 +9,30 @@ use std::borrow::Cow;
 /// All of the words which have special syntactic meaning in GDScript.
 ///
 /// Pulled from `godot/modules/gdscript_editor.cpp`.
-const GDSCRIPT_KEYWORDS: [&str; 56] = [
+const GDSCRIPT_KEYWORDS: [&str; 42] = [
   "if", "elif", "else", "for", "while", "match", "break",
   "continue", "pass", "return", "class", "class_name", "extends",
   "is", "as", "self", "tool", "signal", "func", "static", "const",
   "enum", "var", "onready", "export", "setget", "breakpoint", "preload",
   "yield", "assert", "remote", "master", "slave", "puppet", "remotesync",
   "mastersync", "puppetsync", "sync", "not", "and", "or", "in",
-  // TODO This will be a separate case in a moment :)
-  "typeof", "str", "printerr", "printraw", "print_debug", "prints", "printt",
-  "print", "range", "Color8", "ColorN", "assert", "bytes2var", "var2bytes",
+];
+
+/// Built-in GDScript function names, which cannot be overridden by
+/// the programmer.
+const GDSCRIPT_FUNCTIONS: [&str; 93] = [
+  "Color8", "ColorN", "abs", "acos", "asin", "assert", "atan", "atan2", "bytes2var", "cartesian2polar",
+  "ceil", "char", "clamp", "convert", "cos", "cosh", "db2linear", "decimals", "dectime", "deg2rad",
+  "dict2inst", "ease", "exp", "floor", "fmod", "fposmod", "funcref", "get_stack", "hash", "inst2dict",
+  "instance_from_id", "inverse_lerp", "is_equal_approx", "is_inf", "is_instance_valid", "is_nan",
+  "is_zero_approx", "len", "lerp", "lerp_angle", "linear2db", "load", "log", "max", "min",
+  "move_toward", "nearest_po2", "ord", "parse_json", "polar2cartesian", "posmod", "pow",
+  "preload", "print", "print_debug", "print_stack", "printerr", "printraw", "prints",
+  "printt", "push_error", "push_warning", "rad2deg", "rand_range", "rand_seed", "randf",
+  "randi", "randomize", "range", "range_lerp", "round", "seed", "sign", "sin", "sinh",
+  "smoothstep", "sqrt", "step_decimals", "stepify", "str", "str2var", "tan", "tanh",
+  "to_json", "type_exists", "typeof", "validate_json", "var2bytes", "var2str", "weakref",
+  "wrapf", "wrapi", "yield",
 ];
 
 /// The GDScript top-level global constant names which are not
@@ -45,6 +59,9 @@ fn get_all_reserved_words() -> HashSet<Cow<'static, str>> {
 
   // GDScript keywords (hard-coded into GDLisp above)
   set.extend(GDSCRIPT_KEYWORDS.iter().map(|x| Cow::Borrowed(*x)));
+
+  // GDScript built-in function names (hard-coded into GDLisp above)
+  set.extend(GDSCRIPT_FUNCTIONS.iter().map(|x| Cow::Borrowed(*x)));
 
   // Global constants defined in the GlobalConstants class
   let global_constants = api.get_global_constants();
