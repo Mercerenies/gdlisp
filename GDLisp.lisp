@@ -152,27 +152,15 @@
 (defn cons (a b)
   (Cons:new a b))
 
-(defn car (a)
-  a:car)
-
-(defn cdr (a)
-  a:cdr)
-
 (defn init (a)
   (cond
-    ((sys/instance-direct? (cdr a) Cons) (cons (car a) (init (cdr a))))
+    ((sys/instance-direct? a:cdr Cons) (cons a:car (init a:cdr)))
     (#t nil)))
 
 (defn tail (a)
   (cond
-    ((sys/instance-direct? (cdr a) Cons) (tail (cdr a)))
-    (#t (car a))))
-
-(defn set-car (b a)
-  (set a:car b))
-
-(defn set-cdr (b a)
-  (set a:cdr b))
+    ((sys/instance-direct? a:cdr Cons) (tail a:cdr))
+    (#t a:car)))
 
 (defn intern (a)
   (cond
@@ -387,7 +375,7 @@
 
 (defn cons-equal (a b) private
   (cond
-    ((bin-equal (car a) (car b)) (bin-equal (cdr a) (cdr b)))
+    ((bin-equal a:car b:car) (bin-equal a:cdr b:cdr))
     (#t #f)))
 
 (defn not (x)
@@ -510,7 +498,7 @@
   ;; Only works on lists right now (TODO Arrays)
   (let ((rev nil))
     (while (/= arg nil)
-      (set rev `(,(car arg) . ,rev))
+      (set rev `(,arg:car . ,rev))
       (set arg arg:cdr))
     rev))
 
@@ -818,11 +806,11 @@
   (let ((args (reverse args)))
     (cond
       (args
-       (let ((result `((#t ,(car args)))))
-         (set args (cdr args))
+       (let ((result `((#t ,args:car))))
+         (set args args:cdr)
          (while (/= args nil)
-           (set result `((,(car args)) . ,result))
-           (set args (cdr args)))
+           (set result `((,args:car) . ,result))
+           (set args args:cdr))
          `(cond . ,result)))
       (#t #f))))
 
@@ -830,19 +818,19 @@
   (let ((args (reverse args)))
     (cond
       (args
-       (let ((result `((#t ,(car args)))))
-         (set args (cdr args))
+       (let ((result `((#t ,args:car))))
+         (set args args:cdr)
          (while (/= args nil)
-           (set result `(((not ,(car args)) #f) . ,result))
-           (set args (cdr args)))
+           (set result `(((not ,args:car) #f) . ,result))
+           (set args args:cdr))
          `(cond . ,result)))
        (#t #t))))
 
 (defmacro let* (vars &rest body)
   (cond
     ((= vars nil) `(progn ,.body))
-    (#t `(let (,(car vars))
-           (let* ,(cdr vars) ,.body)))))
+    (#t `(let (,vars:car)
+           (let* ,vars:cdr ,.body)))))
 
 (defmacro defvars (&rest args)
   (let ((arr []))
@@ -868,7 +856,7 @@
 (defmacro update (field updater)
   (cond
     ((not (instance? updater Cons)) (set updater (list updater))))
-  (set (cdr updater) (cons field (cdr updater)))
+  (set updater:cdr (cons field updater:cdr))
   `(set ,field ,updater))
 
 (defmacro yield* (arg)

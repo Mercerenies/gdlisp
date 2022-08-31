@@ -139,18 +139,18 @@ pub fn custom_call_magic_test_failed() {
 
 #[test]
 pub fn split_call_test_1() {
-  assert_eq!(parse_compile_and_output("(car (car (car (sys/split (car 0)))))"),
-             r#"var _split = GDLisp.car(0)
-return GDLisp.car(GDLisp.car(GDLisp.car(_split)))
+  assert_eq!(parse_compile_and_output("(sys/split 0:car):car:car:car"),
+             r#"var _split = 0.car
+return _split.car.car.car
 "#);
 }
 
 #[test]
 pub fn split_call_test_2() {
-  assert_eq!(parse_compile_and_output("(car (car (sys/split (car (sys/split (car 0))))))"),
-             r#"var _split = GDLisp.car(0)
-var _split_0 = GDLisp.car(_split)
-return GDLisp.car(GDLisp.car(_split_0))
+  assert_eq!(parse_compile_and_output("(sys/split (sys/split 0:car):car):car:car"),
+             r#"var _split = 0.car
+var _split_0 = _split.car
+return _split_0.car.car
 "#);
 }
 

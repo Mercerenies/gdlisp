@@ -136,13 +136,6 @@ pub fn assign_to_slot_test() {
              "_flet().foo = 100\nreturn 100\n");
 }
 
-
-#[test]
-pub fn assign_to_cons_test() {
-  assert_eq!(parse_and_run("((let ((x (cons nil nil))) (set (car x) 10) (set (cdr x) 20) (print (car x)) (print (cdr x))))"),
-             "\n10\n20\n");
-}
-
 #[test]
 pub fn sys_this_file_test() {
   assert_eq!(parse_compile_and_output("(sys/special-ref this-file)"),
