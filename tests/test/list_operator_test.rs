@@ -113,7 +113,7 @@ pub fn append_test_4() {
 #[test]
 pub fn list_tail_test_1() {
   let result = parse_and_run(r#"
-    ((print (list->array (list-tail '(1 2 3 4) 0))))
+    ((print (list->array (list/tail '(1 2 3 4) 0))))
   "#);
   assert_eq!(result, "\n[1, 2, 3, 4]\n");
 }
@@ -121,7 +121,23 @@ pub fn list_tail_test_1() {
 #[test]
 pub fn list_tail_test_2() {
   let result = parse_and_run(r#"
-    ((print (list->array (list-tail '(1 2 3 4) 2))))
+    ((print (list->array (list/tail '(1 2 3 4) 2))))
   "#);
   assert_eq!(result, "\n[3, 4]\n");
+}
+
+#[test]
+pub fn list_elt_test_1() {
+  let result = parse_and_run(r#"
+    ((print (list/elt '(1 2 3 4) 0)))
+  "#);
+  assert_eq!(result, "\n1\n");
+}
+
+#[test]
+pub fn list_elt_test_2() {
+  let result = parse_and_run(r#"
+    ((print (list/elt '(1 2 3 4) 2)))
+  "#);
+  assert_eq!(result, "\n3\n");
 }

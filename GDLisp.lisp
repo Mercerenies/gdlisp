@@ -457,6 +457,9 @@
   (sys/call-magic ARRAY-SUBSCRIPT-ASSIGNMENT)
   (set-elt x arr n))
 
+(defn list/elt (list n)
+  (list/tail list n):car)
+
 (defn member? (value arr)
   (sys/call-magic ARRAY-MEMBER-CHECK)
   (member? value arr))
@@ -560,7 +563,7 @@
          (set curr:cdr args:car)
          outer:cdr)))))
 
-(defn list-tail (list k)
+(defn list/tail (list k)
   (for i (range k)
     (set list list:cdr))
   list)
