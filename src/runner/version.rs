@@ -16,7 +16,7 @@ pub struct Version {
 
 /// Version information, together with modifiers applied after the
 /// base Semantic Versioning information.
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Default, Debug, PartialEq, Eq)]
 pub struct VersionInfo {
   pub version: Version,
   pub modifiers: Vec<String>,
@@ -30,9 +30,24 @@ impl Version {
     Version::default()
   }
 
+  /// Converts the version number into a single integer value which
+  /// represents the version information. This is *not* a one-to-one
+  /// mapping. It is intended to be a human-readable number
+  /// representing the same version, which preserves the [`Version`]
+  /// order for reasonable values.
+  pub fn into_i32(self) -> i32 {
+    self.major * 10000 + self.minor * 100 + self.patch
+  }
+
 }
 
 impl VersionInfo {
+
+  /// An empty version info object, corresponding to the version
+  /// string `"0.0.0"`.
+  pub fn new() -> Self {
+    VersionInfo::default()
+  }
 
   /// Given a Godot version string, parse it as a [`VersionInfo`]
   /// object. This method will not fail. Any missing fields will be

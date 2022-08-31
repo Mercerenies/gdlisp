@@ -67,6 +67,7 @@ mod tests {
   use crate::pipeline::Pipeline;
   use crate::pipeline::config::ProjectConfig;
   use crate::pipeline::source::SourceOffset;
+  use crate::runner::version::VersionInfo;
   use crate::sxp::ast::ASTF;
 
   use std::path::PathBuf;
@@ -127,12 +128,12 @@ mod tests {
   }
 
   fn do_compile_expr(expr: &AST) -> Result<Expr, PError> {
-    let mut pipeline = Pipeline::new(ProjectConfig { root_directory: PathBuf::from("."), optimizations: false });
+    let mut pipeline = Pipeline::new(ProjectConfig { root_directory: PathBuf::from("."), optimizations: false, godot_version: VersionInfo::default() });
     compile_expr(&mut pipeline, &expr)
   }
 
   fn do_compile_decl(decl: &AST) -> Result<Decl, PError> {
-    let mut pipeline = Pipeline::new(ProjectConfig { root_directory: PathBuf::from("."), optimizations: false });
+    let mut pipeline = Pipeline::new(ProjectConfig { root_directory: PathBuf::from("."), optimizations: false, godot_version: VersionInfo::default() });
     compile_decl(&mut pipeline, &decl)
   }
 

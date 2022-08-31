@@ -18,6 +18,7 @@ use gdlisp::compile::preload_resolver::DefaultPreloadResolver;
 use gdlisp::runner;
 use gdlisp::runner::into_gd_file::IntoGDFile;
 use gdlisp::runner::path::{RPathBuf, PathSrc};
+use gdlisp::runner::version::VersionInfo;
 use gdlisp::AST_PARSER;
 use gdlisp::ir;
 use gdlisp::ir::incremental::IncCompiler;
@@ -71,7 +72,11 @@ where T : IntoGDFile + ?Sized {
 */
 
 pub fn dummy_config() -> ProjectConfig {
-  ProjectConfig { root_directory: PathBuf::from_str(".").unwrap(), optimizations: false } // Infallible
+  ProjectConfig {
+    root_directory: PathBuf::from_str(".").unwrap(), // Infallible
+    optimizations: false,
+    godot_version: VersionInfo::default(),
+  }
 }
 
 pub fn dummy_pipeline() -> Pipeline {

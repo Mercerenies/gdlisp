@@ -948,6 +948,7 @@ mod tests {
   use crate::pipeline::Pipeline;
   use crate::pipeline::config::ProjectConfig;
   use crate::pipeline::resolver::PanickingNameResolver;
+  use crate::runner::version::VersionInfo;
 
   use std::path::PathBuf;
 
@@ -982,6 +983,7 @@ mod tests {
     ProjectConfig {
       root_directory: PathBuf::from(r"."),
       optimizations: false,
+      godot_version: VersionInfo::default(),
     }
   }
 

@@ -20,6 +20,7 @@ use crate::compile::symbol_table::local_var::VarName;
 use crate::ir::arglist::ordinary::ArgList;
 use crate::ir::identifier::{Id, Namespace};
 use crate::ir::macros::MacroData;
+use crate::runner::version::{VersionInfo, get_godot_version};
 use crate::pipeline::Pipeline;
 use crate::pipeline::translation_unit::TranslationUnit;
 use crate::pipeline::stdlib_unit::StdlibUnit;
@@ -69,10 +70,11 @@ pub fn construct_list(vec: Vec<Expr>, pos: SourceOffset) -> Expr {
 }
 
 /// An appropriate [`ProjectConfig`] for the `GDLisp.gd` source file.
-pub fn gdlisp_project_config() -> ProjectConfig {
+pub fn gdlisp_project_config(godot_version: VersionInfo) -> ProjectConfig {
   ProjectConfig {
     root_directory: PathBuf::from("."),
     optimizations: true,
+    godot_version: godot_version,
   }
 }
 
@@ -82,7 +84,8 @@ fn get_stdlib() -> StdlibUnit {
 }
 
 pub fn load_stdlib_to_file() -> StdlibUnit {
-  let mut pipeline = Pipeline::new(gdlisp_project_config());
+  let godot_version = get_godot_version().expect("I/O error loading stdlib");
+  let mut pipeline = Pipeline::new(gdlisp_project_config(godot_version));
   let unit = load_stdlib_file(&mut pipeline);
   let stdlib = StdlibUnit::from(unit.clone_detached());
   let mut file = File::create("GDLisp.msgpack").expect("I/O error loading stdlib (does GDLisp have write permissions for this folder?)");

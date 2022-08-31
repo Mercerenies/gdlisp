@@ -17,7 +17,7 @@ use gdlisp::command_line::{parse_args, show_help_message};
 use gdlisp::pipeline::Pipeline;
 use gdlisp::pipeline::config::ProjectConfig;
 use gdlisp::pipeline::source::SourcedValue;
-use gdlisp::runner::version::get_godot_version_as_string;
+use gdlisp::runner::version::{VersionInfo, get_godot_version_as_string};
 
 use walkdir::WalkDir;
 
@@ -26,9 +26,14 @@ use std::env;
 use std::path::{PathBuf, Path};
 use std::str::FromStr;
 
-fn run_pseudo_repl() {
+fn run_pseudo_repl(godot_version: VersionInfo) {
   let stdin = io::stdin();
-  let mut pipeline = Pipeline::new(ProjectConfig { root_directory: PathBuf::from_str(".").unwrap(), optimizations: true }); // Infallible
+  let config = ProjectConfig {
+    root_directory: PathBuf::from_str(".").unwrap(), // Infallible
+    optimizations: true,
+    godot_version,
+  };
+  let mut pipeline = Pipeline::new(config);
 
   for line in stdin.lock().lines() {
     let line = line.unwrap();
@@ -46,9 +51,9 @@ fn run_pseudo_repl() {
 
 }
 
-fn compile_file<P : AsRef<Path> + ?Sized>(input: &P) {
+fn compile_file<P : AsRef<Path> + ?Sized>(input: &P, godot_version: VersionInfo) {
   let input = input.as_ref();
-  let mut pipeline = Pipeline::new(ProjectConfig { root_directory: input.parent().unwrap_or(input).to_owned(), optimizations: true });
+  let mut pipeline = Pipeline::new(ProjectConfig { root_directory: input.parent().unwrap_or(input).to_owned(), optimizations: true, godot_version });
   match pipeline.load_file(input.file_name().unwrap()) {
     Err(err) => {
       let err = SourcedValue::from_file(&err, input).unwrap();
@@ -58,9 +63,9 @@ fn compile_file<P : AsRef<Path> + ?Sized>(input: &P) {
   }
 }
 
-fn compile_all_files<P : AsRef<Path> + ?Sized>(input: &P) {
+fn compile_all_files<P : AsRef<Path> + ?Sized>(input: &P, godot_version: VersionInfo) {
   let input = input.as_ref();
-  let mut pipeline = Pipeline::new(ProjectConfig { root_directory: input.to_owned(), optimizations: true });
+  let mut pipeline = Pipeline::new(ProjectConfig { root_directory: input.to_owned(), optimizations: true, godot_version });
   for entry in WalkDir::new(input).into_iter().filter_map(|e| e.ok()) {
     if entry.path().is_file() && entry.path().extension() == Some("lisp".as_ref()) {
       println!("Compiling {} ...", entry.path().to_string_lossy());
@@ -85,7 +90,7 @@ fn main() {
   } else {
 
     let version = get_godot_version_as_string();
-    match version {
+    match &version {
       Ok(version) => {
         println!("GDLisp (development version)");
         println!("Running under Godot {}", version);
@@ -95,6 +100,9 @@ fn main() {
         eprintln!("Warning: While looking for Godot, the error I got was: {}", err);
       }
     }
+    // If Godot isn't on the path, then any version checks will return
+    // 0.0.0 since we can't get that information accurately.
+    let version = version.unwrap_or_default();
 
     if parsed_args.compile_stdlib_flag {
       library::load_stdlib_to_file();
@@ -102,12 +110,12 @@ fn main() {
     } else if let Some(input) = parsed_args.input_file {
       let input: &Path = input.as_ref();
       if input.is_dir() {
-        compile_all_files(input);
+        compile_all_files(input, VersionInfo::parse(&version));
       } else {
-        compile_file(input);
+        compile_file(input, VersionInfo::parse(&version));
       }
     } else {
-      run_pseudo_repl();
+      run_pseudo_repl(VersionInfo::parse(&version));
     }
 
   }

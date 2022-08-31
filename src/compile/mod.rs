@@ -500,6 +500,7 @@ mod tests {
   use crate::pipeline::config::ProjectConfig;
   use crate::pipeline::source::SourceOffset;
   use crate::ir::incremental::IncCompiler;
+  use crate::runner::version::VersionInfo;
 
   use std::path::PathBuf;
 
@@ -541,7 +542,7 @@ mod tests {
 
   fn compile_stmt(ast: &AST) -> Result<(Vec<Stmt>, Vec<Decl>), PError> {
 
-    let mut pipeline = Pipeline::new(ProjectConfig { root_directory: PathBuf::from("."), optimizations: false });
+    let mut pipeline = Pipeline::new(ProjectConfig { root_directory: PathBuf::from("."), optimizations: false, godot_version: VersionInfo::default() });
 
     let used_names = ast.all_symbols();
     let mut compiler = Compiler::new(FreshNameGenerator::new(used_names), Box::new(DefaultPreloadResolver));

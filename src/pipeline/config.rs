@@ -1,6 +1,8 @@
 
 //! Project-specific configuration data.
 
+use crate::runner::version::VersionInfo;
+
 use std::path::PathBuf;
 
 /// This structure describes any project-specific settings and
@@ -17,4 +19,6 @@ pub struct ProjectConfig {
   /// setting defaults to `true`, except for integration testing,
   /// where all optimizations are turned off.
   pub optimizations: bool,
+  /// The Godot version being used to compile this project.
+  pub godot_version: VersionInfo,
 }
