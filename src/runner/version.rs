@@ -7,7 +7,7 @@ use std::collections::VecDeque;
 use std::str::FromStr;
 
 /// A version for a piece of software, in Semantic Versioning.
-#[derive(Clone, Copy, Debug, Default)]
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Version {
   pub major: i32,
   pub minor: i32,
@@ -16,7 +16,7 @@ pub struct Version {
 
 /// Version information, together with modifiers applied after the
 /// base Semantic Versioning information.
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct VersionInfo {
   pub version: Version,
   pub modifiers: Vec<String>,
