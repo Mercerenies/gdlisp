@@ -13,6 +13,7 @@ use lalrpop_util::ParseError;
 
 use std::io;
 use std::fmt;
+use std::error::Error;
 
 #[derive(Debug)]
 pub enum PError {
@@ -46,6 +47,18 @@ impl Sourced for PError {
 
   fn get_value(&self) -> &PError {
     self
+  }
+
+}
+
+impl Error for PError {
+
+  fn source(&self) -> Option<&(dyn Error + 'static)> {
+    match self {
+      PError::ParseError(err) => Some(err),
+      PError::IOError(err) => Some(&err.error),
+      PError::GDError(err) => Some(err),
+    }
   }
 
 }

@@ -4,6 +4,7 @@
 use crate::pipeline::source::{Sourced, SourceOffset};
 
 use std::fmt;
+use std::error::Error;
 
 /// A `LoopPrimitiveErrorF` indicates that a looping construct, either
 /// `break` or `continue`, was found outside of the scope of a loop.
@@ -89,3 +90,5 @@ impl fmt::Display for LoopPrimitive {
     }
   }
 }
+
+impl Error for LoopPrimitiveError {}

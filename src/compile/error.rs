@@ -18,6 +18,7 @@ use crate::runner::macro_server::response;
 use crate::pipeline::source::{SourceOffset, Sourced};
 
 use std::fmt;
+use std::error::Error;
 
 /// This type captures all errors that can occur during compilation of
 /// GDLisp code.
@@ -532,6 +533,29 @@ impl fmt::Display for GDError {
   }
 }
 
+impl Error for GDError {
+
+  fn source(&self) -> Option<&(dyn Error + 'static)> {
+    match &self.value {
+      GDErrorF::ArgListParseError(err) => {
+        Some(err)
+      }
+      GDErrorF::ImportDeclParseError(err) => {
+        Some(err)
+      }
+      GDErrorF::ModifierParseError(err) => {
+        Some(err)
+      }
+      GDErrorF::LoopPrimitiveError(err) => {
+        Some(err)
+      }
+      _ => {
+        None
+      }
+    }
+  }
+
+}
 
 impl Sourced for GDError {
   type Item = GDErrorF;
