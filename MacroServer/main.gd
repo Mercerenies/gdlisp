@@ -24,7 +24,7 @@ func _process(_delta):
 
 func failed_response(error_code, error_string = ""):
     var response = {
-        "error_code": OK,
+        "error_code": error_code,
         "error_string": error_string,
         "response_string": ""
     }
