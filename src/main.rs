@@ -17,7 +17,7 @@ use gdlisp::command_line::{parse_args, show_help_message};
 use gdlisp::pipeline::Pipeline;
 use gdlisp::pipeline::config::ProjectConfig;
 use gdlisp::pipeline::source::SourcedValue;
-use gdlisp::runner::version::get_godot_version;
+use gdlisp::runner::version::get_godot_version_as_string;
 
 use walkdir::WalkDir;
 
@@ -84,7 +84,7 @@ fn main() {
     show_help_message(program_name);
   } else {
 
-    let version = get_godot_version();
+    let version = get_godot_version_as_string();
     match version {
       Ok(version) => {
         println!("GDLisp (development version)");
