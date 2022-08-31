@@ -395,4 +395,30 @@ pub fn deep_equal_test() {
   }
 }
 
+#[test]
+pub fn cons_accessor_test_1() {
+  assert_eq!(parse_and_run("((print (quote (1 . 2)):car))"), "\n1\n");
+  assert_eq!(parse_and_run("((print (quote (1 . 2)):cdr))"), "\n2\n");
+}
+
+#[test]
+pub fn cons_accessor_test_2() {
+  assert_eq!(parse_and_run("((print (quote ((1 . 2) . (3 . 4))):caar))"), "\n1\n");
+  assert_eq!(parse_and_run("((print (quote ((1 . 2) . (3 . 4))):cadr))"), "\n2\n");
+  assert_eq!(parse_and_run("((print (quote ((1 . 2) . (3 . 4))):cdar))"), "\n3\n");
+  assert_eq!(parse_and_run("((print (quote ((1 . 2) . (3 . 4))):cddr))"), "\n4\n");
+}
+
+#[test]
+pub fn cons_accessor_test_3() {
+  assert_eq!(parse_and_run("((print (quote (((1 . 2) . (3 . 4)) . ((5 . 6) . (7 . 8)))):caaar))"), "\n1\n");
+  assert_eq!(parse_and_run("((print (quote (((1 . 2) . (3 . 4)) . ((5 . 6) . (7 . 8)))):caadr))"), "\n2\n");
+  assert_eq!(parse_and_run("((print (quote (((1 . 2) . (3 . 4)) . ((5 . 6) . (7 . 8)))):cadar))"), "\n3\n");
+  assert_eq!(parse_and_run("((print (quote (((1 . 2) . (3 . 4)) . ((5 . 6) . (7 . 8)))):caddr))"), "\n4\n");
+  assert_eq!(parse_and_run("((print (quote (((1 . 2) . (3 . 4)) . ((5 . 6) . (7 . 8)))):cdaar))"), "\n5\n");
+  assert_eq!(parse_and_run("((print (quote (((1 . 2) . (3 . 4)) . ((5 . 6) . (7 . 8)))):cdadr))"), "\n6\n");
+  assert_eq!(parse_and_run("((print (quote (((1 . 2) . (3 . 4)) . ((5 . 6) . (7 . 8)))):cddar))"), "\n7\n");
+  assert_eq!(parse_and_run("((print (quote (((1 . 2) . (3 . 4)) . ((5 . 6) . (7 . 8)))):cdddr))"), "\n8\n");
+}
+
 // TODO Test gensym at runtime once we can pretty-print symbols
