@@ -3,7 +3,7 @@ use super::common::*;
 
 #[test]
 pub fn simple_length_test() {
-  assert_eq!(parse_compile_and_output("(length ())"), "return GDLisp.length(null)\n");
+  assert_eq!(parse_compile_and_output("(len ())"), "return GDLisp._len(null)\n");
 }
 
 #[test]
@@ -34,7 +34,7 @@ pub fn map_test_1() {
 pub fn map_test_2() {
   let result = parse_and_run(r#"
     ((let ((x (map (lambda (x) (+ x 1)) '(4 5 6))))
-       (print (length x))
+       (print (len x))
        (print x:car)
        (print x:cdr:car)
        (print x:cdr:cdr:car)))
@@ -54,7 +54,7 @@ pub fn filter_test_1() {
 pub fn filter_test_2() {
   let result = parse_and_run(r#"
     ((let ((x (filter (lambda (x) (= (mod x 2) 0)) '(1 2 3 4 5 6))))
-       (print (length x))
+       (print (len x))
        (print x:car)
        (print x:cdr:car)
        (print x:cdr:cdr:car)))
@@ -66,9 +66,16 @@ pub fn filter_test_2() {
 pub fn filter_test_3() {
   let result = parse_and_run(r#"
     ((let ((x (filter (lambda (x) #f) '(1 2 3 4 5 6))))
-       (print (length x))))
+       (print (len x))))
   "#);
   assert_eq!(result, "\n0\n");
+}
+
+#[test]
+pub fn length_test() {
+  assert_eq!(parse_and_run("((print (len nil)))"), "\n0\n");
+  assert_eq!(parse_and_run("((print (len '(1 2 3 4))))"), "\n4\n");
+  assert_eq!(parse_and_run("((print (len [1 2 3 4])))"), "\n4\n");
 }
 
 #[test]

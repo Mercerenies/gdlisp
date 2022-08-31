@@ -15,7 +15,12 @@ fn array_roundtrip_test() {
 
 #[test]
 fn array_list_length_test() {
-  assert_eq!(parse_and_run("((print (length (array->list [9 10 11]))))"), "\n3\n");
+  assert_eq!(parse_and_run("((print (len (array->list [9 10 11]))))"), "\n3\n");
+}
+
+#[test]
+fn list_array_length_test() {
+  assert_eq!(parse_and_run("((print (len (list->array '(9 10 11)))))"), "\n3\n");
 }
 
 #[test]

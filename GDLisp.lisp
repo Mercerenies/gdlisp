@@ -205,12 +205,16 @@
     ((member? a GDLisp:symbol_table) (elt GDLisp:symbol_table a))
     (#t (set (elt GDLisp:symbol_table a) (Symbol:new a)))))
 
-(defn length (x)
-  (let ((result 0))
-    (while (sys/instance-direct? x Cons)
-      (set result (+ result 1))
-      (set x x:cdr))
-    result))
+(defn len (x)
+  (cond
+    ((= x nil) 0)
+    ((sys/instance-direct? x Cons)
+     (let ((result 0))
+       (while (sys/instance-direct? x Cons)
+         (set result (+ result 1))
+         (set x x:cdr))
+       result))
+    (#t ((literally len) x))))
 
 (defn funcall (f &rest args)
   (apply f args))
@@ -580,7 +584,6 @@
 (sys/declare superfunction (rand-range rand-range) (a b) public)
 (sys/declare superfunction (clamp clamp) (a b c) public)
 (sys/declare superfunction (abs abs) (a) public)
-(sys/declare superfunction (len len) (a) public) ; TODO Eventually, we'll want this to be a multimethod which works on lists as well as arrays. (And possibly elt as well?)
 (sys/declare superfunction (get-global-mouse-position get-global-mouse-position) () public) ; TODO Definitely want to wrap this (and all of the mouse functions) in a nice namespace or module or something
 (sys/declare superfunction (push-error push-error) (a) public)
 (sys/declare superfunction (push-warning push-warning) (a) public)
