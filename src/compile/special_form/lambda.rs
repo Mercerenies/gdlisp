@@ -135,7 +135,7 @@ pub fn compile_labels_scc(frame: &mut CompilerFrame<StmtBuilder>,
   }
   let mut class = decl::ClassDecl {
     name: class_name.clone(),
-    extends: ClassExtends::named(String::from("Reference")),
+    extends: ClassExtends::SimpleIdentifier(String::from("Reference")),
     body: class_body,
   };
 

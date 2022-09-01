@@ -87,7 +87,7 @@ impl Pipeline {
     let mut table = SymbolTable::new();
     library::bind_builtins(&mut table, ir.minimalist_flag);
 
-    let mut builder = CodeBuilder::new(ClassExtends::named("Node".to_owned()));
+    let mut builder = CodeBuilder::new(ClassExtends::SimpleIdentifier("Node".to_owned()));
     compiler.frame(self, &mut builder, &mut table, &mut OutsideOfClass).compile_toplevel(&ir)?;
     let mut result = builder.build();
     if self.config.optimizations {
@@ -135,7 +135,7 @@ impl Pipeline {
 
     library::bind_builtins(&mut table, unit.ir.minimalist_flag);
 
-    let mut builder = CodeBuilder::new(ClassExtends::named("Node".to_owned()));
+    let mut builder = CodeBuilder::new(ClassExtends::SimpleIdentifier("Node".to_owned()));
     compiler.frame(self, &mut builder, &mut table, &mut OutsideOfClass).compile_toplevel(&unit.ir)?;
     let mut tmpresult = builder.build();
     if self.config.optimizations {

@@ -50,12 +50,12 @@ mod tests {
     );
     let mut toplevel = decl::TopLevelClass {
       name: None,
-      extends: ClassExtends::Qualified(vec!(String::from("Reference"))),
+      extends: ClassExtends::SimpleIdentifier(String::from("Reference")),
       body: decls,
     };
     DeadDeclElimination.run_on_file(&mut toplevel).unwrap();
     assert_eq!(toplevel.name, None);
-    assert_eq!(toplevel.extends, ClassExtends::Qualified(vec!(String::from("Reference"))));
+    assert_eq!(toplevel.extends, ClassExtends::SimpleIdentifier(String::from("Reference")));
     assert_eq!(toplevel.body, vec!());
   }
 

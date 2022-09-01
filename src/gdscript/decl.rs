@@ -540,14 +540,14 @@ mod tests {
 
     let decl1 = d(DeclF::ClassDecl(ClassDecl {
       name: String::from("MyClass"),
-      extends: ClassExtends::named(String::from("ParentClass")),
+      extends: ClassExtends::SimpleIdentifier(String::from("ParentClass")),
       body: vec!(),
     }));
     assert_eq!(decl1.to_gd(0), "class MyClass extends ParentClass:\n\n    func _init():\n        pass\n");
 
     let decl2 = d(DeclF::ClassDecl(ClassDecl {
       name: String::from("MyClass"),
-      extends: ClassExtends::named(String::from("ParentClass")),
+      extends: ClassExtends::SimpleIdentifier(String::from("ParentClass")),
       body: vec!(
         d(DeclF::VarDecl(var(None, Onready::No, String::from("variable"), None, Setget::default()))),
       ),
@@ -559,7 +559,7 @@ mod tests {
 
     let decl3 = d(DeclF::ClassDecl(ClassDecl {
       name: String::from("MyClass"),
-      extends: ClassExtends::named(String::from("ParentClass")),
+      extends: ClassExtends::SimpleIdentifier(String::from("ParentClass")),
       body: vec!(
         d(DeclF::VarDecl(var(None, Onready::No, String::from("variable"), None, Setget::default()))),
         sample_function.clone(),
@@ -575,7 +575,7 @@ mod tests {
 
     let decl4 = d(DeclF::ClassDecl(ClassDecl {
       name: String::from("MyClass"),
-      extends: ClassExtends::named(String::from("ParentClass")),
+      extends: ClassExtends::SimpleIdentifier(String::from("ParentClass")),
       body: vec!(
         d(DeclF::VarDecl(var(None, Onready::Yes, String::from("variable"), None, Setget::default()))),
         sample_function.clone(),
@@ -627,7 +627,7 @@ mod tests {
     assert_eq!(decl2.name(), Some("MY_CONST"));
 
     let decl3 = d(DeclF::ClassDecl(ClassDecl { name: String::from("MyClass"),
-                                               extends: ClassExtends::Qualified(vec!(String::from("Node"))),
+                                               extends: ClassExtends::SimpleIdentifier(String::from("Node")),
                                                body: vec!() }));
     assert_eq!(decl3.name(), Some("MyClass"));
 

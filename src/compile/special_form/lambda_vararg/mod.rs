@@ -108,7 +108,7 @@ pub fn generate_lambda_class(class_name: String,
   ));
   decl::ClassDecl {
     name: class_name,
-    extends: ClassExtends::Qualified(vec!(String::from("GDLisp"), String::from("Function"))),
+    extends: ClassExtends::SimpleIdentifier(String::from("GDLisp")).attribute(String::from("Function")),
     body: class_body,
   }
 }

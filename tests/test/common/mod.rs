@@ -160,7 +160,7 @@ fn parse_and_run_err_impl<T>(input: &str, runner_fn: fn(TempDir) -> io::Result<T
   let mut pipeline = dummy_pipeline();
 
   let (decls, _macros) = ir::compile_and_check(&mut pipeline, &value, &main_function_handler())?;
-  let mut builder = CodeBuilder::new(ClassExtends::named(String::from("Reference")));
+  let mut builder = CodeBuilder::new(ClassExtends::SimpleIdentifier(String::from("Reference")));
   compiler.frame(&mut pipeline, &mut builder, &mut table, &mut OutsideOfClass).compile_toplevel(&decls)?;
 
   let mut temp_dir = Builder::new().prefix("__gdlisp_test").rand_bytes(5).tempdir().map_err(|err| IOError::new(err, SourceOffset(0)))?;
@@ -265,7 +265,7 @@ pub fn parse_compile_decl_err(input: &str) -> Result<String, PError> {
 
   let mut pipeline = dummy_pipeline();
 
-  let mut builder = CodeBuilder::new(ClassExtends::named("Reference".to_owned()));
+  let mut builder = CodeBuilder::new(ClassExtends::SimpleIdentifier("Reference".to_owned()));
   let (decls, _macros) = ir::compile_and_check(&mut pipeline, &value, &DisallowMainFunctionHandler)?;
   compiler.frame(&mut pipeline, &mut builder, &mut table, &mut OutsideOfClass).compile_toplevel(&decls)?;
   let class = builder.build();

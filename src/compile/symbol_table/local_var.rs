@@ -426,24 +426,13 @@ impl TryFrom<VarName> for ClassExtends {
         Err(VarNameIntoExtendsError::CannotExtendLocal(s))
       }
       VarName::FileConstant(s) => {
-        Ok(ClassExtends::Qualified(vec!(s)))
+        Ok(ClassExtends::SimpleIdentifier(s))
       }
       VarName::Superglobal(s) => {
-        Ok(ClassExtends::Qualified(vec!(s)))
+        Ok(ClassExtends::SimpleIdentifier(s))
       }
       VarName::ImportedConstant(lhs, s) => {
-        match ClassExtends::try_from(*lhs)? {
-          ClassExtends::Qualified(mut vec) => {
-            vec.push(s);
-            Ok(ClassExtends::Qualified(vec))
-          }
-          ClassExtends::StringLit(_) => {
-            // This case should never occur under the current
-            // implementation. If we change it so that it can, then we
-            // need to convert this to an error, not a panic.
-            panic!("Internal error in try_from");
-          }
-        }
+        ClassExtends::try_from(*lhs).map(|x| x.attribute(s))
       }
       VarName::SubscriptedConstant(lhs, n) => {
         Err(VarNameIntoExtendsError::CannotExtendSubscript(lhs, n))
@@ -498,9 +487,10 @@ mod tests {
 
   // TODO More
 
-  fn qualified(name: Vec<&'static str>) -> ClassExtends {
-    let name: Vec<_> = name.into_iter().map(String::from).collect();
-    ClassExtends::Qualified(name)
+  fn qualified(mut name: Vec<&'static str>) -> ClassExtends {
+    assert!(!name.is_empty(), "Empty identifier not allowed");
+    let first = ClassExtends::SimpleIdentifier(name.remove(0).to_owned());
+    name.into_iter().fold(first, |acc, name| acc.attribute(name))
   }
 
   #[test]

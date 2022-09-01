@@ -71,7 +71,7 @@ pub fn create_macro_file(pipeline: &mut Pipeline, imports: Vec<ImportDecl>, src_
     toplevel
   };
 
-  let mut builder = CodeBuilder::new(ClassExtends::named("Node".to_owned()));
+  let mut builder = CodeBuilder::new(ClassExtends::SimpleIdentifier("Node".to_owned()));
   compiler.frame(pipeline, &mut builder, &mut table, &mut OutsideOfClass).compile_toplevel(&toplevel)?;
   let result = builder.build();
 
