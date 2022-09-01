@@ -10,10 +10,6 @@ pub fn translate_local_vars_test_1() {
 static func foo():
     var x = 1
     return x
-
-
-static func run():
-    return null
 "#);
 }
 
@@ -27,10 +23,6 @@ static func foo():
     var x = 1
     var x_0 = 2
     return x_0
-
-
-static func run():
-    return null
 "#);
 }
 
@@ -44,10 +36,6 @@ static func foo():
     var x_y = 1
     var x_y_0 = 2
     return x_y_0
-
-
-static func run():
-    return null
 "#);
 }
 
@@ -59,10 +47,6 @@ pub fn translate_arguments_test() {
 
 static func foo(a_b):
     return a_b
-
-
-static func run():
-    return null
 "#);
 }
 
@@ -76,10 +60,6 @@ class Foo extends Reference:
 
     func _init(a_b):
         pass
-
-
-static func run():
-    return null
 "#);
 }
 
@@ -93,10 +73,6 @@ class Foo extends Reference:
 
     func _init(a_b).(a_b):
         pass
-
-
-static func run():
-    return null
 "#);
 }
 
@@ -107,10 +83,6 @@ pub fn translate_function_name_test() {
 
 
 static func foo_bar():
-    return null
-
-
-static func run():
     return null
 "#);
 }
@@ -123,10 +95,6 @@ pub fn translate_macro_name_test() {
 
 static func foo_bar():
     return null
-
-
-static func run():
-    return null
 "#);
 }
 
@@ -137,10 +105,6 @@ pub fn translate_const_name_test() {
 
 
 const FOO_BAR = 1
-
-
-static func run():
-    return null
 "#);
 
 }
@@ -155,10 +119,6 @@ class Foo_Bar extends Reference:
 
     func _init():
         pass
-
-
-static func run():
-    return null
 "#);
 }
 
@@ -171,10 +131,6 @@ pub fn translate_enum_name_test_1() {
 enum Foo_Bar {
     A_B,
 }
-
-
-static func run():
-    return null
 "#);
 }
 
@@ -187,16 +143,12 @@ pub fn translate_enum_name_test_2() {
 enum Foo_Bar {
     A_B = 1,
 }
-
-
-static func run():
-    return null
 "#);
 }
 
 #[test]
 pub fn translate_declare_name_test() {
-  assert_eq!(parse_compile_decl("((sys/declare function foo-bar ()) (foo-bar))"),
+  assert_eq!(parse_compile_decl("((sys/declare function foo-bar ()) (defn run () (foo-bar)))"),
              r#"extends Reference
 
 

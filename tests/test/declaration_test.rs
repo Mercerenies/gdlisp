@@ -11,11 +11,13 @@ use super::common::{parse_compile_decl, parse_compile_decl_err};
 
 #[test]
 pub fn empty_file_test() {
+  // TODO Should not have init here (empty class exception, which I
+  // don't think is needed anymore); also applies in macro_test::simple_minimalist_test
   assert_eq!(parse_compile_decl("()"), r#"extends Reference
 
 
-static func run():
-    return null
+func _init():
+    pass
 "#);
 }
 
@@ -27,10 +29,6 @@ pub fn simple_function_declaration_test() {
 
 static func foo(x):
     return x
-
-
-static func run():
-    return null
 "#);
 }
 
@@ -61,10 +59,6 @@ class _LambdaBlock extends GDLisp.Function:
 
 static func foo(x):
     return x
-
-
-static func run():
-    return null
 "#);
 }
 
@@ -97,10 +91,6 @@ class _LambdaBlock extends GDLisp.Function:
 static func foo(x):
     x = GDLisp.Cell.new(x)
     return x.contents
-
-
-static func run():
-    return null
 "#);
 }
 
@@ -115,10 +105,6 @@ static func foo():
 
 static func bar():
     return foo()
-
-
-static func run():
-    return null
 "#);
 }
 
@@ -141,29 +127,25 @@ static func foo():
 
 static func bar():
     return null
-
-
-static func run():
-    return null
 "#);
 }
 
 #[test]
 pub fn declare_value_test_1() {
-  assert_eq!(parse_compile_decl("((sys/declare value x) x)"), r#"extends Reference
+  assert_eq!(parse_compile_decl("((sys/declare value x) (defn foo () x))"), r#"extends Reference
 
 
-static func run():
+static func foo():
     return x
 "#);
 }
 
 #[test]
 pub fn declare_value_test_2() {
-  assert_eq!(parse_compile_decl("((sys/declare superglobal x) x)"), r#"extends Reference
+  assert_eq!(parse_compile_decl("((sys/declare superglobal x) (defn foo () x))"), r#"extends Reference
 
 
-static func run():
+static func foo():
     return x
 "#);
 }
@@ -174,10 +156,6 @@ pub fn declare_value_test_3() {
 
 
 const y = x
-
-
-static func run():
-    return null
 "#);
 }
 
@@ -191,20 +169,20 @@ pub fn declare_value_non_const_test() {
 
 #[test]
 pub fn declare_function_test_1() {
-  assert_eq!(parse_compile_decl("((sys/declare function f ()) (f))"), r#"extends Reference
+  assert_eq!(parse_compile_decl("((sys/declare function f ()) (defn foo () (f)))"), r#"extends Reference
 
 
-static func run():
+static func foo():
     return f()
 "#);
 }
 
 #[test]
 pub fn declare_function_test_2() {
-  assert_eq!(parse_compile_decl("((sys/declare function f (a &opt b)) (f 1) (f 1 2))"), r#"extends Reference
+  assert_eq!(parse_compile_decl("((sys/declare function f (a &opt b)) (defn foo () (f 1) (f 1 2)))"), r#"extends Reference
 
 
-static func run():
+static func foo():
     f(1, null)
     return f(1, 2)
 "#);
@@ -212,10 +190,10 @@ static func run():
 
 #[test]
 pub fn declare_function_test_3() {
-  assert_eq!(parse_compile_decl("((sys/declare superfunction f (a &opt b)) (f 1) (f 1 2))"), r#"extends Reference
+  assert_eq!(parse_compile_decl("((sys/declare superfunction f (a &opt b)) (defn foo () (f 1) (f 1 2)))"), r#"extends Reference
 
 
-static func run():
+static func foo():
     f(1, null)
     return f(1, 2)
 "#);
@@ -241,10 +219,6 @@ class Foo extends Reference:
         __gdlisp_outer_class_0.f()
 
     var __gdlisp_outer_class_0 = load("res://TEST.gd")
-
-
-static func run():
-    return null
 "#);
 }
 
@@ -258,10 +232,6 @@ class Foo extends Reference:
 
     func _init():
         f()
-
-
-static func run():
-    return null
 "#);
 }
 
@@ -380,10 +350,6 @@ static func foo():
 
 
 const foo = 1
-
-
-static func run():
-    return null
 "#);
 }
 
@@ -404,49 +370,45 @@ class Foo extends Reference:
         return null
 
     const foo = 1
-
-
-static func run():
-    return null
 "#);
 }
 #[test]
 pub fn duplicate_const_in_lambda_class_test() {
   assert_eq!(
-    parse_compile_decl_err(r#"((new Reference (defconst A 1) (defconst A 1)))"#),
-    Err(PError::from(GDError::new(GDErrorF::DuplicateName(ClassNamespace::Value, String::from("A")), SourceOffset(32)))),
+    parse_compile_decl_err(r#"((defn foo () (new Reference (defconst A 1) (defconst A 1))))"#),
+    Err(PError::from(GDError::new(GDErrorF::DuplicateName(ClassNamespace::Value, String::from("A")), SourceOffset(45)))),
   );
 }
 
 #[test]
 pub fn duplicate_var_in_lambda_class_test() {
   assert_eq!(
-    parse_compile_decl_err(r#"((new Reference (defvar A 1) (defvar A 1)))"#),
-    Err(PError::from(GDError::new(GDErrorF::DuplicateName(ClassNamespace::Value, String::from("A")), SourceOffset(30)))),
+    parse_compile_decl_err(r#"((defn foo () (new Reference (defvar A 1) (defvar A 1))))"#),
+    Err(PError::from(GDError::new(GDErrorF::DuplicateName(ClassNamespace::Value, String::from("A")), SourceOffset(43)))),
   );
 }
 
 #[test]
 pub fn duplicate_var_const_in_lambda_class_test() {
   assert_eq!(
-    parse_compile_decl_err(r#"((new Reference (defvar A 1) (defconst A 1)))"#),
-    Err(PError::from(GDError::new(GDErrorF::DuplicateName(ClassNamespace::Value, String::from("A")), SourceOffset(30)))),
+    parse_compile_decl_err(r#"((defn foo () (new Reference (defvar A 1) (defconst A 1))))"#),
+    Err(PError::from(GDError::new(GDErrorF::DuplicateName(ClassNamespace::Value, String::from("A")), SourceOffset(43)))),
   );
 }
 
 #[test]
 pub fn duplicate_fn_in_lambda_class_test() {
   assert_eq!(
-    parse_compile_decl_err(r#"((new Reference (defn foo ()) (defn foo ())))"#),
-    Err(PError::from(GDError::new(GDErrorF::DuplicateName(ClassNamespace::Function, String::from("foo")), SourceOffset(31)))),
+    parse_compile_decl_err(r#"((defn xyz () (new Reference (defn foo ()) (defn foo ()))))"#),
+    Err(PError::from(GDError::new(GDErrorF::DuplicateName(ClassNamespace::Function, String::from("foo")), SourceOffset(44)))),
   );
 }
 
 #[test]
 pub fn duplicate_signal_in_lambda_class_test() {
   assert_eq!(
-    parse_compile_decl_err(r#"((new Reference (defsignal foo) (defsignal foo ())))"#),
-    Err(PError::from(GDError::new(GDErrorF::DuplicateName(ClassNamespace::Signal, String::from("foo")), SourceOffset(33)))),
+    parse_compile_decl_err(r#"((defn xyz () (new Reference (defsignal foo) (defsignal foo ()))))"#),
+    Err(PError::from(GDError::new(GDErrorF::DuplicateName(ClassNamespace::Signal, String::from("foo")), SourceOffset(46)))),
   );
 }
 
@@ -456,10 +418,6 @@ pub fn declare_value_reserved_word_test_1() {
 
 
 const y = _while
-
-
-static func run():
-    return null
 "#);
 }
 
@@ -471,19 +429,15 @@ pub fn declare_value_reserved_word_test_2() {
 
 
 const y = while
-
-
-static func run():
-    return null
 "#);
 }
 
 #[test]
 pub fn declare_function_reserved_word_test_1() {
-  assert_eq!(parse_compile_decl("((sys/declare superfunction self ()) (self))"), r#"extends Reference
+  assert_eq!(parse_compile_decl("((sys/declare superfunction self ()) (defn foo () (self)))"), r#"extends Reference
 
 
-static func run():
+static func foo():
     return _self()
 "#);
 }
@@ -492,10 +446,10 @@ static func run():
 pub fn declare_function_reserved_word_test_2() {
   // Invalid syntax in GDScript, but that's what you get for using a
   // `sys/` primitive irresponsibly ¯\_(ツ)_/¯
-  assert_eq!(parse_compile_decl("((sys/declare superfunction (x self) ()) (x))"), r#"extends Reference
+  assert_eq!(parse_compile_decl("((sys/declare superfunction (x self) ()) (defn foo () (x)))"), r#"extends Reference
 
 
-static func run():
+static func foo():
     return self()
 "#);
 }
@@ -506,10 +460,6 @@ pub fn declare_value_custom_name_test_1() {
 
 
 const y = pizza
-
-
-static func run():
-    return null
 "#);
 }
 
@@ -520,29 +470,25 @@ pub fn declare_value_custom_name_test_2() {
 
 
 const y = pepperoni_pizza
-
-
-static func run():
-    return null
 "#);
 }
 
 #[test]
 pub fn declare_function_custom_name_test_1() {
-  assert_eq!(parse_compile_decl("((sys/declare superfunction (x pizza) ()) (x))"), r#"extends Reference
+  assert_eq!(parse_compile_decl("((sys/declare superfunction (x pizza) ()) (defn foo () (x)))"), r#"extends Reference
 
 
-static func run():
+static func foo():
     return pizza()
 "#);
 }
 
 #[test]
 pub fn declare_function_custom_name_test_2() {
-  assert_eq!(parse_compile_decl("((sys/declare superfunction (x pepperoni-pizza) ()) (x))"), r#"extends Reference
+  assert_eq!(parse_compile_decl("((sys/declare superfunction (x pepperoni-pizza) ()) (defn foo () (x)))"), r#"extends Reference
 
 
-static func run():
+static func foo():
     return pepperoni_pizza()
 "#);
 }

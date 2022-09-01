@@ -214,10 +214,6 @@ class _AnonymousClass extends Node:
 
 static func foo(z):
     return _AnonymousClass.new(z, 77)
-
-
-static func run():
-    return null
 "#);
 
 }
@@ -244,16 +240,12 @@ class Foo extends Reference:
 
     func f():
         return _AnonymousClass.new()
-
-
-static func run():
-    return null
 "#);
 }
 
 #[test]
 pub fn constructor_uses_outer_ref_lambda_class_test() {
-  let result = parse_compile_decl("((defn foo () 1) (new Reference (defn _init () (foo))))");
+  let result = parse_compile_decl("((defn foo () 1) (defn bar () (new Reference (defn _init () (foo)))))");
   assert_eq!(result, r#"extends Reference
 
 
@@ -269,7 +261,7 @@ class _AnonymousClass extends Reference:
     var __gdlisp_outer_class_0 = load("res://TEST.gd")
 
 
-static func run():
+static func bar():
     return _AnonymousClass.new()
 "#);
 }

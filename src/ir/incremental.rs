@@ -2,7 +2,7 @@
 // Incremental compilation (supplies backbone for macro resolution)
 
 use super::declaration_table::DeclarationTable;
-use super::MAIN_BODY_NAME;
+use super::main_function::MainFunctionHandler;
 use super::call_name::CallName;
 use super::arglist;
 use super::arglist::error::ArgListParseError;
@@ -767,9 +767,8 @@ impl IncCompiler {
     Ok(())
   }
 
-  pub fn compile_toplevel(mut self, pipeline: &mut Pipeline, body: &AST)
+  pub fn compile_toplevel(mut self, pipeline: &mut Pipeline, body: &AST, main_function_handler: &impl MainFunctionHandler)
                           -> Result<(decl::TopLevel, HashMap<Id, MacroData>), PError> {
-    let pos = body.pos;
     let body: Result<Vec<_>, TryFromDottedExprError> = DottedExpr::new(body).try_into();
     let body: Vec<_> = body?; // *sigh* Sometimes the type checker just doesn't get it ...
 
@@ -786,18 +785,7 @@ impl IncCompiler {
     for curr in body {
       self.compile_decl_or_expr(pipeline, &mut main, curr)?;
     }
-    let main_decl = DeclF::FnDecl(decl::FnDecl {
-      visibility: Visibility::FUNCTION,
-      call_magic: None,
-      name: MAIN_BODY_NAME.to_owned(),
-      args: ArgList::empty(),
-      body: Expr::progn(main, pos),
-    });
-    // main_decl is synthesized from the file itself, so
-    // SourceOffset(0) isn't just a cop-out here; it's the actual
-    // right answer.
-    let main_decl = Decl::new(main_decl, SourceOffset(0));
-    self.table.add(main_decl);
+    main_function_handler.handle_main(&mut self, &main)?;
 
     Ok(self.into())
   }

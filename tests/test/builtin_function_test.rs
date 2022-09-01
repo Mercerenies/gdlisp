@@ -116,7 +116,7 @@ pub fn yield_star_running_test() {
 
 #[test]
 pub fn custom_call_magic_test() {
-  assert_eq!(parse_compile_decl("((defn foo (x y) (sys/call-magic ADDITION) 9) (foo 10 20))"),
+  assert_eq!(parse_compile_decl("((defn foo (x y) (sys/call-magic ADDITION) 9) (defn run () (foo 10 20)))"),
              r#"extends Reference
 
 

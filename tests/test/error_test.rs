@@ -28,8 +28,8 @@ pub fn bad_call_compile_test_2() {
 #[test]
 pub fn cannot_extend_local() {
   assert_eq!(
-    parse_compile_decl_err(r#"((let ((x 1)) (let ((y (new x))) y)))"#),
-    Err(PError::from(GDError::from_value(VarNameIntoExtendsError::CannotExtendLocal(String::from("x")), SourceOffset(23)))),
+    parse_compile_and_output_err(r#"(let ((x 1)) (let ((y (new x))) y))"#),
+    Err(PError::from(GDError::from_value(VarNameIntoExtendsError::CannotExtendLocal(String::from("x")), SourceOffset(22)))),
   );
 }
 

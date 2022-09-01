@@ -11,19 +11,11 @@ pub fn const_test() {
 
 
 const A = 10
-
-
-static func run():
-    return null
 "#);
   assert_eq!(parse_compile_decl("((defconst A \"foo\"))"), r#"extends Reference
 
 
 const A = "foo"
-
-
-static func run():
-    return null
 "#);
 }
 

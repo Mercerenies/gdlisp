@@ -19,10 +19,6 @@ class ClassName extends Node:
 
     func _init():
         pass
-
-
-static func run():
-    return null
 "#);
 }
 
@@ -41,10 +37,6 @@ class ClassName extends Node:
 
     func foo():
         return 2
-
-
-static func run():
-    return null
 "#);
 }
 
@@ -63,10 +55,6 @@ class ClassName extends Reference:
 
     func foo():
         return 2
-
-
-static func run():
-    return null
 "#);
 }
 
@@ -84,10 +72,6 @@ class ClassName extends Node:
 
     func foo():
         return 2
-
-
-static func run():
-    return null
 "#);
 }
 
@@ -105,10 +89,6 @@ class ClassName extends Node:
 
     func foo():
         return 2
-
-
-static func run():
-    return null
 "#);
 }
 
@@ -154,10 +134,6 @@ class ClassName extends Node:
 
     func foo():
         return 2
-
-
-static func run():
-    return null
 "#);
 }
 
@@ -203,10 +179,6 @@ class ClassName extends Node:
 
     func foo():
         return 2
-
-
-static func run():
-    return null
 "#);
 }
 
@@ -252,10 +224,6 @@ class ClassName extends Node:
 
     func foo():
         return 2
-
-
-static func run():
-    return null
 "#);
 }
 
@@ -277,10 +245,6 @@ class Foo extends Reference:
 
     func foo():
         return .foo()
-
-
-static func run():
-    return null
 "#);
 }
 
@@ -300,10 +264,6 @@ class Foo extends Reference:
 
     func bar():
         return .foo()
-
-
-static func run():
-    return null
 "#);
 }
 
@@ -323,10 +283,6 @@ func foo():
 
 func bar():
     return .foo()
-
-
-static func run():
-    return null
 "#);
 }
 
@@ -340,10 +296,6 @@ class Foo extends Reference:
 
     func _init():
         .foo()
-
-
-static func run():
-    return null
 "#);
 }
 
@@ -383,10 +335,6 @@ class Foo extends Reference:
 
     func __gdlisp_super_1():
         return .foo()
-
-
-static func run():
-    return null
 "#);
 }
 
@@ -430,10 +378,6 @@ class Foo extends Reference:
 
     func __gdlisp_super_2():
         return .bar()
-
-
-static func run():
-    return null
 "#);
 }
 
@@ -452,10 +396,6 @@ class ClassName extends Node:
 
     func get_x():
         return self.x
-
-
-static func run():
-    return null
 "#);
 }
 
@@ -474,10 +414,6 @@ class ClassName extends Node:
 
     func get_x():
         return self.x
-
-
-static func run():
-    return null
 "#);
 }
 
@@ -496,10 +432,6 @@ class ClassName extends Node:
 
     func get_x():
         return self.x
-
-
-static func run():
-    return null
 "#);
 }
 
@@ -518,10 +450,6 @@ export(int, 1, 2) var x
 
 func get_x():
     return self.x
-
-
-static func run():
-    return null
 "#);
 }
 
@@ -540,10 +468,6 @@ export(String, "foo", "bar") var x = "foo"
 
 func get_x():
     return self.x
-
-
-static func run():
-    return null
 "#);
 }
 
@@ -561,10 +485,6 @@ class ClassName extends Node:
     var x
     var y
     var z
-
-
-static func run():
-    return null
 "#);
 }
 
@@ -583,10 +503,6 @@ export(String, "foo", "bar") var x = "foo"
 
 func get_x():
     return self.x
-
-
-static func run():
-    return null
 "#);
 }
 
@@ -604,10 +520,6 @@ class ClassName extends Node:
     var x
     var y
     var z
-
-
-static func run():
-    return null
 "#);
 }
 
@@ -626,10 +538,6 @@ class ClassName extends Node:
     var x
     var y
     var z = 10
-
-
-static func run():
-    return null
 "#);
 }
 
@@ -652,10 +560,6 @@ class ClassName extends Node:
     var x
     var y
     var z
-
-
-static func run():
-    return null
 "#);
 }
 
@@ -670,10 +574,6 @@ func _init():
 
 
 onready var x = "foo"
-
-
-static func run():
-    return null
 "#);
 }
 
@@ -688,10 +588,6 @@ func _init():
 
 
 export(String) onready var x = "foo"
-
-
-static func run():
-    return null
 "#);
 }
 
@@ -722,10 +618,6 @@ var x
 
 func get_x():
     return self.x
-
-
-static func run():
-    return null
 "#);
 }
 
@@ -759,10 +651,6 @@ func _ready():
         else:
             _cond_0 = null
     self.x = _cond_0
-
-
-static func run():
-    return null
 "#);
 }
 
@@ -824,10 +712,6 @@ class ClassName extends Node:
         pass
 
     signal my_signal
-
-
-static func run():
-    return null
 "#);
 }
 
@@ -843,10 +727,6 @@ class ClassName extends Node:
         pass
 
     signal my_signal
-
-
-static func run():
-    return null
 "#);
 }
 
@@ -862,10 +742,6 @@ class ClassName extends Node:
         pass
 
     signal my_signal(foo, bar)
-
-
-static func run():
-    return null
 "#);
 }
 
@@ -882,10 +758,6 @@ class ClassName extends Node:
 
     signal my_signal(foo, bar)
     signal my_other_signal
-
-
-static func run():
-    return null
 "#);
 }
 
@@ -901,10 +773,6 @@ class ClassName extends Node:
         pass
 
     const x = 1
-
-
-static func run():
-    return null
 "#);
 }
 
@@ -919,10 +787,6 @@ func _init():
 
 
 const x = 1
-
-
-static func run():
-    return null
 "#);
 }
 
@@ -939,10 +803,6 @@ class ClassName extends Node:
 
     static func foo():
         return 1
-
-
-static func run():
-    return null
 "#);
 }
 
@@ -958,10 +818,6 @@ func _init():
 
 static func foo():
     return 1
-
-
-static func run():
-    return null
 "#);
 }
 
@@ -998,10 +854,6 @@ class Foo extends Node:
 
     func test():
         return _LambdaBlock.new(self)
-
-
-static func run():
-    return null
 "#);
 }
 
@@ -1030,10 +882,6 @@ class Foo extends Node:
     func test():
         var _locals = _Labels.new(self)
         return _locals._fn_foo_1(76)
-
-
-static func run():
-    return null
 "#);
 }
 
@@ -1065,10 +913,6 @@ class Foo extends Node:
     func test():
         var _locals = _Labels_0.new(self)
         return _locals._fn_foo_1(76)
-
-
-static func run():
-    return null
 "#);
 }
 
@@ -1164,10 +1008,6 @@ class Foo extends Reference:
         __gdlisp_outer_class_0.example(3)
 
     var __gdlisp_outer_class_0 = load("res://TEST.gd")
-
-
-static func run():
-    return null
 "#);
 }
 
@@ -1230,10 +1070,6 @@ class Foo extends Node2D:
         return __gdlisp_outer_class_0.foo()
 
     var __gdlisp_outer_class_0 = load("res://TEST.gd")
-
-
-static func run():
-    return null
 "#);
 }
 
@@ -1253,10 +1089,6 @@ func _init():
 
 func example():
     return foo()
-
-
-static func run():
-    return null
 "#);
 }
 
@@ -1277,10 +1109,6 @@ class Foo extends Node2D:
 
     static func example():
         return load("res://TEST.gd").foo()
-
-
-static func run():
-    return null
 "#);
 }
 
@@ -1300,10 +1128,6 @@ func _init():
 
 static func example():
     return foo()
-
-
-static func run():
-    return null
 "#);
 }
 
@@ -1315,10 +1139,6 @@ pub fn main_class_test_1() {
 
 func _init():
     pass
-
-
-static func run():
-    return null
 "#);
 }
 
@@ -1334,16 +1154,12 @@ func _init():
 
 func foo():
     return 1
-
-
-static func run():
-    return null
 "#);
 }
 
 #[test]
 pub fn main_class_test_3() {
-  assert_eq!(parse_compile_decl("((defclass Foo (Node2D) main (defn foo () 1)) Foo)"),
+  assert_eq!(parse_compile_decl("((defclass Foo (Node2D) main (defn foo () 1)) (defn run () Foo))"),
              r#"extends Node2D
 
 
@@ -1368,10 +1184,6 @@ pub fn main_class_test_4() {
 
 func _init():
     pass
-
-
-static func run():
-    return null
 "#);
 }
 
@@ -1516,10 +1328,6 @@ func _init():
 
 func test():
     return $Target/Node
-
-
-static func run():
-    return null
 "#);
 }
 
@@ -1537,10 +1345,6 @@ func _init():
 
 func test(x):
     return x.get_node("Target/Node")
-
-
-static func run():
-    return null
 "#);
 }
 
@@ -1613,10 +1417,6 @@ class ClassName extends Node:
         pass
 
     var x
-
-
-static func run():
-    return null
 "#);
 }
 
@@ -1636,10 +1436,6 @@ class ClassName extends Node:
         return 10
 
     var x setget ,__gdlisp_get_x
-
-
-static func run():
-    return null
 "#);
 }
 
@@ -1659,10 +1455,6 @@ class ClassName extends Node:
         return null
 
     var x setget __gdlisp_set_x
-
-
-static func run():
-    return null
 "#);
 }
 
@@ -1686,10 +1478,6 @@ class ClassName extends Node:
         return 10
 
     var x setget __gdlisp_set_x, __gdlisp_get_x
-
-
-static func run():
-    return null
 "#);
 }
 
@@ -1714,10 +1502,6 @@ func __gdlisp_get_x():
 
 
 var x setget __gdlisp_set_x, __gdlisp_get_x
-
-
-static func run():
-    return null
 "#);
 }
 

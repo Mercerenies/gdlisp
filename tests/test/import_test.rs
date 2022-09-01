@@ -34,8 +34,9 @@ fn load_and_output_simple_file_err(input: &str) -> Result<String, PError> {
 fn qualified_import_test() {
   assert_eq!(load_and_output_simple_file(r#"
     (use "res://example.lisp")
-    (example/one)
-    (example/two)
+    (defn run ()
+      (example/one)
+      (example/two))
   "#), r#"extends Node
 
 
@@ -52,8 +53,9 @@ static func run():
 fn aliased_import_test() {
   assert_eq!(load_and_output_simple_file(r#"
     (use "res://example.lisp" as example-name)
-    (example-name/one)
-    (example-name/two)
+    (defn run ()
+      (example-name/one)
+      (example-name/two))
   "#), r#"extends Node
 
 
@@ -70,7 +72,8 @@ static func run():
 fn restricted_import_test() {
   assert_eq!(load_and_output_simple_file(r#"
     (use "res://example.lisp" (one))
-    (one)
+    (defn run ()
+      (one))
   "#), r#"extends Node
 
 
@@ -87,9 +90,10 @@ fn restricted_import_test_failed() {
   assert_eq!(
     load_and_output_simple_file_err(r#"
       (use "res://example.lisp" (one))
-      (two)
+      (defn run ()
+        (two))
     "#),
-    Err(PError::from(GDError::new(GDErrorF::NoSuchFn(String::from("two")), SourceOffset(46)))),
+    Err(PError::from(GDError::new(GDErrorF::NoSuchFn(String::from("two")), SourceOffset(67)))),
   );
 }
 
@@ -97,7 +101,8 @@ fn restricted_import_test_failed() {
 fn restricted_import_alias_test() {
   assert_eq!(load_and_output_simple_file(r#"
     (use "res://example.lisp" ((one as my-one)))
-    (my-one)
+    (defn run ()
+      (my-one))
   "#), r#"extends Node
 
 
@@ -114,9 +119,10 @@ fn restricted_import_alias_test_failed() {
   assert_eq!(
     load_and_output_simple_file_err(r#"
       (use "res://example.lisp" ((one as my-one)))
-      (one)
+      (defn run ()
+        (one))
     "#),
-    Err(PError::from(GDError::new(GDErrorF::NoSuchFn(String::from("one")), SourceOffset(58)))),
+    Err(PError::from(GDError::new(GDErrorF::NoSuchFn(String::from("one")), SourceOffset(79)))),
   );
 }
 
@@ -124,8 +130,9 @@ fn restricted_import_alias_test_failed() {
 fn open_import_test() {
   assert_eq!(load_and_output_simple_file(r#"
     (use "res://example.lisp" open)
-    (one)
-    (two)
+    (defn run ()
+      (one)
+      (two))
   "#), r#"extends Node
 
 
@@ -157,7 +164,8 @@ fn macro_uses_other_import_test() {
   loader.add_file("main.lisp", r#"
     (use "res://example.lisp" open)
     (defmacro f (x) (add-one x))
-    (f 43)
+    (defn run ()
+      (f 43))
   "#);
   let mut pipeline = Pipeline::with_resolver(dummy_config(), Box::new(loader));
   let result = pipeline.load_file("main.lisp").unwrap().gdscript.to_gd();
@@ -187,7 +195,8 @@ fn macro_uses_preload_test() {
   loader.add_file("main.lisp", r#"
     (use "res://example.lisp")
     (defmacro f (x) ((preload "res://example.lisp"):add-one x))
-    (f 43)
+    (defn run ()
+      (f 43))
   "#);
   let mut pipeline = Pipeline::with_resolver(dummy_config(), Box::new(loader));
   let result = pipeline.load_file("main.lisp").unwrap().gdscript.to_gd();
@@ -212,7 +221,8 @@ fn macro_uses_preload_without_import_test() {
   loader.add_file("example.lisp", "(defn add-one (x) (+ x 1))");
   loader.add_file("main.lisp", r#"
     (defmacro f (x) ((preload "res://example.lisp"):add-one x))
-    (f 43)
+    (defn run ()
+      (f 43))
   "#);
   let mut pipeline = Pipeline::with_resolver(dummy_config(), Box::new(loader));
   let result = pipeline.load_file("main.lisp");
@@ -230,7 +240,8 @@ fn symbol_macro_uses_other_import_test() {
   loader.add_file("main.lisp", r#"
     (use "res://example.lisp" open)
     (define-symbol-macro x (add-one 2))
-    x
+    (defn run ()
+      x)
   "#);
   let mut pipeline = Pipeline::with_resolver(dummy_config(), Box::new(loader));
   let result = pipeline.load_file("main.lisp").unwrap().gdscript.to_gd();
@@ -255,7 +266,8 @@ fn macro_from_other_file_import_test_1() {
   loader.add_file("example.lisp", "(defmacro add-one (x) (+ x 1))");
   loader.add_file("main.lisp", r#"
     (use "res://example.lisp" open)
-    (add-one 43)
+    (defn run ()
+      (add-one 43))
   "#);
   let mut pipeline = Pipeline::with_resolver(dummy_config(), Box::new(loader));
   let result = pipeline.load_file("main.lisp").unwrap().gdscript.to_gd();
@@ -276,7 +288,8 @@ fn macro_from_other_file_import_test_2() {
   loader.add_file("example.lisp", "(defn outer () 44) (defclass Foo (Reference) (defn go () (outer))) (defmacro go () ((Foo:new):go))");
   loader.add_file("main.lisp", r#"
     (use "res://example.lisp" open)
-    (go)
+    (defn run ()
+      (go))
   "#);
   let mut pipeline = Pipeline::with_resolver(dummy_config(), Box::new(loader));
   let result = pipeline.load_file("main.lisp").unwrap().gdscript.to_gd();
@@ -297,7 +310,8 @@ fn macro_from_other_file_import_test_3() {
   loader.add_file("example.lisp", "(defn outer () 44) (defclass Foo (Reference) (defn go () static (outer))) (defmacro go () (Foo:go))");
   loader.add_file("main.lisp", r#"
     (use "res://example.lisp" open)
-    (go)
+    (defn run ()
+      (go))
   "#);
   let mut pipeline = Pipeline::with_resolver(dummy_config(), Box::new(loader));
   let result = pipeline.load_file("main.lisp").unwrap().gdscript.to_gd();
@@ -318,7 +332,8 @@ fn symbol_macro_from_other_file_import_test_1() {
   loader.add_file("example.lisp", "(define-symbol-macro x 10)");
   loader.add_file("main.lisp", r#"
     (use "res://example.lisp" open)
-    x
+    (defn run ()
+      x)
   "#);
   let mut pipeline = Pipeline::with_resolver(dummy_config(), Box::new(loader));
   let result = pipeline.load_file("main.lisp").unwrap().gdscript.to_gd();
@@ -339,7 +354,8 @@ fn symbol_macro_from_other_file_import_test_2() {
   loader.add_file("example.lisp", "(defn outer () 44) (defclass Foo (Reference) (defn go () (outer))) (define-symbol-macro go ((Foo:new):go))");
   loader.add_file("main.lisp", r#"
     (use "res://example.lisp" open)
-    go
+    (defn run ()
+      go)
   "#);
   let mut pipeline = Pipeline::with_resolver(dummy_config(), Box::new(loader));
   let result = pipeline.load_file("main.lisp").unwrap().gdscript.to_gd();
@@ -360,7 +376,8 @@ fn symbol_macro_from_other_file_import_test_3() {
   loader.add_file("example.lisp", "(defn outer () 44) (defclass Foo (Reference) (defn go () static (outer))) (define-symbol-macro go (Foo:go))");
   loader.add_file("main.lisp", r#"
     (use "res://example.lisp" open)
-    go
+    (defn run ()
+      go)
   "#);
   let mut pipeline = Pipeline::with_resolver(dummy_config(), Box::new(loader));
   let result = pipeline.load_file("main.lisp").unwrap().gdscript.to_gd();
@@ -383,7 +400,8 @@ fn macro_several_files_import_test() {
   loader.add_file("c.lisp", r#"(use "res://b.lisp" open) (defmacro g (x) (+ x (f 87)))"#);
   loader.add_file("main.lisp", r#"
     (use "res://c.lisp")
-    (c/g 3)
+    (defn run ()
+      (c/g 3))
   "#);
   let mut pipeline = Pipeline::with_resolver(dummy_config(), Box::new(loader));
   let result = pipeline.load_file("main.lisp").unwrap().gdscript.to_gd();
@@ -406,7 +424,8 @@ fn symbol_macro_several_files_import_test() {
   loader.add_file("c.lisp", r#"(use "res://b.lisp" open) (define-symbol-macro g f)"#);
   loader.add_file("main.lisp", r#"
     (use "res://c.lisp")
-    c/g
+    (defn run ()
+      c/g)
   "#);
   let mut pipeline = Pipeline::with_resolver(dummy_config(), Box::new(loader));
   let result = pipeline.load_file("main.lisp").unwrap().gdscript.to_gd();
@@ -425,7 +444,7 @@ static func run():
 fn main_class_import_test_1() {
   let mut loader = MockFileLoader::new();
   loader.add_file("a.lisp", "(defclass Foo (Reference) main)");
-  loader.add_file("main.lisp", r#"(use "res://a.lisp" open) Foo"#);
+  loader.add_file("main.lisp", r#"(use "res://a.lisp" open) (defn run () Foo)"#);
   let mut pipeline = Pipeline::with_resolver(dummy_config(), Box::new(loader));
   let result = pipeline.load_file("main.lisp").unwrap().gdscript.to_gd();
   assert_eq!(result, r#"extends Node
@@ -443,7 +462,7 @@ static func run():
 fn main_class_import_test_2() {
   let mut loader = MockFileLoader::new();
   loader.add_file("a.lisp", "(defclass Foo (Reference) main) (defconst VALUE 1)");
-  loader.add_file("main.lisp", r#"(use "res://a.lisp" open) [Foo VALUE]"#);
+  loader.add_file("main.lisp", r#"(use "res://a.lisp" open) (defn run () [Foo VALUE])"#);
   let mut pipeline = Pipeline::with_resolver(dummy_config(), Box::new(loader));
   let result = pipeline.load_file("main.lisp").unwrap().gdscript.to_gd();
   assert_eq!(result, r#"extends Node
@@ -461,11 +480,11 @@ static func run():
 fn import_declare_test_failed_1() {
   let mut loader = MockFileLoader::new();
   loader.add_file("a.lisp", "(sys/declare value a)");
-  loader.add_file("main.lisp", r#"(use "res://a.lisp" open) a"#);
+  loader.add_file("main.lisp", r#"(use "res://a.lisp" open) (defn run () a)"#);
   let mut pipeline = Pipeline::with_resolver(dummy_config(), Box::new(loader));
   assert_eq!(
     pipeline.load_file("main.lisp").map(|_| ()),
-    Err(PError::from(GDError::new(GDErrorF::NoSuchVar(String::from("a")), SourceOffset(26)))),
+    Err(PError::from(GDError::new(GDErrorF::NoSuchVar(String::from("a")), SourceOffset(39)))),
   );
 }
 
@@ -485,7 +504,7 @@ fn import_declare_test_failed_2() {
 fn public_fn_import_test() {
   let mut loader = MockFileLoader::new();
   loader.add_file("a.lisp", "(defn foo () public 1)");
-  loader.add_file("main.lisp", r#"(use "res://a.lisp") (a/foo)"#);
+  loader.add_file("main.lisp", r#"(use "res://a.lisp") (defn run () (a/foo))"#);
   let mut pipeline = Pipeline::with_resolver(dummy_config(), Box::new(loader));
   let result = pipeline.load_file("main.lisp").unwrap().gdscript.to_gd();
   assert_eq!(result, r#"extends Node
@@ -510,10 +529,6 @@ fn private_fn_import_test_1() {
 
 
 const a_0 = preload("res://a.gd")
-
-
-static func run():
-    return null
 "#);
 }
 
@@ -528,10 +543,6 @@ fn private_fn_import_test_2() {
 
 
 const _Import_0 = preload("res://a.gd")
-
-
-static func run():
-    return null
 "#);
 }
 
@@ -539,11 +550,11 @@ static func run():
 fn private_fn_import_test_3() {
   let mut loader = MockFileLoader::new();
   loader.add_file("a.lisp", "(defn foo () private 1)");
-  loader.add_file("main.lisp", r#"(use "res://a.lisp" open) (foo)"#);
+  loader.add_file("main.lisp", r#"(use "res://a.lisp" open) (defn run () (foo))"#);
   let mut pipeline = Pipeline::with_resolver(dummy_config(), Box::new(loader));
   assert_eq!(
     pipeline.load_file("main.lisp").map(|_| ()),
-    Err(PError::from(GDError::new(GDErrorF::NoSuchFn(String::from("foo")), SourceOffset(26)))),
+    Err(PError::from(GDError::new(GDErrorF::NoSuchFn(String::from("foo")), SourceOffset(39)))),
   );
 }
 
@@ -570,10 +581,6 @@ fn public_macro_import_test() {
 
 
 const _Import_0 = preload("res://a.gd")
-
-
-static func run():
-    return null
 "#);
 }
 
@@ -600,10 +607,6 @@ fn public_const_import_test() {
 
 
 const _Import_0 = preload("res://a.gd")
-
-
-static func run():
-    return null
 "#);
 }
 
@@ -630,10 +633,6 @@ fn public_enum_import_test() {
 
 
 const _Import_0 = preload("res://a.gd")
-
-
-static func run():
-    return null
 "#);
 }
 
@@ -660,10 +659,6 @@ fn public_class_import_test_1() {
 
 
 const _Import_0 = preload("res://a.gd")
-
-
-static func run():
-    return null
 "#);
 }
 
@@ -678,10 +673,6 @@ fn public_class_import_test_2() {
 
 
 const _Import_0 = preload("res://a.gd")
-
-
-static func run():
-    return null
 "#);
 }
 
@@ -737,7 +728,7 @@ fn private_symbol_macro_import_test() {
 fn lazy_val_import_test() {
   let mut loader = MockFileLoader::new();
   loader.add_file("a.lisp", "(deflazy foo 10)");
-  loader.add_file("main.lisp", r#"(use "res://a.lisp" (foo)) foo"#);
+  loader.add_file("main.lisp", r#"(use "res://a.lisp" (foo)) (defn run () foo)"#);
   let mut pipeline = Pipeline::with_resolver(dummy_config(), Box::new(loader));
   let result = pipeline.load_file("main.lisp").unwrap().gdscript.to_gd();
   assert_eq!(result, r#"extends Node
@@ -755,7 +746,7 @@ static func run():
 fn lazy_val_import_run_test() {
   let mut loader = MockFileLoader::new();
   loader.add_file("a.lisp", "(deflazy foo 10)");
-  loader.add_file("main.lisp", r#"(use "res://a.lisp" (foo)) (defmacro bar () foo) (bar)"#);
+  loader.add_file("main.lisp", r#"(use "res://a.lisp" (foo)) (defmacro bar () foo) (defn run () (bar))"#);
   let mut pipeline = Pipeline::with_resolver(dummy_config(), Box::new(loader));
   let result = pipeline.load_file("main.lisp").unwrap().gdscript.to_gd();
   assert_eq!(result, r#"extends Node
@@ -800,10 +791,6 @@ const _Import_0 = preload("res://a.gd")
 
 static func bar():
     return _Import_0.foo
-
-
-static func run():
-    return null
 "#);
 }
 
@@ -822,9 +809,5 @@ const _Import_0 = preload("res://a.gd")
 
 static func bar():
     return _Import_0.foo()
-
-
-static func run():
-    return null
 "#);
 }

@@ -21,10 +21,6 @@ func _init():
 
 func foo():
     return $a
-
-
-static func run():
-    return null
 "#);
 }
 
@@ -40,10 +36,6 @@ func _init():
 
 func foo():
     return $a
-
-
-static func run():
-    return null
 "#);
 }
 
@@ -59,10 +51,6 @@ func _init():
 
 func foo():
     return $"b-c"
-
-
-static func run():
-    return null
 "#);
 }
 
@@ -78,10 +66,6 @@ func _init():
 
 func foo():
     return $"b c"
-
-
-static func run():
-    return null
 "#);
 }
 
@@ -97,10 +81,6 @@ func _init():
 
 func foo():
     return $"5\nc"
-
-
-static func run():
-    return null
 "#);
 }
 
@@ -118,9 +98,5 @@ func _init():
 
 func foo():
     return $"5\nc"
-
-
-static func run():
-    return null
 "#);
 }

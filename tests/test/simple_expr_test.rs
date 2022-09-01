@@ -59,7 +59,7 @@ pub fn assignment_test() {
 
 #[test]
 pub fn custom_assign_test() {
-  let result = parse_compile_decl("((defn set-foo (c a b)) (set (foo 1 2) 3))");
+  let result = parse_compile_decl("((defn set-foo (c a b)) (defn example () (set (foo 1 2) 3)))");
   assert_eq!(result, r#"extends Reference
 
 
@@ -67,7 +67,7 @@ static func set_foo(c, a, b):
     return null
 
 
-static func run():
+static func example():
     return set_foo(3, 1, 2)
 "#);
 }
@@ -113,8 +113,8 @@ pub fn assign_to_self_test() {
 #[test]
 pub fn assign_to_const_test() {
   assert_eq!(
-    parse_compile_decl_err("((defconst CONSTANT 1) (set CONSTANT 2))"),
-    Err(PError::from(GDError::new(GDErrorF::CannotAssignTo(String::from("CONSTANT")), SourceOffset(37)))),
+    parse_compile_decl_err("((defconst CONSTANT 1) (defn foo () (set CONSTANT 2)))"),
+    Err(PError::from(GDError::new(GDErrorF::CannotAssignTo(String::from("CONSTANT")), SourceOffset(50)))),
   );
 }
 

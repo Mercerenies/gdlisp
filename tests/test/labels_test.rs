@@ -102,7 +102,7 @@ pub fn recursive_single_labels_test() {
 
 #[test]
 pub fn recursive_single_labels_with_contrived_local_name_test() {
-  let result = parse_compile_decl("((defconst x 0) (let ((x 1)) (labels ((f (x_0) (f x_0) (f x))) (f 1))))");
+  let result = parse_compile_decl("((defconst x 0) (defn test () (let ((x 1)) (labels ((f (x_0) (f x_0) (f x))) (f 1)))))");
   assert_eq!(result, r#"extends Reference
 
 
@@ -121,7 +121,7 @@ class _Labels extends Reference:
         return _fn_f_0(x_0)
 
 
-static func run():
+static func test():
     var x_0 = 1
     var _locals = _Labels.new(x_0)
     return _locals._fn_f_0(1)
@@ -247,7 +247,7 @@ class _FunctionRefBlock extends GDLisp.Function:
 
 #[test]
 pub fn recursive_single_labels_decl_test_1() {
-  let result = parse_compile_decl("((labels ((f (x) (f x))) (f 1)))");
+  let result = parse_compile_decl("((defn test () (labels ((f (x) (f x))) (f 1))))");
   assert_eq!(result, r#"extends Reference
 
 
@@ -260,7 +260,7 @@ class _Labels extends Reference:
         return _fn_f_0(x)
 
 
-static func run():
+static func test():
     var _locals = _Labels.new()
     return _locals._fn_f_0(1)
 "#);
@@ -270,7 +270,7 @@ static func run():
 pub fn recursive_single_labels_decl_test_2() {
   // Contrived introduction of a constant named _locals. The
   // contextual name generator should detect this and work around it.
-  let result = parse_compile_decl("((defconst _locals 0) (labels ((f (x) (f x))) (f 1)))");
+  let result = parse_compile_decl("((defconst _locals 0) (defn test () (labels ((f (x) (f x))) (f 1))))");
   assert_eq!(result, r#"extends Reference
 
 
@@ -286,7 +286,7 @@ class _Labels extends Reference:
         return _fn_f_0(x)
 
 
-static func run():
+static func test():
     var _locals_0 = _Labels.new()
     return _locals_0._fn_f_0(1)
 "#);
@@ -296,14 +296,15 @@ static func run():
 pub fn contrived_nested_labels_test() {
   // Contrived introduction of a constant named _locals. The
   // contextual name generator should detect this and work around it.
-  let result = parse_compile_decl(r#"((labels ((f (x) (f x)))
-                                        (labels ((g (x) (f x) (g x)))
-                                          (f 1)
-                                          (g 2)))
-                                      (labels ((f (x) (f x)))
-                                        (labels ((g (x) (f x) (g x)))
-                                          (f 1)
-                                          (g 2))))"#);
+  let result = parse_compile_decl(r#"((defn test ()
+                                        (labels ((f (x) (f x)))
+                                          (labels ((g (x) (f x) (g x)))
+                                            (f 1)
+                                            (g 2)))
+                                        (labels ((f (x) (f x)))
+                                          (labels ((g (x) (f x) (g x)))
+                                            (f 1)
+                                            (g 2)))))"#);
   assert_eq!(result, r#"extends Reference
 
 
@@ -349,7 +350,7 @@ class _Labels_2 extends Reference:
         return _fn_g_3(x)
 
 
-static func run():
+static func test():
     var _locals = _Labels.new()
     var _locals_0 = _Labels_0.new(_locals)
     _locals._fn_f_0(1)

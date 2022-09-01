@@ -4,6 +4,7 @@
 use super::args::{Expecting, ExpectedShape};
 use crate::sxp;
 use crate::sxp::ast::AST;
+use crate::ir::expr::{Expr as IRExpr};
 use crate::ir::arglist::error::{ArgListParseError, ArgListParseErrorF};
 use crate::ir::identifier::{Id, Namespace, ClassNamespace};
 use crate::ir::decl::DuplicateMainClassError;
@@ -240,6 +241,16 @@ pub enum GDErrorF {
   /// An error in the placement of a loop primitive, i.e. `break` or
   /// `continue`.
   LoopPrimitiveError(LoopPrimitiveError),
+  /// An expression was found at the top-level of a file.
+  ///
+  /// In principle, we would like to support expressions at the
+  /// top-level, but as of right now there does not seem to be a way
+  /// to run code when a file in loaded in Godot. So we forbid the
+  /// feature with a specific error message right now but leave all of
+  /// the infrastructure in place so that if such a mechanism is
+  /// found, or is added to Godot in a future version, we can allow it
+  /// easily.
+  ExprAtTopLevel(IRExpr),
 }
 
 /// Variant of [`GDErrorF`] with source offset information. See
@@ -365,6 +376,7 @@ impl GDErrorF {
       // NOTE: 55 is ArgListParseErrorF::ConstructorArgListExpected above.
       GDErrorF::BadBootstrappingDirective(_) => 56,
       GDErrorF::LoopPrimitiveError(_) => 57,
+      GDErrorF::ExprAtTopLevel(_) => 58,
     }
   }
 
@@ -518,6 +530,9 @@ impl fmt::Display for GDErrorF {
       }
       GDErrorF::LoopPrimitiveError(err) => {
         write!(f, "{}", err)?;
+      }
+      GDErrorF::ExprAtTopLevel(_) => {
+        write!(f, "Expressions at the top-level of a file are not allowed")?;
       }
     }
     if self.is_internal() {

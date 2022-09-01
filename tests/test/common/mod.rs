@@ -22,6 +22,7 @@ use gdlisp::runner::version::VersionInfo;
 use gdlisp::AST_PARSER;
 use gdlisp::ir;
 use gdlisp::ir::incremental::IncCompiler;
+use gdlisp::ir::main_function::{StaticMainFunctionHandler, DisallowMainFunctionHandler};
 use gdlisp::gdscript::library;
 use gdlisp::gdscript::decl;
 use gdlisp::gdscript::spacing::SpacedDeclPrinter;
@@ -36,6 +37,8 @@ use std::path::PathBuf;
 use std::fs::{File, copy};
 use std::io::{self, Write};
 use std::str::FromStr;
+
+pub const TEST_FUNCTION_NAME: &'static str = "run_test";
 
 pub const BEGIN_GDLISP_TESTS: &'static str = "__BEGIN_GDLISP_TESTS__";
 
@@ -70,6 +73,10 @@ where T : IntoGDFile + ?Sized {
   runner::run_with_temporary(&runner_text)
 }
 */
+
+fn main_function_handler() -> StaticMainFunctionHandler {
+  StaticMainFunctionHandler::with_name(TEST_FUNCTION_NAME.to_owned())
+}
 
 pub fn dummy_config() -> ProjectConfig {
   ProjectConfig {
@@ -114,7 +121,7 @@ extends Node
 func _ready():
     var file = load("res://TEST.gd")
     print("{}")
-    file.run()
+    file.run_test()
     get_tree().quit()
 
 "#, BEGIN_GDLISP_TESTS)?;
@@ -151,7 +158,7 @@ fn parse_and_run_err_impl<T>(input: &str, runner_fn: fn(TempDir) -> io::Result<T
 
   let mut pipeline = dummy_pipeline();
 
-  let (decls, _macros) = ir::compile_and_check(&mut pipeline, &value)?;
+  let (decls, _macros) = ir::compile_and_check(&mut pipeline, &value, &main_function_handler())?;
   let mut builder = CodeBuilder::new(decl::ClassExtends::named(String::from("Reference")));
   compiler.frame(&mut pipeline, &mut builder, &mut table, &mut OutsideOfClass).compile_toplevel(&decls)?;
 
@@ -258,7 +265,7 @@ pub fn parse_compile_decl_err(input: &str) -> Result<String, PError> {
   let mut pipeline = dummy_pipeline();
 
   let mut builder = CodeBuilder::new(decl::ClassExtends::named("Reference".to_owned()));
-  let (decls, _macros) = ir::compile_and_check(&mut pipeline, &value)?;
+  let (decls, _macros) = ir::compile_and_check(&mut pipeline, &value, &DisallowMainFunctionHandler)?;
   compiler.frame(&mut pipeline, &mut builder, &mut table, &mut OutsideOfClass).compile_toplevel(&decls)?;
   let class = builder.build();
 

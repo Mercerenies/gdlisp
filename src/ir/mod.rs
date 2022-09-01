@@ -28,10 +28,12 @@ pub mod special_ref;
 pub mod scope;
 pub mod bootstrapping;
 pub mod loops;
+pub mod main_function;
 
 use decl::Decl;
 use macros::MacroData;
 use identifier::Id;
+use main_function::MainFunctionHandler;
 use crate::sxp::ast::AST;
 use crate::pipeline::error::PError;
 use crate::pipeline::Pipeline;
@@ -42,15 +44,15 @@ use std::collections::HashMap;
 /// with this name should appear in every GDLisp module.
 pub const MAIN_BODY_NAME: &str = "run";
 
-pub fn compile_toplevel(pipeline: &mut Pipeline, body: &AST)
+pub fn compile_toplevel(pipeline: &mut Pipeline, body: &AST, main_function_handler: &impl MainFunctionHandler)
                         -> Result<(decl::TopLevel, HashMap<Id, MacroData>), PError> {
   let compiler = incremental::IncCompiler::new(body.all_symbols());
-  compiler.compile_toplevel(pipeline, body)
+  compiler.compile_toplevel(pipeline, body, main_function_handler)
 }
 
-pub fn compile_and_check(pipeline: &mut Pipeline, body: &AST)
+pub fn compile_and_check(pipeline: &mut Pipeline, body: &AST, main_function_handler: &impl MainFunctionHandler)
                         -> Result<(decl::TopLevel, HashMap<Id, MacroData>), PError> {
-  let (ir, macros) = compile_toplevel(pipeline, body)?;
+  let (ir, macros) = compile_toplevel(pipeline, body, main_function_handler)?;
   scope::check_scopes(&ir)?;
   loops::check_all_exprs(&ir)?;
   Ok((ir, macros))

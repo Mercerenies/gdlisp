@@ -14,10 +14,6 @@ pub fn empty_enum_test() {
 
 enum MyEnum {
 }
-
-
-static func run():
-    return null
 "#);
 }
 
@@ -31,10 +27,6 @@ enum MyEnum {
     B,
     C,
 }
-
-
-static func run():
-    return null
 "#);
 }
 
@@ -48,10 +40,6 @@ enum MyEnum {
     B = 2,
     C = 3,
 }
-
-
-static func run():
-    return null
 "#);
 }
 
@@ -65,10 +53,6 @@ enum MyEnum {
     B = 2,
     C = 3,
 }
-
-
-static func run():
-    return null
 "#);
 }
 
@@ -81,17 +65,17 @@ pub fn enum_runner_test() {
 #[test]
 pub fn invalid_enum_test() {
   assert_eq!(
-    parse_compile_decl_err("((defenum MyEnum (A 1) (B 2) (C 3)) MyEnum:D)"),
-    Err(PError::from(GDError::new(GDErrorF::NoSuchEnumValue(String::from("MyEnum"), String::from("D")), SourceOffset(36)))),
+    parse_compile_decl_err("((defenum MyEnum (A 1) (B 2) (C 3)) (defn foo () MyEnum:D))"),
+    Err(PError::from(GDError::new(GDErrorF::NoSuchEnumValue(String::from("MyEnum"), String::from("D")), SourceOffset(49)))),
   );
 }
 
 #[test]
 pub fn builtin_enum_test() {
-  assert_eq!(parse_compile_decl("(Mouse:LEFT)"), r#"extends Reference
+  assert_eq!(parse_compile_decl("((defn foo () Mouse:LEFT))"), r#"extends Reference
 
 
-static func run():
+static func foo():
     return GDLisp.Mouse.LEFT
 "#);
 }

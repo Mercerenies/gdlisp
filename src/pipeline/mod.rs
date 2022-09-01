@@ -15,6 +15,7 @@ use source::SourceOffset;
 use resolver::{NameResolver, DefaultNameResolver};
 use crate::SOME_AST_PARSER;
 use crate::ir;
+use crate::ir::main_function::DisallowMainFunctionHandler;
 use crate::compile::Compiler;
 use crate::compile::names::fresh::FreshNameGenerator;
 use crate::compile::body::builder::CodeBuilder;
@@ -81,7 +82,7 @@ impl Pipeline {
 
     let mut compiler = Compiler::new(FreshNameGenerator::new(ast.all_symbols()), Box::new(DefaultPreloadResolver));
 
-    let (ir, macros) = ir::compile_and_check(self, &ast)?;
+    let (ir, macros) = ir::compile_and_check(self, &ast, &DisallowMainFunctionHandler)?;
 
     let mut table = SymbolTable::new();
     library::bind_builtins(&mut table, ir.minimalist_flag);
