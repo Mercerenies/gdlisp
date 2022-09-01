@@ -4,8 +4,8 @@ use crate::compile::names::fresh::FreshNameGenerator;
 use crate::compile::body::builder::CodeBuilder;
 use crate::compile::body::class_scope::OutsideOfClass;
 use crate::compile::symbol_table::SymbolTable;
-use crate::gdscript::decl;
 use crate::gdscript::library;
+use crate::gdscript::class_extends::ClassExtends;
 use crate::runner::into_gd_file::IntoGDFile;
 use crate::runner::macro_server::named_file_server::MacroID;
 use crate::pipeline::error::{PError, IOError};
@@ -71,7 +71,7 @@ pub fn create_macro_file(pipeline: &mut Pipeline, imports: Vec<ImportDecl>, src_
     toplevel
   };
 
-  let mut builder = CodeBuilder::new(decl::ClassExtends::named("Node".to_owned()));
+  let mut builder = CodeBuilder::new(ClassExtends::named("Node".to_owned()));
   compiler.frame(pipeline, &mut builder, &mut table, &mut OutsideOfClass).compile_toplevel(&toplevel)?;
   let result = builder.build();
 

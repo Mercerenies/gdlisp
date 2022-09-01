@@ -33,6 +33,7 @@ impl FileOptimization for DeadDeclElimination {
 mod tests {
   use super::*;
   use crate::gdscript::decl::{self, Decl, DeclF};
+  use crate::gdscript::class_extends::ClassExtends;
   use crate::pipeline::source::SourceOffset;
 
   fn d(decl: DeclF) -> Decl {
@@ -49,12 +50,12 @@ mod tests {
     );
     let mut toplevel = decl::TopLevelClass {
       name: None,
-      extends: decl::ClassExtends::Qualified(vec!(String::from("Reference"))),
+      extends: ClassExtends::Qualified(vec!(String::from("Reference"))),
       body: decls,
     };
     DeadDeclElimination.run_on_file(&mut toplevel).unwrap();
     assert_eq!(toplevel.name, None);
-    assert_eq!(toplevel.extends, decl::ClassExtends::Qualified(vec!(String::from("Reference"))));
+    assert_eq!(toplevel.extends, ClassExtends::Qualified(vec!(String::from("Reference"))));
     assert_eq!(toplevel.body, vec!());
   }
 

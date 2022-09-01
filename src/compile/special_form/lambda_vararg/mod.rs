@@ -8,6 +8,7 @@ use crate::gdscript::decl::{self, Decl, DeclF, VarDecl};
 use crate::gdscript::expr::Expr;
 use crate::gdscript::stmt::Stmt;
 use crate::gdscript::library;
+use crate::gdscript::class_extends::ClassExtends;
 use crate::gdscript::arglist::ArgList;
 use crate::pipeline::source::SourceOffset;
 
@@ -107,7 +108,7 @@ pub fn generate_lambda_class(class_name: String,
   ));
   decl::ClassDecl {
     name: class_name,
-    extends: decl::ClassExtends::Qualified(vec!(String::from("GDLisp"), String::from("Function"))),
+    extends: ClassExtends::Qualified(vec!(String::from("GDLisp"), String::from("Function"))),
     body: class_body,
   }
 }

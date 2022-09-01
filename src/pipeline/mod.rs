@@ -24,7 +24,7 @@ use crate::compile::symbol_table::SymbolTable;
 use crate::compile::preload_resolver::{DefaultPreloadResolver, LookupPreloadResolver};
 use crate::gdscript::library;
 use crate::gdscript::library::gdnative::NativeClasses;
-use crate::gdscript::decl;
+use crate::gdscript::class_extends::ClassExtends;
 use crate::util;
 use crate::util::lazy::Lazy;
 use crate::runner::macro_server::named_file_server::NamedFileServer;
@@ -87,7 +87,7 @@ impl Pipeline {
     let mut table = SymbolTable::new();
     library::bind_builtins(&mut table, ir.minimalist_flag);
 
-    let mut builder = CodeBuilder::new(decl::ClassExtends::named("Node".to_owned()));
+    let mut builder = CodeBuilder::new(ClassExtends::named("Node".to_owned()));
     compiler.frame(self, &mut builder, &mut table, &mut OutsideOfClass).compile_toplevel(&ir)?;
     let mut result = builder.build();
     if self.config.optimizations {
@@ -135,7 +135,7 @@ impl Pipeline {
 
     library::bind_builtins(&mut table, unit.ir.minimalist_flag);
 
-    let mut builder = CodeBuilder::new(decl::ClassExtends::named("Node".to_owned()));
+    let mut builder = CodeBuilder::new(ClassExtends::named("Node".to_owned()));
     compiler.frame(self, &mut builder, &mut table, &mut OutsideOfClass).compile_toplevel(&unit.ir)?;
     let mut tmpresult = builder.build();
     if self.config.optimizations {

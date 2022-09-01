@@ -4,9 +4,9 @@
 
 use crate::ir::access_type::AccessType;
 use crate::gdscript::expr::{Expr, ExprF};
-use crate::gdscript::decl;
 use crate::gdscript::literal::Literal;
 use crate::gdscript::library::cell::CELL_CONTENTS;
+use crate::gdscript::class_extends::ClassExtends;
 use crate::pipeline::source::SourceOffset;
 use crate::compile::names;
 
@@ -71,7 +71,7 @@ pub enum VarName {
 
 /// [`VarName`] can always be converted (without loss of information)
 /// into an [`Expr`]. It can also sometimes be converted (via
-/// [`TryFrom`]) into a [`ClassExtends`](decl::ClassExtends). This is
+/// [`TryFrom`]) into a [`ClassExtends`](ClassExtends). This is
 /// the error type that can result when the latter conversion fails.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum VarNameIntoExtendsError {
@@ -410,9 +410,9 @@ impl VarName {
 }
 
 /// Classes extend from variables which have `VarName`. We can
-/// (attempt to) convert from `VarName` to [`decl::ClassExtends`]. We
+/// (attempt to) convert from `VarName` to [`ClassExtends`]. We
 /// cannot, however, extend from local variables using this technique.
-impl TryFrom<VarName> for decl::ClassExtends {
+impl TryFrom<VarName> for ClassExtends {
   type Error = VarNameIntoExtendsError;
 
   // Note: This will only succeed into ClassExtends::Qualified. It
@@ -420,24 +420,24 @@ impl TryFrom<VarName> for decl::ClassExtends {
   // This behavior may change in the future, at which point we'll need
   // to change VarName::ImportedConstant to transitively handle that
   // (or at least err in a better way than panicking).
-  fn try_from(var_name: VarName) -> Result<decl::ClassExtends, VarNameIntoExtendsError> {
+  fn try_from(var_name: VarName) -> Result<ClassExtends, VarNameIntoExtendsError> {
     match var_name {
       VarName::Local(s) => {
         Err(VarNameIntoExtendsError::CannotExtendLocal(s))
       }
       VarName::FileConstant(s) => {
-        Ok(decl::ClassExtends::Qualified(vec!(s)))
+        Ok(ClassExtends::Qualified(vec!(s)))
       }
       VarName::Superglobal(s) => {
-        Ok(decl::ClassExtends::Qualified(vec!(s)))
+        Ok(ClassExtends::Qualified(vec!(s)))
       }
       VarName::ImportedConstant(lhs, s) => {
-        match decl::ClassExtends::try_from(*lhs)? {
-          decl::ClassExtends::Qualified(mut vec) => {
+        match ClassExtends::try_from(*lhs)? {
+          ClassExtends::Qualified(mut vec) => {
             vec.push(s);
-            Ok(decl::ClassExtends::Qualified(vec))
+            Ok(ClassExtends::Qualified(vec))
           }
-          decl::ClassExtends::StringLit(_) => {
+          ClassExtends::StringLit(_) => {
             // This case should never occur under the current
             // implementation. If we change it so that it can, then we
             // need to convert this to an error, not a panic.
@@ -495,7 +495,6 @@ impl Error for VarNameIntoExtendsError {}
 #[cfg(test)]
 mod tests {
   use super::*;
-  use crate::gdscript::decl::ClassExtends;
 
   // TODO More
 

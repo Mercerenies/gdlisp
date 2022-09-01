@@ -3,6 +3,7 @@
 
 use crate::gdscript::decl::{self, Decl};
 use crate::gdscript::stmt::Stmt;
+use crate::gdscript::class_extends::ClassExtends;
 
 /// A builder for an entire GDScript source file.
 #[derive(Clone)]
@@ -51,7 +52,7 @@ impl CodeBuilder {
   ///
   /// The builder begins representing a class with no declarations and
   /// no name.
-  pub fn new(extends: decl::ClassExtends) -> CodeBuilder {
+  pub fn new(extends: ClassExtends) -> CodeBuilder {
     CodeBuilder {
       toplevel: decl::TopLevelClass {
         name: None,
@@ -70,7 +71,7 @@ impl CodeBuilder {
   }
 
   /// Change what the class extends.
-  pub fn extends(&mut self, extends: decl::ClassExtends) {
+  pub fn extends(&mut self, extends: ClassExtends) {
     self.toplevel.extends = extends;
   }
 

@@ -3,6 +3,7 @@
 //! code.
 
 pub mod arglist;
+pub mod class_extends;
 pub mod decl;
 pub mod expr;
 pub mod expr_wrapper;

@@ -20,6 +20,7 @@ use crate::compile::names::generator::NameGenerator;
 use crate::gdscript::stmt::{Stmt, StmtF};
 use crate::gdscript::expr::{Expr, ExprF};
 use crate::gdscript::decl::{self, Decl, DeclF, VarDecl};
+use crate::gdscript::class_extends::ClassExtends;
 use crate::gdscript::arglist::ArgList;
 use crate::gdscript::library;
 use crate::gdscript::inner_class::{self, NeedsOuterClassRef};
@@ -134,7 +135,7 @@ pub fn compile_labels_scc(frame: &mut CompilerFrame<StmtBuilder>,
   }
   let mut class = decl::ClassDecl {
     name: class_name.clone(),
-    extends: decl::ClassExtends::named(String::from("Reference")),
+    extends: ClassExtends::named(String::from("Reference")),
     body: class_body,
   };
 

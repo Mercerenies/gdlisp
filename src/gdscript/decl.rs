@@ -6,7 +6,6 @@
 //! [`Decl::write_gd`] for writing declarations as GDScript syntax to
 //! a [`fmt::Write`] instance.
 
-use crate::gdscript::literal::Literal;
 use crate::gdscript::expr::Expr;
 use crate::gdscript::stmt::Stmt;
 use crate::gdscript::indent;
@@ -14,6 +13,7 @@ use crate::gdscript::library;
 use crate::gdscript::arglist::ArgList;
 use crate::pipeline::source::{SourceOffset, Sourced};
 use super::spacing::SpacedDeclPrinter;
+use super::class_extends::ClassExtends;
 
 use std::fmt::{self, Write};
 
@@ -54,15 +54,6 @@ pub struct TopLevelClass {
   pub name: Option<String>, // The top-level class is not required to have a name.
   pub extends: ClassExtends,
   pub body: Vec<Decl>,
-}
-
-/// A descriptor of what class is being extended.
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub enum ClassExtends {
-  /// A qualified name. `Qualified(vec!("foo", "bar", "baz"))`
-  /// represents the name `foo.bar.baz`.
-  Qualified(Vec<String>),
-  StringLit(String), // TODO Test this
 }
 
 /// A variable declaration in a GDScript class. This also includes
@@ -280,32 +271,6 @@ impl Sourced for Decl {
 
   fn get_value(&self) -> &DeclF {
     &self.value
-  }
-
-}
-
-impl ClassExtends {
-
-  /// A simple unqualified name.
-  ///
-  /// # Examples
-  ///
-  /// ```
-  /// # use gdlisp::gdscript::decl::ClassExtends;
-  /// let named = ClassExtends::named(String::from("Foobar"));
-  /// assert_eq!(named, ClassExtends::Qualified(vec!(String::from("Foobar"))));
-  /// ```
-  pub fn named(name: String) -> ClassExtends {
-    ClassExtends::Qualified(vec!(name))
-  }
-
-  /// Convert `self` to a string suitable as the tail end of a
-  /// `extends` clause in GDScript.
-  pub fn to_gd(&self) -> String {
-    match self {
-      ClassExtends::Qualified(names) => names.join("."),
-      ClassExtends::StringLit(string) => Literal::String(string.to_owned()).to_gd(),
-    }
   }
 
 }
