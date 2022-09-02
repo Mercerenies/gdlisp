@@ -811,3 +811,79 @@ static func bar():
     return _Import_0.foo()
 "#);
 }
+
+#[test]
+fn inner_class_extends_inner_class_test() {
+  let mut loader = MockFileLoader::new();
+  loader.add_file("a.lisp", "(defclass A (Reference))");
+  loader.add_file("main.lisp", r#"(use "res://a.lisp" (A)) (defclass B (A))"#);
+  let mut pipeline = Pipeline::with_resolver(dummy_config(), Box::new(loader));
+  let result = pipeline.load_file("main.lisp").unwrap().gdscript.to_gd();
+  assert_eq!(result, r#"extends Node
+
+
+const _Import_0 = preload("res://a.gd")
+
+
+class B extends _Import_0.A:
+
+    func _init():
+        pass
+"#);
+}
+
+#[test]
+fn inner_class_extends_main_class_test() {
+  let mut loader = MockFileLoader::new();
+  loader.add_file("a.lisp", "(defclass A (Reference) main)");
+  loader.add_file("main.lisp", r#"(use "res://a.lisp" (A)) (defclass B (A))"#);
+  let mut pipeline = Pipeline::with_resolver(dummy_config(), Box::new(loader));
+  let result = pipeline.load_file("main.lisp").unwrap().gdscript.to_gd();
+  assert_eq!(result, r#"extends Node
+
+
+const _Import_0 = preload("res://a.gd")
+
+
+class B extends _Import_0:
+
+    func _init():
+        pass
+"#);
+}
+
+#[test]
+fn main_class_extends_inner_class_test() {
+  let mut loader = MockFileLoader::new();
+  loader.add_file("a.lisp", "(defclass A (Reference))");
+  loader.add_file("main.lisp", r#"(use "res://a.lisp" (A)) (defclass B (A) main)"#);
+  let mut pipeline = Pipeline::with_resolver(dummy_config(), Box::new(loader));
+  let result = pipeline.load_file("main.lisp").unwrap().gdscript.to_gd();
+  assert_eq!(result, r#"extends "res://a.gd".A
+
+
+const _Import_0 = preload("res://a.gd")
+
+
+func _init():
+    pass
+"#);
+}
+
+#[test]
+fn main_class_extends_main_class_test() {
+  let mut loader = MockFileLoader::new();
+  loader.add_file("a.lisp", "(defclass A (Reference) main)");
+  loader.add_file("main.lisp", r#"(use "res://a.lisp" (A)) (defclass B (A) main)"#);
+  let mut pipeline = Pipeline::with_resolver(dummy_config(), Box::new(loader));
+  let result = pipeline.load_file("main.lisp").unwrap().gdscript.to_gd();
+  assert_eq!(result, r#"extends "res://a.gd"
+
+
+const _Import_0 = preload("res://a.gd")
+
+
+func _init():
+    pass
+"#);
+}
