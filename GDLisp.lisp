@@ -667,6 +667,26 @@
 (sys/declare superfunction (type-exists type-exists) (a) public)
 (sys/declare superfunction (smoothstep smoothstep) (a b c) public)
 
+;; Note that, in the spirit of internal consistency with the type
+;; names, we do name some of these functions differently. For
+;; instance, the GDScript function `bool` is mapped to the GDLisp
+;; function `Bool`, for consistency with the `Bool` type.
+
+(sys/declare superfunction (Bool bool) (a) public)
+(sys/declare superfunction (Int int) (a) public)
+(sys/declare superfunction (Float float) (a) public)
+(sys/declare superfunction (String String) (a) public)
+(sys/declare superfunction (AABB AABB) (a b) public)
+(sys/declare superfunction (RID RID) (a) public)
+(sys/declare superfunction (Dictionary Dictionary) (a) public)
+(sys/declare superfunction (Array Array) (a) public)
+(sys/declare superfunction (PoolColorArray PoolColorArray) (a) public)
+(sys/declare superfunction (PoolByteArray PoolByteArray) (a) public)
+(sys/declare superfunction (PoolIntArray PoolIntArray) (a) public)
+(sys/declare superfunction (PoolRealArray PoolRealArray) (a) public)
+(sys/declare superfunction (PoolVector2Array PoolVector2Array) (a) public)
+(sys/declare superfunction (PoolVector3Array PoolVector3Array) (a) public)
+
 (sys/min-godot-version 3050000
   (sys/declare superfunction (deep-equal deep-equal) (a b) public))
 
@@ -745,6 +765,12 @@
   (cond
     ((= b nil) (ColorN a))
     (#t (ColorN a b))))
+
+(defn Rect2 (a b &opt c d) ; TODO Not a perfect translation of the pair of overloads provided
+  (sys/call-magic VARARG-RECT2)
+  (cond
+    ((= c nil) (Rect2 a b))
+    (#t (Rect2 a b c d))))
 
 (defn bytes2var (a &opt b)
   (sys/call-magic VARARG-BYTES2VAR)

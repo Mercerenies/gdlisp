@@ -324,6 +324,26 @@ pub fn print_debug_test() {
 }
 
 #[test]
+pub fn builtin_type_constructor_test() {
+  assert_eq!(parse_compile_and_output("(Bool 0)"), "return bool(0)\n");
+  assert_eq!(parse_compile_and_output("(Int 99.1)"), "return int(9.91e1)\n");
+  assert_eq!(parse_compile_and_output("(Float \"0\")"), "return float(\"0\")\n");
+  assert_eq!(parse_compile_and_output("(String 10)"), "return String(10)\n");
+  assert_eq!(parse_compile_and_output("(Rect2 V{0 0} V{1 1})"), "return Rect2(Vector2(0, 0), Vector2(1, 1))\n");
+  assert_eq!(parse_compile_and_output("(Rect2 0 0 1 1)"), "return Rect2(0, 0, 1, 1)\n");
+  assert_eq!(parse_compile_and_output("(AABB V{0 0 0} V{1 1 1})"), "return AABB(Vector3(0, 0, 0), Vector3(1, 1, 1))\n");
+  assert_eq!(parse_compile_and_output("(RID (Reference:new))"), "return RID(Reference.new())\n");
+  assert_eq!(parse_compile_and_output("(Dictionary {})"), "return Dictionary({})\n");
+  assert_eq!(parse_compile_and_output("(Array [])"), "return Array([])\n");
+  assert_eq!(parse_compile_and_output("(PoolColorArray [])"), "return PoolColorArray([])\n");
+  assert_eq!(parse_compile_and_output("(PoolByteArray [])"), "return PoolByteArray([])\n");
+  assert_eq!(parse_compile_and_output("(PoolIntArray [])"), "return PoolIntArray([])\n");
+  assert_eq!(parse_compile_and_output("(PoolRealArray [])"), "return PoolRealArray([])\n");
+  assert_eq!(parse_compile_and_output("(PoolVector2Array [])"), "return PoolVector2Array([])\n");
+  assert_eq!(parse_compile_and_output("(PoolVector3Array [])"), "return PoolVector3Array([])\n");
+}
+
+#[test]
 pub fn nodepath_constructor_test() {
   assert_eq!(parse_compile_and_output(r#"(let ((x "A")) (NodePath x))"#), r#"var x = "A"
 return GDLisp._NodePath(x)

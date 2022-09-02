@@ -140,6 +140,9 @@ pub fn bind_magic(table: &mut MagicTable) {
   // var2bytes function
   table.set(String::from("VARARG-VAR2BYTES"), CallMagic::CompileToVarargCall(String::from("var2bytes")));
 
+  // Rect2 function
+  table.set(String::from("VARARG-RECT2"), CallMagic::CompileToVarargCall(String::from("Rect2")));
+
   // NodePath function
   table.set(String::from("NODEPATH-SYNTAX"),
             CallMagic::NodePathConstructor(Box::new(CallMagic::DefaultCall)));
