@@ -324,6 +324,15 @@ pub fn print_debug_test() {
 }
 
 #[test]
+pub fn nodepath_constructor_test() {
+  assert_eq!(parse_compile_and_output(r#"(let ((x "A")) (NodePath x))"#), r#"var x = "A"
+return GDLisp._NodePath(x)
+"#);
+  assert_eq!(parse_compile_and_output(r#"(NodePath 0)"#), "return GDLisp._NodePath(0)\n");
+  assert_eq!(parse_compile_and_output(r#"(NodePath "a")"#), "return @\"a\"\n");
+}
+
+#[test]
 pub fn str_running_test() {
   assert_eq!(parse_and_run("((print (str 1 2 #t)))"), "\n12True\n");
 }
@@ -413,6 +422,12 @@ pub fn cons_accessor_test_3() {
   assert_eq!(parse_and_run("((print (quote (((1 . 2) . (3 . 4)) . ((5 . 6) . (7 . 8)))):cdadr))"), "\n6\n");
   assert_eq!(parse_and_run("((print (quote (((1 . 2) . (3 . 4)) . ((5 . 6) . (7 . 8)))):cddar))"), "\n7\n");
   assert_eq!(parse_and_run("((print (quote (((1 . 2) . (3 . 4)) . ((5 . 6) . (7 . 8)))):cdddr))"), "\n8\n");
+}
+
+#[test]
+pub fn nodepath_running_test() {
+  assert_eq!(parse_and_run("((let ((x (NodePath (let ((y \"foo/bar\")) y)))) (print (x:get-name 0)) (print (x:get-name 1))))"), "\nfoo\nbar\n");
+  assert_eq!(parse_and_run("((let ((x (NodePath \"foo/bar\"))) (print (x:get-name 0)) (print (x:get-name 1))))"), "\nfoo\nbar\n");
 }
 
 // TODO Test gensym at runtime once we can pretty-print symbols
