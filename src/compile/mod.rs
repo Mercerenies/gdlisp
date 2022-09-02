@@ -12,6 +12,7 @@ pub mod constant;
 pub mod args;
 pub mod factory;
 pub mod frame;
+pub mod import;
 
 use frame::CompilerFrame;
 use body::builder::{CodeBuilder, StmtBuilder, HasDecls};
@@ -45,6 +46,7 @@ use crate::pipeline::can_load::CanLoad;
 use crate::pipeline::source::SourceOffset;
 use stateful::{StExpr, NeedsResult, SideEffects};
 use resource_type::ResourceType;
+use import::ImportTable;
 
 use std::ffi::OsStr;
 use std::convert::TryFrom;
@@ -60,6 +62,7 @@ pub struct Compiler {
   gen: FreshNameGenerator,
   resolver: Box<dyn PreloadResolver>,
   magic_table: MagicTable,
+  import_table: ImportTable,
 }
 
 impl Compiler {
@@ -68,7 +71,8 @@ impl Compiler {
   /// generator and preload resolver.
   pub fn new(gen: FreshNameGenerator, resolver: Box<dyn PreloadResolver>) -> Compiler {
     let magic_table = library::magic::standard_magic_table();
-    Compiler { gen, resolver, magic_table }
+    let import_table = ImportTable::default();
+    Compiler { gen, resolver, magic_table, import_table }
   }
 
   pub fn nil_expr(pos: SourceOffset) -> StExpr {
@@ -81,6 +85,10 @@ impl Compiler {
 
   pub fn preload_resolver(&self) -> &dyn PreloadResolver {
     &*self.resolver
+  }
+
+  pub fn import_path_table(&self) -> &ImportTable {
+    &self.import_table
   }
 
   pub fn frame<'a, 'b, 'c, 'd, 'e, B>(&'a mut self,
@@ -390,15 +398,20 @@ impl Compiler {
     ))
   }
 
-  /// Compile a `preload` call, using the current preload resolver on
-  /// `self` to resolve the path.
-  pub fn make_preload_expr(&self, path: &RPathBuf, pos: SourceOffset) -> Result<Expr, GDError> {
-    if self.resolver.include_resource(ResourceType::from(path.path())) {
+  fn get_preload_resolved_path(&self, path: &RPathBuf, pos: SourceOffset) -> Result<String, GDError> {
       let mut path = path.clone();
       if path.path().extension() == Some(OsStr::new("lisp")) {
         path.path_mut().set_extension("gd");
       }
-      let path = self.resolver.resolve_preload(&path).ok_or_else(|| GDError::new(GDErrorF::NoSuchFile(path.clone()), pos))?;
+      self.resolver.resolve_preload(&path)
+        .ok_or_else(|| GDError::new(GDErrorF::NoSuchFile(path.clone()), pos))
+  }
+
+  /// Compile a `preload` call, using the current preload resolver on
+  /// `self` to resolve the path.
+  pub fn make_preload_expr(&self, path: &RPathBuf, pos: SourceOffset) -> Result<Expr, GDError> {
+    if self.resolver.include_resource(ResourceType::from(path.path())) {
+      let path = self.get_preload_resolved_path(path, pos)?;
       Ok(Expr::simple_call("preload", vec!(Expr::from_value(path, pos)), pos))
     } else {
       // We null out any resources we don't understand. This means
@@ -436,6 +449,13 @@ impl Compiler {
     let preload_name = self.import_name(import);
     builder.add_decl(self.make_preload_line(preload_name.clone(), &import.filename, import.pos)?);
     let res_type = ResourceType::from(import);
+
+    // If the path should be included and isn't being `null`ed out
+    // right now, then we add it to the import table.
+    if self.resolver.include_resource(ResourceType::from(import.filename.path())) {
+      let target_path = self.get_preload_resolved_path(&import.filename, import.pos)?;
+      self.import_table.set(preload_name.clone(), target_path);
+    }
 
     ResourceType::check_import(pipeline, import)?;
 

@@ -2,6 +2,7 @@
 //! Factory functions for building and working with some common
 //! declaration types.
 
+use super::import::ImportTable;
 use super::frame::CompilerFrame;
 use super::stateful::NeedsResult;
 use super::names;
@@ -61,11 +62,31 @@ pub fn declare_var(gen: &mut impl NameGenerator,
 /// classes flatten all of their declarations (and "extends" clauses)
 /// into the main content of the file itself. This function implements
 /// the latter behavior.
-pub fn flatten_class_into_main(builder: &mut CodeBuilder, class: decl::ClassDecl) {
-  let decl::ClassDecl { name: _, extends, body } = class;
+pub fn flatten_class_into_main(import_table: &ImportTable, builder: &mut CodeBuilder, class: decl::ClassDecl) {
+  let decl::ClassDecl { name: _, mut extends, body } = class;
+  transform_extends_path_for_main(import_table, &mut extends);
   builder.extends(extends);
   for decl in body {
     builder.add_decl(decl);
+  }
+}
+
+fn transform_extends_path_for_main(import_table: &ImportTable, extends: &mut ClassExtends) {
+  match extends {
+    ClassExtends::Qualified(lhs, _) => {
+      transform_extends_path_for_main(import_table, lhs);
+    }
+    ClassExtends::SimpleIdentifier(name) => {
+      // If the name is an import name, convert it *back* to its path
+      // name, since we can't access import names at this point in the
+      // code.
+      if let Some(path) = import_table.get(name) {
+        *extends = ClassExtends::StringLit(path.to_owned());
+      }
+    }
+    ClassExtends::StringLit(_) => {
+      // Already a path, so do nothing.
+    }
   }
 }
 

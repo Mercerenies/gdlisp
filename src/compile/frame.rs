@@ -302,7 +302,7 @@ impl<'a, 'b, 'c, 'd, 'e> CompilerFrame<'a, 'b, 'c, 'd, 'e, CodeBuilder> {
 
         let class = factory::declare_class(self, gd_name, extends, *main_class, constructor, decls, decl.pos)?;
         if *main_class {
-          factory::flatten_class_into_main(self.builder, class);
+          factory::flatten_class_into_main(self.compiler.import_path_table(), self.builder, class);
           Ok(())
         } else {
           self.builder.add_decl(Decl::new(DeclF::ClassDecl(class), decl.pos));
