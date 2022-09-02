@@ -159,6 +159,11 @@ pub enum CallMagic {
   /// and we provide call magic to compile that directly to the
   /// original `print` in all situations except indirect ones.
   CompileToVarargCall(String),
+  /// [`CallMagic`] for the inequality `NodePath` constructor.
+  /// `NodePathConstructor` will compile to the literal `@"..."`
+  /// GDScript syntax if given a literal string as argument. If given
+  /// a variable or anything else, it will fall back to `fallback`.
+  NodePathConstructor(Box<CallMagic>),
 }
 
 /// Associativity of an operator.
@@ -491,6 +496,16 @@ impl CallMagic {
         let args = strip_st(args);
         Expecting::from(call.specs).validate(&call.function, pos, &args)?;
         Ok(Expr::simple_call(name, args, pos))
+      }
+      CallMagic::NodePathConstructor(fallback) => {
+        if args.len() == 1 {
+          if let ExprF::Literal(Literal::String(s)) = &args[0].expr.value {
+            return Ok(
+              Expr::new(ExprF::Literal(Literal::NodePathLiteral(s.clone())), pos),
+            );
+          }
+        }
+        fallback.compile(call, compiler, builder, table, args, pos)
       }
     }
   }

@@ -140,6 +140,10 @@ pub fn bind_magic(table: &mut MagicTable) {
   // var2bytes function
   table.set(String::from("VARARG-VAR2BYTES"), CallMagic::CompileToVarargCall(String::from("var2bytes")));
 
+  // NodePath function
+  table.set(String::from("NODEPATH-SYNTAX"),
+            CallMagic::NodePathConstructor(Box::new(CallMagic::DefaultCall)));
+
 }
 
 /// Produce a new [`MagicTable`] with all of the magic bound as though

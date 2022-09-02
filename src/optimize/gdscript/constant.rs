@@ -14,6 +14,7 @@ pub fn deduce_bool(expr: &Expr) -> Option<bool> {
         Literal::Float(f) => Some(**f != 0.0),
         Literal::String(s) => Some(!s.is_empty()),
         Literal::NodeLiteral(_) => None, // Truthy iff the node exists; can't determine at compile-time
+        Literal::NodePathLiteral(s) => Some(!s.is_empty()),
         Literal::Null => Some(false),
         Literal::Bool(b) => Some(*b),
       }
@@ -100,6 +101,9 @@ mod tests {
     assert_eq!(deduce_bool(&e(ExprF::from(false))), Some(false));
     assert_eq!(deduce_bool(&e(ExprF::from("A"))), Some(true));
     assert_eq!(deduce_bool(&e(ExprF::from(""))), Some(false));
+    assert_eq!(deduce_bool(&e(ExprF::Literal(Literal::NodeLiteral(String::from("foobar"))))), None);
+    assert_eq!(deduce_bool(&e(ExprF::Literal(Literal::NodePathLiteral(String::from("A"))))), Some(true));
+    assert_eq!(deduce_bool(&e(ExprF::Literal(Literal::NodePathLiteral(String::from(""))))), Some(false));
   }
 
   #[test]

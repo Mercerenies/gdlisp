@@ -420,6 +420,10 @@
     ((bin-equal a:car b:car) (bin-equal a:cdr b:cdr))
     (#t #f)))
 
+(defn NodePath (s)
+  (sys/call-magic NODEPATH-SYNTAX)
+  ((literally NodePath) s))
+
 (defn not (x)
   (sys/call-magic BOOLEAN-NOT)
   (not x))

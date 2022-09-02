@@ -24,6 +24,7 @@ pub enum Literal {
   Float(LiteralFloat),
   String(String),
   NodeLiteral(String),
+  NodePathLiteral(String),
   Null,
   Bool(bool),
 }
@@ -57,6 +58,7 @@ impl Literal {
           format!("$\"{}\"", insert_escapes(s))
         }
       }
+      Literal::NodePathLiteral(s) => format!("@\"{}\"", insert_escapes(s)),
       Literal::Null => String::from("null"),
       Literal::Bool(b) => if *b { String::from("true") } else { String::from("false") },
       Literal::Float(f) => format!("{:e}", **f),
@@ -163,6 +165,13 @@ mod tests {
     assert_eq!(Literal::NodeLiteral("foo".to_owned()).to_gd(), "$foo");
     assert_eq!(Literal::NodeLiteral("foo\"bar".to_owned()).to_gd(), "$\"foo\\\"bar\"");
     assert_eq!(Literal::NodeLiteral("foo bar".to_owned()).to_gd(), "$\"foo bar\"");
+  }
+
+  #[test]
+  fn node_path_literal_test() {
+    assert_eq!(Literal::NodePathLiteral("foo".to_owned()).to_gd(), "@\"foo\"");
+    assert_eq!(Literal::NodePathLiteral("foo\"bar".to_owned()).to_gd(), "@\"foo\\\"bar\"");
+    assert_eq!(Literal::NodePathLiteral("foo bar".to_owned()).to_gd(), "@\"foo bar\"");
   }
 
 }
