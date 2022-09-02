@@ -472,9 +472,6 @@ impl CallMagic {
         if let ExprF::Literal(Literal::String(s)) = &path.value {
           if value.value == ExprF::Var(String::from("self")) {
             // We can use the $x syntax on the GDScript side
-            //
-            // TODO Make sure the string only has symbols allowed in a
-            // GDScript node path literal.
             return Ok(Expr::from_value(Literal::NodeLiteral(s.to_owned()), pos));
           }
         }
