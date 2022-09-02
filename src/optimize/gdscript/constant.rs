@@ -98,6 +98,8 @@ mod tests {
     assert_eq!(deduce_bool(&e(ExprF::Literal(Literal::Null))), Some(false));
     assert_eq!(deduce_bool(&e(ExprF::from(true))), Some(true));
     assert_eq!(deduce_bool(&e(ExprF::from(false))), Some(false));
+    assert_eq!(deduce_bool(&e(ExprF::from("A"))), Some(true));
+    assert_eq!(deduce_bool(&e(ExprF::from(""))), Some(false));
   }
 
   #[test]
