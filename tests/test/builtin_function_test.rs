@@ -472,4 +472,9 @@ pub fn nodepath_running_test() {
   assert_eq!(parse_and_run("((let ((x (NodePath \"foo/bar\"))) (print (x:get-name 0)) (print (x:get-name 1))))"), "\nfoo\nbar\n");
 }
 
+#[test]
+pub fn vector_constant_print_test() {
+  assert_eq!(parse_and_run("((print Vector2:LEFT) (print Vector3:AXIS_Z))"), "\n(-1, 0)\n2\n");
+}
+
 // TODO Test gensym at runtime once we can pretty-print symbols

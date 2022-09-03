@@ -130,9 +130,9 @@
   (defvar Int (PrimitiveType:new TYPE_INT))
   (defvar Float (PrimitiveType:new TYPE_REAL))
   (defvar String (PrimitiveType:new TYPE_STRING))
-  (defvar Vector2 (PrimitiveType:new TYPE_VECTOR2))
+  (defvar Vector2 (Vector2PrimitiveType:new))
   (defvar Rect2 (PrimitiveType:new TYPE_RECT2))
-  (defvar Vector3 (PrimitiveType:new TYPE_VECTOR3))
+  (defvar Vector3 (Vector3PrimitiveType:new))
   (defvar Transform2D (PrimitiveType:new TYPE_TRANSFORM2D))
   (defvar Plane (PrimitiveType:new TYPE_PLANE))
   (defvar Quat (PrimitiveType:new TYPE_QUAT))
@@ -846,6 +846,37 @@
 
   (defn satisfies? (value)
     (= ((literally typeof) value) self:primitive-value)))
+
+(defclass Vector2PrimitiveType (PrimitiveType) private
+  (defconst AXIS_X 0)
+  (defconst AXIS_Y 1)
+  (defconst ZERO V{0 0})
+  (defconst ONE V{1 1})
+  (defconst INF V{INF INF})
+  (defconst LEFT V{-1 0})
+  (defconst RIGHT V{1 0})
+  (defconst UP V{0 -1})
+  (defconst DOWN V{0 1})
+
+  (defn _init ()
+    (super TYPE_VECTOR2)))
+
+(defclass Vector3PrimitiveType (PrimitiveType) private
+  (defconst AXIS_X 0)
+  (defconst AXIS_Y 1)
+  (defconst AXIS_Z 2)
+  (defconst ZERO V{0 0 0})
+  (defconst ONE V{1 1 1})
+  (defconst INF V{INF INF INF})
+  (defconst LEFT V{-1 0 0})
+  (defconst RIGHT V{1 0 0})
+  (defconst UP V{0 1 0})
+  (defconst DOWN V{0 -1 0})
+  (defconst FORWARD V{0 0 -1})
+  (defconst BACK V{0 0 1})
+
+  (defn _init ()
+    (super TYPE_VECTOR3)))
 
 ;; Named types like _Engine whose name can be returned from get_class
 ;; but which do not exist in the runtime namespace exposed to
