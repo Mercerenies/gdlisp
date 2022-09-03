@@ -29,6 +29,16 @@ pub fn primitive_instance_check_test_2() {
 }
 
 #[test]
+pub fn primitive_instance_check_test_3() {
+  let result = parse_and_run(r#"
+    ((print (instance? V{1 2} Transform2D))
+     (print (instance? V{1 2 3} Transform2D))
+     (print (instance? (Transform2D 0 V{1 1}) Transform2D)))
+  "#);
+  assert_eq!(result, "\nFalse\nFalse\nTrue\n");
+}
+
+#[test]
 pub fn object_instance_check_test() {
   let result = parse_and_run(r#"
     ((let ((my-node (Node:new)))

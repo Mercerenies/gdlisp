@@ -324,6 +324,11 @@ pub fn print_debug_test() {
 }
 
 #[test]
+pub fn builtin_constant_on_type_test() {
+  assert_eq!(parse_compile_and_output("(print Transform2D:IDENTITY)"), "return print(GDLisp._Transform2D.IDENTITY)\n");
+}
+
+#[test]
 pub fn builtin_type_constructor_test() {
   assert_eq!(parse_compile_and_output("(Bool 0)"), "return bool(0)\n");
   assert_eq!(parse_compile_and_output("(Int 99.1)"), "return int(9.91e1)\n");

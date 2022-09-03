@@ -133,7 +133,7 @@
   (defvar Vector2 (Vector2PrimitiveType:new))
   (defvar Rect2 (PrimitiveType:new TYPE_RECT2))
   (defvar Vector3 (Vector3PrimitiveType:new))
-  (defvar Transform2D (PrimitiveType:new TYPE_TRANSFORM2D))
+  (defvar Transform2D (Transform2DPrimitiveType:new))
   (defvar Plane (PrimitiveType:new TYPE_PLANE))
   (defvar Quat (PrimitiveType:new TYPE_QUAT))
   (defvar AABB (PrimitiveType:new TYPE_AABB))
@@ -877,6 +877,14 @@
 
   (defn _init ()
     (super TYPE_VECTOR3)))
+
+(defclass Transform2DPrimitiveType (PrimitiveType) private
+  (defconst IDENTITY (Transform2D V{1 0} V{0 1} V{0 0}))
+  (defconst FLIP_X (Transform2D V{-1 0} V{0 1} V{0 0}))
+  (defconst FLIP_Y (Transform2D V{1 0} V{0 -1} V{0 0}))
+
+  (defn _init ()
+    (super TYPE_TRANSFORM2D)))
 
 ;; Named types like _Engine whose name can be returned from get_class
 ;; but which do not exist in the runtime namespace exposed to
