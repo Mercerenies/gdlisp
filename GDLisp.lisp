@@ -687,6 +687,9 @@
 (sys/declare superfunction (PoolVector2Array PoolVector2Array) (a) public)
 (sys/declare superfunction (PoolVector3Array PoolVector3Array) (a) public)
 
+(sys/declare superfunction (Vector2 Vector2) (a b) public)
+(sys/declare superfunction (Vector3 Vector3) (a b c) public)
+
 (sys/min-godot-version 3050000
   (sys/declare superfunction (deep-equal deep-equal) (a b) public))
 
@@ -771,6 +774,48 @@
   (cond
     ((= c nil) (Rect2 a b))
     (#t (Rect2 a b c d))))
+
+(defn Transform2D (a &opt b c)
+  (sys/call-magic VARARG-TRANSFORM2D)
+  (cond
+    ((= b nil) (Transform2D a))
+    ((= c nil) (Transform2D a b))
+    (#t (Transform2D a b c))))
+
+(defn Plane (a b &opt c d)
+  (sys/call-magic VARARG-PLANE)
+  (cond
+    ((= c nil) (Plane a b))
+    ((= d nil) (Plane a b c))
+    (#t (Plane a b c d))))
+
+(defn Quat (a &opt b c d) ; TODO Not a perfect translation of the overloads provided
+  (sys/call-magic VARARG-QUAT)
+  (cond
+    ((= b nil) (Quat a))
+    ((= c nil) (Quat a b))
+    (#t (Quat a b c d))))
+
+(defn Basis (a &opt b c)
+  (sys/call-magic VARARG-BASIS)
+  (cond
+    ((= b nil) (Basis a))
+    ((= c nil) (Basis a b))
+    (#t (Basis a b c))))
+
+(defn Transform (a &opt b c d) ; TODO Not a perfect translation of the overloads provided
+  (sys/call-magic VARARG-TRANSFORM)
+  (cond
+    ((= b nil) (Transform a))
+    ((= c nil) (Transform a b))
+    (#t (Transform a b c d))))
+
+(defn Color (a &opt b c d) ; TODO Not a perfect translation of the overloads provided
+  (sys/call-magic VARARG-COLOR)
+  (cond
+    ((= b nil) (Color a))
+    ((= d nil) (Color a b c))
+    (#t (Color a b c d))))
 
 (defn bytes2var (a &opt b)
   (sys/call-magic VARARG-BYTES2VAR)

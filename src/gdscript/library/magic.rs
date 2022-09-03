@@ -143,6 +143,24 @@ pub fn bind_magic(table: &mut MagicTable) {
   // Rect2 function
   table.set(String::from("VARARG-RECT2"), CallMagic::CompileToVarargCall(String::from("Rect2")));
 
+  // Transform2D function
+  table.set(String::from("VARARG-TRANSFORM2D"), CallMagic::CompileToVarargCall(String::from("Transform2D")));
+
+  // Plane function
+  table.set(String::from("VARARG-PLANE"), CallMagic::CompileToVarargCall(String::from("Plane")));
+
+  // Quat function
+  table.set(String::from("VARARG-QUAT"), CallMagic::CompileToVarargCall(String::from("Quat")));
+
+  // Basis function
+  table.set(String::from("VARARG-BASIS"), CallMagic::CompileToVarargCall(String::from("Basis")));
+
+  // Transform function
+  table.set(String::from("VARARG-TRANSFORM"), CallMagic::CompileToVarargCall(String::from("Transform")));
+
+  // Color function
+  table.set(String::from("VARARG-COLOR"), CallMagic::CompileToVarargCall(String::from("Color")));
+
   // NodePath function
   table.set(String::from("NODEPATH-SYNTAX"),
             CallMagic::NodePathConstructor(Box::new(CallMagic::DefaultCall)));

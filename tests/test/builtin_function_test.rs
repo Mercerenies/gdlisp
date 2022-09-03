@@ -341,6 +341,28 @@ pub fn builtin_type_constructor_test() {
   assert_eq!(parse_compile_and_output("(PoolRealArray [])"), "return PoolRealArray([])\n");
   assert_eq!(parse_compile_and_output("(PoolVector2Array [])"), "return PoolVector2Array([])\n");
   assert_eq!(parse_compile_and_output("(PoolVector3Array [])"), "return PoolVector3Array([])\n");
+  assert_eq!(parse_compile_and_output("(Vector2 1 2)"), "return Vector2(1, 2)\n");
+  assert_eq!(parse_compile_and_output("(Vector3 0 1 2)"), "return Vector3(0, 1, 2)\n");
+  assert_eq!(parse_compile_and_output("(Transform2D ())"), "return Transform2D(null)\n");
+  assert_eq!(parse_compile_and_output("(Transform2D V{0 0} V{0 0} V{0 0})"), "return Transform2D(Vector2(0, 0), Vector2(0, 0), Vector2(0, 0))\n");
+  assert_eq!(parse_compile_and_output("(Transform2D 0 V{1 1})"), "return Transform2D(0, Vector2(1, 1))\n");
+  assert_eq!(parse_compile_and_output("(Plane V{0 0 0} 10)"), "return Plane(Vector3(0, 0, 0), 10)\n");
+  assert_eq!(parse_compile_and_output("(Plane V{0 0 0} V{0 0 1} V{1 0 0})"), "return Plane(Vector3(0, 0, 0), Vector3(0, 0, 1), Vector3(1, 0, 0))\n");
+  assert_eq!(parse_compile_and_output("(Plane 0 0 0 1)"), "return Plane(0, 0, 0, 1)\n");
+  assert_eq!(parse_compile_and_output("(Quat ())"), "return Quat(null)\n");
+  assert_eq!(parse_compile_and_output("(Quat V{0 0 0} 1)"), "return Quat(Vector3(0, 0, 0), 1)\n");
+  assert_eq!(parse_compile_and_output("(Quat 0 0 0 1)"), "return Quat(0, 0, 0, 1)\n");
+  assert_eq!(parse_compile_and_output("(Basis ())"), "return Basis(null)\n");
+  assert_eq!(parse_compile_and_output("(Basis V{0 0 0})"), "return Basis(Vector3(0, 0, 0))\n");
+  assert_eq!(parse_compile_and_output("(Basis V{0 0 0} 1)"), "return Basis(Vector3(0, 0, 0), 1)\n");
+  assert_eq!(parse_compile_and_output("(Basis V{0 0 0} V{0 0 1} V{1 0 0})"), "return Basis(Vector3(0, 0, 0), Vector3(0, 0, 1), Vector3(1, 0, 0))\n");
+  assert_eq!(parse_compile_and_output("(Transform ())"), "return Transform(null)\n");
+  assert_eq!(parse_compile_and_output("(Transform () V{0 0 0})"), "return Transform(null, Vector3(0, 0, 0))\n");
+  assert_eq!(parse_compile_and_output("(Transform V{0 0 0} V{0 0 1} V{1 0 0} V{2 2 2})"), "return Transform(Vector3(0, 0, 0), Vector3(0, 0, 1), Vector3(1, 0, 0), Vector3(2, 2, 2))\n");
+  assert_eq!(parse_compile_and_output("(Color 0)"), "return Color(0)\n");
+  assert_eq!(parse_compile_and_output("(Color 0 0 0)"), "return Color(0, 0, 0)\n");
+  assert_eq!(parse_compile_and_output("(Color 0 0 0 1)"), "return Color(0, 0, 0, 1)\n");
+
 }
 
 #[test]
