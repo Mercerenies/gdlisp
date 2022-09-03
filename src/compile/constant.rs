@@ -16,6 +16,15 @@ use crate::gdscript::expr::{Expr, ExprF};
 use crate::gdscript::op;
 use crate::pipeline::source::Sourced;
 
+use phf::phf_set;
+
+const CONSTANT_GDSCRIPT_FUNCTIONS: phf::Set<&'static str> = phf_set! {
+  "NodePath", "bool", "int", "float", "String", "str", "Rect2", "AABB", "RID", "Dictionary",
+  "Array", "PoolColorArray", "PoolByteArray", "PoolIntArray", "PoolRealArray", "PoolStringArray",
+  "PoolVector2Array", "PoolVector3Array", "Vector2", "Vector3", "Transform2D", "Plane",
+  "Quat", "Basis", "Transform", "Color",
+};
+
 /// Trait representing data which can be checked for a const-ness
 /// property.
 pub trait MaybeConstant: Sourced {
@@ -67,12 +76,11 @@ impl MaybeConstant for Expr {
         false // I know, but Godot seems to disallow this one on principle
       }
       ExprF::Call(obj, name, args) => {
-        // Again, very conservative. I know Vector2 and Vector3 are safe.
-        #[allow(clippy::collapsible_if)] // (Meh, it's more readable this way IMO)
-        if obj.is_none() {
-          if name == "Vector2" || name == "Vector3" {
-            return args.iter().all(|x| x.is_allowable_const(table));
-          }
+        // If the function call is a built-in GDScript function that
+        // Godot accepts as constant *and* all args are constant, then
+        // accept it. Otherwise, no.
+        if obj.is_none() && CONSTANT_GDSCRIPT_FUNCTIONS.contains(&**name) {
+          return args.iter().all(|x| x.is_allowable_const(table));
         }
         false
       }
