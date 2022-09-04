@@ -39,6 +39,38 @@ pub fn primitive_instance_check_test_3() {
 }
 
 #[test]
+pub fn primitive_instance_check_test_4() {
+  let result = parse_and_run(r#"
+    ((print (instance? (Color 0 0 0 1) Color))
+     (print (instance? Color:red Color))
+     (print (instance? 0.1 Color)))
+  "#);
+  assert_eq!(result, "\nTrue\nTrue\nFalse\n");
+}
+
+#[test]
+pub fn primitive_instance_check_test_5() {
+  let result = parse_and_run(r#"
+    ((print (instance? Transform:IDENTITY Transform))
+     (print (instance? Color:red Transform))
+     (print (instance? Plane:PLANE_YZ Plane))
+     (print (instance? Color:red Plane)))
+  "#);
+  assert_eq!(result, "\nTrue\nFalse\nTrue\nFalse\n");
+}
+
+#[test]
+pub fn primitive_instance_check_test_6() {
+  let result = parse_and_run(r#"
+    ((print (instance? Basis:IDENTITY Basis))
+     (print (instance? Color:red Basis))
+     (print (instance? Quat:IDENTITY Quat))
+     (print (instance? Color:red Quat)))
+  "#);
+  assert_eq!(result, "\nTrue\nFalse\nTrue\nFalse\n");
+}
+
+#[test]
 pub fn object_instance_check_test() {
   let result = parse_and_run(r#"
     ((let ((my-node (Node:new)))
