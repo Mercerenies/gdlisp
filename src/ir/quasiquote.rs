@@ -45,11 +45,11 @@ impl<'a> From<&'a AST> for UnquotedValue<'a> {
         if let ASTF::Cons(cadr, cddr) = &cdr.value {
           if cddr.value == ASTF::Nil {
             if name == "quasiquote" {
-              return UnquotedValue::Quasiquote(&*cadr);
+              return UnquotedValue::Quasiquote(cadr);
             } else if name == "unquote" {
-              return UnquotedValue::Unquote(&*cadr);
+              return UnquotedValue::Unquote(cadr);
             } else if name == "unquote-spliced" {
-              return UnquotedValue::UnquoteSpliced(&*cadr);
+              return UnquotedValue::UnquoteSpliced(cadr);
             }
           }
         }

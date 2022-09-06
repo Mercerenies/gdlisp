@@ -46,16 +46,16 @@ pub fn expr_has_side_effects(expr: &Expr) -> bool {
     // Subscript is a bit questionable, because it can't call
     // arbitrary methods (only works in a predefined, simple way), but
     // it can err out if out of bounds.
-    ExprF::Subscript(a, b) => expr_has_side_effects(&*a) || expr_has_side_effects(&*b),
+    ExprF::Subscript(a, b) => expr_has_side_effects(a) || expr_has_side_effects(b),
     // Attribute is questionable as well because setget can do method
     // calls.
-    ExprF::Attribute(a, _) => expr_has_side_effects(&*a),
+    ExprF::Attribute(a, _) => expr_has_side_effects(a),
     ExprF::Call(_, _, _) => true,
     ExprF::SuperCall(_, _) => true,
     ExprF::Unary(_, e) => expr_has_side_effects(e),
-    ExprF::Binary(a, _, b) => expr_has_side_effects(&*a) || expr_has_side_effects(&*b),
+    ExprF::Binary(a, _, b) => expr_has_side_effects(a) || expr_has_side_effects(b),
     ExprF::TernaryIf(expr::TernaryIf { true_case: a, cond: b, false_case: c }) =>
-      expr_has_side_effects(&*a) || expr_has_side_effects(&*b) || expr_has_side_effects(&*c),
+      expr_has_side_effects(a) || expr_has_side_effects(b) || expr_has_side_effects(c),
     ExprF::ArrayLit(es) => es.iter().any(expr_has_side_effects),
     ExprF::DictionaryLit(es) => es.iter().any(|(k, v)| expr_has_side_effects(k) || expr_has_side_effects(v)),
   }
@@ -73,10 +73,10 @@ pub fn expr_is_constant(expr: &Expr) -> bool {
     ExprF::Attribute(_, _) => false,
     ExprF::Call(_, _, _) => false,
     ExprF::SuperCall(_, _) => false,
-    ExprF::Unary(_, e) => expr_is_constant(&*e),
-    ExprF::Binary(a, _, b) => expr_is_constant(&*a) && expr_is_constant(&*b),
+    ExprF::Unary(_, e) => expr_is_constant(e),
+    ExprF::Binary(a, _, b) => expr_is_constant(a) && expr_is_constant(b),
     ExprF::TernaryIf(expr::TernaryIf { true_case: a, cond: b, false_case: c }) =>
-      expr_is_constant(&*a) && expr_is_constant(&*b) && expr_is_constant(&*c),
+      expr_is_constant(a) && expr_is_constant(b) && expr_is_constant(c),
     // These two produce mutable values that cannot be blindly substituted
     ExprF::ArrayLit(_) => false,
     ExprF::DictionaryLit(_) => false,

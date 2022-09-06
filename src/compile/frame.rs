@@ -411,7 +411,7 @@ impl<'a, 'b, 'c, 'd, 'e> CompilerFrame<'a, 'b, 'c, 'd, 'e, StmtBuilder> {
         special_form::compile_while_stmt(self, cond, body, needs_result, expr.pos)
       }
       IRExprF::ForStmt(name, iter, body) => {
-        special_form::compile_for_stmt(self, &*name, iter, body, needs_result, expr.pos)
+        special_form::compile_for_stmt(self, name, iter, body, needs_result, expr.pos)
       }
       IRExprF::Call(f, args) => {
         self.compile_function_call(f, args, expr.pos)
@@ -508,7 +508,7 @@ impl<'a, 'b, 'c, 'd, 'e> CompilerFrame<'a, 'b, 'c, 'd, 'e, StmtBuilder> {
       }
       IRExprF::Assert(cond, message) => {
         let cond = self.compile_expr(cond, NeedsResult::Yes)?.expr;
-        let message = message.as_ref().map(|x| self.compile_expr(&*x, NeedsResult::Yes).map(|y| y.expr)).transpose()?;
+        let message = message.as_ref().map(|x| self.compile_expr(x, NeedsResult::Yes).map(|y| y.expr)).transpose()?;
         Ok(StExpr { expr: Expr::assert_expr(cond, message, expr.pos), side_effects: SideEffects::ModifiesState })
       }
       IRExprF::Return(expr) => {

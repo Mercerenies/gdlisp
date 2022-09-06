@@ -35,8 +35,8 @@ pub struct TryFromDottedExprError {
 fn accumulate_ast<'a>(vec: &mut Vec<&'a AST>, ast: &'a AST) -> &'a AST {
   match &ast.value {
     ASTF::Cons(car, cdr) => {
-      vec.push(&*car);
-      accumulate_ast(vec, &*cdr)
+      vec.push(car);
+      accumulate_ast(vec, cdr)
     }
     _ => ast
   }

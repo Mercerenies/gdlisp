@@ -69,8 +69,8 @@ impl<'a, G: NameGenerator> PrettyPrinter<'a, G> {
           Expr::null(value.pos)
         }
         ASTF::Cons(a, b) => {
-          let a = self.reify_pretty_rec(&*a, depth + 1);
-          let b = self.reify_pretty_rec(&*b, depth + 1);
+          let a = self.reify_pretty_rec(a, depth + 1);
+          let b = self.reify_pretty_rec(b, depth + 1);
           Expr::call(Some(library::gdlisp_root(value.pos)), "cons", vec!(a, b), value.pos)
         }
         ASTF::Array(v) => {

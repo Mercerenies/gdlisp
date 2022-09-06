@@ -53,15 +53,15 @@ impl<'a, E> ExprWalker<'a, E> {
       }
       ExprF::WhileStmt(cond, body) => {
         ExprF::WhileStmt(
-          Box::new(self.walk_expr(&*cond)?),
-          Box::new(self.walk_expr(&*body)?),
+          Box::new(self.walk_expr(cond)?),
+          Box::new(self.walk_expr(body)?),
         )
       }
       ExprF::ForStmt(name, iter, body) => {
         ExprF::ForStmt(
           name.clone(),
-          Box::new(self.walk_expr(&*iter)?),
-          Box::new(self.walk_expr(&*body)?),
+          Box::new(self.walk_expr(iter)?),
+          Box::new(self.walk_expr(body)?),
         )
       }
       ExprF::Call(name, body) => {
@@ -79,7 +79,7 @@ impl<'a, E> ExprWalker<'a, E> {
         }).collect::<Result<Vec<_>, _>>()?;
         ExprF::Let(
           clauses,
-          Box::new(self.walk_expr(&*body)?),
+          Box::new(self.walk_expr(body)?),
         )
       }
       ExprF::FLet(clauses, body) => {
@@ -92,7 +92,7 @@ impl<'a, E> ExprWalker<'a, E> {
         }).collect::<Result<Vec<_>, _>>()?;
         ExprF::FLet(
           clauses,
-          Box::new(self.walk_expr(&*body)?),
+          Box::new(self.walk_expr(body)?),
         )
       }
       ExprF::Labels(clauses, body) => {
@@ -105,13 +105,13 @@ impl<'a, E> ExprWalker<'a, E> {
         }).collect::<Result<Vec<_>, _>>()?;
         ExprF::Labels(
           clauses,
-          Box::new(self.walk_expr(&*body)?),
+          Box::new(self.walk_expr(body)?),
         )
       }
       ExprF::Lambda(args, body) => {
         ExprF::Lambda(
           args.clone(),
-          Box::new(self.walk_expr(&*body)?),
+          Box::new(self.walk_expr(body)?),
         )
       }
       ExprF::FuncRef(expr::FuncRefTarget::SimpleName(s)) => {
@@ -127,14 +127,14 @@ impl<'a, E> ExprWalker<'a, E> {
           expr::AssignTarget::InstanceField(pos, inner, name) => {
             expr::AssignTarget::InstanceField(
               *pos,
-              Box::new(self.walk_expr(&*inner)?),
+              Box::new(self.walk_expr(inner)?),
               name.clone(),
             )
           }
         };
         ExprF::Assign(
           target,
-          Box::new(self.walk_expr(&*rhs)?),
+          Box::new(self.walk_expr(rhs)?),
         )
       }
       ExprF::Array(body) => {
@@ -147,13 +147,13 @@ impl<'a, E> ExprWalker<'a, E> {
       }
       ExprF::FieldAccess(lhs, name) => {
         ExprF::FieldAccess(
-          Box::new(self.walk_expr(&*lhs)?),
+          Box::new(self.walk_expr(lhs)?),
           name.clone(),
         )
       }
       ExprF::MethodCall(lhs, name, args) => {
         ExprF::MethodCall(
-          Box::new(self.walk_expr(&*lhs)?),
+          Box::new(self.walk_expr(lhs)?),
           name.clone(),
           self.walk_exprs(args)?,
         )
@@ -180,7 +180,7 @@ impl<'a, E> ExprWalker<'a, E> {
       }
       ExprF::Assert(cond, message) => {
         let cond = self.walk_expr(cond)?;
-        let message = message.as_ref().map(|x| self.walk_expr(&*x)).transpose()?;
+        let message = message.as_ref().map(|x| self.walk_expr(x)).transpose()?;
         ExprF::Assert(Box::new(cond), message.map(Box::new))
       }
       ExprF::Return(v) => {
@@ -201,7 +201,7 @@ impl<'a, E> ExprWalker<'a, E> {
       ExprF::Split(name, body) => {
         ExprF::Split(
           name.clone(),
-          Box::new(self.walk_expr(&*body)?),
+          Box::new(self.walk_expr(body)?),
         )
       }
       ExprF::Preload(name) => {

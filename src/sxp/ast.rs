@@ -142,8 +142,8 @@ impl AST {
         'a : 'b {
     match &self.value {
       ASTF::Cons(car, cdr) => {
-        func(&*car)?;
-        func(&*cdr)?;
+        func(car)?;
+        func(cdr)?;
       }
       ASTF::Array(arr) => {
         for x in arr {
@@ -360,7 +360,7 @@ impl fmt::Display for AST {
       ASTF::Symbol(s) => write!(f, "{}", s),
       ASTF::Cons(a, b) => {
         write!(f, "(")?;
-        fmt_list(&*a, &*b, f)?;
+        fmt_list(a, b, f)?;
         write!(f, ")")
       }
       ASTF::Array(vec) => {

@@ -119,8 +119,8 @@ fn walk_impl<'a, E>(walker: &mut (impl FnMut(&Expr) -> Result<Expr, E> + 'a), st
       StmtF::ReturnStmt(walk_impl_expr(walker, expr)?)
     }
     StmtF::Assign(lhs, op, rhs) => {
-      let lhs = walk_impl_expr(walker, &*lhs)?;
-      let rhs = walk_impl_expr(walker, &*rhs)?;
+      let lhs = walk_impl_expr(walker, lhs)?;
+      let rhs = walk_impl_expr(walker, rhs)?;
       StmtF::Assign(Box::new(lhs), *op, Box::new(rhs))
     }
     StmtF::PassStmt | StmtF::BreakStmt | StmtF::ContinueStmt => {
