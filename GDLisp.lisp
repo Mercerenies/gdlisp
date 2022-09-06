@@ -142,7 +142,7 @@
   (defvar Color (ColorPrimitiveType:new))
   (defvar NodePath (PrimitiveType:new TYPE_NODE_PATH))
   (defvar RID (PrimitiveType:new TYPE_RID))
-  (defvar Object (PrimitiveType:new TYPE_OBJECT))
+  (defvar Object (ObjectPrimitiveType:new))
   (defvar Dictionary (PrimitiveType:new TYPE_DICTIONARY))
   (defvar Array (PrimitiveType:new TYPE_ARRAY))
   (defvar PoolByteArray (PrimitiveType:new TYPE_RAW_ARRAY))
@@ -871,6 +871,19 @@
 
   (defn satisfies? (value)
     (= ((literally typeof) value) self:primitive-value)))
+
+(defclass ObjectPrimitiveType (PrimitiveType) private
+
+  (defn _init ()
+    (super TYPE_OBJECT)))
+
+;; NOTE: Due to current Godot bugs, we can't actually define this,
+;; since GDScript fails to parse constructor calls on Object directly.
+;; See https://github.com/godotengine/godot/issues/41462. Has been
+;; fixed in 4.0 and it doesn't look like they're planning to backport.
+;;
+;;  (defn new ()
+;;    ((literally Object):new)))
 
 (defclass Vector2PrimitiveType (PrimitiveType) private
   (defconst AXIS_X 0)
