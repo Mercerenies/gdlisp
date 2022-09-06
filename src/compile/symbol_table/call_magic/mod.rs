@@ -69,6 +69,9 @@ pub enum CallMagic {
   /// [Call magic](CallMagic) for the (fractional) division operator.
   DivOperation,
   /// [Call magic](CallMagic) for the integer division operator.
+  ///
+  /// **Note:** This call magic is currently not used in
+  /// `GDLisp.lisp`.
   IntDivOperation,
   /// [Call magic](CallMagic) for the mathematical modulo operator.
   ModOperation,
@@ -329,12 +332,12 @@ impl CallMagic {
           1 => {
             let one = Expr::from_value(1, pos);
             let arg = args::one(args);
-            Ok(one.binary(op::BinaryOp::Div, expr_wrapper::float(arg), pos))
+            Ok(one.binary(op::BinaryOp::Div, arg, pos))
           }
           _ => {
             let first = args.remove(0);
             let result = args.into_iter().fold(first, |x, y| {
-              x.binary(op::BinaryOp::Div, expr_wrapper::float(y), pos)
+              x.binary(op::BinaryOp::Div, y, pos)
             });
             Ok(result)
           }

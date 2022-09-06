@@ -273,17 +273,6 @@
        result))
     (#t (/ x))))
 
-(defn div (x &rest args)
-  (sys/call-magic INTEGER-DIVISION)
-  (cond
-    ((sys/instance-direct? args Cons)
-     (let ((result x))
-       (while (sys/instance-direct? args Cons)
-         (set result (div result args:car))
-         (set args args:cdr))
-       result))
-    (#t (div x))))
-
 (defn mod (x y)
   (sys/call-magic MODULO)
   (mod x y))

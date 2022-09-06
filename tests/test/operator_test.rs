@@ -123,57 +123,47 @@ fn subtraction_test_indirect_2() {
 
 #[test]
 fn division_test_1() {
-  assert_eq!(parse_and_run("((print (/ 4)))"), "\n0.25\n");
+  assert_eq!(parse_and_run("((print (/ 4.0)))"), "\n0.25\n");
 }
 
 #[test]
 fn division_test_2() {
-  assert_eq!(parse_and_run("((print (/ 4 2)))"), "\n2\n");
+  assert_eq!(parse_and_run("((print (/ 4)))"), "\n0\n");
 }
 
 #[test]
 fn division_test_3() {
-  assert_eq!(parse_and_run("((print (/ 4 2 2)))"), "\n1\n");
+  assert_eq!(parse_and_run("((print (/ 4 2)))"), "\n2\n");
 }
 
 #[test]
 fn division_test_4() {
+  assert_eq!(parse_and_run("((print (/ 4 2 2)))"), "\n1\n");
+}
+
+#[test]
+fn division_test_5() {
   assert_eq!(parse_and_run("((print (/ (vector 4 2 4) 2 2)))"), "\n(1, 0.5, 1)\n");
 }
 
 #[test]
 fn division_test_indirect_1() {
-  assert_eq!(parse_and_run("((print (funcall (function /) 4)))"), "\n0.25\n");
+  assert_eq!(parse_and_run("((print (funcall (function /) 4.0)))"), "\n0.25\n");
 }
 
 #[test]
 fn division_test_indirect_2() {
-  assert_eq!(parse_and_run("((print (funcall (function /) 3 2)))"), "\n1.5\n");
+  assert_eq!(parse_and_run("((print (funcall (function /) 4)))"), "\n0\n");
 }
 
 #[test]
-fn int_division_test_1() {
-  assert_eq!(parse_and_run("((print (div 4)))"), "\n0\n");
+fn division_test_indirect_3() {
+  assert_eq!(parse_and_run("((print (funcall (function /) 3 2)))"), "\n1\n");
 }
 
 #[test]
-fn int_division_test_2() {
-  assert_eq!(parse_and_run("((print (div 4 2)))"), "\n2\n");
-}
-
-#[test]
-fn int_division_test_3() {
-  assert_eq!(parse_and_run("((print (div 4 2 2)))"), "\n1\n");
-}
-
-#[test]
-fn int_division_test_indirect_1() {
-  assert_eq!(parse_and_run("((print (funcall (function div) 4)))"), "\n0\n");
-}
-
-#[test]
-fn int_division_test_indirect_2() {
-  assert_eq!(parse_and_run("((print (funcall (function div) 3 2)))"), "\n1\n");
+fn division_test_indirect_4() {
+  assert_eq!(parse_and_run("((print (funcall (function /) 3.0 2)))"), "\n1.5\n");
 }
 
 #[test]
@@ -286,18 +276,10 @@ pub fn subtraction_compile_test() {
 
 #[test]
 pub fn division_compile_test() {
-  assert_eq!(parse_compile_and_output("(/ 2)"), "return 1 / float(2)\n");
-  assert_eq!(parse_compile_and_output("(/ 2 3)"), "return 2 / float(3)\n");
-  assert_eq!(parse_compile_and_output("(/ 2 3 4)"), "return 2 / float(3) / float(4)\n");
-  assert_eq!(parse_compile_and_output("(/ 2.0 3 4.0)"), "return 2e0 / float(3) / 4e0\n");
-}
-
-#[test]
-pub fn int_division_compile_test() {
-  assert_eq!(parse_compile_and_output("(div 2)"), "return 1 / 2\n");
-  assert_eq!(parse_compile_and_output("(div 2 3)"), "return 2 / 3\n");
-  assert_eq!(parse_compile_and_output("(div 2 3 4)"), "return 2 / 3 / 4\n");
-  assert_eq!(parse_compile_and_output("(div foobar 3 4)"), "return foobar / 3 / 4\n");
+  assert_eq!(parse_compile_and_output("(/ 2)"), "return 1 / 2\n");
+  assert_eq!(parse_compile_and_output("(/ 2 3)"), "return 2 / 3\n");
+  assert_eq!(parse_compile_and_output("(/ 2 3 4)"), "return 2 / 3 / 4\n");
+  assert_eq!(parse_compile_and_output("(/ 2.0 3 4.0)"), "return 2e0 / 3 / 4e0\n");
 }
 
 #[test]
