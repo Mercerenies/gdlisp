@@ -843,7 +843,7 @@ impl IncCompiler {
       if namespace == Namespace::Value {
         metadata::symbol_macro(&tmp_name)
       } else {
-        tmp_name.clone()
+        tmp_name
       };
 
     // Aside from built-in functions, it must be the case that
