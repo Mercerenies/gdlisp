@@ -185,6 +185,116 @@ static func run():
 }
 
 #[test]
+fn import_declared_value_test() {
+  let mut loader = MockFileLoader::new();
+  loader.add_file("example.lisp", "(sys/declare value a public)");
+  loader.add_file("main.lisp", r#"
+    (use "res://example.lisp" open)
+    (defn f (x) a)
+  "#);
+  let mut pipeline = Pipeline::with_resolver(dummy_config(), Box::new(loader));
+  let result = pipeline.load_file("main.lisp").unwrap().gdscript.to_gd();
+  assert_eq!(result, r#"extends Node
+
+
+const _Import_0 = preload("res://example.gd")
+
+
+static func f(x):
+    return _Import_0.a
+"#);
+}
+
+#[test]
+#[ignore] // TODO Test fails right now, due to late constant validation (See issue #108)
+fn import_declared_constant_test() {
+  let mut loader = MockFileLoader::new();
+  loader.add_file("example.lisp", "(sys/declare constant a public)");
+  loader.add_file("main.lisp", r#"
+    (use "res://example.lisp" open)
+    (defconst y a)
+    (defn f (x) a)
+  "#);
+  let mut pipeline = Pipeline::with_resolver(dummy_config(), Box::new(loader));
+  let result = pipeline.load_file("main.lisp").unwrap().gdscript.to_gd();
+  assert_eq!(result, r#"extends Node
+
+
+const _Import_0 = preload("res://example.gd")
+const y = _Import_0.a
+
+
+static func f(x):
+    return _Import_0.a
+"#);
+}
+
+#[test]
+#[ignore] // TODO Test fails right now, due to late constant validation (See issue #108)
+fn import_declared_superglobal_test() {
+  let mut loader = MockFileLoader::new();
+  loader.add_file("example.lisp", "(sys/declare superglobal a public)");
+  loader.add_file("main.lisp", r#"
+    (use "res://example.lisp" open)
+    (defconst y a)
+    (defn f (x) a)
+  "#);
+  let mut pipeline = Pipeline::with_resolver(dummy_config(), Box::new(loader));
+  let result = pipeline.load_file("main.lisp").unwrap().gdscript.to_gd();
+  assert_eq!(result, r#"extends Node
+
+
+const _Import_0 = preload("res://example.gd")
+const y = a
+
+static func f(x):
+    return a
+"#);
+}
+
+#[test]
+fn import_declared_function_test() {
+  let mut loader = MockFileLoader::new();
+  loader.add_file("example.lisp", "(sys/declare function a () public)");
+  loader.add_file("main.lisp", r#"
+    (use "res://example.lisp" open)
+    (defn f (x) (a))
+  "#);
+  let mut pipeline = Pipeline::with_resolver(dummy_config(), Box::new(loader));
+  let result = pipeline.load_file("main.lisp").unwrap().gdscript.to_gd();
+  assert_eq!(result, r#"extends Node
+
+
+const _Import_0 = preload("res://example.gd")
+
+
+static func f(x):
+    return _Import_0.a()
+"#);
+}
+
+#[test]
+fn import_declared_superfunction_test() {
+  let mut loader = MockFileLoader::new();
+  loader.add_file("example.lisp", "(sys/declare superfunction a () public)");
+  loader.add_file("main.lisp", r#"
+    (use "res://example.lisp" open)
+    (defn f (x) (a))
+  "#);
+  let mut pipeline = Pipeline::with_resolver(dummy_config(), Box::new(loader));
+  let result = pipeline.load_file("main.lisp").unwrap().gdscript.to_gd();
+  assert_eq!(result, r#"extends Node
+
+
+const _Import_0 = preload("res://example.gd")
+
+
+static func f(x):
+    return a()
+"#);
+}
+
+#[test]
 fn macro_uses_preload_test() {
   let mut loader = MockFileLoader::new();
   loader.add_file("example.lisp", "(defn add-one (x) (+ x 1))");
