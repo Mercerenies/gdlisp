@@ -363,6 +363,11 @@ impl Compiler {
             let var = LocalVar::file_constant(target_name);
             table.set_var(name.clone(), var);
           }
+          ir::decl::DeclareType::Constant => {
+            let var = LocalVar::file_constant(target_name)
+              .with_hint(ValueHint::GlobalConstant);
+            table.set_var(name.clone(), var);
+          }
           ir::decl::DeclareType::Superglobal => {
             let var = LocalVar::superglobal(target_name)
               .with_hint(ValueHint::Superglobal);

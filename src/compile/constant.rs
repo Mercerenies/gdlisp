@@ -56,12 +56,13 @@ impl MaybeConstant for Expr {
     match &self.value {
       ExprF::Var(v) => {
         if let Some(value_hint) = table.get_value_hint(v) {
-          // Again, playing it super-safe right now. Only superglobals
-          // are allowed, and I'll only use sys/declare to define
-          // superglobals when I know it's safe. sys/declare is used
-          // to bypass the compiler's safety mechanisms, so here is
-          // one such backdoor we're putting in.
-          *value_hint == ValueHint::Superglobal
+          // Again, playing it super-safe right now. Only values
+          // explicitly declared superglobal or constant are allowed,
+          // and I'll only use sys/declare to define superglobals when
+          // I know it's safe. sys/declare is used to bypass the
+          // compiler's safety mechanisms, so here is one such
+          // backdoor we're putting in.
+          *value_hint == ValueHint::Superglobal || *value_hint == ValueHint::GlobalConstant
         } else {
           false // TODO Better?
         }

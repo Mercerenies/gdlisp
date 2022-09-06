@@ -126,6 +126,8 @@ pub enum ValueHint {
   /// access can be checked at compile time to ensure that the name in
   /// question actually exists on the enum.
   Enum(Vec<String>),
+  /// The variable is a constant whose exact value may not be known.
+  GlobalConstant,
   /// The variable is the result of a superglobal declaration.
   /// Currently, this is only available if explicitly requested via
   /// `sys/declare`.

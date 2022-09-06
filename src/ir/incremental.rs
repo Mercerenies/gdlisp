@@ -429,13 +429,14 @@ impl IncCompiler {
             Expecting::at_least(2).validate("sys/declare", decl.pos, &vec[1..])?;
             let value_type = ExpectedShape::extract_symbol("sys/declare", vec[1].clone())?;
             let (mut declare, body) = match &*value_type {
-              "value" | "superglobal" => {
+              "value" | "constant" | "superglobal" => {
                 let (name, target_name) = IncCompiler::get_declare_decl_name(vec[2])?;
                 let declare_type =
-                  if value_type == "superglobal" {
-                    decl::DeclareType::Superglobal
-                  } else {
-                    decl::DeclareType::Value
+                  match &*value_type {
+                    "value" => decl::DeclareType::Value,
+                    "constant" => decl::DeclareType::Constant,
+                    "superglobal" => decl::DeclareType::Superglobal,
+                    _ => panic!("Internal error in sys/declare, inconsistent match patterns"),
                   };
                 let decl = decl::DeclareDecl {
                   visibility: Visibility::DECLARE,

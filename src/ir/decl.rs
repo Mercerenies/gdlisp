@@ -150,9 +150,18 @@ pub struct DeclareDecl {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum DeclareType {
+  /// A value, with no hint as to its value or `const` status.
   Value,
+  /// A value, equivalent to [`DeclareType::Value`], but with a value
+  /// hint indicating that its value is immutable at runtime.
+  Constant,
+  /// A function available at the top-level of the current module.
   Function(ArgList),
+  /// A superglobal value, available from everywhere in the Godot
+  /// ecosystem without import.
   Superglobal,
+  /// A superglobal function, available from everywhere in the Godot
+  /// ecosystem without import.
   SuperglobalFn(ArgList),
 }
 
@@ -539,7 +548,7 @@ impl DeclareType {
 
   pub fn namespace(&self) -> Namespace {
     match self {
-      DeclareType::Value | DeclareType::Superglobal => Namespace::Value,
+      DeclareType::Value | DeclareType::Constant | DeclareType::Superglobal => Namespace::Value,
       DeclareType::Function(_) | DeclareType::SuperglobalFn(_) => Namespace::Function,
     }
   }
