@@ -437,7 +437,7 @@ impl IncCompiler {
                     "value" => decl::DeclareType::Value,
                     "constant" => decl::DeclareType::Constant,
                     "superglobal" => decl::DeclareType::Superglobal,
-                    _ => panic!("Internal error in sys/declare, inconsistent match patterns"),
+                    _ => unreachable!(),
                   };
                 let decl = decl::DeclareDecl {
                   visibility: Visibility::DECLARE,
