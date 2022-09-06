@@ -160,6 +160,15 @@ const y = x
 }
 
 #[test]
+pub fn declare_value_test_4() {
+  assert_eq!(parse_compile_decl("((sys/declare constant x) (defconst y x))"), r#"extends Reference
+
+
+const y = x
+"#);
+}
+
+#[test]
 pub fn declare_value_non_const_test() {
   assert_eq!(
     parse_compile_decl_err("((sys/declare value x) (defconst y x))"),
