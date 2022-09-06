@@ -835,6 +835,31 @@
 (sys/declare superglobal (TAU TAU) public)
 (sys/declare superglobal (INF INF) public)
 
+;; Global constants we inherit automatically from Object and expose.
+
+(sys/declare value CONNECT_DEFERRED public)
+(sys/declare value CONNECT_PERSIST public)
+(sys/declare value CONNECT_ONESHOT public)
+(sys/declare value CONNECT_REFERENCE_COUNTED public)
+(sys/declare value NOTIFICATION_POSTINITIALIZE public)
+(sys/declare value NOTIFICATION_PREDELETE public)
+
+;; Note: Godot doesn't consider the above names constant for some
+;; reason, since they're apparently defined *on* `Object` in some
+;; weird way. So we have to hardcode the numerical values in the
+;; enums. We have test cases to make sure these numbers are consistent
+;; with the Godot values for the same.
+
+(defenum ConnectFlags
+  (DEFERRED 1)
+  (PERSIST 2)
+  (ONESHOT 4)
+  (REFERENCE_COUNTED 8))
+
+(defenum Notification
+  (POSTINITIALIZE 0)
+  (PREDELETE 1))
+
 ;; TYPE_* Constants
 
 (defclass GDLispSpecialType (Reference) private)

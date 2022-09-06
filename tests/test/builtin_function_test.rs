@@ -482,4 +482,17 @@ pub fn vector_constant_print_test() {
   assert_eq!(parse_and_run("((print Vector2:LEFT) (print Vector3:AXIS_Z))"), "\n(-1, 0)\n2\n");
 }
 
+#[test]
+pub fn object_constant_value_test() {
+  // We had to hard-code these values in, so validate that they match
+  // what Godot expects.
+  assert_eq!(parse_and_run(r#"((print (= CONNECT_DEFERRED ConnectFlags:DEFERRED))
+                               (print (= CONNECT_PERSIST ConnectFlags:PERSIST))
+                               (print (= CONNECT_ONESHOT ConnectFlags:ONESHOT))
+                               (print (= CONNECT_REFERENCE_COUNTED ConnectFlags:REFERENCE_COUNTED))
+                               (print (= NOTIFICATION_POSTINITIALIZE Notification:POSTINITIALIZE))
+                               (print (= NOTIFICATION_PREDELETE Notification:PREDELETE)))"#),
+             "\nTrue\nTrue\nTrue\nTrue\nTrue\nTrue\n");
+}
+
 // TODO Test gensym at runtime once we can pretty-print symbols
