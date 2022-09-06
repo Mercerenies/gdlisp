@@ -38,7 +38,7 @@ pub fn symbol_macro_test() {
   assert_eq!(parse_compile_decl("((define-symbol-macro foo 10) (defn bar () foo))"), r#"extends Reference
 
 
-static func foo():
+static func __gdlisp_SymbolMacroFunction_foo():
     return 10
 
 
@@ -305,6 +305,24 @@ static func run():
 }
 
 #[test]
+pub fn symbol_macro_shared_name_with_function_test() {
+  assert_eq!(parse_and_run(r#"((define-symbol-macro foo 100)
+                               (defn foo () 101)
+                               (print foo)
+                               (print (foo)))"#),
+             "\n100\n101\n");
+}
+
+#[test]
+pub fn symbol_macro_shared_name_with_macro_test() {
+  assert_eq!(parse_and_run(r#"((define-symbol-macro foo 100)
+                               (defmacro foo () 101)
+                               (print foo)
+                               (print (foo)))"#),
+             "\n100\n101\n");
+}
+
+#[test]
 pub fn macrolet_global_function_shadowing_test_1() {
   let result = parse_compile_decl("((defn foo () 100) (defn run () [(foo) (macrolet ((foo () 99)) (foo)) (foo)]))");
   assert_eq!(result, r#"extends Reference
@@ -368,7 +386,7 @@ pub fn symbol_macrolet_global_function_shadowing_test_3() {
   assert_eq!(result, r#"extends Reference
 
 
-static func foo():
+static func __gdlisp_SymbolMacroFunction_foo():
     return 100
 
 
@@ -383,7 +401,7 @@ pub fn symbol_macrolet_global_function_shadowing_test_4() {
   assert_eq!(result, r#"extends Reference
 
 
-static func foo():
+static func __gdlisp_SymbolMacroFunction_foo():
     return 100
 
 

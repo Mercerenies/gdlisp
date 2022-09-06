@@ -33,6 +33,7 @@ use crate::compile::names::generator::NameGenerator;
 use crate::compile::frame::MAX_QUOTE_REIFY_DEPTH;
 use crate::compile::body::class_initializer::InitTime;
 use crate::gdscript::library;
+use crate::gdscript::metadata;
 use crate::gdscript::decl::Static;
 use crate::pipeline::error::{PError, IOError};
 use crate::pipeline::Pipeline;
@@ -838,11 +839,18 @@ impl IncCompiler {
     let mut deps = Dependencies::identify(table.borrow(), &imported_names, &*Id::build(namespace, &tmp_name), pos);
     deps.purge_unknowns(library::all_builtin_names(self.minimalist).iter().map(|x| x as &dyn IdLike<NS=Namespace>));
 
+    let runtime_name =
+      if namespace == Namespace::Value {
+        metadata::symbol_macro(&tmp_name)
+      } else {
+        tmp_name.clone()
+      };
+
     // Aside from built-in functions, it must be the case that
     // all referenced functions are already defined.
     let names = deps.try_into_knowns()?;
     let tmpfile = macros::create_macro_file(pipeline, self.imports.clone(), table.borrow(), names, pos, self.minimalist)?;
-    let m_id = pipeline.get_server_mut().stand_up_macro(tmp_name, decl.args, tmpfile).map_err(|err| IOError::new(err, pos))?;
+    let m_id = pipeline.get_server_mut().stand_up_macro(runtime_name, decl.args, tmpfile).map_err(|err| IOError::new(err, pos))?;
     self.macros.insert(Id::new(namespace, orig_name), MacroData { id: m_id, imported: false });
 
     Ok(())

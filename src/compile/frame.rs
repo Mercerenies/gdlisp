@@ -31,6 +31,7 @@ use crate::gdscript::expr::{Expr, ExprF};
 use crate::gdscript::stmt::Stmt;
 use crate::gdscript::decl::{self, Decl, DeclF};
 use crate::gdscript::inner_class;
+use crate::gdscript::metadata;
 use crate::sxp::reify::pretty::reify_pretty_expr;
 use crate::runner::path::RPathBuf;
 
@@ -272,7 +273,7 @@ impl<'a, 'b, 'c, 'd, 'e> CompilerFrame<'a, 'b, 'c, 'd, 'e, CodeBuilder> {
         // Note: Macros compile identically to functions, as far as
         // this stage of compilation is concerned. They'll be resolved
         // and then purged during the IR phase.
-        let gd_name = names::lisp_to_gd(name);
+        let gd_name = metadata::symbol_macro(&names::lisp_to_gd(name));
         let function = factory::declare_function(self, gd_name, IRArgList::empty(), body, &stmt_wrapper::Return)?;
         self.builder.add_decl(Decl::new(DeclF::FnDecl(decl::Static::IsStatic, function), decl.pos));
         Ok(())

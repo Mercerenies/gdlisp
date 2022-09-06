@@ -24,7 +24,7 @@ static func _lazy_0():
     return _cond
 
 
-static func x():
+static func __gdlisp_SymbolMacroFunction_x():
     return GDLisp.cons(GDLisp.cons(GDLisp.intern("access-slot"), GDLisp.cons(GDLisp.cons(GDLisp.intern("contextual-load"), GDLisp.cons("res://TEST.gd", null)), GDLisp.cons(GDLisp.intern("_lazy_0"), null))), null)
 "#);
 }
@@ -52,7 +52,7 @@ static func _lazy_0():
     return _cond
 
 
-static func x():
+static func __gdlisp_SymbolMacroFunction_x():
     return GDLisp.cons(GDLisp.cons(GDLisp.intern("access-slot"), GDLisp.cons(GDLisp.cons(GDLisp.intern("contextual-load"), GDLisp.cons("res://TEST.gd", null)), GDLisp.cons(GDLisp.intern("_lazy_0"), null))), null)
 "#);
 }

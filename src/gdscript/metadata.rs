@@ -32,6 +32,12 @@ pub const CONS_META: &str = "__gdlisp_Primitive_Cons";
 /// values in GDLisp.
 pub const SYMBOL_META: &str = "__gdlisp_Primitive_Symbol";
 
+/// Given a GDScript function name, prefix it appropriately for a
+/// symbol macro with the given name.
+pub fn symbol_macro(name: &str) -> String {
+  format!("{}_SymbolMacroFunction_{}", PREFIX, name)
+}
+
 /// Given a GDLisp lazy val, this is the name of the metadata with
 /// suffix `name`.
 ///

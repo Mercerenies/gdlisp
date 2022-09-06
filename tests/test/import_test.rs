@@ -361,7 +361,7 @@ fn symbol_macro_uses_other_import_test() {
 const _Import_0 = preload("res://example.gd")
 
 
-static func x():
+static func __gdlisp_SymbolMacroFunction_x():
     return _Import_0.add_one(2)
 
 
