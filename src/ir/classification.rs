@@ -10,6 +10,13 @@ use crate::pipeline::source::SourceOffset;
 use std::convert::TryInto;
 use std::borrow::Borrow;
 
+/// A `super` call detected by [`detect_super`].
+#[derive(Clone, Debug)]
+pub struct DetectedSuperCall<'a> {
+  pub arguments: Vec<&'a AST>,
+  pub pos: SourceOffset,
+}
+
 /// Here, we list the heads for all valid declaration types. Note that
 /// `progn` is specifically not included here; `progn` is an
 /// expression-level special form which is also a deeply magical
@@ -54,14 +61,18 @@ pub fn is_decl(decl: &AST) -> bool {
 /// If a "super" call is present, its arguments, as well as a slice of
 /// the rest of the body, is returned. Otherwise, the whole slice is
 /// returned untouched.
-pub fn detect_super<'a, 'b>(body: &'a [&'b AST]) -> (Option<(Vec<&'b AST>, SourceOffset)>, &'a [&'b AST]) {
+pub fn detect_super<'a, 'b>(body: &'a [&'b AST]) -> (Option<DetectedSuperCall<'b>>, &'a [&'b AST]) {
   if !body.is_empty() {
     let first: Result<Vec<_>, _> = DottedExpr::new(body[0]).try_into();
     if let Ok(mut first) = first {
       if !first.is_empty() && first[0].value == ASTF::Symbol(String::from("super")) {
         let super_symbol = first.remove(0);
         let super_args = first;
-        return (Some((super_args, super_symbol.pos)), &body[1..]);
+        let super_call = DetectedSuperCall {
+          arguments: super_args,
+          pos: super_symbol.pos,
+        };
+        return (Some(super_call), &body[1..]);
       }
     }
   }

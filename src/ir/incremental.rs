@@ -533,10 +533,16 @@ impl IncCompiler {
             // Check for super call (only valid in constructor, but we
             // run the check unconditionally)
             let (super_call, body) = classification::detect_super(body);
-            let super_call = super_call.map::<Result<_, PError>, _>(|(super_call, pos)| {
-              let call = super_call.iter().map(|expr| self.compile_expr(pipeline, expr)).collect::<Result<Vec<_>, _>>()?;
-              Ok(decl::SuperCall { call, pos })
-            }).transpose()?;
+            let super_call = match super_call {
+              None => None,
+              Some(super_call) => {
+                let call =
+                  super_call.arguments.iter()
+                    .map(|expr| self.compile_expr(pipeline, expr))
+                    .collect::<Result<Vec<_>, _>>()?;
+                Some(decl::SuperCall { call, pos: super_call.pos })
+              }
+            };
 
             let body = body.iter().map(|expr| self.compile_expr(pipeline, expr)).collect::<Result<Vec<_>, _>>()?;
             if fname.is_constructor_function() {
