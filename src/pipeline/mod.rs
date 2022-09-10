@@ -55,7 +55,7 @@ enum KnownFile {
   /// state results in a [`GDError::CyclicImport`] error.
   PartiallyLoaded,
   /// A fully loaded file, accessible to other files for import.
-  FullyLoaded(TranslationUnit),
+  FullyLoaded(Box<TranslationUnit>),
 }
 
 impl Pipeline {
@@ -162,7 +162,7 @@ impl Pipeline {
 
     mem::swap(&mut old_file_path, &mut self.current_file_path);
 
-    self.known_files.insert(input_path.to_owned(), KnownFile::FullyLoaded(unit));
+    self.known_files.insert(input_path.to_owned(), KnownFile::FullyLoaded(Box::new(unit)));
     Ok(self.get_loaded_file(input_path, SourceOffset(0)).expect("Path not present in load_file"))
   }
 

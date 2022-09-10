@@ -396,7 +396,7 @@ impl VarName {
       }
       VarName::DirectLoad(filename) => {
         // A direct load does not change when imported. It still directly loads the same file.
-        VarName::DirectLoad(filename.clone())
+        VarName::DirectLoad(filename)
       }
       VarName::CurrentFile(_) => {
         // The current file imports as the name of the import itself.
