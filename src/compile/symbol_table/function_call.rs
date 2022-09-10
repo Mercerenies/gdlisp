@@ -338,19 +338,23 @@ impl FnName {
   /// constant `AConst`, then calling `foo.as_imported("AConst")` will
   /// convert the name to how it should be referenced from `B.gd`.
   pub fn into_imported(self, import_name: String) -> FnName {
+    self.into_imported_var(VarName::FileConstant(import_name))
+  }
+
+  pub fn into_imported_var(self, import: VarName) -> FnName {
     match self {
       FnName::FileConstant => {
-        FnName::imported_constant(VarName::FileConstant(import_name))
+        FnName::imported_constant(import)
       }
       FnName::Superglobal => {
         FnName::Superglobal
       }
       FnName::ImportedConstant(v) => {
-        FnName::imported_constant(v.into_imported(import_name))
+        FnName::imported_constant(v.into_imported_var(import))
       }
       FnName::OnLocalVar(v) => {
         // This case probably shouldn't happen, but oh well. Delegate to VarName.
-        FnName::on_local_var(v.into_imported(import_name))
+        FnName::on_local_var(v.into_imported_var(import))
       }
       FnName::OnLocalScope => {
         // This case definitely shouldn't happen. Leave it alone I guess.

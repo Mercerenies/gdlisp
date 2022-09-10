@@ -63,6 +63,8 @@ pub enum VarName {
   /// case, as `VarName::CurrentFile` is required to compile to a
   /// `load(...)` call rather than a simple name.
   CurrentFile(String),
+  /// A `load` call on a file other than the current file.
+  DirectLoad(String),
   /// A null value. This is used as a placeholder for things in the
   /// value namespace that don't have runtime presence, such as symbol
   /// macros.
@@ -85,6 +87,9 @@ pub enum VarNameIntoExtendsError {
   /// It is not permitted to have a class extend the currently loading
   /// file. This would cause a cyclic load error in Godot.
   CannotExtendCurrentFile(String),
+  /// It is not permitted to have a class extend a `load` function
+  /// call.
+  CannotExtendLoadDirective(String),
   /// The null [`VarName`] is used in some places as a placeholder for
   /// values that don't exist at runtime (i.e. those fully handled
   /// during the IR macro expansion phase). Needless to say, we can't
@@ -272,6 +277,7 @@ impl LocalVar {
       VarName::ImportedConstant(_, _) => {}
       VarName::SubscriptedConstant(_, _) => {}
       VarName::CurrentFile(_) => {}
+      VarName::DirectLoad(_) => {}
       VarName::Null => {}
     }
   }
@@ -347,6 +353,7 @@ impl VarName {
       VarName::ImportedConstant(_, _) => None,
       VarName::SubscriptedConstant(_, _) => None,
       VarName::CurrentFile(_) => None,
+      VarName::DirectLoad(_) => None,
       VarName::Null => None,
     }
   }
@@ -359,15 +366,19 @@ impl VarName {
   /// constant `AConst`, then calling `foo.as_imported("AConst")` will
   /// convert the name to how it should be referenced from `B.gd`.
   pub fn into_imported(self, import_name: String) -> VarName {
+    self.into_imported_var(VarName::FileConstant(import_name))
+  }
+
+  pub fn into_imported_var(self, import: VarName) -> VarName {
     match self {
       VarName::Local(s) => {
         // To be honest, this case probably should never occur. So
         // we'll just pretend it's FileConstant.
-        VarName::ImportedConstant(Box::new(VarName::FileConstant(import_name)), s)
+        VarName::ImportedConstant(Box::new(import), s)
       }
       VarName::FileConstant(s) => {
         // Import file constants by qualifying the name.
-        VarName::ImportedConstant(Box::new(VarName::FileConstant(import_name)), s)
+        VarName::ImportedConstant(Box::new(import), s)
       }
       VarName::Superglobal(s) => {
         // Superglobals are always in scope and don't change on import.
@@ -375,17 +386,21 @@ impl VarName {
       }
       VarName::ImportedConstant(lhs, s) => {
         // Import the constant transitively.
-        let lhs = Box::new(lhs.into_imported(import_name));
+        let lhs = Box::new(lhs.into_imported_var(import));
         VarName::ImportedConstant(lhs, s)
       }
       VarName::SubscriptedConstant(lhs, n) => {
         // Import the constant transitively.
-        let lhs = Box::new(lhs.into_imported(import_name));
+        let lhs = Box::new(lhs.into_imported_var(import));
         VarName::SubscriptedConstant(lhs, n)
+      }
+      VarName::DirectLoad(filename) => {
+        // A direct load does not change when imported. It still directly loads the same file.
+        VarName::DirectLoad(filename.clone())
       }
       VarName::CurrentFile(_) => {
         // The current file imports as the name of the import itself.
-        VarName::FileConstant(import_name)
+        import
       }
       VarName::Null => {
         // Null is already available everywhere.
@@ -404,6 +419,7 @@ impl VarName {
       VarName::Superglobal(s) => Expr::new(ExprF::Var(s), pos),
       VarName::ImportedConstant(lhs, s) => Expr::new(ExprF::Attribute(Box::new(lhs.into_expr(pos)), s), pos),
       VarName::SubscriptedConstant(lhs, n) => Expr::new(ExprF::Subscript(Box::new(lhs.into_expr(pos)), Box::new(Expr::from_value(n, pos))), pos),
+      VarName::DirectLoad(filename) => VarName::load_expr(filename, pos),
       VarName::CurrentFile(filename) => VarName::load_expr(filename, pos),
       VarName::Null => Expr::null(pos),
     }
@@ -439,6 +455,9 @@ impl TryFrom<VarName> for ClassExtends {
       VarName::SubscriptedConstant(lhs, n) => {
         Err(VarNameIntoExtendsError::CannotExtendSubscript(lhs, n))
       }
+      VarName::DirectLoad(s) => {
+        Err(VarNameIntoExtendsError::CannotExtendLoadDirective(s))
+      }
       VarName::CurrentFile(s) => {
         Err(VarNameIntoExtendsError::CannotExtendCurrentFile(s))
       }
@@ -473,6 +492,9 @@ impl fmt::Display for VarNameIntoExtendsError {
       }
       VarNameIntoExtendsError::CannotExtendCurrentFile(s) => {
         write!(f, "Cannot extend reference to current file {}", s)
+      }
+      VarNameIntoExtendsError::CannotExtendLoadDirective(s) => {
+        write!(f, "Cannot extend direct load of file {}", s)
       }
       VarNameIntoExtendsError::CannotExtendNull => {
         write!(f, "Cannot extend null value")
