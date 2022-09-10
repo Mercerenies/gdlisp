@@ -5,7 +5,6 @@ use super::incremental::IncCompiler;
 use super::arglist::ordinary::ArgList;
 use super::expr::Expr;
 use super::decl::{Decl, DeclF, FnDecl};
-use super::MAIN_BODY_NAME;
 use super::export::Visibility;
 use crate::pipeline::source::SourceOffset;
 use crate::compile::error::{GDError, GDErrorF};
@@ -59,20 +58,8 @@ impl MainFunctionHandler for DisallowMainFunctionHandler {
 
 impl StaticMainFunctionHandler {
 
-  pub fn new() -> Self {
-    Self::default()
-  }
-
-  pub fn with_name(function_name: String) -> Self {
+  pub fn new(function_name: String) -> Self {
     StaticMainFunctionHandler { function_name }
-  }
-
-}
-
-impl Default for StaticMainFunctionHandler {
-
-  fn default() -> Self {
-    Self::with_name(MAIN_BODY_NAME.to_owned())
   }
 
 }

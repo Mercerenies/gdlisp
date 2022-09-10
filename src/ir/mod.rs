@@ -29,6 +29,7 @@ pub mod scope;
 pub mod bootstrapping;
 pub mod loops;
 pub mod main_function;
+pub mod classification;
 
 use decl::Decl;
 use macros::MacroData;
@@ -39,10 +40,6 @@ use crate::pipeline::error::PError;
 use crate::pipeline::Pipeline;
 
 use std::collections::HashMap;
-
-/// The name of a module's "run" function. A static top-level function
-/// with this name should appear in every GDLisp module.
-pub const MAIN_BODY_NAME: &str = "run";
 
 pub fn compile_toplevel(pipeline: &mut Pipeline, body: &AST, main_function_handler: &impl MainFunctionHandler)
                         -> Result<(decl::TopLevel, HashMap<Id, MacroData>), PError> {

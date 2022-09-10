@@ -76,7 +76,7 @@ where T : IntoGDFile + ?Sized {
 */
 
 fn main_function_handler() -> StaticMainFunctionHandler {
-  StaticMainFunctionHandler::with_name(TEST_FUNCTION_NAME.to_owned())
+  StaticMainFunctionHandler::new(TEST_FUNCTION_NAME.to_owned())
 }
 
 pub fn dummy_config() -> ProjectConfig {
