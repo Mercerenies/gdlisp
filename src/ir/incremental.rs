@@ -539,7 +539,7 @@ impl IncCompiler {
             }).transpose()?;
 
             let body = body.iter().map(|expr| self.compile_expr(pipeline, expr)).collect::<Result<Vec<_>, _>>()?;
-            if IncCompiler::is_constructor_function(&fname) {
+            if fname.is_constructor_function() {
               // Constructor
 
               // There can only be one constructor defined in the class
@@ -610,14 +610,6 @@ impl IncCompiler {
       }
     } else {
       Err(PError::from(GDError::new(GDErrorF::UnknownDecl(curr.clone()), curr.pos)))
-    }
-  }
-
-  fn is_constructor_function(fname: &InstanceFunctionName) -> bool {
-    if let InstanceFunctionName::Ordinary(fname) = fname {
-      fname == library::CONSTRUCTOR_NAME
-    } else {
-      false
     }
   }
 
@@ -812,18 +804,18 @@ impl IncCompiler {
     &mut self.names
   }
 
-  // The name of the declaration in a `sys/declare` form can take one
-  // of two forms. It can either be a single symbol literal or a list
-  // of two symbol literals. In the former case, the symbol is
-  // considered to be both the GDLisp name and the target GDScript
-  // name, with the latter being escaped using `lisp_to_gd`. In the
-  // latter case, the first symbol is the GDLisp name, and the second
-  // is the target GDScript name, escaped with `lisp_to_gd_bare` (note
-  // that we use the "bare" variant in this case, to allow explicit
-  // overriding of GDScript identifiers in this case).
-  //
-  // This function returns the GDLisp name and, if present, the
-  // GDScript target name. No escaping is done by this function.
+  /// The name of the declaration in a `sys/declare` form can take one
+  /// of two forms. It can either be a single symbol literal or a list
+  /// of two symbol literals. In the former case, the symbol is
+  /// considered to be both the GDLisp name and the target GDScript
+  /// name, with the latter being escaped using `lisp_to_gd`. In the
+  /// latter case, the first symbol is the GDLisp name, and the second
+  /// is the target GDScript name, escaped with `lisp_to_gd_bare`
+  /// (note that we use the "bare" variant in this case, to allow
+  /// explicit overriding of GDScript identifiers in this case).
+  ///
+  /// This function returns the GDLisp name and, if present, the
+  /// GDScript target name. No escaping is done by this function.
   fn get_declare_decl_name(form: &AST) -> Result<(String, Option<String>), GDError> {
     fn inner(form: &AST) -> Option<(String, Option<String>)> {
       if let ASTF::Symbol(name) = &form.value {

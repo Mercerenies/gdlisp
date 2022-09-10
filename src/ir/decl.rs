@@ -10,6 +10,7 @@ use super::export::Visibility;
 use crate::sxp::ast::{AST, ASTF};
 use crate::sxp::dotted::DottedExpr;
 use crate::gdscript::decl::Static;
+use crate::gdscript::library;
 use crate::pipeline::source::{SourceOffset, Sourced};
 use crate::compile::body::class_initializer::InitTime;
 use crate::compile::body::synthetic_field::{Getter, Setter};
@@ -609,6 +610,17 @@ impl InstanceFunctionName {
     }
   }
 
+  /// Returns true if this is the name of a constructor function, i.e.
+  /// if this is an ordinary function whose name is equal to
+  /// [`CONSTRUCTOR_NAME`](library::CONSTRUCTOR_NAME).
+  pub fn is_constructor_function(&self) -> bool {
+    if let InstanceFunctionName::Ordinary(fname) = self {
+      fname == library::CONSTRUCTOR_NAME
+    } else {
+      false
+    }
+  }
+
 }
 
 impl Sourced for Decl {
@@ -780,6 +792,17 @@ mod tests {
     assert_eq!(InstanceFunctionName::parse(&parse_ast("()")), None);
     assert_eq!(InstanceFunctionName::parse(&parse_ast("(set)")), None);
     assert_eq!(InstanceFunctionName::parse(&parse_ast("(get)")), None);
+  }
+
+  #[test]
+  fn is_constructor_name_test() {
+    assert!(InstanceFunctionName::Ordinary(String::from("_init")).is_constructor_function());
+    assert!(!InstanceFunctionName::Ordinary(String::from("init")).is_constructor_function());
+    assert!(!InstanceFunctionName::Ordinary(String::from("foobar")).is_constructor_function());
+    assert!(!InstanceFunctionName::Setter(String::from("_init")).is_constructor_function());
+    assert!(!InstanceFunctionName::Getter(String::from("_init")).is_constructor_function());
+    assert!(!InstanceFunctionName::Setter(String::from("abcdef")).is_constructor_function());
+    assert!(!InstanceFunctionName::Getter(String::from("baz")).is_constructor_function());
   }
 
 }
