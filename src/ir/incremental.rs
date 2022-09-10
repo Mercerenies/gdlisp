@@ -523,7 +523,7 @@ impl IncCompiler {
         "defn" => {
           // TODO Unify some of this with the equivalent code from compile_decl?
           Expecting::at_least(2).validate("defn", curr.pos, &vec[1..])?;
-          if let Some(fname) = IncCompiler::compile_instance_function_name(vec[1]) {
+          if let Some(fname) = InstanceFunctionName::parse(vec[1]) {
             let args: Vec<_> = DottedExpr::new(vec[2]).try_into()?;
             let args = arglist::parser::parse(args)?;
 
@@ -610,33 +610,6 @@ impl IncCompiler {
       }
     } else {
       Err(PError::from(GDError::new(GDErrorF::UnknownDecl(curr.clone()), curr.pos)))
-    }
-  }
-
-  fn compile_instance_function_name(ast: &AST) -> Option<InstanceFunctionName> {
-    if let ASTF::Symbol(name) = &ast.value {
-      Some(InstanceFunctionName::Ordinary(name.to_owned()))
-    } else {
-      let list: Vec<_> = DottedExpr::new(ast).try_into().ok()?;
-      if let [accessor_type, field_name] = &*list {
-        if let ASTF::Symbol(field_name) = &field_name.value {
-          match &accessor_type.value {
-            ASTF::Symbol(set) if set == "set" => {
-              Some(InstanceFunctionName::Setter(field_name.to_owned()))
-            }
-            ASTF::Symbol(get) if get == "get" => {
-              Some(InstanceFunctionName::Getter(field_name.to_owned()))
-            }
-            _ => {
-              None
-            }
-          }
-        } else {
-          None
-        }
-      } else {
-        None
-      }
     }
   }
 

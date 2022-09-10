@@ -7,6 +7,8 @@ use super::literal::Literal;
 use super::import::ImportDecl;
 use super::identifier::{Namespace, ClassNamespace, Id, IdLike};
 use super::export::Visibility;
+use crate::sxp::ast::{AST, ASTF};
+use crate::sxp::dotted::DottedExpr;
 use crate::gdscript::decl::Static;
 use crate::pipeline::source::{SourceOffset, Sourced};
 use crate::compile::body::class_initializer::InitTime;
@@ -14,6 +16,7 @@ use crate::compile::body::synthetic_field::{Getter, Setter};
 
 use std::collections::HashMap;
 use std::borrow::Cow;
+use std::convert::TryInto;
 use std::iter;
 
 #[derive(Clone, Debug, Eq, PartialEq, Default)]
@@ -557,6 +560,41 @@ impl DeclareType {
 
 impl InstanceFunctionName {
 
+  /// Given an [`AST`] representing the name of an instance function,
+  /// returns the name as an [`InstanceFunctionName`]. Specifically,
+  /// the following are attempted in order.
+  ///
+  /// 1. If the [`AST`] argument holds an [`ASTF::Symbol`], then this
+  /// is an [`InstanceFunctionName::Ordinary`] name.
+  ///
+  /// 2. Otherwise, if the argument is a (proper) list of two
+  /// elements, both of which are symbols, and if the first symbol is
+  /// `set`, then this is an [`InstanceFunctionName::Setter`].
+  ///
+  /// 3. If the argument is a (proper) list of two elements, both of
+  /// which are symbols, and if the first symbol is `get`, then this
+  /// is an [`InstanceFunctionName::Getter`].
+  ///
+  /// 4. Otherwise, parsing fails and `None` is returned.
+  pub fn parse(ast: &AST) -> Option<InstanceFunctionName> {
+    if let ASTF::Symbol(name) = &ast.value {
+      return Some(InstanceFunctionName::Ordinary(name.to_owned()));
+    }
+    let list: Vec<_> = DottedExpr::new(ast).try_into().ok()?;
+    if let [accessor_type, field_name] = &*list {
+      if let ASTF::Symbol(field_name) = &field_name.value {
+        if let ASTF::Symbol(accessor_type) = &accessor_type.value {
+          match accessor_type.as_ref() {
+            "set" => { return Some(InstanceFunctionName::Setter(field_name.to_owned())); }
+            "get" => { return Some(InstanceFunctionName::Getter(field_name.to_owned())); }
+            _ => {}
+          }
+        }
+      }
+    }
+    None
+  }
+
   /// The name of the method being defined, using the GDLisp naming
   /// conventions (e.g., characters such as `-` will *not* be
   /// converted in the returned value). For
@@ -631,6 +669,11 @@ impl From<(ClassDecl, Vec<Expr>)> for expr::LambdaClass {
 #[cfg(test)]
 mod tests {
   use super::*;
+  use crate::AST_PARSER;
+
+  fn parse_ast(input: &str) -> AST {
+    AST_PARSER.parse(input).unwrap()
+  }
 
   fn sample_class(class_name: &str, main_class: bool) -> ClassDecl {
     ClassDecl {
@@ -708,6 +751,35 @@ mod tests {
     };
     // Should be reported at the source position of the *second* main class
     assert_eq!(example.find_main_class(), Err(DuplicateMainClassError(SourceOffset(20))));
+  }
+
+  #[test]
+  fn parse_instance_function_name_test() {
+
+    assert_eq!(InstanceFunctionName::parse(&parse_ast("abc")),
+               Some(InstanceFunctionName::Ordinary(String::from("abc"))));
+
+    assert_eq!(InstanceFunctionName::parse(&parse_ast("foo-bar")),
+               Some(InstanceFunctionName::Ordinary(String::from("foo-bar"))));
+
+    assert_eq!(InstanceFunctionName::parse(&parse_ast("(set pizza)")),
+               Some(InstanceFunctionName::Setter(String::from("pizza"))));
+
+    assert_eq!(InstanceFunctionName::parse(&parse_ast("(get pizza)")),
+               Some(InstanceFunctionName::Getter(String::from("pizza"))));
+
+  }
+
+  #[test]
+  fn parse_instance_function_name_failures_test() {
+    assert_eq!(InstanceFunctionName::parse(&parse_ast("0")), None);
+    assert_eq!(InstanceFunctionName::parse(&parse_ast("(get a b c)")), None);
+    assert_eq!(InstanceFunctionName::parse(&parse_ast("(put abc)")), None);
+    assert_eq!(InstanceFunctionName::parse(&parse_ast("(get 100)")), None);
+    assert_eq!(InstanceFunctionName::parse(&parse_ast("\"alpha\"")), None);
+    assert_eq!(InstanceFunctionName::parse(&parse_ast("()")), None);
+    assert_eq!(InstanceFunctionName::parse(&parse_ast("(set)")), None);
+    assert_eq!(InstanceFunctionName::parse(&parse_ast("(get)")), None);
   }
 
 }
