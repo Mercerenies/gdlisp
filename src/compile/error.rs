@@ -251,6 +251,12 @@ pub enum GDErrorF {
   /// found, or is added to Godot in a future version, we can allow it
   /// easily.
   ExprAtTopLevel(IRExpr),
+  /// The minimalist flag was set during REPL evaluation.
+  ///
+  /// The minimalist flag is only intended for use in stdlib. It is at
+  /// least sensible in other files, but in the REPL it's absolutely
+  /// meaningless.
+  MinimalistAtRepl,
 }
 
 /// Variant of [`GDErrorF`] with source offset information. See
@@ -377,6 +383,7 @@ impl GDErrorF {
       GDErrorF::BadBootstrappingDirective(_) => 56,
       GDErrorF::LoopPrimitiveError(_) => 57,
       GDErrorF::ExprAtTopLevel(_) => 58,
+      GDErrorF::MinimalistAtRepl => 59,
     }
   }
 
@@ -392,6 +399,7 @@ impl GDErrorF {
       GDErrorF::MacroInMinimalistError(_) => true,
       GDErrorF::ContextualFilenameUnresolved => true,
       GDErrorF::BadBootstrappingDirective(_) => true,
+      GDErrorF::MinimalistAtRepl => true,
       _ => false,
     }
   }
@@ -533,6 +541,9 @@ impl fmt::Display for GDErrorF {
       }
       GDErrorF::ExprAtTopLevel(_) => {
         write!(f, "Expressions at the top-level of a file are not allowed")?;
+      }
+      GDErrorF::MinimalistAtRepl => {
+        write!(f, "Minimalist flag makes no sense at the REPL")?;
       }
     }
     if self.is_internal() {

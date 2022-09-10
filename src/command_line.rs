@@ -22,6 +22,9 @@ pub struct CommandLineArgs {
   /// Whether the internal `--compile-stdlib` was provided.
   pub compile_stdlib_flag: bool,
 
+  /// Whether the `--legacy-repl` command was provided.
+  pub legacy_repl_flag: bool,
+
 }
 
 impl CommandLineArgs {
@@ -49,7 +52,8 @@ pub fn options() -> Options {
     .parsing_style(ParsingStyle::FloatingFrees)
     .long_only(false)
     .optflag("", "help", "Display usage information")
-    .optflag("", "compile-stdlib", "Compile the GDLisp standard library");
+    .optflag("", "compile-stdlib", "Compile the GDLisp standard library")
+    .optflag("", "legacy-repl", "Run the old-style GDLisp REPL which compiles rather than executing (legacy)");
   opts
 }
 
@@ -69,6 +73,7 @@ pub fn parse_args(args: &[String]) -> CommandLineArgs {
 
       result.help_message = parsed.opt_present("help");
       result.compile_stdlib_flag = parsed.opt_present("compile-stdlib");
+      result.legacy_repl_flag = parsed.opt_present("legacy-repl");
       result.input_file = parsed.free.first().cloned();
 
       result

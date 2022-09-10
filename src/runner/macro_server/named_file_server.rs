@@ -193,6 +193,14 @@ impl NamedFileServer {
   /// on the same `NamedFileServer` instance.
   pub fn run_server_file(&mut self, id: MacroID, prelude: Vec<Stmt>, args: Vec<GDExpr>, pos: SourceOffset)
                          -> Result<AST, PError> {
+    let result = self.run_server_file_str(id, prelude, args, pos)?;
+    let parsed = AST_PARSER.parse(&result)?;
+    //println!("{}", parsed);
+    Ok(parsed)
+  }
+
+  pub fn run_server_file_str(&mut self, id: MacroID, prelude: Vec<Stmt>, args: Vec<GDExpr>, pos: SourceOffset)
+                             -> Result<String, PError> {
     let call = self.get_file(id).expect("Invalid MacroID in run_server_file");
     let specs = FnSpecs::from(call.parms.clone());
     let call_object =
@@ -234,7 +242,7 @@ impl NamedFileServer {
                    prelude: Vec<Stmt>,
                    call: FnCall,
                    args: Vec<GDExpr>,
-                   pos: SourceOffset) -> Result<AST, PError> {
+                   pos: SourceOffset) -> Result<String, PError> {
     let server = self.server.get_mut().map_err(|err| IOError::new(err, pos))?;
     let expr = compile_default_call(call, args, pos)?;
     let mut stmts = prelude;
@@ -243,9 +251,7 @@ impl NamedFileServer {
     Stmt::write_gd_stmts(stmts.iter(), &mut exec_str, 4).expect("Could not write to string in do_macro_call");
     let result = server.issue_command(&ServerCommand::Exec(exec_str)).map_err(|err| IOError::new(err, pos))?;
     let result = response_to_string(result).map_err(|err| IOError::new(err, pos))?;
-    let parsed = AST_PARSER.parse(&result)?;
-    //println!("{}", parsed);
-    Ok(parsed)
+    Ok(result)
   }
 
   /// Issues a command to the server setting its global name generator

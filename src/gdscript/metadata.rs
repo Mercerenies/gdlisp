@@ -32,6 +32,10 @@ pub const CONS_META: &str = "__gdlisp_Primitive_Cons";
 /// values in GDLisp.
 pub const SYMBOL_META: &str = "__gdlisp_Primitive_Symbol";
 
+/// The name of the global function we define in a REPL file to
+/// indicate the REPL code to be run.
+pub const REPL_FUNCTION_NAME: &str = "__gdlisp_Repl_runner";
+
 /// Given a GDScript function name, prefix it appropriately for a
 /// symbol macro with the given name.
 pub fn symbol_macro(name: &str) -> String {

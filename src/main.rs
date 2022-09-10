@@ -14,6 +14,7 @@ lalrpop_mod!(pub parser);
 
 use gdlisp::gdscript::{decl, library};
 use gdlisp::command_line::{parse_args, show_help_message};
+use gdlisp::repl::Repl;
 use gdlisp::pipeline::Pipeline;
 use gdlisp::pipeline::config::ProjectConfig;
 use gdlisp::pipeline::source::SourcedValue;
@@ -45,6 +46,31 @@ fn run_pseudo_repl(godot_version: VersionInfo) {
       Ok(trans) => {
         let cls = decl::TopLevelClass::from(trans);
         print!("{}", cls.to_gd());
+      }
+    }
+  }
+
+}
+
+fn run_repl(godot_version: VersionInfo) {
+  let stdin = io::stdin();
+  let config = ProjectConfig {
+    root_directory: PathBuf::from_str(".").unwrap(), // Infallible
+    optimizations: true,
+    godot_version,
+  };
+  let mut repl = Repl::new(config);
+
+  for line in stdin.lock().lines() {
+    let line = line.unwrap();
+    let result = repl.parse_and_run_code(&line);
+    match result {
+      Err(err) => {
+        let err = SourcedValue::new(&err, &line);
+        println!("Error: {}", err);
+      }
+      Ok(result) => {
+        println!("{}", result);
       }
     }
   }
@@ -114,8 +140,10 @@ fn main() {
       } else {
         compile_file(input, VersionInfo::parse(&version));
       }
-    } else {
+    } else if parsed_args.legacy_repl_flag {
       run_pseudo_repl(VersionInfo::parse(&version));
+    } else {
+      run_repl(VersionInfo::parse(&version));
     }
 
   }
