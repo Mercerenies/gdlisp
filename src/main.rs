@@ -27,6 +27,7 @@ use std::env;
 use std::path::{PathBuf, Path};
 use std::str::FromStr;
 
+// Legacy REPL
 fn run_pseudo_repl(godot_version: VersionInfo) {
   let stdin = io::stdin();
   let config = ProjectConfig {
