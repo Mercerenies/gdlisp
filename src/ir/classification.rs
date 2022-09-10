@@ -16,7 +16,7 @@ use std::borrow::Borrow;
 /// construct treated in a special way by the compiler during parsing.
 /// It is *not* a declaration, even though it can look like one
 /// syntactically.
-pub const DECL_HEADS: [&'static str; 9] = [
+pub const DECL_HEADS: [&str; 9] = [
   "defn", "defmacro", "defconst", "defclass", "defenum", "sys/declare",
   "define-symbol-macro", "sys/bootstrap", "sys/min-godot-version",
 ];
