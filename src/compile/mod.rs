@@ -409,7 +409,7 @@ impl Compiler {
         path.path_mut().set_extension("gd");
       }
       self.resolver.resolve_preload(&path)
-        .ok_or_else(|| GDError::new(GDErrorF::NoSuchFile(path.clone()), pos))
+        .ok_or_else(|| GDError::new(GDErrorF::NoSuchFile(path.to_string()), pos))
   }
 
   /// Compile a `preload` call, using the current preload resolver on
@@ -466,7 +466,7 @@ impl Compiler {
 
     if res_type == ResourceType::GDLispSource {
       // Now add the pertinent symbols to the symbol table
-      let unit = pipeline.load_file(&import.filename.path())?;
+      let unit = pipeline.load_file(&import.filename.path(), import.pos)?;
       let unit_table = &unit.table;
       let exports = &unit.exports;
       let names = import.names(&unit.exports);

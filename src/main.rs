@@ -17,7 +17,7 @@ use gdlisp::command_line::{parse_args, show_help_message};
 use gdlisp::repl::Repl;
 use gdlisp::pipeline::Pipeline;
 use gdlisp::pipeline::config::ProjectConfig;
-use gdlisp::pipeline::source::SourcedValue;
+use gdlisp::pipeline::source::{SourcedValue, SourceOffset};
 use gdlisp::runner::version::{VersionInfo, get_godot_version_as_string};
 
 use walkdir::WalkDir;
@@ -80,7 +80,7 @@ fn run_repl(godot_version: VersionInfo) {
 fn compile_file<P : AsRef<Path> + ?Sized>(input: &P, godot_version: VersionInfo) {
   let input = input.as_ref();
   let mut pipeline = Pipeline::new(ProjectConfig { root_directory: input.parent().unwrap_or(input).to_owned(), optimizations: true, godot_version });
-  match pipeline.load_file(input.file_name().unwrap()) {
+  match pipeline.load_file(input.file_name().unwrap(), SourceOffset(0)) {
     Err(err) => {
       let err = SourcedValue::from_file(&err, input).unwrap();
       println!("Error: {}", err);
@@ -96,7 +96,7 @@ fn compile_all_files<P : AsRef<Path> + ?Sized>(input: &P, godot_version: Version
     if entry.path().is_file() && entry.path().extension() == Some("lisp".as_ref()) {
       println!("Compiling {} ...", entry.path().to_string_lossy());
       let path = entry.path().strip_prefix(&pipeline.config().root_directory).expect("Non-local file load detected");
-      match pipeline.load_file(path) {
+      match pipeline.load_file(path, SourceOffset(0)) {
         Err(err) => {
           let err = SourcedValue::from_file(&err, entry.path()).unwrap();
           println!("Error in {}: {}", entry.path().to_string_lossy(), err);

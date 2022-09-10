@@ -94,7 +94,7 @@ pub fn load_stdlib_to_file() -> StdlibUnit {
 }
 
 fn load_stdlib_file(pipeline: &mut Pipeline) -> &TranslationUnit {
-  pipeline.load_file(&PathBuf::from("GDLisp.lisp")).expect("Error loading standard library")
+  pipeline.load_file(&PathBuf::from("GDLisp.lisp"), SourceOffset(0)).expect("Error loading standard library")
 }
 
 /// Ensure that the standard library `GDLisp.lisp` has been compiled.

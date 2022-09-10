@@ -14,7 +14,6 @@ use crate::ir::scope::error::ScopeError;
 use crate::ir::loops::error::LoopPrimitiveError;
 use crate::ir::depends::DependencyError;
 use crate::compile::symbol_table::local_var::VarNameIntoExtendsError;
-use crate::runner::path::RPathBuf;
 use crate::runner::macro_server::response;
 use crate::pipeline::source::{SourceOffset, Sourced};
 
@@ -104,9 +103,9 @@ pub enum GDErrorF {
   /// but in a context where splicing does not make sense, such as in
   /// the cdr of a dotted list or as a part of a dictionary literal.
   BadUnquoteSpliced(AST),
-  /// The current preload resolver failed to resolve the file with the
-  /// given path.
-  NoSuchFile(RPathBuf),
+  /// The current preload resolver or pipeline failed to resolve the
+  /// file with the given path.
+  NoSuchFile(String),
   /// An import declaration includes an explicit named import whose
   /// namespace is ambiguous.
   ///
@@ -257,6 +256,8 @@ pub enum GDErrorF {
   /// least sensible in other files, but in the REPL it's absolutely
   /// meaningless.
   MinimalistAtRepl,
+  /// A file load was attempted in a cyclic order.
+  CyclicImport(String),
 }
 
 /// Variant of [`GDErrorF`] with source offset information. See
@@ -384,6 +385,7 @@ impl GDErrorF {
       GDErrorF::LoopPrimitiveError(_) => 57,
       GDErrorF::ExprAtTopLevel(_) => 58,
       GDErrorF::MinimalistAtRepl => 59,
+      GDErrorF::CyclicImport(_) => 60,
     }
   }
 
@@ -544,6 +546,9 @@ impl fmt::Display for GDErrorF {
       }
       GDErrorF::MinimalistAtRepl => {
         write!(f, "Minimalist flag makes no sense at the REPL")?;
+      }
+      GDErrorF::CyclicImport(filename) => {
+        write!(f, "Attempted to load '{}' while it was being loaded (cyclic import)", filename)?;
       }
     }
     if self.is_internal() {

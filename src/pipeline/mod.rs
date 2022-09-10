@@ -22,6 +22,7 @@ use crate::compile::body::builder::CodeBuilder;
 use crate::compile::body::class_scope::OutsideOfClass;
 use crate::compile::symbol_table::SymbolTable;
 use crate::compile::preload_resolver::{DefaultPreloadResolver, LookupPreloadResolver};
+use crate::compile::error::{GDError, GDErrorF};
 use crate::gdscript::library;
 use crate::gdscript::library::gdnative::NativeClasses;
 use crate::gdscript::class_extends::ClassExtends;
@@ -41,11 +42,20 @@ use std::mem;
 pub struct Pipeline {
   config: ProjectConfig,
   resolver: Box<dyn NameResolver>,
-  known_files: HashMap<PathBuf, TranslationUnit>,
+  known_files: HashMap<PathBuf, KnownFile>,
   known_files_paths: HashMap<PathBuf, PathBuf>,
   server: NamedFileServer,
   native_classes: Lazy<NativeClasses, fn() -> NativeClasses>,
   current_file_path: Option<RPathBuf>,
+}
+
+/// The state of a file known to the [`Pipeline`].
+enum KnownFile {
+  /// A partially loaded file. An attempt to access a file in this
+  /// state results in a [`GDError::CyclicImport`] error.
+  PartiallyLoaded,
+  /// A fully loaded file, accessible to other files for import.
+  FullyLoaded(TranslationUnit),
 }
 
 impl Pipeline {
@@ -108,6 +118,8 @@ impl Pipeline {
     let mut input_file = self.resolver.resolve_input_path(input_path).map_err(|err| IOError::new(err, SourceOffset(0)))?;
     let mut output_file = self.resolver.resolve_output_path(&output_path).map_err(|err| IOError::new(err, SourceOffset(0)))?;
 
+    self.known_files.insert(input_path.to_owned(), KnownFile::PartiallyLoaded);
+
     let contents = util::read_to_end(&mut input_file).map_err(|err| IOError::new(err, SourceOffset(0)))?;
     let unit = self.compile_code(&input_path, &contents)?;
     write!(output_file, "{}", unit.gdscript.to_gd()).map_err(|err| IOError::new(err, SourceOffset(0)))?;
@@ -150,14 +162,18 @@ impl Pipeline {
 
     mem::swap(&mut old_file_path, &mut self.current_file_path);
 
-    self.known_files.insert(input_path.to_owned(), unit);
-    Ok(self.known_files.get(input_path).expect("Path not present in load_file"))
+    self.known_files.insert(input_path.to_owned(), KnownFile::FullyLoaded(unit));
+    Ok(self.get_loaded_file(input_path, SourceOffset(0)).expect("Path not present in load_file"))
   }
 
-  pub fn get_loaded_file<'a, 'b, P>(&'a self, input_path: &'b P)
-                                    -> Option<&'a TranslationUnit>
+  pub fn get_loaded_file<'a, 'b, P>(&'a self, input_path: &'b P, pos: SourceOffset)
+                                    -> Result<&'a TranslationUnit, PError>
   where P : AsRef<Path> + ?Sized {
-    self.known_files.get(input_path.as_ref())
+    match self.known_files.get(input_path.as_ref()) {
+      None => Err(PError::from(GDError::new(GDErrorF::NoSuchFile(input_path.as_ref().to_string_lossy().into_owned()), pos))),
+      Some(KnownFile::PartiallyLoaded) => Err(PError::from(GDError::new(GDErrorF::CyclicImport(input_path.as_ref().to_string_lossy().into_owned()), pos))),
+      Some(KnownFile::FullyLoaded(unit)) => Ok(unit),
+    }
   }
 
   fn to_absolute_path<P>(&self, input_path: &P) -> PathBuf
@@ -170,22 +186,24 @@ impl Pipeline {
     }
   }
 
-  pub fn load_file<'a, 'b, P>(&'a mut self, input_path: &'b P)
+  pub fn load_file<'a, 'b, P>(&'a mut self, input_path: &'b P, pos: SourceOffset)
                               -> Result<&'a TranslationUnit, PError>
   where P : AsRef<Path> + ?Sized {
     let input_path = self.to_absolute_path(input_path);
     // if-let here causes Rust to complain due to lifetime rules, so
     // we use contains_key instead.
     if self.known_files.contains_key(&input_path) {
-      Ok(self.get_loaded_file(&input_path).unwrap())
+      self.get_loaded_file(&input_path, pos)
     } else {
       self.load_file_unconditionally(&input_path)
     }
   }
 
-  pub fn get_file<'a, 'b, P>(&'a self, input_path: &'b P) -> Option<&'a TranslationUnit>
+  // TODO This is redundant with get_loaded_file and is only here for
+  // legacy reasons.
+  pub fn get_file<'a, 'b, P>(&'a self, input_path: &'b P, pos: SourceOffset) -> Result<&'a TranslationUnit, PError>
   where P :AsRef<Path> + ?Sized {
-    self.get_loaded_file(input_path)
+    self.get_loaded_file(input_path, pos)
   }
 
   pub fn get_server(&self) -> &NamedFileServer {

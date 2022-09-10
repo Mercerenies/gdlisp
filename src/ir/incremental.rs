@@ -657,7 +657,7 @@ impl IncCompiler {
     if let Some(imp) = self.compile_import(curr)? { // TODO Consider doing the is_decl thing with imports so we have a nice, pure function called is_import to call here instead?
       let res_type = ResourceType::from(&imp);
       if res_type.can_have_macros() {
-        let file = pipeline.load_file(imp.filename.path())?;
+        let file = pipeline.load_file(imp.filename.path(), curr.pos)?;
         self.import_macros_from(file, &imp);
       }
       self.imports.push(imp);
@@ -722,7 +722,7 @@ impl IncCompiler {
     }
 
     let translation_names = self.imports.iter().map(|import| {
-      let unit = pipeline.load_file(&import.filename.path())?;
+      let unit = pipeline.load_file(&import.filename.path(), pos)?;
       Ok(import.names(&unit.exports))
     }).collect::<Result<Vec<_>, PError>>()?;
     let imported_names: HashSet<_> =
