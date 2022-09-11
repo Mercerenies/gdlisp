@@ -55,6 +55,15 @@ impl Repl {
     }
   }
 
+  /// Normally, the macro server and all of the subsystems are lazy
+  /// and only load when requested. However, this creates the awkward
+  /// effect where the REPL loads fast but then the first command (and
+  /// only the first command) takes a long time to run. This function
+  /// can be called to force the subsystems to load immediately.
+  pub fn force_load(&mut self) {
+    self.parse_and_run_code("()").expect("Internal error in force_load");
+  }
+
   pub fn run_code(&mut self, code: &AST) -> Result<String, PError> {
     self.pipeline.set_currently_loading_file(RPathBuf::try_from(String::from(Repl::REPL_FILENAME)).unwrap());
 

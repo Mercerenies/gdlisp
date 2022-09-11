@@ -61,6 +61,7 @@ fn run_repl(godot_version: VersionInfo) {
     godot_version,
   };
   let mut repl = Repl::new(config);
+  repl.force_load();
 
   for line in stdin.lock().lines() {
     let line = line.unwrap();
