@@ -56,8 +56,8 @@ pub fn compile_and_check(pipeline: &mut Pipeline, body: &AST, main_function_hand
 }
 
 pub fn check_ir(ir: &decl::TopLevel) -> Result<(), GDError> {
-  scope::check_scopes(&ir)?;
-  loops::check_all_exprs(&ir)?;
+  scope::check_scopes(ir)?;
+  loops::check_all_exprs(ir)?;
   Ok(())
 }
 
