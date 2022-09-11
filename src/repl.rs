@@ -6,6 +6,8 @@ use crate::pipeline::config::ProjectConfig;
 use crate::runner::path::RPathBuf;
 use crate::sxp::ast::AST;
 use crate::ir;
+use crate::ir::incremental::IncCompiler;
+use crate::ir::macros::MacroData;
 use crate::ir::identifier::{Namespace, Id};
 use crate::ir::main_function::StaticMainFunctionHandler;
 use crate::ir::arglist::ordinary::ArgList;
@@ -29,10 +31,12 @@ use tempfile::Builder;
 use std::convert::TryFrom;
 use std::io::Write;
 use std::path::Path;
+use std::collections::HashMap;
 
 pub struct Repl {
   pipeline: Pipeline,
   full_symbol_table: SymbolTable,
+  full_macro_table: HashMap<Id, MacroData>,
 }
 
 impl Repl {
@@ -47,6 +51,7 @@ impl Repl {
     Repl {
       pipeline,
       full_symbol_table: SymbolTable::new(),
+      full_macro_table: HashMap::new(),
     }
   }
 
@@ -55,7 +60,10 @@ impl Repl {
 
     let mut compiler = Compiler::new(FreshNameGenerator::new(code.all_symbols()), Box::new(DefaultPreloadResolver));
 
-    let (ir, _macros) = ir::compile_and_check(&mut self.pipeline, code, &Repl::main_function_handler())?;
+    let mut icompiler = IncCompiler::with_ambient_symbols(code.all_symbols(), self.full_symbol_table.clone()); // TODO Don't like this clone here, symbol tables are big and cloning is expensive.
+    icompiler.bind_macros_from(self.full_macro_table.iter().map(|(id, data)| (id.clone(), data.clone())));
+    let (ir, macros) = icompiler.compile_toplevel(&mut self.pipeline, code, &Repl::main_function_handler())?;
+    ir::check_ir(&ir)?;
 
     if ir.minimalist_flag {
       return Err(PError::from(GDError::new(GDErrorF::MinimalistAtRepl, SourceOffset(0))));
@@ -93,6 +101,7 @@ impl Repl {
     // If everything happened correctly, then save the symbols we got
     // from this line.
     self.remember_symbols(&tmpfile_name, &mut table, &ir::export::get_export_list(&ir.decls));
+    self.full_macro_table.extend(macros.into_iter());
 
     Ok(final_result)
   }

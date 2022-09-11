@@ -48,8 +48,8 @@ impl MacroData {
 
 }
 
-pub fn create_macro_file(pipeline: &mut Pipeline, imports: Vec<ImportDecl>, src_table: &DeclarationTable, names: HashSet<Id>, pos: SourceOffset, minimalist: bool) -> Result<NamedTempFile, PError> {
-  let mut table = SymbolTable::new();
+pub fn create_macro_file(pipeline: &mut Pipeline, imports: Vec<ImportDecl>, src_table: &DeclarationTable, names: HashSet<Id>, existing_symbols: &SymbolTable, pos: SourceOffset, minimalist: bool) -> Result<NamedTempFile, PError> {
+  let mut table = existing_symbols.clone();
   library::bind_builtins(&mut table, minimalist);
 
   let current_filename = pipeline.current_filename();

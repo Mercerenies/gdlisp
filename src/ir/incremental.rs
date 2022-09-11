@@ -25,6 +25,7 @@ use crate::util::one::One;
 use crate::sxp::dotted::{DottedExpr, TryFromDottedExprError};
 use crate::sxp::ast::{AST, ASTF};
 use crate::sxp::reify::pretty::reify_pretty_expr;
+use crate::compile::symbol_table::SymbolTable;
 use crate::compile::error::{GDError, GDErrorF};
 use crate::compile::resource_type::ResourceType;
 use crate::compile::args::{self, Expecting, ExpectedShape};
@@ -56,6 +57,7 @@ pub struct IncCompiler {
   table: DeclarationTable,
   macros: HashMap<Id, MacroData>,
   imports: Vec<ImportDecl>,
+  ambient_symbols: SymbolTable,
   minimalist: bool, // A minimalist compiler doesn't use stdlib and doesn't do macro expansion
 }
 
@@ -63,12 +65,17 @@ pub struct IncCompiler {
 impl IncCompiler {
 
   pub fn new(names: Vec<&str>) -> IncCompiler {
+    IncCompiler::with_ambient_symbols(names, SymbolTable::new())
+  }
+
+  pub fn with_ambient_symbols(names: Vec<&str>, ambient_symbols: SymbolTable) -> IncCompiler {
     let names = FreshNameGenerator::new(names);
     IncCompiler {
       names: names,
       table: DeclarationTable::new(),
       macros: HashMap::new(),
       imports: vec!(),
+      ambient_symbols: ambient_symbols,
       minimalist: false,
     }
   }
@@ -725,8 +732,17 @@ impl IncCompiler {
       let unit = pipeline.load_file(&import.filename.path(), pos)?;
       Ok(import.names(&unit.exports))
     }).collect::<Result<Vec<_>, PError>>()?;
-    let imported_names: HashSet<_> =
+    let mut imported_names: HashSet<_> =
       translation_names.into_iter().flatten().map(ImportName::into_imported_id).collect();
+
+    // Now add any ambient symbols (most commonly, names defined in
+    // prior lines in a REPL) to the known imports.
+    for (name, _) in self.ambient_symbols.vars() {
+      imported_names.insert(Id::new(Namespace::Value, name.to_owned()));
+    }
+    for (name, _, _) in self.ambient_symbols.fns() {
+      imported_names.insert(Id::new(Namespace::Function, name.to_owned()));
+    }
 
     // If we're generating a name, then we need to modify the symbol
     // table to reflect that name.
@@ -762,7 +778,7 @@ impl IncCompiler {
     // Aside from built-in functions, it must be the case that
     // all referenced functions are already defined.
     let names = deps.try_into_knowns()?;
-    let tmpfile = macros::create_macro_file(pipeline, self.imports.clone(), table.borrow(), names, pos, self.minimalist)?;
+    let tmpfile = macros::create_macro_file(pipeline, self.imports.clone(), table.borrow(), names, &self.ambient_symbols, pos, self.minimalist)?;
     let m_id = pipeline.get_server_mut().stand_up_macro(runtime_name, decl.args, tmpfile).map_err(|err| IOError::new(err, pos))?;
     self.macros.insert(Id::new(namespace, orig_name), MacroData { id: m_id, imported: false });
 
@@ -796,6 +812,10 @@ impl IncCompiler {
     if !self.minimalist {
       library::bind_builtin_macros(&mut self.macros, pipeline);
     }
+  }
+
+  pub fn bind_macros_from(&mut self, existing_macros: impl IntoIterator<Item=(Id, MacroData)>) {
+    self.macros.extend(existing_macros.into_iter())
   }
 
   pub fn declaration_table(&mut self) -> &mut DeclarationTable {

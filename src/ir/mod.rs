@@ -36,6 +36,7 @@ use macros::MacroData;
 use identifier::Id;
 use main_function::MainFunctionHandler;
 use crate::sxp::ast::AST;
+use crate::compile::error::GDError;
 use crate::pipeline::error::PError;
 use crate::pipeline::Pipeline;
 
@@ -50,9 +51,14 @@ pub fn compile_toplevel(pipeline: &mut Pipeline, body: &AST, main_function_handl
 pub fn compile_and_check(pipeline: &mut Pipeline, body: &AST, main_function_handler: &impl MainFunctionHandler)
                         -> Result<(decl::TopLevel, HashMap<Id, MacroData>), PError> {
   let (ir, macros) = compile_toplevel(pipeline, body, main_function_handler)?;
+  check_ir(&ir)?;
+  Ok((ir, macros))
+}
+
+pub fn check_ir(ir: &decl::TopLevel) -> Result<(), GDError> {
   scope::check_scopes(&ir)?;
   loops::check_all_exprs(&ir)?;
-  Ok((ir, macros))
+  Ok(())
 }
 
 #[cfg(test)]
