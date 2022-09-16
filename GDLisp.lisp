@@ -1302,3 +1302,12 @@
      (set body (cons visibility body)) ; It's not a modifier, so it's part of the body
      (set visibility 'public)))
   `(deflazy ,name (new ,parent ,.body) ,visibility))
+
+(defmacro list/for (var list &rest body)
+  (let ((iter (gensym)))
+    `(let ((,iter ,list)
+           (,var ()))
+       (while (/= ,iter ())
+         (set ,var (access-slot ,iter car))
+         (set ,iter (access-slot ,iter cdr))
+         ,.body))))

@@ -162,3 +162,15 @@ pub fn list_elt_test_2() {
   "#);
   assert_eq!(result, "\n3\n");
 }
+
+#[test]
+pub fn list_foreach_test() {
+  let result = parse_and_run(r#"
+    ((let ((foo '(1 2 3 4 5))
+           (total 0))
+       (list/for x foo
+         (set total (+ total x)))
+       (print total)))
+  "#);
+  assert_eq!(result, "\n15\n");
+}
