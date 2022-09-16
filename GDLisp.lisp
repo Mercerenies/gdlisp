@@ -557,7 +557,7 @@
          outer:cdr)))))
 
 (defn list/tail (list k)
-  (for i (range k)
+  (for _i (range k)
     (set list list:cdr))
   list)
 
