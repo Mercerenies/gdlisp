@@ -507,4 +507,30 @@ pub fn last_thread_macro_test() {
   assert_eq!(parse_compile_and_output("(->> 1)"), "return 1\n");
 }
 
+#[test]
+pub fn as_thread_macro_test_1() {
+  assert_eq!(parse_compile_and_output("(as-> 1 v)"),
+             "return 1\n");
+}
+
+#[test]
+pub fn as_thread_macro_test_2() {
+  assert_eq!(parse_compile_and_output("(as-> 1 v (foo1 v) (foo2 v 2) (foo2 2 v))"),
+             r#"var v = 1
+var v_0 = foo1(v)
+var v_1 = foo2(v_0, 2)
+return foo2(2, v_1)
+"#);
+}
+
+#[test]
+pub fn as_thread_macro_test_3() {
+  assert_eq!(parse_compile_and_output("(as-> 1 v (foo1 v) (foo2 v v) (foo2 2 v))"),
+             r#"var v = 1
+var v_0 = foo1(v)
+var v_1 = foo2(v_0, v_0)
+return foo2(2, v_1)
+"#);
+}
+
 // TODO Test gensym at runtime once we can pretty-print symbols

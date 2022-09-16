@@ -1355,3 +1355,10 @@
               (rest forms:cdr))
           (let ((new-arg (snoc first arg)))
             `(->> ,new-arg ,.rest))))))
+
+(defmacro as-> (arg var &rest forms)
+  (cond
+    ((= forms nil) arg)
+    (#t (let ((first forms:car)
+              (rest forms:cdr))
+          `(as-> (let ((,var ,arg)) ,first) ,var ,.rest)))))
