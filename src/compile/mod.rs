@@ -188,6 +188,8 @@ impl Compiler {
               ));
             }
 
+            let field_name = names::lisp_to_gd(field_name);
+
             let conflicting_name = builder.declare_setter_for(field_name.to_owned());
             if conflicting_name.is_some() {
               return Err(GDError::new(
@@ -204,6 +206,8 @@ impl Compiler {
                 decl.pos,
               ));
             }
+
+            let field_name = names::lisp_to_gd(field_name);
 
             let conflicting_name = builder.declare_getter_for(field_name.to_owned());
             if conflicting_name.is_some() {

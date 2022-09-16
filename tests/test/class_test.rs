@@ -1506,6 +1506,30 @@ var x setget __gdlisp_set_x, __gdlisp_get_x
 }
 
 #[test]
+pub fn class_setget_test_6() {
+  assert_eq!(parse_compile_decl(r#"((defclass ClassName (Node) main
+                                      (defn (set x-y) (a))
+                                      (defn (get x-y) () 10)))"#),
+             r#"extends Node
+
+
+func _init():
+    pass
+
+
+func __gdlisp_set_x_y(a):
+    return null
+
+
+func __gdlisp_get_x_y():
+    return 10
+
+
+var x_y setget __gdlisp_set_x_y, __gdlisp_get_x_y
+"#);
+}
+
+#[test]
 pub fn class_setget_conflict_test_1() {
   assert_eq!(parse_compile_decl_err(r#"((defclass ClassName (Node)
                                          (defn (set x) (a))
