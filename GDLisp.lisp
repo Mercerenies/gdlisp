@@ -564,6 +564,9 @@
 (defn cons (a b)
   (Cons:new a b))
 
+(defn snoc (a b)
+  (append a (list b)))
+
 (defn init (a)
   (cond
     ((sys/instance-direct? a:cdr Cons) (cons a:car (init a:cdr)))
@@ -1344,3 +1347,11 @@
               (rest forms:cdr))
           (let ((new-arg (cons first:car (cons arg first:cdr))))
             `(-> ,new-arg ,.rest))))))
+
+(defmacro ->> (arg &rest forms)
+  (cond
+    ((= forms nil) arg)
+    (#t (let ((first (cond ((instance? forms:car Cons) forms:car) (#t (list forms:car))))
+              (rest forms:cdr))
+          (let ((new-arg (snoc first arg)))
+            `(->> ,new-arg ,.rest))))))

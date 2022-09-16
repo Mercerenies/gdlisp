@@ -501,4 +501,10 @@ pub fn thread_macro_test() {
   assert_eq!(parse_compile_and_output("(-> 1)"), "return 1\n");
 }
 
+#[test]
+pub fn last_thread_macro_test() {
+  assert_eq!(parse_compile_and_output("(->> 1 foo1 (foo1) (foo2 2))"), "return foo2(2, foo1(foo1(1)))\n");
+  assert_eq!(parse_compile_and_output("(->> 1)"), "return 1\n");
+}
+
 // TODO Test gensym at runtime once we can pretty-print symbols
