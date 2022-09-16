@@ -1336,3 +1336,11 @@
          (set ,var (access-slot ,iter car))
          (set ,iter (access-slot ,iter cdr))
          ,.body))))
+
+(defmacro -> (arg &rest forms)
+  (cond
+    ((= forms nil) arg)
+    (#t (let ((first (cond ((instance? forms:car Cons) forms:car) (#t (list forms:car))))
+              (rest forms:cdr))
+          (let ((new-arg (cons first:car (cons arg first:cdr))))
+            `(-> ,new-arg ,.rest))))))

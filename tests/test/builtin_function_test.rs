@@ -495,4 +495,10 @@ pub fn object_constant_value_test() {
              "\nTrue\nTrue\nTrue\nTrue\nTrue\nTrue\n");
 }
 
+#[test]
+pub fn thread_macro_test() {
+  assert_eq!(parse_compile_and_output("(-> 1 foo1 (foo1) (foo2 2))"), "return foo2(foo1(foo1(1)), 2)\n");
+  assert_eq!(parse_compile_and_output("(-> 1)"), "return 1\n");
+}
+
 // TODO Test gensym at runtime once we can pretty-print symbols
