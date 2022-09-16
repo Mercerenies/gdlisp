@@ -612,7 +612,7 @@
         (set xs xs:cdr))
       outer:cdr)))
 
-(defn reverse (arg) ;; TODO(!!) Rename and make array version?
+(defn list/reverse (arg)
   (let ((rev nil))
     (while (/= arg nil)
       (set rev `(,arg:car . ,rev))
@@ -676,6 +676,13 @@
       (cond
         ((funcall p (elt xs i))
          (result:push_back (elt xs i)))))
+    result))
+
+(defn array/reverse (arr)
+  (let ((len (len arr))
+        (result (arr:duplicate)))
+    (for i (range len)
+      (set (elt result i) (elt arr (- len i 1))))
     result))
 
 ;;; Higher-order functions
@@ -1187,7 +1194,7 @@
 ;;; Built-In Macros
 
 (defmacro or (&rest args)
-  (let ((args (reverse args)))
+  (let ((args (list/reverse args)))
     (cond
       (args
        (let ((result `((#t ,args:car))))
@@ -1199,7 +1206,7 @@
       (#t #f))))
 
 (defmacro and (&rest args)
-  (let ((args (reverse args)))
+  (let ((args (list/reverse args)))
     (cond
       (args
        (let ((result `((#t ,args:car))))

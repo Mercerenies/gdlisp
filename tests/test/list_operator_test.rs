@@ -23,6 +23,27 @@ pub fn array_test() {
 }
 
 #[test]
+pub fn reverse_test_1() {
+  let result = parse_and_run(r#"
+    ((print (array/reverse [1 2 3 4])))
+  "#);
+  assert_eq!(result, "\n[4, 3, 2, 1]\n");
+}
+
+#[test]
+pub fn reverse_test_2() {
+  let result = parse_and_run(r#"
+    ((let ((list (list/reverse '(1 2 3 4))))
+       (print (len list))
+       (print (list/elt list 0))
+       (print (list/elt list 1))
+       (print (list/elt list 2))
+       (print (list/elt list 3))))
+  "#);
+  assert_eq!(result, "\n4\n4\n3\n2\n1\n");
+}
+
+#[test]
 pub fn map_test_1() {
   let result = parse_and_run(r#"
     ((print (array/map (lambda (x) (+ x 1)) [4 5 6])))
