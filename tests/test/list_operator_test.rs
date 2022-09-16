@@ -25,7 +25,7 @@ pub fn array_test() {
 #[test]
 pub fn map_test_1() {
   let result = parse_and_run(r#"
-    ((print (map (lambda (x) (+ x 1)) [4 5 6])))
+    ((print (array/map (lambda (x) (+ x 1)) [4 5 6])))
   "#);
   assert_eq!(result, "\n[5, 6, 7]\n");
 }
@@ -33,7 +33,7 @@ pub fn map_test_1() {
 #[test]
 pub fn map_test_2() {
   let result = parse_and_run(r#"
-    ((let ((x (map (lambda (x) (+ x 1)) '(4 5 6))))
+    ((let ((x (list/map (lambda (x) (+ x 1)) '(4 5 6))))
        (print (len x))
        (print x:car)
        (print x:cdr:car)
@@ -45,7 +45,7 @@ pub fn map_test_2() {
 #[test]
 pub fn filter_test_1() {
   let result = parse_and_run(r#"
-    ((print (filter (lambda (x) (= (mod x 2) 0)) [1 2 3 4 5 6])))
+    ((print (array/filter (lambda (x) (= (mod x 2) 0)) [1 2 3 4 5 6])))
   "#);
   assert_eq!(result, "\n[2, 4, 6]\n");
 }
@@ -53,7 +53,7 @@ pub fn filter_test_1() {
 #[test]
 pub fn filter_test_2() {
   let result = parse_and_run(r#"
-    ((let ((x (filter (lambda (x) (= (mod x 2) 0)) '(1 2 3 4 5 6))))
+    ((let ((x (list/filter (lambda (x) (= (mod x 2) 0)) '(1 2 3 4 5 6))))
        (print (len x))
        (print x:car)
        (print x:cdr:car)
@@ -65,7 +65,7 @@ pub fn filter_test_2() {
 #[test]
 pub fn filter_test_3() {
   let result = parse_and_run(r#"
-    ((let ((x (filter (lambda (x) #f) '(1 2 3 4 5 6))))
+    ((let ((x (list/filter (lambda (x) #f) '(1 2 3 4 5 6))))
        (print (len x))))
   "#);
   assert_eq!(result, "\n0\n");

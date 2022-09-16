@@ -9,9 +9,6 @@ use gdlisp::compile::error::{GDError, GDErrorF};
 use gdlisp::pipeline::Pipeline;
 use gdlisp::pipeline::error::PError;
 use gdlisp::pipeline::source::SourceOffset;
-use gdlisp::runner::path::RPathBuf;
-
-use std::convert::TryFrom;
 
 fn setup_simple_file_loader(loader: &mut MockFileLoader) {
   loader.add_file("example.lisp", "(defn one () 1) (defn two () 2)");

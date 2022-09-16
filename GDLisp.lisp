@@ -592,44 +592,25 @@
 (defn list/elt (list n)
   (list/tail list n):car)
 
-(defn map (f xs) ; TODO(!!) Split
-  (cond
-    ((cond ((sys/instance-direct? xs Cons) #t) ((= xs nil) #t) (#f #t))
-     ;; List map
-     (let ((outer (cons nil nil)))
-       (let ((curr outer))
-         (while (/= xs nil)
-           (set curr:cdr (cons (funcall f xs:car) nil))
-           (set curr curr:cdr)
-           (set xs xs:cdr))
-         outer:cdr)))
-    (#t
-     ;; Array map
-     (let ((result []))
-       (for i (len xs)
-         (result:push_back (funcall f (elt xs i))))
-       result))))
+(defn list/map (f xs)
+  (let ((outer (cons nil nil)))
+    (let ((curr outer))
+      (while (/= xs nil)
+        (set curr:cdr (cons (funcall f xs:car) nil))
+        (set curr curr:cdr)
+        (set xs xs:cdr))
+      outer:cdr)))
 
-(defn filter (p xs) ; TODO(!!) Split
-  (cond
-    ((cond ((sys/instance-direct? xs Cons) #t) ((= xs nil) #t) (#t #f))
-     ;; List filter
-     (let ((outer (cons nil nil)))
-       (let ((curr outer))
-         (while (/= xs nil)
-           (cond
-             ((funcall p xs:car)
-              (set curr:cdr (cons xs:car nil))
-              (set curr curr:cdr)))
-           (set xs xs:cdr))
-         outer:cdr)))
-    (#t
-     (let ((result []))
-       (for i (len xs)
-            (cond
-              ((funcall p (elt xs i))
-               (result:push_back (elt xs i)))))
-       result))))
+(defn list/filter (p xs)
+  (let ((outer (cons nil nil)))
+    (let ((curr outer))
+      (while (/= xs nil)
+        (cond
+          ((funcall p xs:car)
+           (set curr:cdr (cons xs:car nil))
+           (set curr curr:cdr)))
+        (set xs xs:cdr))
+      outer:cdr)))
 
 (defn reverse (arg) ;; TODO(!!) Rename and make array version?
   (let ((rev nil))
@@ -682,6 +663,20 @@
   (cond
     ((instance? a GDLisp:BaseArray) a)
     (#t (list->array a))))
+
+(defn array/map (f xs)
+  (let ((result []))
+    (for i (len xs)
+      (result:push_back (funcall f (elt xs i))))
+    result))
+
+(defn array/filter (p xs)
+  (let ((result []))
+    (for i (len xs)
+      (cond
+        ((funcall p (elt xs i))
+         (result:push_back (elt xs i)))))
+    result))
 
 ;;; Higher-order functions
 
