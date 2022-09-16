@@ -752,17 +752,6 @@
   (sys/call-magic GET-NODE-SYNTAX)
   (obj:get-node path))
 
-(defn sys/native-class-private () private ; TODO(!!) Unused?
-  ;; TODO This is a messy hack. Godot chokes if we write
-  ;; "GDScript.get_class()" because it thinks we're calling a
-  ;; non-static function in a static context. So we store the
-  ;; "GDScript" object in a local variable. Optimizations may clobber
-  ;; this hack eventually, so we need a better way to reify
-  ;; pseudo-objects in Godot like GDScript and (especially) things
-  ;; like Object or Vector2.
-  (let ((x GDScript))
-    (x:get_class)))
-
 (defn instance? (value type)
   (cond
     ((sys/instance-direct? type GDLispSpecialType) (type:satisfies? value))
