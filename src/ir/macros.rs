@@ -58,7 +58,7 @@ pub fn create_macro_file(pipeline: &mut Pipeline, imports: Vec<ImportDecl>, src_
   // Replace the current file name with the macro file name.
   resolver.insert(current_filename.into_path(), tmp_file.path().to_owned());
 
-  let mut compiler = Compiler::new(FreshNameGenerator::new(vec!()), Box::new(resolver));
+  let mut compiler = Compiler::new(FreshNameGenerator::new(vec!()), Box::new(resolver), minimalist);
   let decls = Vec::from(src_table.filter(|d| names.contains(&*d.id_like())));
   let toplevel = {
     let mut toplevel = TopLevel { imports, decls, minimalist_flag: minimalist };

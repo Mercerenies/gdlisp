@@ -28,10 +28,11 @@ pub fn compile_flet(frame: &mut CompilerFrame<StmtBuilder>,
                     clauses: &[LocalFnClause],
                     body: &IRExpr,
                     needs_result: NeedsResult,
+                    minimalist: bool,
                     pos: SourceOffset)
                     -> Result<StExpr, GDError> {
   let local_fns = clauses.iter().map(|clause| {
-    let call = compile_flet_call(frame, clause.args.to_owned(), &clause.body, pos)?;
+    let call = compile_flet_call(frame, clause.args.to_owned(), &clause.body, minimalist, pos)?;
     Ok((clause.name.to_owned(), call))
   }).collect::<Result<Vec<_>, GDError>>()?;
   frame.with_local_fns(&mut local_fns.into_iter(), |frame| {
@@ -42,6 +43,7 @@ pub fn compile_flet(frame: &mut CompilerFrame<StmtBuilder>,
 fn compile_flet_call(frame: &mut CompilerFrame<StmtBuilder>,
                      args: IRArgList,
                      body: &IRExpr,
+                     minimalist: bool,
                      pos: SourceOffset)
                      -> Result<FnCall, GDError> {
   if is_declaration_semiglobal(&args, body, frame.table) {
@@ -60,7 +62,7 @@ fn compile_flet_call(frame: &mut CompilerFrame<StmtBuilder>,
     })
   } else {
     // Have to make a full closure object.
-    let stmt = lambda::compile_lambda_stmt(frame, &args, body, pos)?.expr;
+    let stmt = lambda::compile_lambda_stmt(frame, &args, body, minimalist, pos)?.expr;
     let local_name = factory::declare_var(&mut RegisteredNameGenerator::new_local_var(frame.table), frame.builder, "_flet", Some(stmt), pos);
     let specs = FnSpecs::from(args);
     Ok(FnCall {
@@ -125,7 +127,7 @@ impl<'a, 'b, 'c, 'd, 'e, 'f, 'g, 'h, 'i, 'j, 'k, I : Iterator<Item=usize>> Compi
           // Simple FLet-like case.
           let name = current_scc.iter().next().expect("Internal error in SCC detection (no first element?)");
           let clause = self.clauses.iter().find(|clause| clause.name == **name).expect("Internal error in SCC detection (no function found?)");
-          let call = compile_flet_call(self.frame, clause.args.to_owned(), &clause.body, self.pos)?;
+          let call = compile_flet_call(self.frame, clause.args.to_owned(), &clause.body, self.frame.compiler.is_minimalist(), self.pos)?;
           self.with_local_fn((*name).to_owned(), call, |alg| {
             alg.compile_labels_rec()
           })

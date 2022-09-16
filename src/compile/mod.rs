@@ -63,16 +63,17 @@ pub struct Compiler {
   resolver: Box<dyn PreloadResolver>,
   magic_table: MagicTable,
   import_table: ImportTable,
+  minimalist: bool,
 }
 
 impl Compiler {
 
   /// Constructs a new compiler associated with the given name
   /// generator and preload resolver.
-  pub fn new(gen: FreshNameGenerator, resolver: Box<dyn PreloadResolver>) -> Compiler {
+  pub fn new(gen: FreshNameGenerator, resolver: Box<dyn PreloadResolver>, minimalist: bool) -> Compiler {
     let magic_table = library::magic::standard_magic_table();
     let import_table = ImportTable::default();
-    Compiler { gen, resolver, magic_table, import_table }
+    Compiler { gen, resolver, magic_table, import_table, minimalist }
   }
 
   pub fn nil_expr(pos: SourceOffset) -> StExpr {
@@ -89,6 +90,10 @@ impl Compiler {
 
   pub fn import_path_table(&self) -> &ImportTable {
     &self.import_table
+  }
+
+  pub fn is_minimalist(&self) -> bool {
+    self.minimalist
   }
 
   pub fn frame<'a, 'b, 'c, 'd, 'e, B>(&'a mut self,
@@ -571,7 +576,7 @@ mod tests {
     let mut pipeline = Pipeline::new(ProjectConfig { root_directory: PathBuf::from("."), optimizations: false, godot_version: VersionInfo::default() });
 
     let used_names = ast.all_symbols();
-    let mut compiler = Compiler::new(FreshNameGenerator::new(used_names), Box::new(DefaultPreloadResolver));
+    let mut compiler = Compiler::new(FreshNameGenerator::new(used_names), Box::new(DefaultPreloadResolver), false);
     let mut table = SymbolTable::new();
     bind_helper_symbols(&mut table);
     library::bind_builtins(&mut table, true);

@@ -72,6 +72,7 @@ pub fn generate_lambda_class(class_name: String,
                              args: ArgList,
                              closed_vars: &[String],
                              lambda_body: Vec<Stmt>,
+                             minimalist_run: bool,
                              pos: SourceOffset)
                              -> decl::ClassDecl {
   let func_name = String::from("call_func");
@@ -108,8 +109,16 @@ pub fn generate_lambda_class(class_name: String,
   ));
   decl::ClassDecl {
     name: class_name,
-    extends: ClassExtends::SimpleIdentifier(String::from("GDLisp")).attribute(String::from("Function")),
+    extends: gdlisp_function_class(minimalist_run),
     body: class_body,
+  }
+}
+
+fn gdlisp_function_class(minimalist_run: bool) -> ClassExtends {
+  if minimalist_run {
+    ClassExtends::SimpleIdentifier(String::from("Function"))
+  } else {
+    ClassExtends::SimpleIdentifier(String::from("GDLisp")).attribute(String::from("Function"))
   }
 }
 

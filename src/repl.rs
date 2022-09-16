@@ -67,7 +67,7 @@ impl Repl {
   pub fn run_code(&mut self, code: &AST) -> Result<String, PError> {
     self.pipeline.set_currently_loading_file(RPathBuf::try_from(String::from(Repl::REPL_FILENAME)).unwrap());
 
-    let mut compiler = Compiler::new(FreshNameGenerator::new(code.all_symbols()), Box::new(DefaultPreloadResolver));
+    let mut compiler = Compiler::new(FreshNameGenerator::new(code.all_symbols()), Box::new(DefaultPreloadResolver), false);
 
     let mut icompiler = IncCompiler::with_ambient_symbols(code.all_symbols(), self.full_symbol_table.clone()); // TODO Don't like this clone here, symbol tables are big and cloning is expensive.
     icompiler.bind_macros_from(self.full_macro_table.iter().map(|(id, data)| (id.clone(), data.clone())));

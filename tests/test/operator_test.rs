@@ -381,6 +381,22 @@ pub fn min_max_run_test() {
 }
 
 #[test]
+pub fn gcd_run_test() {
+  assert_eq!(parse_and_run("((print (gcd)))"), "\n0\n");
+  assert_eq!(parse_and_run("((print (gcd 100)))"), "\n100\n");
+  assert_eq!(parse_and_run("((print (gcd 75 50)))"), "\n25\n");
+  assert_eq!(parse_and_run("((print (gcd 75 10 50)))"), "\n5\n");
+}
+
+#[test]
+pub fn lcm_run_test() {
+  assert_eq!(parse_and_run("((print (lcm)))"), "\n1\n");
+  assert_eq!(parse_and_run("((print (lcm 100)))"), "\n100\n");
+  assert_eq!(parse_and_run("((print (lcm 75 50)))"), "\n150\n");
+  assert_eq!(parse_and_run("((print (lcm 2 3 4 5)))"), "\n60\n");
+}
+
+#[test]
 fn eq_num_test() {
   assert_eq!(parse_and_run("((print (= 4 4)) (print (= 4 3)) (print (= 4 4.0)))"), "\nTrue\nFalse\nTrue\n");
 }

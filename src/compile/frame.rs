@@ -421,19 +421,19 @@ impl<'a, 'b, 'c, 'd, 'e> CompilerFrame<'a, 'b, 'c, 'd, 'e, StmtBuilder> {
         let_block::compile_let(self, clauses, body, needs_result, expr.pos)
       }
       IRExprF::FLet(clauses, body) => {
-        flet::compile_flet(self, clauses, body, needs_result, expr.pos)
+        flet::compile_flet(self, clauses, body, needs_result, self.compiler.is_minimalist(), expr.pos)
       }
       IRExprF::Labels(clauses, body) => {
         flet::compile_labels(self, clauses, body, needs_result, expr.pos)
       }
       IRExprF::Lambda(args, body) => {
-        lambda::compile_lambda_stmt(self, args, body, expr.pos)
+        lambda::compile_lambda_stmt(self, args, body, self.compiler.is_minimalist(), expr.pos)
       }
       IRExprF::FuncRef(name) => {
         match name {
           FuncRefTarget::SimpleName(name) => {
             let func = self.table.get_fn(name).ok_or_else(|| GDError::new(GDErrorF::NoSuchFn(name.clone()), expr.pos))?.0.clone();
-            lambda::compile_function_ref(self.compiler, self.pipeline, self.builder, self.table, func, expr.pos)
+            lambda::compile_function_ref(self.compiler, self.pipeline, self.builder, self.table, func, self.compiler.is_minimalist(), expr.pos)
           }
         }
       }

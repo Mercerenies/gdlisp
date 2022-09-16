@@ -90,9 +90,10 @@ impl Pipeline {
 
     let ast = SOME_AST_PARSER.parse(input)?;
 
-    let mut compiler = Compiler::new(FreshNameGenerator::new(ast.all_symbols()), Box::new(DefaultPreloadResolver));
-
     let (ir, macros) = ir::compile_and_check(self, &ast, &DisallowMainFunctionHandler)?;
+
+    let mut compiler = Compiler::new(FreshNameGenerator::new(ast.all_symbols()), Box::new(DefaultPreloadResolver), ir.minimalist_flag);
+
 
     let mut table = SymbolTable::new();
     library::bind_builtins(&mut table, ir.minimalist_flag);
@@ -142,7 +143,7 @@ impl Pipeline {
 
     let ast = SOME_AST_PARSER.parse(&contents)?;
     let resolver = self.make_preload_resolver();
-    let mut compiler = Compiler::new(FreshNameGenerator::new(ast.all_symbols()), Box::new(resolver));
+    let mut compiler = Compiler::new(FreshNameGenerator::new(ast.all_symbols()), Box::new(resolver), false);
     let mut table = SymbolTable::new();
 
     library::bind_builtins(&mut table, unit.ir.minimalist_flag);

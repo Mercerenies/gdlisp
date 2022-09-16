@@ -152,7 +152,6 @@ GDLisp="*res://GDLisp.gd"
 fn parse_and_run_err_impl<T>(input: &str, runner_fn: fn(TempDir) -> io::Result<T>) -> Result<T, PError> {
   let value = AST_PARSER.parse(input)?;
   let used_names = value.all_symbols();
-  let mut compiler = Compiler::new(FreshNameGenerator::new(used_names), Box::new(DefaultPreloadResolver));
   let mut table = SymbolTable::new();
   bind_helper_symbols(&mut table);
   library::bind_builtins(&mut table, false);
@@ -160,6 +159,7 @@ fn parse_and_run_err_impl<T>(input: &str, runner_fn: fn(TempDir) -> io::Result<T
   let mut pipeline = dummy_pipeline();
 
   let (decls, _macros) = ir::compile_and_check(&mut pipeline, &value, &main_function_handler())?;
+  let mut compiler = Compiler::new(FreshNameGenerator::new(used_names), Box::new(DefaultPreloadResolver), decls.minimalist_flag);
   let mut builder = CodeBuilder::new(ClassExtends::SimpleIdentifier(String::from("Reference")));
   compiler.frame(&mut pipeline, &mut builder, &mut table, &mut OutsideOfClass).compile_toplevel(&decls)?;
 
@@ -215,7 +215,7 @@ pub fn parse_compile_and_output_err(input: &str) -> Result<String, PError> {
 pub fn parse_compile_and_output_err_h(input: &str) -> Result<(String, String), PError> {
   let value = AST_PARSER.parse(input)?;
   let used_names = value.all_symbols();
-  let mut compiler = Compiler::new(FreshNameGenerator::new(used_names), Box::new(DefaultPreloadResolver));
+  let mut compiler = Compiler::new(FreshNameGenerator::new(used_names), Box::new(DefaultPreloadResolver), false);
   let mut table = SymbolTable::new();
   bind_helper_symbols_comp(&mut table);
   library::bind_builtins(&mut table, false);
@@ -259,7 +259,6 @@ pub fn parse_compile_and_output_h(input: &str) -> (String, String) {
 pub fn parse_compile_decl_err(input: &str) -> Result<String, PError> {
   let value = AST_PARSER.parse(input)?;
   let used_names = value.all_symbols();
-  let mut compiler = Compiler::new(FreshNameGenerator::new(used_names), Box::new(DefaultPreloadResolver));
   let mut table = SymbolTable::new();
   library::bind_builtins(&mut table, false);
 
@@ -267,6 +266,7 @@ pub fn parse_compile_decl_err(input: &str) -> Result<String, PError> {
 
   let mut builder = CodeBuilder::new(ClassExtends::SimpleIdentifier("Reference".to_owned()));
   let (decls, _macros) = ir::compile_and_check(&mut pipeline, &value, &DisallowMainFunctionHandler)?;
+  let mut compiler = Compiler::new(FreshNameGenerator::new(used_names), Box::new(DefaultPreloadResolver), decls.minimalist_flag);
   compiler.frame(&mut pipeline, &mut builder, &mut table, &mut OutsideOfClass).compile_toplevel(&decls)?;
   let class = builder.build();
 

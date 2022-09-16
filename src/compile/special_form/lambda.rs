@@ -293,6 +293,7 @@ fn wrap_in_cell_if_needed(name: &str, gd_name: &str, all_vars: &Locals, lambda_b
 pub fn compile_lambda_stmt(frame: &mut CompilerFrame<StmtBuilder>,
                            args: &IRArgList,
                            body: &IRExpr,
+                           minimalist: bool,
                            pos: SourceOffset)
                            -> Result<StExpr, GDError> {
   // In the perfect world, we would do all of our operations *on*
@@ -357,7 +358,7 @@ pub fn compile_lambda_stmt(frame: &mut CompilerFrame<StmtBuilder>,
   };
 
   // Generate the enclosing class.
-  let mut class = generate_lambda_class(class_name.clone(), args.clone().into(), arglist, &gd_closure_vars, lambda_body, pos);
+  let mut class = generate_lambda_class(class_name.clone(), args.clone().into(), arglist, &gd_closure_vars, lambda_body, minimalist, pos);
 
   // Add outer class reference.
   if needs_outer_ref {
@@ -386,6 +387,7 @@ pub fn compile_function_ref(compiler: &mut Compiler,
                             builder: &mut StmtBuilder,
                             table: &mut SymbolTable,
                             func: FnCall,
+                            minimalist: bool,
                             pos: SourceOffset)
                             -> Result<StExpr, GDError> {
   if let FnScope::Local(name) = func.scope {
@@ -420,7 +422,7 @@ pub fn compile_function_ref(compiler: &mut Compiler,
 
     // Generate the class and the constructor call.
     let class_name = RegisteredNameGenerator::new_global_var(table).generate_with("_FunctionRefBlock");
-    let class = generate_lambda_class(class_name.clone(), func.specs, arglist, &gd_src_closure_vars, vec!(body), pos);
+    let class = generate_lambda_class(class_name.clone(), func.specs, arglist, &gd_src_closure_vars, vec!(body), minimalist, pos);
     builder.add_helper(Decl::new(DeclF::ClassDecl(class), pos));
     Ok(make_constructor_call(class_name, gd_src_closure_vars, vec!(), pos))
   }
