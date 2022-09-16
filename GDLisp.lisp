@@ -851,6 +851,22 @@
        result))
     (#t (- (literally INF)))))
 
+(defn gcd (&rest args)
+  (list/fold #'binary-gcd args 0))
+
+(defn lcm (&rest args)
+  (list/fold #'binary-lcm args 1))
+
+(defn binary-gcd (a b) private
+  (while (/= b 0)
+    (let ((tmp a))
+      (set a b)
+      (set b (mod tmp b))))
+  a)
+
+(defn binary-lcm (a b) private
+  (/ (* a b) (binary-gcd a b)))
+
 ;;; Comparison operators
 
 (defn = (x &rest args)
