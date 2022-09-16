@@ -174,3 +174,23 @@ pub fn list_foreach_test() {
   "#);
   assert_eq!(result, "\n15\n");
 }
+
+#[test]
+pub fn fold_test_1() {
+  let result = parse_and_run(r#"
+    ((let ((foo '(1 2 3 4 5)))
+       (print (list/fold #'+ foo))
+       (print (list/fold #'+ foo 100))))
+  "#);
+  assert_eq!(result, "\n15\n115\n");
+}
+
+#[test]
+pub fn fold_test_2() {
+  let result = parse_and_run(r#"
+    ((let ((foo [1 2 3 4 5]))
+       (print (array/fold #'+ foo))
+       (print (array/fold #'+ foo 100))))
+  "#);
+  assert_eq!(result, "\n15\n115\n");
+}

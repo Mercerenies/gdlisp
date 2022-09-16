@@ -592,6 +592,16 @@
 (defn list/elt (list n)
   (list/tail list n):car)
 
+(defn list/fold (f xs &opt x)
+  (cond
+    ((= x nil)
+     (set x xs:car)
+     (set xs xs:cdr)))
+  (while (/= xs nil)
+    (set x (funcall f x xs:car))
+    (set xs xs:cdr))
+  x)
+
 (defn list/map (f xs)
   (let ((outer (cons nil nil)))
     (let ((curr outer))
@@ -664,6 +674,16 @@
     ((instance? a GDLisp:BaseArray) a)
     (#t (list->array a))))
 
+(defn array/fold (f xs &opt x)
+  (let ((starting-index 0))
+    (cond
+      ((= x nil)
+       (set x (elt xs 0))
+       (set starting-index 1)))
+    (for i (range starting-index (len xs))
+      (set x (funcall f x (elt xs i))))
+    x))
+
 (defn array/map (f xs)
   (let ((result []))
     (for i (len xs)
@@ -697,7 +717,7 @@
 
 (defn apply (f &rest args)
   (let ((args1 (init args))
-        (args2 (tail args)))
+        (args2 (last args)))
     (cond
       ((sys/instance-direct? f Function) (f:call_funcv (append args1 args2)))
       (#t (push-error "Attempt to call non-function")))))
