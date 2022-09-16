@@ -569,9 +569,9 @@
     ((sys/instance-direct? a:cdr Cons) (cons a:car (init a:cdr)))
     (#t nil)))
 
-(defn tail (a) ; TODO(!!) Wtf, this looks like it returns the last element?
+(defn last (a)
   (cond
-    ((sys/instance-direct? a:cdr Cons) (tail a:cdr))
+    ((sys/instance-direct? a:cdr Cons) (last a:cdr))
     (#t a:car)))
 
 (defn list->array (list)
