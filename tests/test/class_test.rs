@@ -1435,7 +1435,10 @@ class ClassName extends Node:
     func __gdlisp_get_x():
         return 10
 
-    var x setget ,__gdlisp_get_x
+    func __gdlisp_set_x(_unused):
+        push_error("Cannot assign to nonexistent field \'x\'")
+
+    var x setget __gdlisp_set_x, __gdlisp_get_x
 "#);
 }
 
@@ -1454,7 +1457,10 @@ class ClassName extends Node:
     func __gdlisp_set_x(a):
         return null
 
-    var x setget __gdlisp_set_x
+    func __gdlisp_get_x():
+        push_error("Cannot access nonexistent field \'x\'")
+
+    var x setget __gdlisp_set_x, __gdlisp_get_x
 "#);
 }
 
@@ -1523,6 +1529,52 @@ func __gdlisp_set_x_y(a):
 
 func __gdlisp_get_x_y():
     return 10
+
+
+var x_y setget __gdlisp_set_x_y, __gdlisp_get_x_y
+"#);
+}
+
+#[test]
+pub fn class_setget_test_7() {
+  assert_eq!(parse_compile_decl(r#"((defclass ClassName (Node) main
+                                      (defn (set x-y) (a))))"#),
+             r#"extends Node
+
+
+func _init():
+    pass
+
+
+func __gdlisp_set_x_y(a):
+    return null
+
+
+func __gdlisp_get_x_y():
+    push_error("Cannot access nonexistent field \'x_y\'")
+
+
+var x_y setget __gdlisp_set_x_y, __gdlisp_get_x_y
+"#);
+}
+
+#[test]
+pub fn class_setget_test_8() {
+  assert_eq!(parse_compile_decl(r#"((defclass ClassName (Node) main
+                                      (defn (get x-y) () 10)))"#),
+             r#"extends Node
+
+
+func _init():
+    pass
+
+
+func __gdlisp_get_x_y():
+    return 10
+
+
+func __gdlisp_set_x_y(_unused):
+    push_error("Cannot assign to nonexistent field \'x_y\'")
 
 
 var x_y setget __gdlisp_set_x_y, __gdlisp_get_x_y

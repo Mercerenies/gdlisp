@@ -219,6 +219,8 @@ pub fn declare_class(frame: &mut CompilerFrame<impl HasDecls>,
 
   class_init_builder.declare_proxies_from_scope(class_scope);
 
+  class_init_builder.fill_out_synthetic_fields(&mut decl, pos);
+
   let class_init = class_init_builder.build_into(frame.builder);
   class_init.apply(&mut decl, pos)?;
 

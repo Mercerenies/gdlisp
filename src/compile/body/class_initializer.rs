@@ -3,6 +3,7 @@
 
 use crate::gdscript::decl::{Decl, DeclF, ClassDecl, InitFnDecl, FnDecl, Static};
 use crate::gdscript::stmt::Stmt;
+use crate::gdscript::expr::Expr;
 use crate::gdscript::arglist::ArgList;
 use crate::gdscript::library::READY_NAME;
 use crate::compile::error::{GDError, GDErrorF};
@@ -145,6 +146,54 @@ impl ClassBuilder {
   /// direct class scope.
   pub fn declare_proxies_from_scope(&mut self, scope: DirectClassScope) {
     self.super_proxies.extend(scope.into_proxies());
+  }
+
+  /// This method takes any of the synthetic fields defined on the
+  /// builder which have either a getter *or* a setter but not both
+  /// and fills out the missing accessor method with one that produces
+  /// an error. After calling this method, the current builder will
+  /// contain only complete synthetic fields, i.e. all of them have
+  /// both a getter and a setter.
+  pub fn fill_out_synthetic_fields(&mut self, decl: &mut ClassDecl, pos: SourceOffset) {
+    for field in &mut self.synthetic_fields {
+      // If getter is none, generate a synthetic one.
+      if field.getter.is_none() {
+        let method_name = Getter::method_name(&field.name);
+        let method = ClassBuilder::implied_getter(&field.name, &method_name, pos);
+        decl.body.push(Decl::new(DeclF::FnDecl(Static::NonStatic, method), pos));
+        field.getter = Some(method_name);
+      }
+      // If setter is none, generate a synthetic one.
+      if field.setter.is_none() {
+        let method_name = Setter::method_name(&field.name);
+        let method = ClassBuilder::implied_setter(&field.name, &method_name, pos);
+        decl.body.push(Decl::new(DeclF::FnDecl(Static::NonStatic, method), pos));
+        field.setter = Some(method_name);
+      }
+    }
+  }
+
+  fn implied_getter(field_name: &str, method_name: &str, pos: SourceOffset) -> FnDecl {
+    let error_string = format!("Cannot access nonexistent field '{}'", field_name);
+    FnDecl {
+      name: method_name.to_owned(),
+      args: ArgList::empty(),
+      body: vec!(
+        Stmt::expr(Expr::simple_call("push_error", vec!(Expr::from_value(error_string, pos)), pos)),
+      )
+    }
+  }
+
+  fn implied_setter(field_name: &str, method_name: &str, pos: SourceOffset) -> FnDecl {
+    let arglist = ArgList::required(vec!(String::from("_unused")));
+    let error_string = format!("Cannot assign to nonexistent field '{}'", field_name);
+    FnDecl {
+      name: method_name.to_owned(),
+      args: arglist,
+      body: vec!(
+        Stmt::expr(Expr::simple_call("push_error", vec!(Expr::from_value(error_string, pos)), pos)),
+      )
+    }
   }
 
   /// Builds the builder into a [`ClassInit`].
