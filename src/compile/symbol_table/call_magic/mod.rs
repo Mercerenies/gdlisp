@@ -165,8 +165,13 @@ pub enum CallMagic {
   /// [`CallMagic`] for the inequality `NodePath` constructor.
   /// `NodePathConstructor` will compile to the literal `@"..."`
   /// GDScript syntax if given a literal string as argument. If given
-  /// a variable or anything else, it will fall back to `fallback`.
+  /// a variable or anything else, it will fall back to the fallback
+  /// argument.
   NodePathConstructor(Box<CallMagic>),
+  /// [Call magic](CallMagic) for the `access-slot` function. If
+  /// supplied a literal symbol object, this will compile to field
+  /// access. Otherwise, falls back to the fallback argument.
+  AccessSlot(Box<CallMagic>),
 }
 
 /// Associativity of an operator.
@@ -505,6 +510,16 @@ impl CallMagic {
           if let ExprF::Literal(Literal::String(s)) = &args[0].expr.value {
             return Ok(
               Expr::new(ExprF::Literal(Literal::NodePathLiteral(s.clone())), pos),
+            );
+          }
+        }
+        fallback.compile(call, compiler, builder, table, args, pos)
+      }
+      CallMagic::AccessSlot(fallback) => {
+        if args.len() == 2 {
+          if let ExprF::Literal(Literal::String(s)) = &args[1].expr.value {
+            return Ok(
+              args[0].expr.clone().attribute(s, pos)
             );
           }
         }
