@@ -165,6 +165,14 @@ pub fn bind_magic(table: &mut MagicTable) {
   table.set(String::from("NODEPATH-SYNTAX"),
             CallMagic::NodePathConstructor(Box::new(CallMagic::DefaultCall)));
 
+  // access-slot function
+  table.set(String::from("ACCESS-SLOT"),
+            CallMagic::AccessSlot(Box::new(CallMagic::DefaultCall)));
+
+  // set-access-slot function
+  table.set(String::from("ACCESS-SLOT-ASSIGN"),
+            CallMagic::AccessSlotAssign(Box::new(CallMagic::DefaultCall)));
+
 }
 
 /// Produce a new [`MagicTable`] with all of the magic bound as though
