@@ -172,6 +172,10 @@ pub enum CallMagic {
   /// supplied a literal symbol object, this will compile to field
   /// access. Otherwise, falls back to the fallback argument.
   AccessSlot(Box<CallMagic>),
+  /// [Call magic](CallMagic) for the `set-access-slot` function. If
+  /// supplied a literal symbol object, this will compile to field
+  /// access. Otherwise, falls back to the fallback argument.
+  AccessSlotAssign(Box<CallMagic>),
 }
 
 /// Associativity of an operator.
@@ -521,6 +525,16 @@ impl CallMagic {
             return Ok(
               args[0].expr.clone().attribute(s, pos)
             );
+          }
+        }
+        fallback.compile(call, compiler, builder, table, args, pos)
+      }
+      CallMagic::AccessSlotAssign(fallback) => {
+        if args.len() == 3 {
+          if let ExprF::Literal(Literal::String(s)) = &args[2].expr.value {
+            let lhs = args[1].expr.clone().attribute(s, pos);
+            builder.append(Stmt::simple_assign(lhs.clone(), args[0].expr.clone(), pos));
+            return Ok(lhs);
           }
         }
         fallback.compile(call, compiler, builder, table, args, pos)
