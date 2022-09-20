@@ -771,6 +771,20 @@
     ((sys/instance-direct? type PrimitiveType) ((literally convert) what type:primitive-value))
     (#t ((literally convert) what type))))
 
+(defn access-slot (lhs name)
+  (sys/call-magic ACCESS-SLOT)
+  ;; Conceptually, elt should be thought of as an array (and
+  ;; dictionary) function, but we know it compiles (via magic) down to
+  ;; `[]` brackets in GDScript.
+  (elt lhs name))
+
+(defn set-access-slot (value lhs name)
+  (sys/call-magic ACCESS-SLOT-ASSIGN)
+  ;; Conceptually, elt should be thought of as an array (and
+  ;; dictionary) function, but we know it compiles (via magic) down to
+  ;; `[]` brackets in GDScript.
+  (set (elt lhs name) value))
+
 ;;; Math operators
 
 (defn + (&rest args)
@@ -1313,7 +1327,7 @@
                (let ((,value-var ,value))
                  ((unquote this-file):set-meta ,meta-name ,value-var)
                  ,value-var))))
-       (define-symbol-macro ,name (list (list 'access-slot (list 'contextual-load (this-true-filename)) ',fn-name)) ,.modifiers))))
+       (define-symbol-macro ,name (list (list 'access-slot (list 'contextual-load (this-true-filename)) ,(access-slot fn-name "contents"))) ,.modifiers)))) ; TODO Use nested quasiquotes like a responsible human being here.
 
 (defmacro defobject (name parent &opt visibility &rest body)
   (cond
@@ -1336,8 +1350,8 @@
     `(let ((,iter ,list)
            (,var ()))
        (while (/= ,iter ())
-         (set ,var (access-slot ,iter car))
-         (set ,iter (access-slot ,iter cdr))
+         (set ,var (access-slot ,iter "car"))
+         (set ,iter (access-slot ,iter "cdr"))
          ,.body))))
 
 (defmacro -> (arg &rest forms)

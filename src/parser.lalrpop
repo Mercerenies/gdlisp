@@ -91,10 +91,10 @@ pub LiteralOrNestedAST: AST = {
   <pos:@L> "{" <contents: DictContents> "}" => AST::dictionary(contents, SourceOffset(pos)),
   <pos:@L> "V{" <x: AST> <y: AST> "}" => syntax::vector2(x, y, SourceOffset(pos)),
   <pos:@L> "V{" <x: AST> <y: AST> <z: AST> "}" => syntax::vector3(x, y, z, SourceOffset(pos)),
-  <pos:@L> <body: LiteralOrNestedAST> ":" <rpos:@L> <name: Symbol> => syntax::access_slot(body, AST::symbol(name, SourceOffset(rpos)), SourceOffset(pos)),
+  <pos:@L> <body: LiteralOrNestedAST> ":" <rpos:@L> <name: Symbol> => syntax::access_slot(body, AST::string(name, SourceOffset(rpos)), SourceOffset(pos)),
   <pos:@L> <body: LiteralOrNestedAST> ":" <rpos:@L> <path: NodePath> => syntax::get_node_on(body, AST::string(path, SourceOffset(pos)), SourceOffset(pos)),
   <pos:@L> <path: NodePath> => syntax::get_node_on(AST::symbol("self", SourceOffset(pos)), AST::string(path, SourceOffset(pos)), SourceOffset(pos)),
-  <pos:@L> "@" <rpos:@L> <name: Symbol> => syntax::access_slot(AST::symbol("self", SourceOffset(pos)), AST::symbol(name, SourceOffset(rpos)), SourceOffset(pos)),
+  <pos:@L> "@" <rpos:@L> <name: Symbol> => syntax::access_slot(AST::symbol("self", SourceOffset(pos)), AST::string(name, SourceOffset(rpos)), SourceOffset(pos)),
 }
 
 Cdr: AST = {

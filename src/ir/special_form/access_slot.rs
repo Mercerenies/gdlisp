@@ -1,4 +1,6 @@
 
+#![deprecated]
+
 use crate::sxp::ast::AST;
 use crate::sxp::dotted::DottedExpr;
 use crate::compile::error::{GDError, GDErrorF};
@@ -32,7 +34,7 @@ impl<'a> AccessSlotSyntax<'a> {
   pub fn parse_from_tail(tail: &[&'a AST], pos: SourceOffset) -> Result<Self, GDError> {
     Expecting::exactly(2).validate(ACCESS_SLOT_FORM_NAME, pos, tail)?;
     let object = tail[0];
-    let slot_name = ExpectedShape::extract_symbol(ACCESS_SLOT_FORM_NAME, tail[1].clone())?;
+    let slot_name = ExpectedShape::extract_string(ACCESS_SLOT_FORM_NAME, tail[1].clone())?;
     Ok(AccessSlotSyntax { object, slot_name })
   }
 

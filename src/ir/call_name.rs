@@ -59,7 +59,7 @@ impl CallName {
   fn try_resolve_method_name(ast: &AST) -> Option<(&AST, &str)> {
     if let DottedExpr { elements: vec, terminal: AST { value: ASTF::Nil, pos: _ } } = DottedExpr::new(ast) {
       if vec.len() == 3 && vec[0].value == ASTF::symbol("access-slot") {
-        if let ASTF::Symbol(name) = &vec[2].value {
+        if let ASTF::String(name) = &vec[2].value {
           return Some((vec[1], name));
         }
       }

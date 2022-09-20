@@ -49,7 +49,6 @@ pub fn dispatch_form(icompiler: &mut IncCompiler,
     "quasiquote" => quasiquote_form(icompiler, pipeline, tail, pos).map(Some),
     "unquote" => Err(PError::from(GDError::new(GDErrorF::UnquoteOutsideQuasiquote, pos))),
     "unquote-spliced" => Err(PError::from(GDError::new(GDErrorF::UnquoteSplicedOutsideQuasiquote, pos))),
-    "access-slot" => access_slot_form(icompiler, pipeline, tail, pos).map(Some),
     "new" => new_form(icompiler, pipeline, tail, pos).map(Some),
     "yield" => yield_form(icompiler, pipeline, tail, pos).map(Some),
     "assert" => assert_form(icompiler, pipeline, tail, pos).map(Some),
@@ -186,18 +185,10 @@ pub fn assign_form(icompiler: &mut IncCompiler,
     _ => {
       let x = tail[0];
       let inner: Vec<_> = DottedExpr::new(x).try_into()?;
-      if inner[0].value == ASTF::Symbol(String::from("access-slot")) {
-        if let ExprF::FieldAccess(lhs, slot_name) = access_slot_form(icompiler, pipeline, &inner[1..], pos)?.value {
-          AssignmentForm::Simple(AssignTarget::InstanceField(inner[0].pos, lhs, slot_name))
-        } else {
-          return Err(PError::from(GDError::new(GDErrorF::InvalidArg(String::from("set"), x.clone(), ExpectedShape::Symbol), pos))); // TODO Is this possible? I think we can prove that this never happens with a bit of refactoring.
-        }
-      } else {
-        let s = ExpectedShape::extract_symbol("set", inner[0].clone())?;
-        let head = AssignmentForm::str_to_setter_prefix(&s);
-        let args = inner[1..].iter().map(|x| icompiler.compile_expr(pipeline, x)).collect::<Result<_, _>>()?;
-        AssignmentForm::SetterCall(head, args)
-      }
+      let s = ExpectedShape::extract_symbol("set", inner[0].clone())?;
+      let head = AssignmentForm::str_to_setter_prefix(&s);
+      let args = inner[1..].iter().map(|x| icompiler.compile_expr(pipeline, x)).collect::<Result<_, _>>()?;
+      AssignmentForm::SetterCall(head, args)
     }
   };
   let value = icompiler.compile_expr(pipeline, tail[1])?;

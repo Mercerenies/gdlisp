@@ -34,6 +34,7 @@ pub enum ExprF {
   Array(Vec<Expr>),
   Dictionary(Vec<(Expr, Expr)>),
   Quote(AST),
+  #[deprecated]
   FieldAccess(Box<Expr>, String),
   MethodCall(Box<Expr>, String, Vec<Expr>),
   SuperCall(String, Vec<Expr>),
@@ -60,6 +61,7 @@ pub struct Expr {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum AssignTarget {
   Variable(SourceOffset, String),
+  #[deprecated]
   InstanceField(SourceOffset, Box<Expr>, String),
 }
 

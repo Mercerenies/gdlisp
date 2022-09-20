@@ -8,12 +8,12 @@ use crate::ir::arglist::vararg::VarArg;
 use crate::compile::Compiler;
 use crate::compile::error::GDError;
 use crate::compile::body::builder::StmtBuilder;
-use crate::compile::stateful::StExpr;
+use crate::compile::stateful::{StExpr, NeedsResult};
 use crate::compile::preload_resolver::PreloadResolver;
 use crate::compile::args::Expecting;
 use crate::pipeline::can_load::CanLoad;
 use crate::pipeline::source::SourceOffset;
-use super::call_magic::{CallMagic};
+use super::call_magic::CallMagic;
 use super::local_var::VarName;
 use super::SymbolTable;
 
@@ -179,9 +179,10 @@ impl FnCall {
                    builder: &mut StmtBuilder,
                    table: &mut SymbolTable,
                    args: Vec<StExpr>,
+                   needs_result: NeedsResult,
                    pos: SourceOffset)
-                   -> Result<Expr, GDError> {
-    self.into_expr_with_magic(&CallMagic::DefaultCall, compiler, builder, table, args, pos)
+                   -> Result<StExpr, GDError> {
+    self.into_expr_with_magic(&CallMagic::DefaultCall, compiler, builder, table, args, needs_result, pos)
   }
 
   /// Compile, via [`CallMagic::compile`], the function call `self`
@@ -192,9 +193,10 @@ impl FnCall {
                               builder: &mut StmtBuilder,
                               table: &mut SymbolTable,
                               args: Vec<StExpr>,
+                              needs_result: NeedsResult,
                               pos: SourceOffset)
-                              -> Result<Expr, GDError> {
-    magic.compile(self, compiler, builder, table, args, pos)
+                              -> Result<StExpr, GDError> {
+    magic.compile(self, compiler, builder, table, args, needs_result, pos)
   }
 
 }

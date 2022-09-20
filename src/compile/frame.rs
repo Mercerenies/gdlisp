@@ -415,7 +415,7 @@ impl<'a, 'b, 'c, 'd, 'e> CompilerFrame<'a, 'b, 'c, 'd, 'e, StmtBuilder> {
         special_form::compile_for_stmt(self, name, iter, body, needs_result, expr.pos)
       }
       IRExprF::Call(f, args) => {
-        self.compile_function_call(f, args, expr.pos)
+        self.compile_function_call(f, args, needs_result, expr.pos)
       }
       IRExprF::Let(clauses, body) => {
         let_block::compile_let(self, clauses, body, needs_result, expr.pos)
@@ -453,7 +453,6 @@ impl<'a, 'b, 'c, 'd, 'e> CompilerFrame<'a, 'b, 'c, 'd, 'e, StmtBuilder> {
         Ok(StExpr { expr: result, side_effects: SideEffects::None })
       }
       IRExprF::FieldAccess(lhs, sym) => {
-
         // This is a special case to validate enum names, as an extra sanity check.
         if let IRExprF::LocalVar(lhs) = &lhs.value {
           if let Some(LocalVar { value_hint: Some(ValueHint::Enum(vs)), .. }) = self.table.get_var(lhs) {
@@ -584,6 +583,7 @@ impl<'a, 'b, 'c, 'd, 'e> CompilerFrame<'a, 'b, 'c, 'd, 'e, StmtBuilder> {
   pub fn compile_function_call(&mut self,
                                name: &str,
                                args: &[IRExpr],
+                               needs_result: NeedsResult,
                                pos: SourceOffset)
                                -> Result<StExpr, GDError> {
     let (fcall, call_magic) = match self.table.get_fn(name) {
@@ -599,10 +599,7 @@ impl<'a, 'b, 'c, 'd, 'e> CompilerFrame<'a, 'b, 'c, 'd, 'e, StmtBuilder> {
     let args = args.iter()
       .map(|x| self.compile_expr(x, NeedsResult::Yes))
       .collect::<Result<Vec<_>, _>>()?;
-    Ok(StExpr {
-      expr: fcall.into_expr_with_magic(&*call_magic, self.compiler, self.builder, self.table, args, pos)?,
-      side_effects: SideEffects::ModifiesState,
-    })
+    fcall.into_expr_with_magic(&*call_magic, self.compiler, self.builder, self.table, args, needs_result, pos)
   }
 
   pub fn compile_special_ref(&mut self, special_ref: SpecialRef, pos: SourceOffset) -> StExpr {
@@ -653,13 +650,9 @@ impl<'a, 'b, 'c, 'd, 'e> CompilerFrame<'a, 'b, 'c, 'd, 'e, StmtBuilder> {
       AssignTarget::InstanceField(pos, lhs, name) => {
         let StExpr { expr: lhs, side_effects: _ } = self.compile_expr(lhs, NeedsResult::Yes)?;
         let lhs = Expr::new(ExprF::Attribute(Box::new(lhs), names::lisp_to_gd(name)), expr.pos);
-        let StExpr { expr: mut rhs, side_effects } = self.compile_expr(expr, NeedsResult::Yes)?;
+        let rhs = self.compile_expr(expr, NeedsResult::Yes)?;
         // Assign to a temporary if the RHS is stateful and we need a result.
-        if needs_result == NeedsResult::Yes && side_effects.modifies_state() {
-          let mut gen = RegisteredNameGenerator::new_local_var(self.table);
-          let var = factory::declare_var(&mut gen, self.builder, "_assign", Some(rhs), expr.pos);
-          rhs = Expr::new(ExprF::Var(var), *pos);
-        }
+        let rhs = Compiler::assign_temporary_if_stateful(self.table, self.builder, rhs, needs_result);
         self.builder.append(
           Stmt::simple_assign(lhs, rhs.clone(), *pos),
         );

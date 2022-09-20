@@ -76,6 +76,32 @@ pub enum SideEffects {
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub enum NeedsResult { No, Yes }
 
+impl StExpr {
+
+  /// Helper function to directly construct an `StExpr`. Equivalent to
+  /// directly constructing the struct with the corresponding field
+  /// names.
+  pub fn new(expr: Expr, side_effects: SideEffects) -> StExpr {
+    StExpr { expr, side_effects }
+  }
+
+  /// An `StExpr` with no side effects.
+  pub fn no_effects(expr: Expr) -> StExpr {
+    StExpr::new(expr, SideEffects::None)
+  }
+
+  /// An `StExpr` with read-only side effects.
+  pub fn reads_state(expr: Expr) -> StExpr {
+    StExpr::new(expr, SideEffects::ReadsState)
+  }
+
+  /// An `StExpr` with read-write side effects.
+  pub fn modifies_state(expr: Expr) -> StExpr {
+    StExpr::new(expr, SideEffects::ModifiesState)
+  }
+
+}
+
 impl From<NeedsResult> for bool {
   fn from(s: NeedsResult) -> bool {
     s == NeedsResult::Yes
@@ -165,6 +191,20 @@ impl SideEffects {
   pub fn modifies_state(&self) -> bool {
     *self >= SideEffects::ModifiesState
   }
+
+  /// The maximum side effect of any of the arguments, or
+  /// [`SideEffects::None`] if the iterator is empty.
+  pub fn max(iter: impl IntoIterator<Item=SideEffects>) -> SideEffects {
+    iter.into_iter().max().unwrap_or(SideEffects::None)
+  }
+
+  /// Convenience function that calls `SideEffects::max` on an
+  /// iterable of [`StExpr`], using the effects of the inner
+  /// expressions to compute the maximum effect.
+  pub fn argmax<'a>(iter: impl IntoIterator<Item=&'a StExpr>) -> SideEffects {
+    SideEffects::max(iter.into_iter().map(|x| x.side_effects))
+  }
+
 }
 
 /// If we're writing to a variable, then the side effect is obviously

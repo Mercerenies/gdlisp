@@ -18,6 +18,7 @@ use frame::CompilerFrame;
 use body::builder::{CodeBuilder, StmtBuilder, HasDecls};
 use body::class_initializer::{ClassBuilder, InitTime};
 use body::class_scope::{ClassScope, OutsideOfClass, DirectClassScope};
+use names::registered::RegisteredNameGenerator;
 use names::fresh::FreshNameGenerator;
 use names::generator::NameGenerator;
 use preload_resolver::PreloadResolver;
@@ -78,6 +79,40 @@ impl Compiler {
 
   pub fn nil_expr(pos: SourceOffset) -> StExpr {
     StExpr { expr: Expr::null(pos), side_effects: SideEffects::None }
+  }
+
+  /// When we compile assignment operations, whether directly through
+  /// the `set` special form or through some manner of call magic, in
+  /// principle we should always compile `(set foo bar)` (for
+  /// arbitrary expressions `foo` and `bar`) to
+  ///
+  /// ```text
+  /// var _local = bar
+  /// foo = _local
+  /// return _local
+  /// ```
+  ///
+  /// However, if `bar` does not have side effects (i.e. does not read
+  /// *or* write mutable state), then we can simply evaluate `bar`
+  /// twice and save ourselves the local variable.
+  ///
+  /// This function generates a local variable for use in assignment
+  /// if `rhs.side_effects` is [`SideEffects::ModifiesState`] *and*
+  /// `needs_result` is truthy. Otherwise, it has no effect and
+  /// returns the original right-hand-side expression unmodified.
+  pub fn assign_temporary_if_stateful(table: &mut SymbolTable,
+                                      builder: &mut StmtBuilder,
+                                      rhs: StExpr,
+                                      needs_result: NeedsResult) -> Expr {
+    let pos = rhs.expr.pos;
+    if needs_result == NeedsResult::Yes && rhs.side_effects.reads_state() {
+      let mut gen = RegisteredNameGenerator::new_local_var(table);
+      let var = factory::declare_var(&mut gen, builder, "_assign", Some(rhs.expr), pos);
+      Expr::new(ExprF::Var(var), pos)
+    } else {
+      // No need to wrap anything, just use the original expression
+      rhs.expr
+    }
   }
 
   pub fn name_generator(&mut self) -> &mut FreshNameGenerator {

@@ -35,9 +35,10 @@ use crate::compile::Compiler;
 use crate::compile::factory;
 use crate::compile::error::GDError;
 use crate::compile::body::builder::StmtBuilder;
-use crate::compile::stateful::StExpr;
+use crate::compile::stateful::{StExpr, NeedsResult, SideEffects};
 use crate::compile::stmt_wrapper::{self, StmtWrapper};
 use crate::compile::args::{self, Expecting};
+use crate::compile::names;
 use crate::compile::names::registered::RegisteredNameGenerator;
 use crate::ir::arglist::vararg::VarArg;
 use crate::util;
@@ -46,6 +47,8 @@ use super::function_call::FnCall;
 use super::SymbolTable;
 
 use serde::{Serialize, Deserialize};
+
+use std::cmp::{min, max};
 
 /// A `CallMagic` can meaningfully compile a given function call
 /// expression `call` into some GDScript [`Expr`].
@@ -250,26 +253,31 @@ impl CallMagic {
                  builder: &mut StmtBuilder,
                  table: &mut SymbolTable,
                  mut args: Vec<StExpr>, // TODO Get this declared immutable here and mutable on inner scopes only
-                 pos: SourceOffset) -> Result<Expr, GDError> {
+                 needs_result: NeedsResult,
+                 pos: SourceOffset) -> Result<StExpr, GDError> {
+    let side_effects = SideEffects::argmax(&args);
     match self {
       CallMagic::DefaultCall => {
         let args = strip_st(args);
-        compile_default_call(call, args, pos)
+        Ok(StExpr::modifies_state(
+          compile_default_call(call, args, pos)?,
+        ))
       }
       CallMagic::CompileToBinOp(zero, op, assoc) => {
         let args = strip_st(args);
         if args.is_empty() {
           let expr = Expr::from_value(zero.clone(), pos);
-          Ok(expr)
+          Ok(StExpr::no_effects(expr))
         } else {
-          Ok(match assoc {
+          let expr = match assoc {
             Assoc::Left => {
               util::fold1(args.into_iter(), |x, y| Expr::new(ExprF::Binary(Box::new(x), *op, Box::new(y)), pos))
             }
             Assoc::Right => {
               util::fold1(args.into_iter().rev(), |x, y| Expr::new(ExprF::Binary(Box::new(y), *op, Box::new(x)), pos))
             }
-          }.unwrap())
+          }.unwrap();
+          Ok(StExpr { expr, side_effects })
         }
       }
       CallMagic::CompileToTransCmp(op) => {
@@ -281,12 +289,13 @@ impl CallMagic {
           1 => {
             // Dump to the builder as a simple statement if it's stateful.
             (&stmt_wrapper::Vacuous).wrap_to_builder(builder, args[0].clone());
-            Ok(Expr::from_value(true, pos))
+            Ok(StExpr::no_effects(Expr::from_value(true, pos)))
           }
           2 => {
             let a = args.remove(0).expr;
             let b = args.remove(0).expr;
-            Ok(Expr::new(ExprF::Binary(Box::new(a), *op, Box::new(b)), pos))
+            let expr = Expr::new(ExprF::Binary(Box::new(a), *op, Box::new(b)), pos);
+            Ok(StExpr { expr, side_effects })
           }
           _ => {
             // We need to use several of the arguments twice, so any
@@ -307,9 +316,13 @@ impl CallMagic {
             let comparisons = util::each_pair(args).map(|(x, y)| {
               Expr::new(ExprF::Binary(Box::new(x), *op, Box::new(y)), pos)
             });
-            Ok(
-              util::fold1(comparisons, |x, y| Expr::new(ExprF::Binary(Box::new(x), op::BinaryOp::And, Box::new(y)), pos)).unwrap()
-            )
+            let expr =
+              util::fold1(comparisons, |x, y| Expr::new(ExprF::Binary(Box::new(x), op::BinaryOp::And, Box::new(y)), pos)).unwrap();
+            // Anything which modifies state has been assigned to a
+            // temporary in the builder, so whatever is left is either
+            // `SideEffects::None` or `SideEffects::ReadsState`. Take
+            // the minimum that works for us.
+            Ok(StExpr { expr, side_effects: min(side_effects, SideEffects::ReadsState) })
           }
         }
       }
@@ -322,12 +335,13 @@ impl CallMagic {
           }
           1 => {
             let arg = args::one(args);
-            Ok(arg.unary(op::UnaryOp::Negate, pos))
+            Ok(StExpr { expr: arg.unary(op::UnaryOp::Negate, pos), side_effects })
           }
           _ => {
-            Ok(
-              util::fold1(args.into_iter(), |x, y| x.binary(op::BinaryOp::Sub, y, pos)).unwrap()
-            )
+            Ok(StExpr {
+              expr: util::fold1(args.into_iter(), |x, y| x.binary(op::BinaryOp::Sub, y, pos)).unwrap(),
+              side_effects,
+            })
           }
         }
       }
@@ -341,14 +355,14 @@ impl CallMagic {
           1 => {
             let one = Expr::from_value(1, pos);
             let arg = args::one(args);
-            Ok(one.binary(op::BinaryOp::Div, arg, pos))
+            Ok(StExpr::new(one.binary(op::BinaryOp::Div, arg, pos), side_effects))
           }
           _ => {
             let first = args.remove(0);
             let result = args.into_iter().fold(first, |x, y| {
               x.binary(op::BinaryOp::Div, y, pos)
             });
-            Ok(result)
+            Ok(StExpr::new(result, side_effects))
           }
         }
       }
@@ -362,14 +376,14 @@ impl CallMagic {
           1 => {
             let one = Expr::from_value(1, pos);
             let arg = args::one(args);
-            Ok(one.binary(op::BinaryOp::Div, expr_wrapper::int(arg), pos))
+            Ok(StExpr::new(one.binary(op::BinaryOp::Div, expr_wrapper::int(arg), pos), side_effects))
           }
           _ => {
             let first = args.remove(0);
             let result = args.into_iter().fold(first, |x, y| {
               x.binary(op::BinaryOp::Div, expr_wrapper::int(y), pos)
             });
-            Ok(result)
+            Ok(StExpr::new(result, side_effects))
           }
         }
       }
@@ -377,28 +391,33 @@ impl CallMagic {
         let args = strip_st(args);
         Expecting::exactly(2).validate(&call.function, pos, &args)?;
         let (x, y) = args::two(args);
-        Ok(Expr::new(ExprF::Binary(Box::new(x), op::BinaryOp::Mod, Box::new(y)), pos))
+        Ok(StExpr {
+          expr: Expr::new(ExprF::Binary(Box::new(x), op::BinaryOp::Mod, Box::new(y)), pos),
+          side_effects,
+        })
       }
       CallMagic::MinFunction => {
         let args = strip_st(args);
         if args.is_empty() {
           let expr = Expr::var("INF", pos);
-          Ok(expr)
+          Ok(StExpr { expr, side_effects })
         } else {
-          Ok(
-            util::fold1(args.into_iter(), |x, y| Expr::simple_call("min", vec!(x, y), pos)).unwrap(),
-          )
+          Ok(StExpr {
+            expr: util::fold1(args.into_iter(), |x, y| Expr::simple_call("min", vec!(x, y), pos)).unwrap(),
+            side_effects,
+          })
         }
       }
       CallMagic::MaxFunction => {
         let args = strip_st(args);
         if args.is_empty() {
           let expr = Expr::var("INF", pos).unary(op::UnaryOp::Negate, pos);
-          Ok(expr)
+          Ok(StExpr { expr, side_effects })
         } else {
-          Ok(
-            util::fold1(args.into_iter(), |x, y| Expr::simple_call("max", vec!(x, y), pos)).unwrap(),
-          )
+          Ok(StExpr {
+            expr: util::fold1(args.into_iter(), |x, y| Expr::simple_call("max", vec!(x, y), pos)).unwrap(),
+            side_effects,
+          })
         }
       }
       CallMagic::NEqOperation(fallback) => {
@@ -414,14 +433,14 @@ impl CallMagic {
           1 => {
             // Dump to the builder as a simple statement if it's stateful.
             (&stmt_wrapper::Vacuous).wrap_to_builder(builder, args[0].clone());
-            Ok(Expr::from_value(true, pos))
+            Ok(StExpr::no_effects(Expr::from_value(true, pos)))
           }
           2 => {
             let (lhs, rhs) = args::two(strip_st(args));
-            Ok(lhs.binary(op::BinaryOp::NE, rhs, pos))
+            Ok(StExpr::new(lhs.binary(op::BinaryOp::NE, rhs, pos), side_effects))
           }
           _ => {
-            fallback.compile(call, compiler, builder, table, args, pos)
+            fallback.compile(call, compiler, builder, table, args, needs_result, pos)
           }
         }
       }
@@ -429,11 +448,11 @@ impl CallMagic {
         let args = strip_st(args);
         Expecting::exactly(1).validate(&call.function, pos, &args)?;
         let arg = args::one(args);
-        Ok(arg.unary(op::UnaryOp::Not, pos))
+        Ok(StExpr::new(arg.unary(op::UnaryOp::Not, pos), side_effects))
       }
       CallMagic::ListOperation => {
         let args = strip_st(args);
-        Ok(library::construct_list(args, pos))
+        Ok(StExpr::new(library::construct_list(args, pos), side_effects))
       }
       CallMagic::VectorOperation => {
         let args = strip_st(args);
@@ -441,11 +460,11 @@ impl CallMagic {
         match args.len() {
           2 => {
             let (x, y) = args::two(args);
-            Ok(Expr::call(None, "Vector2", vec!(x, y), pos))
+            Ok(StExpr::new(Expr::call(None, "Vector2", vec!(x, y), pos), side_effects))
           }
           3 => {
             let (x, y, z) = args::three(args);
-            Ok(Expr::call(None, "Vector3", vec!(x, y, z), pos))
+            Ok(StExpr::new(Expr::call(None, "Vector3", vec!(x, y, z), pos), side_effects))
           }
           _ => {
             unreachable!()
@@ -456,30 +475,42 @@ impl CallMagic {
         let args = strip_st(args);
         Expecting::exactly(2).validate(&call.function, pos, &args)?;
         let (arr, n) = args::two(args);
-        Ok(arr.subscript(n, pos))
+        // We can't trace what variables are written *to* inside an
+        // object, so at minimum this reads (potentially mutable)
+        // state.
+        let side_effects = max(side_effects, SideEffects::ReadsState);
+        Ok(StExpr::new(arr.subscript(n, pos), side_effects))
       }
       CallMagic::ArraySubscriptAssign => {
-        let args = strip_st(args);
         Expecting::exactly(3).validate(&call.function, pos, &args)?;
         let (x, arr, n) = args::three(args);
 
-        let assign_target = arr.subscript(n, pos);
-        builder.append(Stmt::simple_assign(assign_target.clone(), x, pos));
-        Ok(assign_target)
+        let x = Compiler::assign_temporary_if_stateful(table, builder, x, needs_result);
+        let assign_target = arr.expr.subscript(n.expr, pos);
+        builder.append(Stmt::simple_assign(assign_target.clone(), x.clone(), pos));
+        if needs_result == NeedsResult::Yes {
+          // We can't trace what variables are written *to* inside an
+          // object, so at minimum this reads (potentially mutable)
+          // state.
+          let side_effects = max(side_effects, SideEffects::ReadsState);
+          return Ok(StExpr::new(x, side_effects));
+        } else {
+          return Ok(Compiler::nil_expr(pos));
+        }
       }
       CallMagic::ElementOf => {
         let args = strip_st(args);
         Expecting::exactly(2).validate(&call.function, pos, &args)?;
         let (value, arr) = args::two(args);
 
-        Ok(value.binary(op::BinaryOp::In, arr, pos))
+        Ok(StExpr::new(value.binary(op::BinaryOp::In, arr, pos), side_effects))
       }
       CallMagic::InstanceOf => {
         let args = strip_st(args);
         Expecting::exactly(2).validate(&call.function, pos, &args)?;
         let (value, type_) = args::two(args);
 
-        Ok(value.binary(op::BinaryOp::Is, type_, pos))
+        Ok(StExpr::new(value.binary(op::BinaryOp::Is, type_, pos), side_effects))
       }
       CallMagic::GetNodeSyntax => {
         let args = strip_st(args);
@@ -489,55 +520,72 @@ impl CallMagic {
         if let ExprF::Literal(Literal::String(s)) = &path.value {
           if value.value == ExprF::Var(String::from("self")) {
             // We can use the $x syntax on the GDScript side
-            return Ok(Expr::from_value(Literal::NodeLiteral(s.to_owned()), pos));
+            return Ok(StExpr::new(Expr::from_value(Literal::NodeLiteral(s.to_owned()), pos), side_effects))
           }
         }
 
         // Otherwise, just compile to self.get_node.
-        Ok(
-          Expr::call(
+        Ok(StExpr {
+          expr: Expr::call(
             Some(value),
             "get_node",
             vec!(path),
             pos,
           ),
-        )
+          side_effects,
+        })
 
       }
       CallMagic::CompileToVarargCall(name) => {
         let args = strip_st(args);
         Expecting::from(call.specs).validate(&call.function, pos, &args)?;
-        Ok(Expr::simple_call(name, args, pos))
+        Ok(StExpr::modifies_state(Expr::simple_call(name, args, pos)))
       }
       CallMagic::NodePathConstructor(fallback) => {
         if args.len() == 1 {
           if let ExprF::Literal(Literal::String(s)) = &args[0].expr.value {
-            return Ok(
-              Expr::new(ExprF::Literal(Literal::NodePathLiteral(s.clone())), pos),
-            );
+            return Ok(StExpr {
+              expr: Expr::new(ExprF::Literal(Literal::NodePathLiteral(s.clone())), pos),
+              side_effects,
+            });
           }
         }
-        fallback.compile(call, compiler, builder, table, args, pos)
+        fallback.compile(call, compiler, builder, table, args, needs_result, pos)
       }
       CallMagic::AccessSlot(fallback) => {
         if args.len() == 2 {
           if let ExprF::Literal(Literal::String(s)) = &args[1].expr.value {
-            return Ok(
-              args[0].expr.clone().attribute(s, pos)
-            );
+            return Ok(StExpr {
+              expr: args[0].expr.clone().attribute(names::lisp_to_gd(s), pos),
+              // We can't trace what variables are written *to* inside
+              // an object, so at minimum this reads (potentially
+              // mutable) state.
+              side_effects: max(side_effects, SideEffects::ReadsState),
+            });
           }
         }
-        fallback.compile(call, compiler, builder, table, args, pos)
+        fallback.compile(call, compiler, builder, table, args, needs_result, pos)
       }
       CallMagic::AccessSlotAssign(fallback) => {
         if args.len() == 3 {
           if let ExprF::Literal(Literal::String(s)) = &args[2].expr.value {
-            let lhs = args[1].expr.clone().attribute(s, pos);
-            builder.append(Stmt::simple_assign(lhs.clone(), args[0].expr.clone(), pos));
-            return Ok(lhs);
+            let s = s.clone();
+            let (x, lhs, _) = args::three(args);
+            let lhs = lhs.expr.clone().attribute(names::lisp_to_gd(&s), pos);
+            let x = Compiler::assign_temporary_if_stateful(table, builder, x, needs_result);
+            builder.append(Stmt::simple_assign(lhs.clone(), x.clone(), pos));
+            if needs_result == NeedsResult::Yes {
+              // We can't trace what variables are written *to* inside
+              // an object, so at minimum this reads (potentially
+              // mutable) state.
+              let side_effects = max(side_effects, SideEffects::ReadsState);
+              return Ok(StExpr::new(x, side_effects));
+            } else {
+              return Ok(Compiler::nil_expr(pos));
+            }
           }
         }
-        fallback.compile(call, compiler, builder, table, args, pos)
+        fallback.compile(call, compiler, builder, table, args, needs_result, pos)
       }
     }
   }

@@ -65,17 +65,17 @@ mod tests {
   #[test]
   fn parser_colon() {
     let p = &AST_PARSER;
-    assert_eq!(p.parse("a:b").unwrap(), AST::list(vec!(AST::symbol("access-slot", so(0)), AST::symbol("a", so(0)), AST::symbol("b", so(2))), so(0)));
-    assert_eq!(p.parse("(1 . 2):b").unwrap(), AST::list(vec!(AST::symbol("access-slot", so(0)), AST::cons(AST::int(1, so(1)), AST::int(2, so(5)), so(0)), AST::symbol("b", so(8))), so(0)));
-    assert_eq!(p.parse("'a:b").unwrap(), AST::list(vec!(AST::symbol("quote", so(0)), AST::list(vec!(AST::symbol("access-slot", so(1)), AST::symbol("a", so(1)), AST::symbol("b", so(3))), so(1))), so(0)));
-    assert_eq!(p.parse("a:b:c").unwrap(), AST::list(vec!(AST::symbol("access-slot", so(0)), AST::list(vec!(AST::symbol("access-slot", so(0)), AST::symbol("a", so(0)), AST::symbol("b", so(2))), so(0)), AST::symbol("c", so(4))), so(0)));
+    assert_eq!(p.parse("a:b").unwrap(), AST::list(vec!(AST::symbol("access-slot", so(0)), AST::symbol("a", so(0)), AST::string("b", so(2))), so(0)));
+    assert_eq!(p.parse("(1 . 2):b").unwrap(), AST::list(vec!(AST::symbol("access-slot", so(0)), AST::cons(AST::int(1, so(1)), AST::int(2, so(5)), so(0)), AST::string("b", so(8))), so(0)));
+    assert_eq!(p.parse("'a:b").unwrap(), AST::list(vec!(AST::symbol("quote", so(0)), AST::list(vec!(AST::symbol("access-slot", so(1)), AST::symbol("a", so(1)), AST::string("b", so(3))), so(1))), so(0)));
+    assert_eq!(p.parse("a:b:c").unwrap(), AST::list(vec!(AST::symbol("access-slot", so(0)), AST::list(vec!(AST::symbol("access-slot", so(0)), AST::symbol("a", so(0)), AST::string("b", so(2))), so(0)), AST::string("c", so(4))), so(0)));
   }
 
   #[test]
   fn parser_at_self() {
     let p = &AST_PARSER;
-    assert_eq!(p.parse("@b").unwrap(), AST::list(vec!(AST::symbol("access-slot", so(0)), AST::symbol("self", so(0)), AST::symbol("b", so(1))), so(0)));
-    assert_eq!(p.parse("@b:c").unwrap(), AST::list(vec!(AST::symbol("access-slot", so(0)), AST::list(vec!(AST::symbol("access-slot", so(0)), AST::symbol("self", so(0)), AST::symbol("b", so(1))), so(0)), AST::symbol("c", so(3))), so(0)));
+    assert_eq!(p.parse("@b").unwrap(), AST::list(vec!(AST::symbol("access-slot", so(0)), AST::symbol("self", so(0)), AST::string("b", so(1))), so(0)));
+    assert_eq!(p.parse("@b:c").unwrap(), AST::list(vec!(AST::symbol("access-slot", so(0)), AST::list(vec!(AST::symbol("access-slot", so(0)), AST::symbol("self", so(0)), AST::string("b", so(1))), so(0)), AST::string("c", so(3))), so(0)));
   }
 
   #[test]
