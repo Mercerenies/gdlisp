@@ -501,3 +501,11 @@ static func foo():
     return pepperoni_pizza()
 "#);
 }
+
+#[test]
+pub fn bad_sys_declare_test() {
+  assert_eq!(
+    parse_compile_decl_err("((sys/declare not-a-valid-declaration-type foobar))"),
+    Err(PError::from(GDError::new(GDErrorF::BadSysDeclare(String::from("not-a-valid-declaration-type")), SourceOffset(1)))),
+  );
+}

@@ -400,6 +400,7 @@ impl GDErrorF {
       GDErrorF::NoSuchMagic(_) => true,
       GDErrorF::MacroInMinimalistError(_) => true,
       GDErrorF::ContextualFilenameUnresolved => true,
+      GDErrorF::BadSysDeclare(_) => true,
       GDErrorF::BadBootstrappingDirective(_) => true,
       GDErrorF::MinimalistAtRepl => true,
       _ => false,
