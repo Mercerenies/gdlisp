@@ -17,8 +17,8 @@ pub enum ASTF {
   /// inside of it.
   Atom(Literal),
   /// A pair of values. The first value is referred to as the car and
-  /// the second as the cdr. All Lisp lists are made up of cons cells
-  /// and [`ASTF::Nil`]. Displays as `(car . cdr)`.
+  /// the second as the cdr. All *proper* Lisp lists are made up of
+  /// cons cells and [`Literal::Nil`]. Displays as `(car . cdr)`.
   Cons(Box<AST>, Box<AST>),
   /// A literal array of values. Whereas a list in Lisp is a linked
   /// list made of cons cells, an array is a constant-time sequential
@@ -58,6 +58,12 @@ fn fmt_list(a: &AST, b: &AST, f: &mut fmt::Formatter<'_>) -> fmt::Result {
 
 impl ASTF {
 
+  /// The literal nil AST value. Up to equality, there is only one
+  /// such value.
+  ///
+  /// Note that, in some Lisps, the nil value is considered to be a
+  /// symbol. In GDLisp, this is *not* the case: the nil value is a
+  /// special value distinct from all symbols.
   pub const NIL: ASTF = ASTF::Atom(Literal::Nil);
 
   /// An [`ASTF::Cons`] cell. This is more convenient than calling the
@@ -100,30 +106,30 @@ impl AST {
     AST { value, pos }
   }
 
-  /// An [`ASTF::Nil`] wrapped in `AST` with the given source offset.
-  /// Equivalent to `AST::new(ASTF::Nil, pos)`.
+  /// A [`Literal::Nil`] wrapped in `AST` with the given source
+  /// offset. Equivalent to `AST::new(ASTF::Nil, pos)`.
   pub fn nil(pos: SourceOffset) -> AST {
     AST::new(ASTF::Atom(Literal::Nil), pos)
   }
 
-  /// An [`ASTF::Symbol`] with the given value.
+  /// A [`Literal::Symbol`] with the given value.
   pub fn symbol<S>(name: S, pos: SourceOffset) -> AST
   where String : From<S> {
     AST::new(ASTF::symbol(name), pos)
   }
 
-  /// An [`ASTF::String`] with the given value.
+  /// A [`Literal::String`] with the given value.
   pub fn string<S>(name: S, pos: SourceOffset) -> AST
   where String : From<S> {
     AST::new(ASTF::string(name), pos)
   }
 
-  /// An [`ASTF::Int`] with the given value.
+  /// A [`Literal::Int`] with the given value.
   pub fn int(value: i32, pos: SourceOffset) -> AST {
     AST::new(ASTF::int(value), pos)
   }
 
-  /// An [`ASTF::Float`] with the given value.
+  /// A [`Literal::Float`] with the given value.
   pub fn float(value: f32, pos: SourceOffset) -> AST {
     AST::new(ASTF::float(value), pos)
   }
@@ -274,10 +280,10 @@ impl AST {
   }
 
   /// Walk the `AST`, producing a list of all symbols that appear (as
-  /// [`ASTF::Symbol`]) anywhere in the tree. The symbols will appear
-  /// in the resulting list in the order they appear in the `AST`, and
-  /// any duplicates will be represented multiple times, once for each
-  /// appearance.
+  /// [`Literal::Symbol`]) anywhere in the tree. The symbols will
+  /// appear in the resulting list in the order they appear in the
+  /// `AST`, and any duplicates will be represented multiple times,
+  /// once for each appearance.
   pub fn all_symbols<'a>(&'a self) -> Vec<&'a str> {
     let mut result: Vec<&'a str> = Vec::new();
     let err = self.walk_preorder::<_, Infallible>(|x| {
@@ -298,9 +304,9 @@ impl AST {
   /// terminator is `4`.
   ///
   /// We call a dotted list which terminates in `()` (i.e.
-  /// [`ASTF::Nil`]) a *proper list*. Some sources explicitly define a
-  /// dotted list to *not* be a proper list, but this documentation
-  /// does not make that distinction.
+  /// [`Literal::Nil`]) a *proper list*. Some sources explicitly
+  /// define a dotted list to *not* be a proper list, but this
+  /// documentation does not make that distinction.
   ///
   /// This function constructs an [`ASTF`] value from a sequence of
   /// values `vec` and a terminator `terminal`. For each value in the

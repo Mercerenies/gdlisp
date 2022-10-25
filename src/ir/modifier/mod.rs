@@ -25,9 +25,10 @@ use std::error::Error;
 
 // TODO Can we use this for defvar export statements too?
 
-/// `Constant` is a [`ParseRule`] which looks for an [`ASTF::Symbol`]
-/// with a specific string value. If it finds it, it returns a preset
-/// value. The `M` type must implement [`Clone`] to be usable as a
+/// `Constant` is a [`ParseRule`] which looks for a
+/// [`Literal::Symbol`](crate::sxp::literal::Literal::Symbol) with a
+/// specific string value. If it finds it, it returns a preset value.
+/// The `M` type must implement [`Clone`] to be usable as a
 /// `ParseRule`.
 pub struct Constant<M> {
   /// The symbol value to look for.

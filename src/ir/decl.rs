@@ -565,8 +565,9 @@ impl InstanceFunctionName {
   /// returns the name as an [`InstanceFunctionName`]. Specifically,
   /// the following are attempted in order.
   ///
-  /// 1. If the [`AST`] argument holds an [`ASTF::Symbol`], then this
-  /// is an [`InstanceFunctionName::Ordinary`] name.
+  /// 1. If the [`AST`] argument holds a
+  /// [`Literal::Symbol`](crate::sxp::literal::Literal::Symbol), then
+  /// this is an [`InstanceFunctionName::Ordinary`] name.
   ///
   /// 2. Otherwise, if the argument is a (proper) list of two
   /// elements, both of which are symbols, and if the first symbol is

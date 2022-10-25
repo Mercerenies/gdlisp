@@ -18,7 +18,8 @@ use std::convert::TryFrom;
 /// must have a car of one of the forms permitted by `CallName`.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum CallName {
-  /// A simple [`ASTF::Symbol`] name.
+  /// A simple
+  /// [`Literal::Symbol`](crate::sxp::literal::Literal::Symbol) name.
   SimpleName(String),
   /// An `access-slot` qualified call.
   MethodName(Box<Expr>, String),

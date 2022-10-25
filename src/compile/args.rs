@@ -144,8 +144,8 @@ impl Expecting {
 
 impl ExpectedShape {
 
-  /// Extracts an [`ASTF::Symbol`], or reports an error if the [`AST`]
-  /// is not a symbol.
+  /// Extracts a [`Literal::Symbol`], or reports an error if the
+  /// [`AST`] is not a symbol.
   pub fn extract_symbol(form_name: &str, ast: AST) -> Result<String, GDError> {
     let pos = ast.pos;
     match ast.value {
@@ -154,8 +154,8 @@ impl ExpectedShape {
     }
   }
 
-  /// Extracts an [`ASTF::String`], or reports an error if the [`AST`]
-  /// is not a string literal.
+  /// Extracts a [`Literal::String`], or reports an error if the
+  /// [`AST`] is not a string literal.
   pub fn extract_string(form_name: &str, ast: AST) -> Result<String, GDError> {
     let pos = ast.pos;
     match ast.value {
@@ -164,7 +164,7 @@ impl ExpectedShape {
     }
   }
 
-  /// Extracts an [`ASTF::Int`], or reports an error if the [`AST`]
+  /// Extracts a [`Literal::Int`], or reports an error if the [`AST`]
   /// is not an integer literal.
   pub fn extract_i32(form_name: &str, ast: AST) -> Result<i32, GDError> {
     let pos = ast.pos;

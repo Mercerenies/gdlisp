@@ -66,10 +66,10 @@ impl<'a> DottedExpr<'a> {
 }
 
 /// A dotted list whose terminator is
-/// [`ASTF::Nil`](super::ast::ASTF::Nil) is called a proper list. It is
-/// reasonable to interpret a proper list as a simple vector, since
-/// the nil terminator is merely a placeholder for the end of the
-/// list. [`TryFrom::<DottedExpr>::try_from`] performs this
+/// [`Literal::Nil`](super::literal::Literal::Nil) is called a proper
+/// list. It is reasonable to interpret a proper list as a simple
+/// vector, since the nil terminator is merely a placeholder for the
+/// end of the list. [`TryFrom::<DottedExpr>::try_from`] performs this
 /// conversion, returning [`DottedExpr::elements`] if
 /// [`DottedExpr::terminal`] is nil and producing an error otherwise.
 impl<'a> TryFrom<DottedExpr<'a>> for Vec<&'a AST> {
