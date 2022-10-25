@@ -156,6 +156,27 @@ impl MacroServer {
     server._shutdown()
   }
 
+  /// Returns true if the Godot subprocess is running and is healthy.
+  /// If the process has terminated for any reason or the GDLisp
+  /// process cannot communicate with it, then this function returns false.
+  pub fn is_process_healthy(&mut self) -> bool {
+    match self.godot_server.try_wait() {
+      Ok(Some(_)) => {
+        // Process has terminated.
+        false
+      }
+      Ok(None) => {
+        // Process has not terminated.
+        true
+      }
+      Err(_) => {
+        // Error occurred trying to get process status; assume
+        // unhealthy.
+        false
+      }
+    }
+  }
+
 }
 
 /// Dropping a `MacroServer` kills the child process, suppressing any
@@ -174,6 +195,8 @@ mod tests {
   use crate::sxp::reify::Reify;
   use crate::AST_PARSER;
   use std::convert::TryFrom;
+  use std::thread::sleep;
+  use std::time::Duration;
 
   fn issue_command_and_unwrap(server: &mut MacroServer, value: &ServerCommand) -> String {
     let result = server.issue_command(value).unwrap();
@@ -228,6 +251,28 @@ mod tests {
     let command = ServerCommand::Exec(String::from("    var tmp_var = 1 + 1\n    return tmp_var"));
     let response = issue_command_and_unwrap(&mut server, &command);
     assert_eq!(response, "2");
+  }
+
+  #[test]
+  fn healthy_server_test() {
+    let mut server = MacroServer::new().unwrap();
+    assert!(server.is_process_healthy());
+  }
+
+  #[test]
+  fn unhealthy_server_test() {
+    let mut server = MacroServer::new().unwrap();
+    let command = ServerCommand::Eval(String::from("GDLisp.get_tree().quit()"));
+    issue_command_and_unwrap(&mut server, &command);
+
+    // The quit command will terminate the Godot subprocess within
+    // 1/60th of a second (Godot will terminate at the end of the
+    // current frame, and the default framerate is 60 frames per
+    // second). So we'll wait 200 milliseconds to make sure it has
+    // time to terminate.
+    sleep(Duration::from_millis(200));
+
+    assert!(!server.is_process_healthy());
   }
 
 }
