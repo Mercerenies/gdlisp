@@ -2,6 +2,7 @@
 use gdlisp::compile::error::{GDError, GDErrorF};
 use gdlisp::pipeline::error::PError;
 use gdlisp::pipeline::source::SourceOffset;
+use gdlisp::ir::expr::{Expr, ExprF};
 
 use super::common::*;
 
@@ -70,6 +71,24 @@ static func set_foo(c, a, b):
 static func example():
     return set_foo(3, 1, 2)
 "#);
+}
+
+#[test]
+pub fn expr_at_toplevel_test() {
+  // Note: We're using `parse_compile_decl_err` here, not
+  // `parse_compile_and_output_err`, so the system is *expecting*
+  // declarations. We gave it an expression and expect it to come back
+  // with an `ExprAtTopLevel` error.
+  let result = parse_compile_decl_err("((+ 1 1))");
+  assert_eq!(
+    result,
+    Err(PError::from(GDError::new(
+      GDErrorF::ExprAtTopLevel(
+        Expr::new(ExprF::Call(String::from("+"), vec!(Expr::from_value(1, SourceOffset(4)), Expr::from_value(1, SourceOffset(6)))), SourceOffset(1)),
+      ),
+      SourceOffset(1),
+    ))),
+  );
 }
 
 #[test]
