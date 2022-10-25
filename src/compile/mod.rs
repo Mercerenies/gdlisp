@@ -193,7 +193,7 @@ impl Compiler {
             let conflicting_name = builder.declare_setter_for(field_name.to_owned());
             if conflicting_name.is_some() {
               return Err(GDError::new(
-                GDErrorF::DuplicateName(ClassNamespace::Value, field_name.to_owned()),
+                GDErrorF::DuplicateName(ClassNamespace::Value, field_name),
                 decl.pos,
               ));
             }
@@ -212,7 +212,7 @@ impl Compiler {
             let conflicting_name = builder.declare_getter_for(field_name.to_owned());
             if conflicting_name.is_some() {
               return Err(GDError::new(
-                GDErrorF::DuplicateName(ClassNamespace::Value, field_name.to_owned()),
+                GDErrorF::DuplicateName(ClassNamespace::Value, field_name),
                 decl.pos,
               ))
             }
