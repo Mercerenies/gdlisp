@@ -688,3 +688,12 @@ pub fn bad_order_macro_test() {
     Err(PError::from(GDError::new(GDErrorF::MacroBeforeDefinitionError(String::from("foo")), SourceOffset(14)))),
   );
 }
+
+#[test]
+pub fn bad_preload_in_macro_test() {
+  assert_eq!(
+    parse_compile_decl_err(r#"((defmacro foo ()
+                                  (sys/context-filename "res://not-a-real-file.lisp")))"#),
+    Err(PError::from(GDError::new(GDErrorF::ContextualFilenameUnresolved, SourceOffset(52)))),
+  );
+}
