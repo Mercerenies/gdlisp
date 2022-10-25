@@ -10,6 +10,8 @@ use crate::compile::error::{GDError, GDErrorF};
 use crate::pipeline::Pipeline;
 use crate::pipeline::error::PError;
 
+use std::convert::TryFrom;
+
 /// GDLisp is fairly conservative about what sort of [`AST`] values
 /// are allowed as the subject of a call. Excluding special forms and
 /// other quoted constructs, an `AST` appearing in evaluation context
@@ -46,20 +48,19 @@ impl CallName {
       }
     } else if let Some(name) = CallName::try_resolve_atomic_name(ast) {
       Ok(CallName::AtomicName(name.to_owned()))
+    } else if let Some(s) = ast.as_symbol_ref() {
+      Ok(CallName::SimpleName(s.to_owned()))
     } else {
-      match &ast.value {
-        ASTF::Symbol(s) => Ok(CallName::SimpleName(s.clone())),
-        _ => Err(PError::from(GDError::new(GDErrorF::CannotCall(ast.clone()), ast.pos))),
-      }
+      Err(PError::from(GDError::new(GDErrorF::CannotCall(ast.clone()), ast.pos)))
     }
   }
 
   /// Attempts to resolve `ast` as an `access-slot` pair, with an
   /// `AST` left-hand side and a string method name.
   fn try_resolve_method_name(ast: &AST) -> Option<(&AST, &str)> {
-    if let DottedExpr { elements: vec, terminal: AST { value: ASTF::Nil, pos: _ } } = DottedExpr::new(ast) {
+    if let Ok(vec) = Vec::<&AST>::try_from(DottedExpr::new(ast)) {
       if vec.len() == 3 && vec[0].value == ASTF::symbol("access-slot") {
-        if let ASTF::Symbol(name) = &vec[2].value {
+        if let Some(name) = vec[2].as_symbol_ref() {
           return Some((vec[1], name));
         }
       }
@@ -70,9 +71,9 @@ impl CallName {
   /// Attempts to resolve `ast` as a `literally` name with a single
   /// symbol argument.
   fn try_resolve_atomic_name(ast: &AST) -> Option<&str> {
-    if let DottedExpr { elements: vec, terminal: AST { value: ASTF::Nil, pos: _ } } = DottedExpr::new(ast) {
+    if let Ok(vec) = Vec::<&AST>::try_from(DottedExpr::new(ast)) {
       if vec.len() == 2 && vec[0].value == ASTF::symbol("literally") {
-        if let ASTF::Symbol(name) = &vec[1].value {
+        if let Some(name) = vec[1].as_symbol_ref() {
           return Some(name);
         }
       }

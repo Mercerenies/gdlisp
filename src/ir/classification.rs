@@ -47,7 +47,7 @@ pub const DECL_HEADS: [&str; 9] = [
 pub fn is_decl(decl: &AST) -> bool {
   let vec: Result<Vec<&AST>, _> = DottedExpr::new(decl).try_into();
   if let Ok(vec) = vec {
-    if let Some(AST { value: ASTF::Symbol(head), pos: _ }) = vec.get(0) {
+    if let Some(head) = vec.get(0).and_then(|x| x.as_symbol_ref()) {
       return DECL_HEADS.contains(&head.borrow());
     }
   }
@@ -65,7 +65,7 @@ pub fn detect_super<'a, 'b>(body: &'a [&'b AST]) -> (Option<DetectedSuperCall<'b
   if !body.is_empty() {
     let first: Result<Vec<_>, _> = DottedExpr::new(body[0]).try_into();
     if let Ok(mut first) = first {
-      if !first.is_empty() && first[0].value == ASTF::Symbol(String::from("super")) {
+      if !first.is_empty() && first[0].value == ASTF::symbol(String::from("super")) {
         let super_symbol = first.remove(0);
         let super_args = first;
         let super_call = DetectedSuperCall {

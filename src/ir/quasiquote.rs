@@ -3,7 +3,6 @@ use crate::sxp::ast::{AST, ASTF};
 use crate::ir::incremental::IncCompiler;
 use crate::compile::error::{GDError, GDErrorF};
 use super::expr::{Expr, ExprF};
-use super::literal::Literal;
 use crate::pipeline::error::PError;
 use crate::pipeline::Pipeline;
 
@@ -41,9 +40,9 @@ impl<'a> UnquotedValue<'a> {
 impl<'a> From<&'a AST> for UnquotedValue<'a> {
   fn from(arg: &'a AST) -> UnquotedValue<'a> {
     if let ASTF::Cons(car, cdr) = &arg.value {
-      if let ASTF::Symbol(name) = &car.value {
+      if let Some(name) = car.as_symbol_ref() {
         if let ASTF::Cons(cadr, cddr) = &cdr.value {
-          if cddr.value == ASTF::Nil {
+          if cddr.value == ASTF::NIL {
             if name == "quasiquote" {
               return UnquotedValue::Quasiquote(cadr);
             } else if name == "unquote" {
@@ -158,23 +157,8 @@ impl<'a, 'b> QuasiquoteEngine<'a, 'b> {
       }
       UnquotedValue::SimpleValue(arg) => {
         let body = match &arg.value {
-          ASTF::Nil => {
-            Expr::new(ExprF::Literal(Literal::Nil), arg.pos)
-          }
-          ASTF::Int(n) => {
-            Expr::new(ExprF::Literal(Literal::Int(*n)), arg.pos)
-          }
-          ASTF::Bool(b) => {
-            Expr::new(ExprF::Literal(Literal::Bool(*b)), arg.pos)
-          }
-          ASTF::Float(f) => {
-            Expr::new(ExprF::Literal(Literal::Float(*f)), arg.pos)
-          }
-          ASTF::String(s) => {
-            Expr::new(ExprF::Literal(Literal::String(s.to_owned())), arg.pos)
-          }
-          ASTF::Symbol(s) => {
-            Expr::new(ExprF::Literal(Literal::Symbol(s.to_owned())), arg.pos)
+          ASTF::Atom(lit) => {
+            Expr::from_ast_literal(lit, arg.pos)
           }
           ASTF::Cons(car, cdr) => {
             let car = self.quasiquote_spliced(car, nesting_depth, current_depth + 1)?;

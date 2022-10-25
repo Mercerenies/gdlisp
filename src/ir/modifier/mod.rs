@@ -17,7 +17,7 @@ pub mod file;
 pub mod declare;
 pub mod var;
 
-use crate::sxp::ast::{AST, ASTF};
+use crate::sxp::ast::AST;
 use crate::pipeline::source::{SourceOffset, Sourced};
 
 use std::fmt;
@@ -216,12 +216,11 @@ impl<M> ParseRule for Constant<M> where M: Clone {
   type Modifier = M;
 
   fn parse_once(&mut self, ast: &AST) -> Result<M, ParseError> {
-    if let ASTF::Symbol(s) = &ast.value {
-      if *s == self.symbol_value {
-        return Ok(self.result.clone());
-      }
+    if ast.as_symbol_ref() == Some(&self.symbol_value) {
+      Ok(self.result.clone())
+    } else {
+      Err(ParseError::new(ParseErrorF::Expecting(self.symbol_value.clone(), ast.clone()), ast.pos))
     }
-    Err(ParseError::new(ParseErrorF::Expecting(self.symbol_value.clone(), ast.clone()), ast.pos))
   }
 
   fn name(&self) -> &str {

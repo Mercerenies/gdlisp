@@ -542,7 +542,7 @@ mod tests {
   // TODO A lot more of this
 
   fn int(n: i32) -> AST {
-    AST::new(ASTF::Int(n), SourceOffset::default())
+    AST::new(ASTF::int(n), SourceOffset::default())
   }
 
   fn nil() -> AST {
@@ -627,7 +627,7 @@ mod tests {
 
   #[test]
   fn compile_bool_t() {
-    let ast = AST::new(ASTF::Bool(true), SourceOffset::default());
+    let ast = AST::new(ASTF::from(true), SourceOffset::default());
     let expected = s(StmtF::ReturnStmt(e(ExprF::from(true))));
     let actual = compile_stmt(&ast).unwrap();
     assert_eq!(actual.0, vec!(expected));
@@ -636,7 +636,7 @@ mod tests {
 
   #[test]
   fn compile_bool_f() {
-    let ast = AST::new(ASTF::Bool(false), SourceOffset::default());
+    let ast = AST::new(ASTF::from(false), SourceOffset::default());
     let expected = s(StmtF::ReturnStmt(e(ExprF::from(false))));
     let actual = compile_stmt(&ast).unwrap();
     assert_eq!(actual.0, vec!(expected));

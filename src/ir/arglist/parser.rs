@@ -2,6 +2,7 @@
 //! The general-purpose parsing module of [`GeneralArgList`].
 
 use crate::sxp::ast::{AST, ASTF};
+use crate::sxp::literal::Literal;
 use super::general::{GeneralArgList, GeneralArg};
 use super::error::{ArgListParseError, ArgListParseErrorF};
 use super::vararg::VarArg;
@@ -133,7 +134,7 @@ impl ParseState {
     // Returns whether or not a transition was parsed.
     let pos = arg.pos;
     match &arg.value {
-      ASTF::Symbol(arg) if arg.starts_with('&') => {
+      ASTF::Atom(Literal::Symbol(arg)) if arg.starts_with('&') => {
         let new_state = self.state_transition(arg.borrow());
         match new_state {
           None => {

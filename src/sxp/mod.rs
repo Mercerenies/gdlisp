@@ -3,7 +3,8 @@
 //! S-expressions.
 
 pub mod ast;
-pub mod string;
 pub mod dotted;
+pub mod literal;
 pub mod reify;
+pub mod string;
 pub mod syntax;

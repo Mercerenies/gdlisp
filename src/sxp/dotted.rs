@@ -75,8 +75,11 @@ impl<'a> DottedExpr<'a> {
 impl<'a> TryFrom<DottedExpr<'a>> for Vec<&'a AST> {
   type Error = TryFromDottedExprError;
 
+  // TODO This should really be an inherent method on DottedExpr,
+  // rather than relying on type inference and TryFrom to figure out
+  // what we really mean.
   fn try_from(expr: DottedExpr<'a>) -> Result<Vec<&'a AST>, TryFromDottedExprError> {
-    if expr.terminal.value == ASTF::Nil {
+    if expr.terminal.value == ASTF::NIL {
       Ok(expr.elements)
     } else {
       Err(TryFromDottedExprError { pos: expr.terminal.pos })
@@ -91,7 +94,7 @@ mod tests {
   use crate::pipeline::source::SourceOffset;
 
   fn int(n: i32) -> AST {
-    AST::new(ASTF::Int(n), SourceOffset::default())
+    AST::new(ASTF::int(n), SourceOffset::default())
   }
 
   fn nil() -> AST {

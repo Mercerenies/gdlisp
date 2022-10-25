@@ -14,6 +14,7 @@
 use super::error::{GDError, GDErrorF};
 use crate::pipeline::source::SourceOffset;
 use crate::sxp::ast::{AST, ASTF};
+use crate::sxp::literal::Literal;
 use crate::ir::special_form::access_slot::ACCESS_SLOT_FORM_NAME;
 
 use std::fmt;
@@ -148,7 +149,7 @@ impl ExpectedShape {
   pub fn extract_symbol(form_name: &str, ast: AST) -> Result<String, GDError> {
     let pos = ast.pos;
     match ast.value {
-      ASTF::Symbol(s) => Ok(s),
+      ASTF::Atom(Literal::Symbol(s)) => Ok(s),
       _ => Err(GDError::new(GDErrorF::InvalidArg(form_name.to_owned(), ast, ExpectedShape::Symbol), pos)),
     }
   }
@@ -158,7 +159,7 @@ impl ExpectedShape {
   pub fn extract_string(form_name: &str, ast: AST) -> Result<String, GDError> {
     let pos = ast.pos;
     match ast.value {
-      ASTF::String(s) => Ok(s),
+      ASTF::Atom(Literal::String(s)) => Ok(s),
       _ => Err(GDError::new(GDErrorF::InvalidArg(form_name.to_owned(), ast, ExpectedShape::String), pos)),
     }
   }
@@ -168,7 +169,7 @@ impl ExpectedShape {
   pub fn extract_i32(form_name: &str, ast: AST) -> Result<i32, GDError> {
     let pos = ast.pos;
     match ast.value {
-      ASTF::Int(n) => Ok(n),
+      ASTF::Atom(Literal::Int(n)) => Ok(n),
       _ => Err(GDError::new(GDErrorF::InvalidArg(form_name.to_owned(), ast, ExpectedShape::Integer), pos)),
     }
   }

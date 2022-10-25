@@ -54,7 +54,7 @@ impl GeneralArg {
   /// `(access-slot self name)`. Any other form will be rejected with
   /// an error.
   pub fn parse(ast: &AST) -> Result<GeneralArg, ArgListParseError> {
-    if let ASTF::Symbol(name) = &ast.value {
+    if let Some(name) = ast.as_symbol_ref() {
       // Ordinary argument
       Ok(GeneralArg {
         name: name.to_owned(),
@@ -95,7 +95,7 @@ fn parse_access_slot(ast: &AST) -> Result<AccessSlotSyntax<'_>, ArgListParseErro
 
 /// Verifies that the AST is literally the symbol `self`.
 fn verify_self(ast: &AST) -> Result<(), ArgListParseError> {
-  if ast.value == ASTF::Symbol(String::from("self")) {
+  if ast.value == ASTF::symbol(String::from("self")) {
     Ok(())
   } else {
     Err(ArgListParseError::new(ArgListParseErrorF::InvalidArgument(ast.clone()), ast.pos))

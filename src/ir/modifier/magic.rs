@@ -6,7 +6,7 @@
 //! modifier is responsible for parsing declarations that a function
 //! would like to exhibit call magic behavior.
 
-use crate::sxp::ast::{AST, ASTF};
+use crate::sxp::ast::AST;
 use crate::sxp::dotted::DottedExpr;
 use super::{ParseRule, ParseError, ParseErrorF};
 
@@ -30,9 +30,9 @@ impl ParseRule for MagicParser {
     if vec.len() != 2 {
       return Err(magic_error(ast));
     }
-    if let ASTF::Symbol(sys_call_magic) = &vec[0].value {
+    if let Some(sys_call_magic) = vec[0].as_symbol_ref() {
       if sys_call_magic == "sys/call-magic" {
-        if let ASTF::Symbol(name) = &vec[1].value {
+        if let Some(name) = vec[1].as_symbol_ref() {
           return Ok(name.to_owned());
         }
       }

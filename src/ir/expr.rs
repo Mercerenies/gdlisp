@@ -7,6 +7,7 @@ use super::access_type::AccessType;
 use super::identifier::{Namespace, Id};
 use super::special_ref::SpecialRef;
 use crate::sxp::ast::AST;
+use crate::sxp::literal::{Literal as ASTLiteral};
 use crate::pipeline::source::{SourceOffset, Sourced};
 use crate::runner::path::RPathBuf;
 
@@ -139,6 +140,31 @@ impl Expr {
 
   pub fn assert_expr(cond: Expr, message: Option<Expr>, pos: SourceOffset) -> Expr {
     Expr::new(ExprF::Assert(Box::new(cond), message.map(Box::new)), pos)
+  }
+
+  /// Converts the AST [`Literal`](crate::sxp::literal::Literal) value
+  /// into an [`Expr`].
+  pub fn from_ast_literal(ast_literal: &ASTLiteral, pos: SourceOffset) -> Expr {
+    match ast_literal {
+      ASTLiteral::Nil => {
+        Expr::new(ExprF::Literal(literal::Literal::Nil), pos)
+      }
+      ASTLiteral::Int(n) => {
+        Expr::new(ExprF::Literal(literal::Literal::Int(*n)), pos)
+      }
+      ASTLiteral::Bool(b) => {
+        Expr::new(ExprF::Literal(literal::Literal::Bool(*b)), pos)
+      }
+      ASTLiteral::Float(f) => {
+        Expr::new(ExprF::Literal(literal::Literal::Float(*f)), pos)
+      }
+      ASTLiteral::String(s) => {
+        Expr::new(ExprF::Literal(literal::Literal::String(s.to_owned())), pos)
+      }
+      ASTLiteral::Symbol(s) => {
+        Expr::new(ExprF::Literal(literal::Literal::Symbol(s.to_owned())), pos)
+      }
+    }
   }
 
   /// Wraps the expression in a 0-ary lambda which is immediately

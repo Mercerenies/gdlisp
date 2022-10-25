@@ -4,9 +4,7 @@
 use crate::pipeline::source::{SourceOffset, Sourced};
 use crate::util::extract_err;
 use crate::util::recursive::Recursive;
-use super::string::insert_escapes;
-
-use ordered_float::OrderedFloat;
+use super::literal::Literal;
 
 use std::fmt;
 use std::convert::Infallible;
@@ -15,9 +13,9 @@ use std::cmp::max;
 /// The basic type used for representing Lisp S-expressions.
 #[derive(PartialEq, Eq, Hash, Clone, Debug)]
 pub enum ASTF {
-  /// A nil value, or `()`. This is comparable to `null` in some
-  /// languages but also functions as the empty list.
-  Nil,
+  /// An atomic AST that does not contain any further AST values
+  /// inside of it.
+  Atom(Literal),
   /// A pair of values. The first value is referred to as the car and
   /// the second as the cdr. All Lisp lists are made up of cons cells
   /// and [`ASTF::Nil`]. Displays as `(car . cdr)`.
@@ -32,19 +30,6 @@ pub enum ASTF {
   /// duplicate keys and preserves the order in which the keys are
   /// entered. Displays as `{k1 v1 k2 v2 ... kn vn}`
   Dictionary(Vec<(AST, AST)>),
-  /// A literal 32-bit integer value.
-  Int(i32),
-  /// A literal Boolean value.
-  Bool(bool),
-  /// A literal floating-point value. For AST purposes, we do not use
-  /// standard IEEE comparison semantics and instead use
-  /// [`OrderedFloat`], whose ordering and equality relations satisfy
-  /// convenient abstract mathematical properties.
-  Float(OrderedFloat<f32>),
-  /// A literal string.
-  String(String),
-  /// A literal symbol.
-  Symbol(String),
 }
 
 /// An `AST` is an [`ASTF`] together with information about the offset
@@ -57,7 +42,7 @@ pub struct AST {
 
 fn fmt_list(a: &AST, b: &AST, f: &mut fmt::Formatter<'_>) -> fmt::Result {
   match &b.value {
-    ASTF::Nil =>
+    ASTF::Atom(Literal::Nil) =>
       // End of list; just print the known value
       write!(f, "{}", a),
     ASTF::Cons(b1, c1) => {
@@ -73,24 +58,36 @@ fn fmt_list(a: &AST, b: &AST, f: &mut fmt::Formatter<'_>) -> fmt::Result {
 
 impl ASTF {
 
+  pub const NIL: ASTF = ASTF::Atom(Literal::Nil);
+
   /// An [`ASTF::Cons`] cell. This is more convenient than calling the
   /// constructor directly, as you needn't explicitly box the values.
   pub fn cons(car: AST, cdr: AST) -> ASTF {
     ASTF::Cons(Box::new(car), Box::new(cdr))
   }
 
-  /// An [`ASTF::String`]. Copies the string argument into a new
+  /// A [`Literal::String`]. Clones the string argument into a new
   /// [`ASTF`] value.
   pub fn string<S>(s: S) -> ASTF
   where String : From<S> {
-    ASTF::String(String::from(s))
+    ASTF::Atom(Literal::String(String::from(s)))
   }
 
-  /// An [`ASTF::Symbol`]. Copies the string argument into a new
+  /// A [`Literal::Symbol`]. Clones the string argument into a new
   /// [`ASTF`] value.
   pub fn symbol<S>(s: S) -> ASTF
   where String : From<S> {
-    ASTF::Symbol(String::from(s))
+    ASTF::Atom(Literal::Symbol(String::from(s)))
+  }
+
+  /// A literal integer, as an [`ASTF`].
+  pub fn int(value: i32) -> ASTF {
+    ASTF::Atom(Literal::Int(value))
+  }
+
+  /// A literal float, as an [`ASTF`].
+  pub fn float(value: f32) -> ASTF {
+    ASTF::Atom(Literal::Float(value.into()))
   }
 
 }
@@ -106,7 +103,7 @@ impl AST {
   /// An [`ASTF::Nil`] wrapped in `AST` with the given source offset.
   /// Equivalent to `AST::new(ASTF::Nil, pos)`.
   pub fn nil(pos: SourceOffset) -> AST {
-    AST::new(ASTF::Nil, pos)
+    AST::new(ASTF::Atom(Literal::Nil), pos)
   }
 
   /// An [`ASTF::Symbol`] with the given value.
@@ -123,12 +120,12 @@ impl AST {
 
   /// An [`ASTF::Int`] with the given value.
   pub fn int(value: i32, pos: SourceOffset) -> AST {
-    AST::new(ASTF::Int(value), pos)
+    AST::new(ASTF::int(value), pos)
   }
 
   /// An [`ASTF::Float`] with the given value.
   pub fn float(value: f32, pos: SourceOffset) -> AST {
-    AST::new(ASTF::Float(value.into()), pos)
+    AST::new(ASTF::float(value), pos)
   }
 
   /// An [`ASTF::Cons`] with the given value.
@@ -156,7 +153,7 @@ impl AST {
           func(v)?;
         }
       }
-      ASTF::Nil | ASTF::Int(_) | ASTF::Bool(_) | ASTF::Float(_) | ASTF::String(_) | ASTF::Symbol(_) => {
+      ASTF::Atom(_) => {
         default()?;
       }
     }
@@ -183,7 +180,7 @@ impl AST {
           func(v)?;
         }
       }
-      ASTF::Nil | ASTF::Int(_) | ASTF::Bool(_) | ASTF::Float(_) | ASTF::String(_) | ASTF::Symbol(_) => {
+      ASTF::Atom(_) => {
         default()?;
       }
     }
@@ -284,7 +281,7 @@ impl AST {
   pub fn all_symbols<'a>(&'a self) -> Vec<&'a str> {
     let mut result: Vec<&'a str> = Vec::new();
     let err = self.walk_preorder::<_, Infallible>(|x| {
-      if let ASTF::Symbol(x) = &x.value {
+      if let ASTF::Atom(Literal::Symbol(x)) = &x.value {
         result.push(x);
       }
       Ok(())
@@ -342,6 +339,17 @@ impl AST {
     AST::new(ASTF::from(value), pos)
   }
 
+  /// If `self` stores a [`Literal::Symbol`], then a reference to the
+  /// inside of that symbol is returned. Otherwise, `None` is
+  /// returned.
+  pub fn as_symbol_ref(&self) -> Option<&str> {
+    if let ASTF::Atom(Literal::Symbol(s)) = &self.value {
+      Some(s)
+    } else {
+      None
+    }
+  }
+
 }
 
 /// Pretty-print an AST, using a format compatible with [`parser`](crate::parser).
@@ -351,13 +359,7 @@ impl fmt::Display for AST {
 
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     match &self.value {
-      ASTF::Nil => write!(f, "()"),
-      ASTF::Int(n) => write!(f, "{}", n),
-      ASTF::Bool(true) => write!(f, "#t"),
-      ASTF::Bool(false) => write!(f, "#f"),
-      ASTF::Float(x) => write!(f, "{}", x),
-      ASTF::String(s) => write!(f, "\"{}\"", insert_escapes(s)),
-      ASTF::Symbol(s) => write!(f, "{}", s),
+      ASTF::Atom(lit) => write!(f, "{}", lit),
       ASTF::Cons(a, b) => {
         write!(f, "(")?;
         fmt_list(a, b, f)?;
@@ -409,7 +411,7 @@ impl Recursive for AST {
 
   fn depth(&self) -> u32 {
     match &self.value {
-      ASTF::Nil | ASTF::Int(_) | ASTF::Bool(_) | ASTF::Float(_) | ASTF::String(_) | ASTF::Symbol(_) => 1,
+      ASTF::Atom(_) => 1,
       ASTF::Cons(a, b) => 1 + max(a.depth(), b.depth()),
       ASTF::Array(v) => 1 + v.iter().map(AST::depth).max().unwrap_or(0),
       ASTF::Dictionary(v) => 1 + v.iter().map(|(x, y)| max(x.depth(), y.depth())).max().unwrap_or(0),
@@ -420,37 +422,37 @@ impl Recursive for AST {
 
 impl From<()> for ASTF {
   fn from(_: ()) -> ASTF {
-    ASTF::Nil
+    ASTF::Atom(Literal::Nil)
   }
 }
 
 impl From<i32> for ASTF {
   fn from(n: i32) -> ASTF {
-    ASTF::Int(n)
+    ASTF::Atom(Literal::from(n))
   }
 }
 
 impl From<bool> for ASTF {
   fn from(b: bool) -> ASTF {
-    ASTF::Bool(b)
+    ASTF::Atom(Literal::from(b))
   }
 }
 
 impl From<f32> for ASTF {
   fn from(f: f32) -> ASTF {
-    ASTF::Float(OrderedFloat(f))
+    ASTF::Atom(Literal::from(f))
   }
 }
 
 impl From<String> for ASTF {
   fn from(s: String) -> ASTF {
-    ASTF::String(s)
+    ASTF::Atom(Literal::String(s))
   }
 }
 
 impl<'a> From<&'a str> for ASTF {
   fn from(s: &'a str) -> ASTF {
-    ASTF::from(String::from(s))
+    ASTF::Atom(Literal::String(String::from(s)))
   }
 }
 
@@ -464,7 +466,7 @@ mod tests {
   // in SourceOffset::default() wherever necessary.
 
   fn int(n: i32) -> AST {
-    AST::new(ASTF::Int(n), SourceOffset::default())
+    AST::new(ASTF::int(n), SourceOffset::default())
   }
 
   fn nil() -> AST {
@@ -479,13 +481,13 @@ mod tests {
   fn runtime_repr_numerical() {
     assert_eq!(int(150).to_string(), 150.to_string());
     assert_eq!(int(-99).to_string(), (-99).to_string());
-    assert_eq!(AST::new(ASTF::Float((0.83).into()), SourceOffset::default()).to_string(), (0.83).to_string());
-    assert_eq!(AST::new(ASTF::Float((-1.2).into()), SourceOffset::default()).to_string(), (-1.2).to_string());
+    assert_eq!(AST::new(ASTF::float(0.83), SourceOffset::default()).to_string(), (0.83).to_string());
+    assert_eq!(AST::new(ASTF::float(-1.2), SourceOffset::default()).to_string(), (-1.2).to_string());
   }
 
   #[test]
   fn runtime_repr_nil() {
-    assert_eq!(AST::new(ASTF::Nil, SourceOffset::default()).to_string(), "()");
+    assert_eq!(AST::new(ASTF::Atom(Literal::Nil), SourceOffset::default()).to_string(), "()");
   }
 
   #[test]

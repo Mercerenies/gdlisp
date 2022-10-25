@@ -15,8 +15,8 @@ mod tests {
   #[test]
   fn parser_simple() {
     let p = &AST_PARSER;
-    assert_eq!(p.parse("12").unwrap(), AST::new(ASTF::Int(12), so(0)));
-    assert_eq!(p.parse("12.0").unwrap(), AST::new(ASTF::Float((12.0).into()), so(0)));
+    assert_eq!(p.parse("12").unwrap(), AST::new(ASTF::int(12), so(0)));
+    assert_eq!(p.parse("12.0").unwrap(), AST::new(ASTF::float(12.0), so(0)));
     assert_eq!(p.parse("abc").unwrap(), AST::symbol("abc", so(0)));
     assert_eq!(p.parse("abc.def").unwrap(), AST::symbol("abc.def", so(0)));
     assert_eq!(p.parse("\"abc\"").unwrap(), AST::string("abc", so(0)));

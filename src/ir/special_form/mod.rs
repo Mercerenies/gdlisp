@@ -4,6 +4,7 @@ pub mod assignment;
 pub mod local_binding;
 
 use crate::sxp::ast::{AST, ASTF};
+use crate::sxp::literal::Literal;
 use crate::sxp::dotted::DottedExpr;
 use super::expr::{ExprF, Expr, FuncRefTarget, AssignTarget, LambdaClass, LocalVarClause, LocalFnClause};
 use super::special_ref::SpecialRef;
@@ -26,7 +27,6 @@ use assignment::AssignmentForm;
 use access_slot::AccessSlotSyntax;
 
 use std::convert::{TryFrom, TryInto};
-use std::borrow::Borrow;
 
 pub fn dispatch_form(icompiler: &mut IncCompiler,
                      pipeline: &mut Pipeline,
@@ -131,17 +131,18 @@ pub fn let_form(icompiler: &mut IncCompiler,
                 tail: &[&AST],
                 pos: SourceOffset)
                 -> Result<Expr, PError> {
+  // TODO Clean this up :(
   Expecting::at_least(1).validate("let", pos, tail)?;
   let vars: Vec<_> = DottedExpr::new(tail[0]).try_into()?;
   let var_clauses = vars.into_iter().map(|clause| {
     let var: Vec<_> = match DottedExpr::new(clause) {
-      DottedExpr { elements, terminal: AST { value: ASTF::Nil, pos: _ } } if !elements.is_empty() => elements,
-      DottedExpr { elements, terminal: tail@AST { value: ASTF::Symbol(_), pos: _ } } if elements.is_empty() => vec!(tail),
+      DottedExpr { elements, terminal: AST { value: ASTF::NIL, pos: _ } } if !elements.is_empty() => elements,
+      DottedExpr { elements, terminal: tail@AST { value: ASTF::Atom(Literal::Symbol(_)), pos: _ } } if elements.is_empty() => vec!(tail),
       _ => return Err(PError::from(GDError::new(GDErrorF::InvalidArg(String::from("let"), (*clause).clone(), ExpectedShape::VarDecl), pos)))
     };
     let result_value = var[1..].iter().map(|e| icompiler.compile_expr(pipeline, e)).collect::<Result<Vec<_>, _>>()?;
     let name = match &var[0].value {
-      ASTF::Symbol(s) => Ok(s.clone()),
+      ASTF::Atom(Literal::Symbol(s)) => Ok(s.clone()),
       _ => Err(PError::from(GDError::new(GDErrorF::InvalidArg(String::from("let"), (*clause).clone(), ExpectedShape::VarDecl), pos))),
     }?;
     Ok(LocalVarClause { name, value: Expr::progn(result_value, clause.pos) })
@@ -180,13 +181,13 @@ pub fn assign_form(icompiler: &mut IncCompiler,
                    -> Result<Expr, PError> {
   Expecting::exactly(2).validate("set", pos, tail)?;
   let assign_target = match &tail[0].value {
-    ASTF::Symbol(s) => {
+    ASTF::Atom(Literal::Symbol(s)) => {
       AssignmentForm::Simple(AssignTarget::Variable(tail[0].pos, s.to_owned()))
     }
     _ => {
       let x = tail[0];
       let inner: Vec<_> = DottedExpr::new(x).try_into()?;
-      if inner[0].value == ASTF::Symbol(String::from("access-slot")) {
+      if inner[0].value == ASTF::symbol(String::from("access-slot")) {
         if let ExprF::FieldAccess(lhs, slot_name) = access_slot_form(icompiler, pipeline, &inner[1..], pos)?.value {
           AssignmentForm::Simple(AssignTarget::InstanceField(inner[0].pos, lhs, slot_name))
         } else {
@@ -243,7 +244,7 @@ pub fn flet_form(icompiler: &mut IncCompiler,
         return Err(PError::from(GDError::new(GDErrorF::InvalidArg(String::from("flet"), clause.clone(), ExpectedShape::FnDecl), pos)));
       }
       let name = match &func[0].value {
-        ASTF::Symbol(s) => Ok(s.clone()),
+        ASTF::Atom(Literal::Symbol(s)) => Ok(s.clone()),
         _ => Err(PError::from(GDError::new(GDErrorF::InvalidArg(String::from("flet"), (*clause).clone(), ExpectedShape::FnDecl), pos))),
       }?;
       let args: Vec<_> = DottedExpr::new(func[1]).try_into()?;
@@ -289,7 +290,7 @@ pub fn new_form(icompiler: &mut IncCompiler,
                 -> Result<Expr, PError> {
   Expecting::at_least(1).validate("new", pos, tail)?;
   let super_call = match &tail[0].value {
-    ASTF::Symbol(_) => AST::dotted_list(vec!((*tail[0]).clone()), AST::new(ASTF::Nil, tail[0].pos)),
+    ASTF::Atom(Literal::Symbol(_)) => AST::dotted_list(vec!((*tail[0]).clone()), AST::nil(tail[0].pos)),
     _ => tail[0].clone(),
   };
   let super_call = Vec::try_from(DottedExpr::new(&super_call))?;
@@ -297,7 +298,7 @@ pub fn new_form(icompiler: &mut IncCompiler,
     return Err(PError::from(GDError::new(GDErrorF::InvalidArg(String::from("new"), tail[0].clone(), ExpectedShape::SuperclassDecl), pos)));
   }
   let superclass = match &super_call[0].value {
-    ASTF::Symbol(superclass_name) => superclass_name.to_owned(),
+    ASTF::Atom(Literal::Symbol(superclass_name)) => superclass_name.to_owned(),
     _ => return Err(PError::from(GDError::new(GDErrorF::InvalidArg(String::from("new"), tail[0].clone(), ExpectedShape::SuperclassDecl), pos))),
   };
   let super_args = super_call[1..].iter().map(|arg| icompiler.compile_expr(pipeline, arg)).collect::<Result<Vec<_>, _>>()?;
@@ -389,7 +390,7 @@ pub fn macrolet_form(icompiler: &mut IncCompiler,
       return Err(PError::from(GDError::new(GDErrorF::InvalidArg(String::from("macrolet"), clause.clone(), ExpectedShape::MacroDecl), pos)));
     }
     let name = match &func[0].value {
-      ASTF::Symbol(s) => Ok(s.clone()),
+      ASTF::Atom(Literal::Symbol(s)) => Ok(s.clone()),
       _ => Err(PError::from(GDError::new(GDErrorF::InvalidArg(String::from("macrolet"), (*clause).clone(), ExpectedShape::MacroDecl), pos))),
     }?;
     let args: Vec<_> = DottedExpr::new(func[1]).try_into()?;
@@ -419,7 +420,7 @@ pub fn symbol_macrolet_form(icompiler: &mut IncCompiler,
       return Err(PError::from(GDError::new(GDErrorF::InvalidArg(String::from("symbol-macrolet"), clause.clone(), ExpectedShape::MacroDecl), pos)));
     }
     let name = match &var[0].value {
-      ASTF::Symbol(s) => Ok(s.clone()),
+      ASTF::Atom(Literal::Symbol(s)) => Ok(s.clone()),
       _ => Err(PError::from(GDError::new(GDErrorF::InvalidArg(String::from("symbol-macrolet"), (*clause).clone(), ExpectedShape::MacroDecl), pos))),
     }?;
     let body = icompiler.compile_expr(pipeline, var[1])?;
@@ -440,8 +441,8 @@ pub fn special_ref_form(_icompiler: &mut IncCompiler,
                         pos: SourceOffset)
                         -> Result<Expr, PError> {
   Expecting::exactly(1).validate("sys/special-ref", pos, tail)?;
-  if let ASTF::Symbol(sym) = &tail[0].value {
-    match sym.borrow() {
+  if let Some(sym) = tail[0].as_symbol_ref() {
+    match sym {
       "this-file" => Ok(Expr::from_value(SpecialRef::ThisFile, pos)),
       "this-filename" => Ok(Expr::from_value(SpecialRef::ThisFileName, pos)),
       "this-true-filename" => Ok(Expr::from_value(SpecialRef::ThisTrueFileName, pos)),

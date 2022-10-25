@@ -10,7 +10,6 @@ use super::arglist::error::ArgListParseError;
 use super::arglist::ordinary::ArgList;
 use super::arglist::constructor::ConstructorArgList;
 use super::arglist::simple::SimpleArgList;
-use super::literal::Literal;
 use super::import::{ImportDecl, ImportName};
 use super::expr::{Expr, ExprF};
 use super::special_form;
@@ -24,6 +23,7 @@ use super::bootstrapping::{compile_bootstrapping_decl, compile_bootstrapping_cla
 use crate::util::one::One;
 use crate::sxp::dotted::{DottedExpr, TryFromDottedExprError};
 use crate::sxp::ast::{AST, ASTF};
+use crate::sxp::literal::{Literal as ASTLiteral};
 use crate::sxp::reify::pretty::reify_pretty_expr;
 use crate::compile::symbol_table::SymbolTable;
 use crate::compile::error::{GDError, GDErrorF};
@@ -167,30 +167,27 @@ impl IncCompiler {
 
   pub fn compile_expr(&mut self, pipeline: &mut Pipeline, expr: &AST) -> Result<Expr, PError> {
     match &expr.value {
-      ASTF::Nil | ASTF::Cons(_, _) => {
+      ASTF::Cons(_, _) => {
         let vec: Vec<&AST> = DottedExpr::new(expr).try_into()?;
-        if vec.is_empty() {
-          Ok(Expr::literal(Literal::Nil, expr.pos))
-        } else {
-          let head = CallName::resolve_call_name(self, pipeline, vec[0])?;
-          let tail = &vec[1..];
-          // TODO Can this be part of CallName?
-          match head {
-            CallName::SimpleName(head) => {
-              self.resolve_simple_call(pipeline, &head, tail, expr.pos)
-            }
-            CallName::MethodName(target, head) => {
-              let args = tail.iter().map(|x| self.compile_expr(pipeline, x)).collect::<Result<Vec<_>, _>>()?;
-              Ok(Expr::new(ExprF::MethodCall(target, head, args), expr.pos))
-            }
-            CallName::AtomicName(head) => {
-              let args = tail.iter().map(|x| self.compile_expr(pipeline, x)).collect::<Result<Vec<_>, _>>()?;
-              Ok(Expr::new(ExprF::AtomicCall(head, args), expr.pos))
-            }
-            CallName::SuperName(head) => {
-              let args = tail.iter().map(|x| self.compile_expr(pipeline, x)).collect::<Result<Vec<_>, _>>()?;
-              Ok(Expr::new(ExprF::SuperCall(head, args), expr.pos))
-            }
+        assert!(!vec.is_empty(), "Internal error in compile_expr, expecting non-empty list, got {:?}", &expr);
+        let head = CallName::resolve_call_name(self, pipeline, vec[0])?;
+        let tail = &vec[1..];
+        // TODO Can this be part of CallName?
+        match head {
+          CallName::SimpleName(head) => {
+            self.resolve_simple_call(pipeline, &head, tail, expr.pos)
+          }
+          CallName::MethodName(target, head) => {
+            let args = tail.iter().map(|x| self.compile_expr(pipeline, x)).collect::<Result<Vec<_>, _>>()?;
+            Ok(Expr::new(ExprF::MethodCall(target, head, args), expr.pos))
+          }
+          CallName::AtomicName(head) => {
+            let args = tail.iter().map(|x| self.compile_expr(pipeline, x)).collect::<Result<Vec<_>, _>>()?;
+            Ok(Expr::new(ExprF::AtomicCall(head, args), expr.pos))
+          }
+          CallName::SuperName(head) => {
+            let args = tail.iter().map(|x| self.compile_expr(pipeline, x)).collect::<Result<Vec<_>, _>>()?;
+            Ok(Expr::new(ExprF::SuperCall(head, args), expr.pos))
           }
         }
       }
@@ -202,25 +199,19 @@ impl IncCompiler {
         let vec = vec.iter().map(|(k, v)| Ok((self.compile_expr(pipeline, k)?, self.compile_expr(pipeline, v)?))).collect::<Result<Vec<_>, PError>>()?;
         Ok(Expr::new(ExprF::Dictionary(vec), expr.pos))
       }
-      ASTF::Int(n) => {
-        Ok(Expr::new(ExprF::Literal(Literal::Int(*n)), expr.pos))
-      }
-      ASTF::Bool(b) => {
-        Ok(Expr::new(ExprF::Literal(Literal::Bool(*b)), expr.pos))
-      }
-      ASTF::Float(f) => {
-        Ok(Expr::new(ExprF::Literal(Literal::Float(*f)), expr.pos))
-      }
-      ASTF::String(s) => {
-        Ok(Expr::new(ExprF::Literal(Literal::String(s.to_owned())), expr.pos))
-      }
-      ASTF::Symbol(s) => {
-        // Symbol macro resolution
-        let macro_result = self.try_resolve_symbol_macro_call(pipeline, s, expr.pos)?;
-        if let Some(macro_result) = macro_result {
-          self.compile_expr(pipeline, &macro_result)
+      ASTF::Atom(lit) => {
+        // We handle symbols specially, but for any other literal, we
+        // simply delegate to [`Expr::from_ast_literal`].
+        if let ASTLiteral::Symbol(s) = lit {
+          // Symbol macro resolution
+          let macro_result = self.try_resolve_symbol_macro_call(pipeline, s, expr.pos)?;
+          if let Some(macro_result) = macro_result {
+            self.compile_expr(pipeline, &macro_result)
+          } else {
+            Ok(Expr::new(ExprF::LocalVar(s.to_string()), expr.pos))
+          }
         } else {
-          Ok(Expr::new(ExprF::LocalVar(s.to_string()), expr.pos))
+          Ok(Expr::from_ast_literal(lit, expr.pos))
         }
       }
     }
@@ -236,7 +227,7 @@ impl IncCompiler {
       return Err(PError::from(GDError::new(GDErrorF::UnknownDecl(decl.clone()), decl.pos)));
     }
     match &vec[0].value {
-      ASTF::Symbol(s) => {
+      ASTF::Atom(ASTLiteral::Symbol(s)) => {
         match s.borrow() {
           "sys/min-godot-version" => {
             // TODO In principle, this should be a macro that the user
@@ -326,12 +317,12 @@ impl IncCompiler {
             Expecting::at_least(2).validate("defclass", decl.pos, &vec[1..])?;
             let name = ExpectedShape::extract_symbol("defclass", vec[1].clone())?;
             let superclass = match &vec[2].value {
-              ASTF::Nil =>
+              ASTF::Atom(ASTLiteral::Nil) =>
                 library::REFERENCE_NAME.to_owned(),
               ASTF::Cons(car, cdr) =>
                 match (&car.value, &cdr.value) {
-                  (ASTF::Symbol(superclass_name), ASTF::Nil) => superclass_name.to_owned(),
-                  (_, ASTF::Nil) => return Err(PError::from(GDError::new(GDErrorF::BadExtendsClause, vec[2].pos))),
+                  (ASTF::Atom(ASTLiteral::Symbol(superclass_name)), ASTF::Atom(ASTLiteral::Nil)) => superclass_name.to_owned(),
+                  (_, ASTF::Atom(ASTLiteral::Nil)) => return Err(PError::from(GDError::new(GDErrorF::BadExtendsClause, vec[2].pos))),
                   _ => return Err(PError::from(GDError::new(GDErrorF::BadExtendsClause, vec[2].pos))),
                 },
               _ => return Err(PError::from(GDError::new(GDErrorF::BadExtendsClause, decl.pos))),
@@ -353,7 +344,7 @@ impl IncCompiler {
             let (mods, body) = modifier::enums::parser().parse(&vec[2..])?;
             let clauses = body.iter().map(|clause| {
               let clause = match &clause.value {
-                ASTF::Symbol(_) => AST::dotted_list(vec!((*clause).clone()), AST::new(ASTF::Nil, clause.pos)),
+                ASTF::Atom(ASTLiteral::Symbol(_)) => AST::dotted_list(vec!((*clause).clone()), AST::nil(clause.pos)),
                 _ => (*clause).clone(),
               };
               let clause = Vec::try_from(DottedExpr::new(&clause))?;
@@ -464,8 +455,8 @@ impl IncCompiler {
     if vec.is_empty() {
       return Err(PError::from(GDError::new(GDErrorF::InvalidArg(String::from("(declaration)"), curr.clone(), ExpectedShape::NonemptyList), curr.pos)));
     }
-    if let ASTF::Symbol(s) = &vec[0].value {
-      match s.as_str() {
+    if let Some(s) = vec[0].as_symbol_ref() {
+      match s {
         "progn" => {
           // Top-level magic progn
           for d in &vec[1..] {
@@ -491,7 +482,7 @@ impl IncCompiler {
           let mut idx = 2;
           // Value
           if let Some(v) = vec.get(idx) {
-            if !(matches!(&v.value, ASTF::Cons(car, _) if car.value == ASTF::Symbol(String::from("export")))) {
+            if !(matches!(&v.value, ASTF::Cons(car, _) if car.value == ASTF::symbol("export"))) {
               let e = self.compile_expr(pipeline, v)?;
               value = Some(e);
               idx += 1;
@@ -499,8 +490,8 @@ impl IncCompiler {
           };
           // Export
           if let Some(v) = vec.get(idx) {
-            if let DottedExpr { elements, terminal: AST { value: ASTF::Nil, pos: _ } } = DottedExpr::new(v) {
-              if elements.get(0).map(|x| &x.value) == Some(&ASTF::Symbol(String::from("export"))) {
+            if let Ok(elements) = Vec::<&AST>::try_from(DottedExpr::new(v)) {
+              if elements.get(0).map(|x| &x.value) == Some(&ASTF::symbol("export")) {
                 let args = elements[1..].iter().map(|x| self.compile_expr(pipeline, x)).collect::<Result<_, _>>()?;
                 export = Some(decl::Export { args });
                 idx += 1;
@@ -602,7 +593,7 @@ impl IncCompiler {
         "defsignal" => {
           Expecting::between(1, 2).validate("defsignal", curr.pos, &vec[1..])?;
           let name = ExpectedShape::extract_symbol("defsignal", vec[1].clone())?;
-          let nil = AST::new(ASTF::Nil, vec[0].pos);
+          let nil = AST::nil(vec[0].pos);
           let args = vec.get(2).map_or(&nil, |x| *x);
           let args_pos = args.pos;
           let args: Vec<_> = DottedExpr::new(args).try_into()?;
@@ -654,7 +645,7 @@ impl IncCompiler {
     }
     // Check if we're looking at a top-level progn.
     if let Ok(vec) = Vec::try_from(DottedExpr::new(curr)) {
-      if !vec.is_empty() && matches!(&vec[0].value, ASTF::Symbol(progn) if progn == "progn") {
+      if !vec.is_empty() && vec[0].value == ASTF::symbol("progn") {
         for inner in &vec[1..] {
           self.compile_decl_or_expr(pipeline, main, inner)?;
         }
@@ -844,7 +835,7 @@ impl IncCompiler {
   /// GDScript target name. No escaping is done by this function.
   fn get_declare_decl_name(form: &AST) -> Result<(String, Option<String>), GDError> {
     fn inner(form: &AST) -> Option<(String, Option<String>)> {
-      if let ASTF::Symbol(name) = &form.value {
+      if let Some(name) = form.as_symbol_ref() {
         // Single symbol; target GDScript name should be determined
         // automatically.
         Some((name.to_owned(), None))
@@ -852,7 +843,7 @@ impl IncCompiler {
         let list: Vec<&AST> = DottedExpr::new(form).try_into().ok()?;
         Expecting::exactly(2).validate("sys/declare", form.pos, &list).ok()?;
         let (name, target_name) = args::two(list);
-        if let (ASTF::Symbol(name), ASTF::Symbol(target_name)) = (&name.value, &target_name.value) {
+        if let (Some(name), Some(target_name)) = (name.as_symbol_ref(), target_name.as_symbol_ref()) {
           Some((name.to_owned(), Some(target_name.to_owned())))
         } else {
           None

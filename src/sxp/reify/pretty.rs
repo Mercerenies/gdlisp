@@ -7,8 +7,9 @@ use crate::gdscript::stmt::Stmt;
 use crate::gdscript::library;
 use crate::compile::names::generator::NameGenerator;
 use crate::compile::stmt_wrapper::StmtWrapper;
-use crate::pipeline::source::Sourced;
+use crate::pipeline::source::{Sourced, SourceOffset};
 use crate::sxp::ast::{AST, ASTF};
+use crate::sxp::literal::Literal;
 
 /// Reifies the expression, as though through
 /// [`Reify::reify`](super::Reify::reify). However, whereas
@@ -65,8 +66,8 @@ impl<'a, G: NameGenerator> PrettyPrinter<'a, G> {
       Expr::var(&name, value.get_source())
     } else {
       match &value.value {
-        ASTF::Nil => {
-          Expr::null(value.pos)
+        ASTF::Atom(lit) => {
+          reify_literal(lit, value.pos)
         }
         ASTF::Cons(a, b) => {
           let a = self.reify_pretty_rec(a, depth + 1);
@@ -81,22 +82,6 @@ impl<'a, G: NameGenerator> PrettyPrinter<'a, G> {
           let v = v.iter().map(|(k, v)| (self.reify_pretty_rec(k, depth + 1), self.reify_pretty_rec(v, depth + 1))).collect();
           Expr::new(ExprF::DictionaryLit(v), value.pos)
         }
-        ASTF::Int(n) => {
-          Expr::from_value(*n, value.pos)
-        }
-        ASTF::Bool(b) => {
-          Expr::from_value(*b, value.pos)
-        }
-        ASTF::Float(f) => {
-          Expr::from_value(*f, value.pos)
-        }
-        ASTF::String(s) => {
-          Expr::from_value(s.to_owned(), value.pos)
-        }
-        ASTF::Symbol(s) => {
-          let s = Expr::from_value(s.to_owned(), value.pos);
-          Expr::call(Some(library::gdlisp_root(value.pos)), "intern", vec!(s), value.pos)
-        }
       }
     }
   }
@@ -105,6 +90,30 @@ impl<'a, G: NameGenerator> PrettyPrinter<'a, G> {
     self.builder
   }
 
+}
+
+fn reify_literal(value: &Literal, pos: SourceOffset) -> Expr {
+  match value {
+    Literal::Nil => {
+      Expr::null(pos)
+    }
+    Literal::Int(n) => {
+      Expr::from_value(*n, pos)
+    }
+    Literal::Bool(b) => {
+      Expr::from_value(*b, pos)
+    }
+    Literal::Float(f) => {
+      Expr::from_value(*f, pos)
+    }
+    Literal::String(s) => {
+      Expr::from_value(s.to_owned(), pos)
+    }
+    Literal::Symbol(s) => {
+      let s = Expr::from_value(s.to_owned(), pos);
+      Expr::call(Some(library::gdlisp_root(pos)), "intern", vec!(s), pos)
+    }
+  }
 }
 
 #[cfg(test)]
@@ -118,7 +127,7 @@ mod tests {
   }
 
   fn int(n: i32) -> AST {
-    AST::new(ASTF::Int(n), SourceOffset::default())
+    AST::new(ASTF::int(n), SourceOffset::default())
   }
 
   #[test]

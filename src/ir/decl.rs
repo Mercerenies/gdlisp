@@ -7,7 +7,7 @@ use super::literal::Literal;
 use super::import::ImportDecl;
 use super::identifier::{Namespace, ClassNamespace, Id, IdLike};
 use super::export::Visibility;
-use crate::sxp::ast::{AST, ASTF};
+use crate::sxp::ast::AST;
 use crate::sxp::dotted::DottedExpr;
 use crate::gdscript::decl::Static;
 use crate::gdscript::library;
@@ -578,14 +578,14 @@ impl InstanceFunctionName {
   ///
   /// 4. Otherwise, parsing fails and `None` is returned.
   pub fn parse(ast: &AST) -> Option<InstanceFunctionName> {
-    if let ASTF::Symbol(name) = &ast.value {
+    if let Some(name) = ast.as_symbol_ref() {
       return Some(InstanceFunctionName::Ordinary(name.to_owned()));
     }
     let list: Vec<_> = DottedExpr::new(ast).try_into().ok()?;
     if let [accessor_type, field_name] = &*list {
-      if let ASTF::Symbol(field_name) = &field_name.value {
-        if let ASTF::Symbol(accessor_type) = &accessor_type.value {
-          match accessor_type.as_ref() {
+      if let Some(field_name) = field_name.as_symbol_ref() {
+        if let Some(accessor_type) = accessor_type.as_symbol_ref() {
+          match accessor_type {
             "set" => { return Some(InstanceFunctionName::Setter(field_name.to_owned())); }
             "get" => { return Some(InstanceFunctionName::Getter(field_name.to_owned())); }
             _ => {}

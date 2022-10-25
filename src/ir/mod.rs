@@ -78,7 +78,7 @@ mod tests {
   use std::path::PathBuf;
 
   fn int(n: i32) -> AST {
-    AST::new(ASTF::Int(n), SourceOffset::default())
+    AST::new(ASTF::int(n), SourceOffset::default())
   }
 
   fn symbol(s: &str) -> AST {
