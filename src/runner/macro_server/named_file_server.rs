@@ -275,6 +275,17 @@ impl NamedFileServer {
     Ok(())
   }
 
+  /// Returns true if the Godot subprocess is running and is healthy.
+  /// If the child process has started, then this delegates to
+  /// [`MacroServer::is_process_healthy`](super::MacroServer::is_process_healthy).
+  /// If not, then this returns false, as the process is not running.
+  pub fn is_process_healthy(&mut self) -> bool {
+    match self.server.get_mut_if_initialized() {
+      None => false,
+      Some(server) => server.is_process_healthy(),
+    }
+  }
+
 }
 
 impl MacroID {

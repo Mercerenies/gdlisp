@@ -59,6 +59,16 @@ impl LazyServer {
     Ok(self.0.as_mut().unwrap())
   }
 
+  /// Returns the macro server, but only if it has already been
+  /// started. If the macro server has not yet been started, then this
+  /// will return `None`.
+  ///
+  /// For a function that lazily initializes the server if it hasn't
+  /// been initialized, see [`LazyServer::get_mut`].
+  pub fn get_mut_if_initialized(&mut self) -> Option<&mut MacroServer> {
+    self.0.as_mut()
+  }
+
   /// Consume the `LazyServer` and shut down the server, if it's
   /// running. This is equivalent to simply dropping the `LazyServer`
   /// instance but allows custom error handling to be implemented.

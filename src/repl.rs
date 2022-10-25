@@ -155,6 +155,18 @@ impl Repl {
     self.run_code(&ast)
   }
 
+  /// Returns true if the child process backing the REPL is still
+  /// running.
+  ///
+  /// Note that there is a frame of lag between a Godot command that
+  /// terminates the REPL and the actual termination, so if a call to
+  /// [`Repl::run_code`] or [`Repl::parse_and_run_code`] terminates
+  /// the REPL, then it will take approximately 16 milliseconds before
+  /// `Repl::is_running` begins to return false.
+  pub fn is_running(&mut self) -> bool {
+    self.pipeline.get_server_mut().is_process_healthy()
+  }
+
   fn remember_symbols(&mut self, filename: &Path, table: &mut SymbolTable, exports: &[Id]) {
     let direct_load_import = VarName::DirectLoad(filename.to_string_lossy().into_owned());
 
@@ -189,6 +201,8 @@ mod tests {
   use super::*;
   use crate::runner::version::VersionInfo;
   use std::path::PathBuf;
+  use std::thread::sleep;
+  use std::time::Duration;
 
   fn dummy_config() -> ProjectConfig {
     ProjectConfig {
@@ -215,6 +229,7 @@ mod tests {
     let mut repl = Repl::new(dummy_config());
     assert_eq!(repl.parse_and_run_code("(defn foo (x) (+ x 1))"), Ok(String::from("()")));
     assert_eq!(repl.parse_and_run_code("(foo 100)"), Ok(String::from("101")));
+    assert!(repl.is_running());
   }
 
   #[test]
@@ -242,6 +257,14 @@ mod tests {
     let mut repl = Repl::new(dummy_config());
     assert_eq!(repl.parse_and_run_code("(sys/nostdlib)"),
                Err(PError::from(GDError::new(GDErrorF::MinimalistAtRepl, SourceOffset(0)))));
+  }
+
+  #[test]
+  fn terminate_repl_via_tree_test() {
+    let mut repl = Repl::new(dummy_config());
+    assert_eq!(repl.parse_and_run_code("((GDLisp:get-tree):quit)"), Ok(String::from("()")));
+    sleep(Duration::from_millis(200));
+    assert!(!repl.is_running());
   }
 
 }

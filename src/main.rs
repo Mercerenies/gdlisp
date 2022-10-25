@@ -26,6 +26,8 @@ use std::io::{self, BufRead};
 use std::env;
 use std::path::{PathBuf, Path};
 use std::str::FromStr;
+use std::thread::sleep;
+use std::time::Duration;
 
 // Legacy REPL
 fn run_pseudo_repl(godot_version: VersionInfo) {
@@ -74,6 +76,16 @@ fn run_repl(godot_version: VersionInfo) {
       Ok(result) => {
         println!("{}", result);
       }
+    }
+
+    // Check and see if the Godot process has terminated. If the user
+    // calls `get_tree().quit()`, then the process will terminate at
+    // the end of the current frame. Godot's default FPS is 60, so
+    // this should take 1/60th of a second, or 16 milliseconds. Out of
+    // an abundance of caution, we pause for 100 milliseconds here.
+    sleep(Duration::from_millis(100));
+    if !repl.is_running() {
+      break;
     }
   }
 
