@@ -33,6 +33,13 @@ use std::io::Write;
 use std::path::Path;
 use std::collections::HashMap;
 
+/// A `Repl` instance maintains the state of a read-eval-print loop.
+/// Specifically, it maintains a running Godot instance
+/// (lazily-initialized, as always), as well as a table of all known
+/// symbols from *previous* REPL commands.
+///
+/// Commands are sent to a `Repl` via [`Repl::run_code`] or
+/// [`Repl::parse_and_run_code`].
 pub struct Repl {
   pipeline: Pipeline,
   full_symbol_table: SymbolTable,
@@ -64,6 +71,29 @@ impl Repl {
     self.parse_and_run_code("()").expect("Internal error in force_load");
   }
 
+  /// Runs the code given by the AST as GDLisp source. The result is
+  /// returned. In case of success, the result shall be the string
+  /// representation of the value produced by the expression. On
+  /// failure, the result shall be the error message.
+  ///
+  /// The top-level AST shall be a list, or a GDLisp error will be
+  /// returned. The list can consist of a mix of expressions and
+  /// declarations freely. The declarations will be put into scope
+  /// first (in the order they are declared), and then (and *only*
+  /// then) the expressions will be evaluated in order. If there are
+  /// no expressions and the declarations are successfully compiled,
+  /// then a string representation of the nil list will be returned as
+  /// a default value.
+  ///
+  /// `run_code` exhibits a strong exception guarantee. If this
+  /// function returns an error, then the [`Repl`] object it was
+  /// called on has not been modified. On the other hand, if this
+  /// function returns an `Ok` value, then the `Repl` object's
+  /// internal symbol table will have any new declarations from the
+  /// given code added to it.
+  ///
+  /// For a version that parses the code and *then* runs it, see
+  /// [`parse_and_run_code`](Repl::parse_and_run_code).
   pub fn run_code(&mut self, code: &AST) -> Result<String, PError> {
     self.pipeline.set_currently_loading_file(RPathBuf::try_from(String::from(Repl::REPL_FILENAME)).unwrap());
 
@@ -115,6 +145,11 @@ impl Repl {
     Ok(final_result)
   }
 
+  /// Parse the code as one or more GDLisp S-expressions and then run
+  /// the result in the REPL.
+  ///
+  /// See [`Repl::run_code`] for more details on the effects running
+  /// code has on the [`Repl`] object itself.
   pub fn parse_and_run_code(&mut self, code: &str) -> Result<String, PError> {
     let ast = SOME_AST_PARSER.parse(code)?;
     self.run_code(&ast)
@@ -207,7 +242,6 @@ mod tests {
     let mut repl = Repl::new(dummy_config());
     assert_eq!(repl.parse_and_run_code("(sys/nostdlib)"),
                Err(PError::from(GDError::new(GDErrorF::MinimalistAtRepl, SourceOffset(0)))));
-
   }
 
 }
