@@ -1286,6 +1286,11 @@
          (set ,symbol ((unquote symbol):resume)))
        ,symbol)))
 
+(defmacro quit ()
+  ;; Just a small helper macro to make it easier to exit the game.
+  ;; Mainly useful in the REPL.
+  '((GDLisp:get-tree):quit))
+
 (defmacro this-file ()
   '(sys/special-ref this-file))
 

@@ -666,6 +666,12 @@ func _init():
 }
 
 #[test]
+pub fn quit_macro_test() {
+  let result = parse_compile_and_output("(quit)");
+  assert_eq!(result, "return GDLisp.get_tree().quit()\n");
+}
+
+#[test]
 pub fn recursive_macro_test() {
   assert_eq!(
     parse_compile_decl_err("((defmacro foo () (foo)))"),
