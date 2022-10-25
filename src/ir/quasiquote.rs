@@ -35,10 +35,8 @@ impl<'a> UnquotedValue<'a> {
   fn verbatim(arg: &'a AST) -> UnquotedValue<'a> {
     UnquotedValue::SimpleValue(arg)
   }
-}
 
-impl<'a> From<&'a AST> for UnquotedValue<'a> {
-  fn from(arg: &'a AST) -> UnquotedValue<'a> {
+  fn parse(arg: &'a AST) -> UnquotedValue<'a> {
     if let ASTF::Cons(car, cdr) = &arg.value {
       if let Some(name) = car.as_symbol_ref() {
         if let ASTF::Cons(cadr, cddr) = &cdr.value {
@@ -56,6 +54,7 @@ impl<'a> From<&'a AST> for UnquotedValue<'a> {
     }
     UnquotedValue::SimpleValue(arg)
   }
+
 }
 
 pub fn quasiquote(icompiler: &mut IncCompiler,
@@ -122,7 +121,7 @@ impl<'a, 'b> QuasiquoteEngine<'a, 'b> {
                         nesting_depth: u32,
                         current_depth: u32)
                         -> Result<QQSpliced, PError> {
-    let unquoted_value = UnquotedValue::from(arg);
+    let unquoted_value = UnquotedValue::parse(arg);
 
     // Deal with nesting issues
     let (unquoted_value, nesting_depth) = match unquoted_value {
