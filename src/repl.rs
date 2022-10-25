@@ -225,6 +225,14 @@ mod tests {
   }
 
   #[test]
+  fn force_load_in_repl_test() {
+    let mut repl = Repl::new(dummy_config());
+    // This returns nothing, so there's nothing to assert. But we do
+    // expect this function to run without panicking.
+    repl.force_load();
+  }
+
+  #[test]
   fn decl_then_expr_in_two_repl_commands_test() {
     let mut repl = Repl::new(dummy_config());
     assert_eq!(repl.parse_and_run_code("(defn foo (x) (+ x 1))"), Ok(String::from("()")));
