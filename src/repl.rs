@@ -149,4 +149,65 @@ impl Repl {
 
 }
 
-// TODO Lots of tests :)
+#[cfg(test)]
+mod tests {
+  use super::*;
+  use crate::runner::version::VersionInfo;
+  use std::path::PathBuf;
+
+  fn dummy_config() -> ProjectConfig {
+    ProjectConfig {
+      root_directory: PathBuf::from("."),
+      optimizations: false,
+      godot_version: VersionInfo::default(),
+    }
+  }
+
+  #[test]
+  fn basic_repl_test() {
+    let mut repl = Repl::new(dummy_config());
+    assert_eq!(repl.parse_and_run_code("(+ 1 1)"), Ok(String::from("2")));
+  }
+
+  #[test]
+  fn decl_then_expr_in_one_repl_command_test() {
+    let mut repl = Repl::new(dummy_config());
+    assert_eq!(repl.parse_and_run_code("(defn foo (x) (+ x 1)) (foo 100)"), Ok(String::from("101")));
+  }
+
+  #[test]
+  fn decl_then_expr_in_two_repl_commands_test() {
+    let mut repl = Repl::new(dummy_config());
+    assert_eq!(repl.parse_and_run_code("(defn foo (x) (+ x 1))"), Ok(String::from("()")));
+    assert_eq!(repl.parse_and_run_code("(foo 100)"), Ok(String::from("101")));
+  }
+
+  #[test]
+  fn failed_decl_then_expr_repl_test() {
+    let mut repl = Repl::new(dummy_config());
+    assert_eq!(repl.parse_and_run_code("(defn foo (x) (+ x 1)) nonexistent-variable"),
+               Err(PError::from(GDError::new(GDErrorF::NoSuchVar(String::from("nonexistent-variable")), SourceOffset(23)))));
+    assert_eq!(repl.parse_and_run_code("(foo 100)"),
+               Err(PError::from(GDError::new(GDErrorF::NoSuchFn(String::from("foo")), SourceOffset(0)))));
+
+  }
+
+  #[test]
+  fn failed_repl_continues_test() {
+    let mut repl = Repl::new(dummy_config());
+    assert_eq!(repl.parse_and_run_code("(defn foo (x) (+ x 1))"), Ok(String::from("()")));
+    assert_eq!(repl.parse_and_run_code("nonexistent-variable"),
+               Err(PError::from(GDError::new(GDErrorF::NoSuchVar(String::from("nonexistent-variable")), SourceOffset(0)))));
+    assert_eq!(repl.parse_and_run_code("(foo 100)"), Ok(String::from("101")));
+
+  }
+
+  #[test]
+  fn minimalist_at_repl_test() {
+    let mut repl = Repl::new(dummy_config());
+    assert_eq!(repl.parse_and_run_code("(sys/nostdlib)"),
+               Err(PError::from(GDError::new(GDErrorF::MinimalistAtRepl, SourceOffset(0)))));
+
+  }
+
+}
