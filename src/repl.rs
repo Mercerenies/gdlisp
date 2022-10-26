@@ -219,6 +219,12 @@ mod tests {
   }
 
   #[test]
+  fn quoted_repl_test() {
+    let mut repl = Repl::new(dummy_config());
+    assert_eq!(repl.parse_and_run_code("'(1 2 . (3 . 4))"), Ok(String::from("(1 2 3 . 4)")));
+  }
+
+  #[test]
   fn decl_then_expr_in_one_repl_command_test() {
     let mut repl = Repl::new(dummy_config());
     assert_eq!(repl.parse_and_run_code("(defn foo (x) (+ x 1)) (foo 100)"), Ok(String::from("101")));

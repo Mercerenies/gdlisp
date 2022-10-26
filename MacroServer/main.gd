@@ -120,8 +120,19 @@ func pretty(value):
                     s += char(x)
         return s + "\""
     elif value.has_meta("__gdlisp_Primitive_Cons"):
-        return "(" + pretty(value.car) + " . " + pretty(value.cdr) + ")"
+        return "(" + _pretty_list(value) + ")"
     elif value.has_meta("__gdlisp_Primitive_Symbol"):
         return value.contents
     else:
         return str(value)
+
+
+func _pretty_list(value):
+    # The same logic as `crate::sxp::ast::fmt_list` to make list
+    # output pretty.
+    if value.cdr == null:
+        return pretty(value.car)
+    elif typeof(value.cdr) == TYPE_OBJECT and value.cdr.has_meta("__gdlisp_Primitive_Cons"):
+        return pretty(value.car) + " " + _pretty_list(value.cdr)
+    else:
+        return pretty(value.car) + " . " + pretty(value.cdr)

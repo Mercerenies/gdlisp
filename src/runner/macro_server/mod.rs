@@ -218,33 +218,41 @@ mod tests {
 
   #[test]
   fn spawn_server_ping_pong_test() {
-    let mut server1 = MacroServer::new().unwrap();
-    let response1 = issue_command_and_unwrap(&mut server1, &ServerCommand::Ping);
-    assert_eq!(response1, "pong");
-    server1.shutdown().unwrap();
+    let mut server = MacroServer::new().unwrap();
+    let response = issue_command_and_unwrap(&mut server, &ServerCommand::Ping);
+    assert_eq!(response, "pong");
+    server.shutdown().unwrap();
   }
 
   #[test]
-  fn spawn_server_test() {
-    let mut server2 = MacroServer::new().unwrap();
-    let response2_1 = issue_command_and_unwrap(&mut server2, &ServerCommand::Ping);
-    assert_eq!(response2_1, "pong");
-    let response2_2 = issue_command_and_unwrap(&mut server2, &ServerCommand::Eval(String::from("1 + 1")));
-    assert_eq!(response2_2, "2");
+  fn spawn_server_eval_test() {
+    let mut server = MacroServer::new().unwrap();
+    let response = issue_command_and_unwrap(&mut server, &ServerCommand::Eval(String::from("1 + 1")));
+    assert_eq!(response, "2");
+  }
 
-    roundtrip_value(&mut server2, "(1 . ())");
-    roundtrip_value(&mut server2, "[#t #f abc def]");
-    roundtrip_value(&mut server2, "[10 20 (30 . (40 . ())) \"ABC\"]");
+  #[test]
+  fn spawn_server_roundtrip_test() {
+    let mut server = MacroServer::new().unwrap();
+    roundtrip_value(&mut server, "(1)");
+    roundtrip_value(&mut server, "(1 2 . 3)");
+    roundtrip_value(&mut server, "(1 . 2)");
+    roundtrip_value(&mut server, "[#t #f abc def]");
+    roundtrip_value(&mut server, "[10 20 (30 40) \"ABC\"]");
+    roundtrip_value(&mut server, "[10 20 (30 40 . 50) \"ABC\"]");
+    roundtrip_value(&mut server, "[10 20 (30 40 . [50 (60 70)]) \"ABC\"]");
     // TODO Test roundtrip on string escaping (once we support parsing
     // escape sequences)
+  }
 
-    let response2_3 = issue_command_and_unwrap(&mut server2, &ServerCommand::Load(String::from("res://TestLoadedFile.gd")));
-    assert_eq!(response2_3, "0");
-    let response2_4 = issue_command_and_unwrap(&mut server2, &ServerCommand::Eval(String::from(r#"MAIN.loaded_files[0].example()"#)));
-    assert_eq!(response2_4, "\"Test succeeded\"");
-
-    server2.shutdown().unwrap();
-
+  #[test]
+  fn spawn_server_load_test() {
+    let mut server = MacroServer::new().unwrap();
+    let load_response = issue_command_and_unwrap(&mut server, &ServerCommand::Load(String::from("res://TestLoadedFile.gd")));
+    assert_eq!(load_response, "0");
+    let eval_response = issue_command_and_unwrap(&mut server, &ServerCommand::Eval(String::from(r#"MAIN.loaded_files[0].example()"#)));
+    assert_eq!(eval_response, "\"Test succeeded\"");
+    server.shutdown().unwrap();
   }
 
   #[test]
