@@ -9,18 +9,18 @@ use super::{ParseRule, Several, Constant};
 
 /// Modifier for [`ClassFnDecl`].
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub enum FnMod { // TODO Change the name so it doesn't match the name from super::function
+pub enum MethodMod {
   /// `static` declarations allow the instance method to be called
   /// without an instance of the class available.
   Static,
 }
 
-impl FnMod {
+impl MethodMod {
 
   /// Apply the modifier to an instance function declaration.
   pub fn apply(&self, decl: &mut ClassFnDecl) {
     match self {
-      FnMod::Static => {
+      MethodMod::Static => {
         decl.is_static = Static::IsStatic;
       }
     }
@@ -31,16 +31,16 @@ impl FnMod {
   /// attempt is made to do so.
   pub fn apply_to_constructor(&self, decl: &mut ConstructorDecl) -> Result<(), GDError> {
     match self {
-      FnMod::Static => {
+      MethodMod::Static => {
         Err(GDError::new(GDErrorF::StaticConstructor, decl.body.pos))
       }
     }
   }
 }
 
-/// Parse rule for `FnMod`.
-pub fn parser() -> impl ParseRule<Modifier=FnMod> {
+/// Parse rule for `MethodMod`.
+pub fn parser() -> impl ParseRule<Modifier=MethodMod> {
   Several::new(vec!(
-    Box::new(Constant::new("static", FnMod::Static).unique())
+    Box::new(Constant::new("static", MethodMod::Static).unique())
   ))
 }
