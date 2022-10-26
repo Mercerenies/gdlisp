@@ -3,6 +3,7 @@ extends Node
 var peer = null
 var loaded_files = null
 
+
 func _ready():
     loaded_files = []
 
@@ -11,6 +12,7 @@ func _ready():
     peer = StreamPeerTCP.new()
     peer.big_endian = true
     peer.connect_to_host("127.0.0.1", port_number)
+
 
 func _process(_delta):
     if peer.get_available_bytes() > 0:
@@ -22,6 +24,7 @@ func _process(_delta):
             # TODO Send error back
             push_error("Invalid JSON " + json_result.error_string)
 
+
 func failed_response(error_code, error_string = ""):
     var response = {
         "error_code": error_code,
@@ -30,6 +33,7 @@ func failed_response(error_code, error_string = ""):
     }
     return JSON.print(response)
 
+
 func successful_response(response_string):
     var response = {
         "error_code": OK,
@@ -37,6 +41,7 @@ func successful_response(response_string):
         "response_string": response_string
     }
     return JSON.print(response)
+
 
 func run_command(payload):
     var cmd = payload['command']
@@ -76,6 +81,7 @@ func exec(input):
     obj.set_script(script)
 
     return obj.exec(self)
+
 
 # I'll probably end up migrating this to GDLisp.gd proper at some
 # point, but for now, here it is.
