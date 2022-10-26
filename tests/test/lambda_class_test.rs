@@ -2,6 +2,7 @@
 use gdlisp::compile::error::{GDError, GDErrorF};
 use gdlisp::pipeline::error::PError;
 use gdlisp::pipeline::source::SourceOffset;
+use gdlisp::ir::identifier::ClassNamespace;
 
 use super::common::*;
 
@@ -392,7 +393,15 @@ pub fn lambda_class_init_test() {
 #[test]
 pub fn lambda_class_duplicate_constructor_test() {
   assert_eq!(
-    parse_compile_decl_err("((new Node (defn _init ()) (defn _init ())))"),
-    Err(PError::from(GDError::new(GDErrorF::DuplicateConstructor, SourceOffset(28)))),
+    parse_compile_decl_err("((defn function-name () (new Node (defn _init ()) (defn _init ()))))"),
+    Err(PError::from(GDError::new(GDErrorF::DuplicateConstructor, SourceOffset(51)))),
+  );
+}
+
+#[test]
+pub fn lambda_class_duplicate_name_test() {
+  assert_eq!(
+    parse_compile_decl_err("((defn function-name () (new Node (defn foo ()) (defn foo ()))))"),
+    Err(PError::from(GDError::new(GDErrorF::DuplicateName(ClassNamespace::Function, String::from("foo")), SourceOffset(49)))),
   );
 }

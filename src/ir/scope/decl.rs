@@ -127,7 +127,7 @@ where T: DeclScope<NS> {
 /// * The toplevel scope itself.
 /// * Any class scopes introduced in the file, including the main class, which
 ///   is considered distinct from the toplevel.
-/// * Any anonymous classes defined in the field.
+/// * Any anonymous classes defined in the file.
 #[allow(clippy::vec_init_then_push)] // For style consistency
 pub fn get_all_decl_scopes<'a>(toplevel: &'a TopLevel) -> Vec<Box<dyn DeclScope<ClassNamespace> + 'a>> {
   let mut acc: Vec<Box<dyn DeclScope<ClassNamespace> + 'a>> = Vec::new();
