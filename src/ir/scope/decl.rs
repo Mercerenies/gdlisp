@@ -8,15 +8,17 @@
 use super::name_table::NameTable;
 use super::name_table::builder::NameTableBuilder;
 use super::error::ScopeError;
+use crate::util::extract_err;
 use crate::pipeline::source::SourceOffset;
 use crate::ir::identifier::{Namespace, ClassNamespace};
 use crate::ir::decl::{DeclF, TopLevel, ClassDecl};
 use crate::ir::expr::{Expr, ExprF, LambdaClass};
 use crate::ir::literal::Literal;
 use crate::gdscript::library;
-use crate::optimize::ir::expr_walker::walk_exprs_in_toplevel_ok;
+use crate::optimize::ir::expr_walker::walk_exprs_in_toplevel;
 
 use std::hash::Hash;
+use std::convert::Infallible;
 
 /// Any type which implements [`DeclScope`] for the namespace
 /// [`Namespace`] can also correctly implement it for
@@ -146,17 +148,14 @@ pub fn get_all_decl_scopes<'a>(toplevel: &'a TopLevel) -> Vec<Box<dyn DeclScope<
   }
 
   // Any anonymous classes declared in the file
-  walk_exprs_in_toplevel_ok(toplevel, |expr| {
-    if let ExprF::LambdaClass(cls) = &expr.value {
-      // *sigh* What an unfortunate copy. But I don't see a way to
-      // convince the borrow checker that this value isn't going to
-      // disappear. (TODO Yeah...)
-      acc.push(cls.clone());
-    }
-    // Note: We don't use this value, so if this string ever appears
-    // in the output code, there's a problem.
-    Expr::literal(Literal::from("UNUSED STRING FROM get_all_decl_scopes"), SourceOffset(0))
+  let err = on_each_lambda_class::<Infallible, _>(toplevel, |class| {
+    // *sigh* What an unfortunate copy. But I don't see a way to
+    // convince the borrow checker that this value isn't going to
+    // disappear. (TODO Yeah...)
+    acc.push(Box::new(class.clone()));
+    Ok(())
   });
+  extract_err(err);
 
   acc
 }
@@ -169,6 +168,19 @@ pub fn check_all_decl_scopes(toplevel: &TopLevel) -> Result<(), ScopeError<Class
     // while trying to produce it.
     let _ = scope.get_scope_names()?;
   }
+  Ok(())
+}
+
+pub fn on_each_lambda_class<E, F>(toplevel: &TopLevel, mut block: F) -> Result<(), E>
+where F : FnMut(&LambdaClass) -> Result<(), E> {
+  walk_exprs_in_toplevel(toplevel, |expr| {
+    if let ExprF::LambdaClass(cls) = &expr.value {
+      block(cls)?;
+    }
+    // Note: We don't use this value, so if this string ever appears
+    // in the output code, there's a problem.
+    Ok(Expr::literal(Literal::from("UNUSED STRING FROM on_each_lambda_class"), SourceOffset(0)))
+  })?;
   Ok(())
 }
 
