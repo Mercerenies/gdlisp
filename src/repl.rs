@@ -275,4 +275,12 @@ mod tests {
     assert!(!repl.is_running());
   }
 
+  #[test]
+  fn terminate_repl_via_quit_test() {
+    let mut repl = Repl::new(dummy_config());
+    assert_eq!(repl.parse_and_run_code("(quit)"), Ok(String::from("()")));
+    sleep(Duration::from_millis(200));
+    assert!(!repl.is_running());
+  }
+
 }
