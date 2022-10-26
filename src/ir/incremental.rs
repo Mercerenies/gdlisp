@@ -48,10 +48,6 @@ use std::borrow::{Cow, Borrow};
 use std::hash::Hash;
 use std::collections::{HashMap, HashSet};
 
-// TODO If a macro (from GDLisp) needs to use a GDScript resource,
-// what do we even do? I can't trace dependencies on the GDScript
-// side.
-
 pub struct IncCompiler {
   names: FreshNameGenerator,
   table: DeclarationTable,
