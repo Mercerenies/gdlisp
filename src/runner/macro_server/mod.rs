@@ -34,10 +34,8 @@ use std::fs;
 use std::mem::ManuallyDrop;
 use std::sync::{Mutex, MutexGuard};
 
-// TODO Make port number configurable
-
 /// The TCP port used for communicating with the macro server.
-pub const PORT_NUMBER: u16 = 61992;
+pub const DEFAULT_PORT_NUMBER: u16 = 61992;
 
 lazy_static! {
   static ref MACRO_SERVER_LOCK: Mutex<()> = Mutex::new(());
@@ -59,6 +57,10 @@ impl MacroServer {
   /// spawns once necessary, consider using [`lazy::LazyServer`]
   /// instead.
   pub fn new() -> io::Result<MacroServer> {
+    Self::new_on_ports(DEFAULT_PORT_NUMBER, u16::MAX)
+  }
+
+  pub fn new_on_ports(min_port: u16, max_port: u16) -> io::Result<MacroServer> {
 
     // This mutex protects our access to GDLisp.gd. Especially when
     // testing (but also just in general), multiple threads can easily
@@ -76,7 +78,7 @@ impl MacroServer {
 
     library::ensure_stdlib_loaded();
     fs::copy(PathBuf::from("GDLisp.gd"), PathBuf::from("MacroServer/GDLisp.gd"))?;
-    let (tcp_listener, port) = MacroServer::try_to_bind_port(PORT_NUMBER, u16::MAX)?;
+    let (tcp_listener, port) = MacroServer::try_to_bind_port(min_port, max_port)?;
     let env = vec!(("GDLISP_PORT_NUMBER", port.to_string()));
     let gd_server = run_project_process(PathBuf::from("MacroServer/"), env.into_iter())?;
     let (tcp_server, _) = tcp_listener.accept()?;
