@@ -512,9 +512,10 @@ impl Compiler {
         _ => return Err(PError::from(GDError::new(GDErrorF::InvalidImportOnResource(import.filename.to_string()), import.pos))),
       };
       // TODO Check that the file exists?
-      let var = LocalVar::file_constant(preload_name);
-      // TODO Value hint? It would have to be based on the file extension / what resource type it is.
-      // (e.g. *.gd would be ClassHint, but *.tres or *.png would not be)
+      let mut var = LocalVar::file_constant(preload_name);
+      if let Some(value_hint) = import.filename.extension().and_then(ValueHint::from_file_ext) {
+        var = var.with_hint(value_hint);
+      }
       table.set_var(name, var);
     }
 

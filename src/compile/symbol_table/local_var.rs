@@ -16,6 +16,7 @@ use std::borrow::ToOwned;
 use std::convert::TryFrom;
 use std::fmt;
 use std::error::Error;
+use std::ffi::OsStr;
 
 /// All of the relevant information needed to understand a variable is
 /// stored in `LocalVar`. Despite its name, this structure is used to
@@ -478,6 +479,19 @@ impl ValueHint {
     ValueHint::Enum(values.map(names::lisp_to_gd).collect())
   }
 
+  /// The value hint for a resource with the given file extension. The
+  /// file extension should *not* include the dot. If the file type
+  /// cannot be inferred or if there isn't a value hint that
+  /// represents the given file type, then `None` is returned.
+  pub fn from_file_ext(file_extension: &OsStr) -> Option<ValueHint> {
+    let file_extension = file_extension.to_ascii_lowercase();
+    if file_extension == "gd" {
+      Some(ValueHint::ClassName)
+    } else {
+      None
+    }
+  }
+
 }
 
 impl fmt::Display for VarNameIntoExtendsError {
@@ -571,6 +585,15 @@ mod tests {
       ClassExtends::try_from(VarName::Null),
       Err(VarNameIntoExtendsError::CannotExtendNull),
     );
+  }
+
+  #[test]
+  fn from_file_ext_test() {
+    assert_eq!(ValueHint::from_file_ext(OsStr::new("GD")), Some(ValueHint::ClassName));
+    assert_eq!(ValueHint::from_file_ext(OsStr::new("gd")), Some(ValueHint::ClassName));
+    assert_eq!(ValueHint::from_file_ext(OsStr::new("tscn")), None);
+    assert_eq!(ValueHint::from_file_ext(OsStr::new("png")), None);
+    assert_eq!(ValueHint::from_file_ext(OsStr::new("abc")), None);
   }
 
 }
