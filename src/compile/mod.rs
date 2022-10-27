@@ -118,7 +118,6 @@ impl Compiler {
       _ => {
         let mut class_scope = OutsideOfClass;
         let expr = self.frame(pipeline, &mut (), table, &mut class_scope).compile_simple_expr("export", expr, NeedsResult::Yes)?;
-        expr.validate_const_expr("export", table)?;
         Ok(expr)
       }
     }
@@ -143,7 +142,6 @@ impl Compiler {
         // TODO Merge this with IRDecl::ConstDecl above
         let gd_name = names::lisp_to_gd(&c.name);
         let value = self.frame(pipeline, &mut (), table, class_scope).compile_simple_expr(&c.name, &c.value, NeedsResult::Yes)?;
-        value.validate_const_expr(&c.name, table)?;
         Ok(Decl::new(DeclF::ConstDecl(gd_name, value), decl.pos))
       }
       ir::decl::ClassInnerDeclF::ClassVarDecl(v) => {

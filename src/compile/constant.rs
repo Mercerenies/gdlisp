@@ -17,7 +17,9 @@ use crate::gdscript::expr::{Expr, ExprF};
 use crate::gdscript::op;
 use crate::pipeline::source::{Sourced, SourceOffset};
 use crate::ir::expr::{Expr as IRExpr, ExprF as IRExprF};
+use crate::ir::decl::{ClassInnerDecl, ClassInnerDeclF, Decl, DeclF};
 use crate::ir::literal::Literal;
+use crate::ir::scope::decl::on_each_lambda_class;
 
 use phf::phf_set;
 
@@ -27,6 +29,61 @@ pub const CONSTANT_GDSCRIPT_FUNCTIONS: phf::Set<&'static str> = phf_set! {
   "PoolVector2Array", "PoolVector3Array", "Vector2", "Vector3", "Transform2D", "Plane",
   "Quat", "Basis", "Transform", "Color",
 };
+
+pub fn validate_all_constant_scopes(decls: &[Decl], table: &SymbolTable) -> Result<(), GDError> {
+
+  // Check all top-level constant and enum declarations, and delegate for top-level classes
+  for decl in decls {
+    match &decl.value {
+      DeclF::ConstDecl(const_decl) => {
+        validate_const_expr(&const_decl.name, &const_decl.value, table)?;
+      }
+      DeclF::EnumDecl(enum_decl) => {
+        for (_, rhs) in &enum_decl.clauses {
+          if let Some(rhs) = rhs {
+            validate_const_expr(&enum_decl.name, &rhs, table)?;
+          }
+        }
+      }
+      DeclF::ClassDecl(class_decl) => {
+        validate_constant_names_in_class(&class_decl.decls, table)?;
+      }
+      _ => {}
+    }
+  }
+
+  // Check all lambda classes
+  on_each_lambda_class(decls, |cls| {
+    validate_constant_names_in_class(&cls.decls, table)
+  })?;
+
+  Ok(())
+}
+
+fn validate_constant_names_in_class(inner_decls: &[ClassInnerDecl], table: &SymbolTable) -> Result<(), GDError> {
+  for decl in inner_decls {
+    match &decl.value {
+      ClassInnerDeclF::ClassConstDecl(const_decl) => {
+        validate_const_expr(&const_decl.name, &const_decl.value, table)?;
+      }
+      ClassInnerDeclF::ClassVarDecl(var_decl) => {
+        if let Some(export) = &var_decl.export {
+          for arg in &export.args {
+            // As a special exception, we allow any literal symbols
+            // appearing here, since they can reference things like
+            // `int` freely. (TODO Just generally make exports fit
+            // better with the rest of GDLisp)
+            if !(matches!(&arg.value, IRExprF::LocalVar(_))) {
+              validate_const_expr(&var_decl.name, arg, table)?;
+            }
+          }
+        }
+      }
+      _ => {}
+    }
+  }
+  Ok(())
+}
 
 pub fn validate_const_expr(name: &str, expr: &IRExpr, table: &SymbolTable) -> Result<(), GDError> {
   match &expr.value {

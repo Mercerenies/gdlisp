@@ -6,6 +6,7 @@ use super::Compiler;
 use super::factory;
 use super::special_form;
 use super::names;
+use super::constant::validate_all_constant_scopes;
 use super::special_form::lambda;
 use super::special_form::flet;
 use super::special_form::lambda_class;
@@ -20,7 +21,6 @@ use super::stateful::{StExpr, NeedsResult, SideEffects};
 use super::body::builder::{StmtBuilder, CodeBuilder, HasDecls};
 use super::body::class_scope::ClassScope;
 use super::stmt_wrapper::{self, StmtWrapper};
-use super::constant::MaybeConstant;
 use crate::pipeline::Pipeline;
 use crate::pipeline::error::PError;
 use crate::pipeline::source::SourceOffset;
@@ -242,13 +242,22 @@ impl<'a, 'b, 'c, 'd, 'e> CompilerFrame<'a, 'b, 'c, 'd, 'e, CodeBuilder> {
   }
 
   pub fn compile_decls(&mut self, decls: &[IRDecl]) -> Result<(), GDError> {
+
+    // Bind all declarations into the symbol table.
     for decl in decls {
       Compiler::bind_decl(&self.compiler.magic_table, self.pipeline, self.table, decl)?;
     }
+
+    // Validate the const-ness of any constants, enum values, or
+    // `export` clause bodies.
+    validate_all_constant_scopes(decls, self.table)?;
+
+    // Now compile.
     for decl in decls {
       self.table.clear_synthetic_locals();
       self.compile_decl(decl)?;
     }
+
     Ok(())
   }
 
@@ -281,7 +290,6 @@ impl<'a, 'b, 'c, 'd, 'e> CompilerFrame<'a, 'b, 'c, 'd, 'e, CodeBuilder> {
       IRDeclF::ConstDecl(ir::decl::ConstDecl { visibility: _, name, value }) => {
         let gd_name = names::lisp_to_gd(name);
         let value = self.compile_simple_expr(name, value, NeedsResult::Yes)?;
-        value.validate_const_expr(name, self.table)?;
         self.builder.add_decl(Decl::new(DeclF::ConstDecl(gd_name, value), decl.pos));
         Ok(())
       }
@@ -315,9 +323,6 @@ impl<'a, 'b, 'c, 'd, 'e> CompilerFrame<'a, 'b, 'c, 'd, 'e, CodeBuilder> {
         let gd_clauses = clauses.iter().map(|(const_name, const_value)| {
           let gd_const_name = names::lisp_to_gd(const_name);
           let gd_const_value = const_value.as_ref().map(|x| self.compile_simple_expr(const_name, x, NeedsResult::Yes)).transpose()?;
-          if let Some(gd_const_value) = &gd_const_value {
-            gd_const_value.validate_const_expr(const_name, self.table)?;
-          }
           Ok((gd_const_name, gd_const_value))
         }).collect::<Result<_, GDError>>()?;
         self.builder.add_decl(Decl::new(DeclF::EnumDecl(decl::EnumDecl { name: Some(gd_name), clauses: gd_clauses }), decl.pos));
