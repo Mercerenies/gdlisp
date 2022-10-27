@@ -426,6 +426,27 @@ impl VarName {
     }
   }
 
+  /// Returns whether or not the variable name in question compiles to
+  /// an expression which is valid as the right-hand side of a `const`
+  /// in GDScript.
+  ///
+  /// This function is permitted to be overly conservative. That is,
+  /// in situations where the variable name may or may not be valid,
+  /// this function will return `false`. However, if this function
+  /// returns `true`, then it *must* be valid as a `const` expression.
+  pub fn is_valid_const_expr(&self) -> bool {
+    match self {
+      VarName::Local(_) => false,
+      VarName::FileConstant(_) => true,
+      VarName::Superglobal(_) => true,
+      VarName::ImportedConstant(_, _) => true,
+      VarName::SubscriptedConstant(_, _) => true,
+      VarName::CurrentFile(_) => false,
+      VarName::DirectLoad(_) => false,
+      VarName::Null => true,
+    }
+  }
+
 }
 
 /// Classes extend from variables which have `VarName`. We can
