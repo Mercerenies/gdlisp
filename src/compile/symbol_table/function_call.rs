@@ -11,6 +11,7 @@ use crate::compile::body::builder::StmtBuilder;
 use crate::compile::stateful::StExpr;
 use crate::compile::preload_resolver::PreloadResolver;
 use crate::compile::args::Expecting;
+use crate::compile::constant::CONSTANT_GDSCRIPT_FUNCTIONS;
 use crate::pipeline::can_load::CanLoad;
 use crate::pipeline::source::SourceOffset;
 use super::call_magic::{CallMagic};
@@ -170,6 +171,22 @@ impl FnCall {
   /// A superglobal function, with [`FnName::Superglobal`].
   pub fn superglobal(specs: FnSpecs, scope: FnScope, function: String) -> FnCall {
     FnCall { specs, scope, object: FnName::Superglobal, function, is_macro: false }
+  }
+
+  /// Returns whether the function indicated by this function call
+  /// object can be called in a `const` context, given sufficiently
+  /// constant arguments.
+  pub fn can_be_called_as_const(&self) -> bool {
+    match self.object {
+      FnName::FileConstant => false,
+      FnName::Superglobal => {
+        // Very specific superglobals can be called.
+        CONSTANT_GDSCRIPT_FUNCTIONS.contains(&*self.function)
+      }
+      FnName::ImportedConstant(_) => false,
+      FnName::OnLocalVar(_) => false,
+      FnName::OnLocalScope => false,
+    }
   }
 
   /// As [`FnCall::into_expr_with_magic`] with [`CallMagic::DefaultCall`] as the

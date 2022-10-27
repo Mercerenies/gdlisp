@@ -11,19 +11,216 @@
 //! strict.
 
 use super::error::{GDError, GDErrorF};
-use super::symbol_table::local_var::{ValueHint, ValueHintsTable};
+use super::symbol_table::SymbolTable;
+use super::symbol_table::local_var::{LocalVar, ValueHint, ValueHintsTable};
 use crate::gdscript::expr::{Expr, ExprF};
 use crate::gdscript::op;
-use crate::pipeline::source::Sourced;
+use crate::pipeline::source::{Sourced, SourceOffset};
+use crate::ir::expr::{Expr as IRExpr, ExprF as IRExprF};
+use crate::ir::literal::Literal;
 
 use phf::phf_set;
 
-const CONSTANT_GDSCRIPT_FUNCTIONS: phf::Set<&'static str> = phf_set! {
+pub const CONSTANT_GDSCRIPT_FUNCTIONS: phf::Set<&'static str> = phf_set! {
   "NodePath", "bool", "int", "float", "String", "str", "Rect2", "AABB", "RID", "Dictionary",
   "Array", "PoolColorArray", "PoolByteArray", "PoolIntArray", "PoolRealArray", "PoolStringArray",
   "PoolVector2Array", "PoolVector3Array", "Vector2", "Vector3", "Transform2D", "Plane",
   "Quat", "Basis", "Transform", "Color",
 };
+
+pub fn validate_const_expr(name: &str, expr: &IRExpr, table: &SymbolTable) -> Result<(), GDError> {
+  match &expr.value {
+    IRExprF::LocalVar(name) => {
+      match table.get_var(name) {
+        Some(var) if var.name.is_valid_const_expr() => Ok(()),
+        _ => non_constant_error(name, expr.pos),
+      }
+    }
+    IRExprF::Literal(lit) => {
+      if let Literal::Symbol(_) = lit {
+        non_constant_error(name, expr.pos)
+      } else {
+        Ok(())
+      }
+    }
+    IRExprF::Progn(body) => {
+      match &body[..] {
+        [] => {
+          // Empty progn, compiles to null.
+          Ok(())
+        }
+        [single_term] => {
+          // Single-term progn, compiles to the inside.
+          validate_const_expr(name, single_term, table)
+        }
+        _ => {
+          // Multiple terms will require multiple statements, forbid
+          // it.
+          non_constant_error(name, expr.pos)
+        }
+      }
+    }
+    IRExprF::CondStmt(_) => {
+      // Note: We always compile CondStmt to full-form multi-line "if"
+      // statements first. Sometimes, the optimizer might simplify
+      // them down to ternary expressions, but that's an optimization
+      // detail. As far as we're concerned, it's a statement and is
+      // non-const.
+      //
+      // If the architecture changes and we start compiling to ternary
+      // directly, then this constraint will loosen.
+      non_constant_error(name, expr.pos)
+    }
+    IRExprF::WhileStmt(_, _) => {
+      non_constant_error(name, expr.pos)
+    }
+    IRExprF::ForStmt(_, _, _) => {
+      non_constant_error(name, expr.pos)
+    }
+    IRExprF::Call(name, args) => {
+      validate_const_call(name, args.len(), table, expr.pos)?;
+      for arg in args {
+        validate_const_expr(name, arg, table)?;
+      }
+      Ok(())
+    }
+    IRExprF::Let(_, _) => {
+      non_constant_error(name, expr.pos)
+    }
+    IRExprF::FLet(_, _) => {
+      non_constant_error(name, expr.pos)
+    }
+    IRExprF::Labels(_, _) => {
+      non_constant_error(name, expr.pos)
+    }
+    IRExprF::Lambda(_, _) => {
+      non_constant_error(name, expr.pos)
+    }
+    IRExprF::FuncRef(_) => {
+      non_constant_error(name, expr.pos)
+    }
+    IRExprF::Assign(_, _) => {
+      non_constant_error(name, expr.pos)
+    }
+    IRExprF::Array(values) => {
+      for value in values {
+        validate_const_expr(name, value, table)?;
+      }
+      Ok(())
+    }
+    IRExprF::Dictionary(rows) => {
+      for (k, v) in rows {
+        validate_const_expr(name, k, table)?;
+        validate_const_expr(name, v, table)?;
+      }
+      Ok(())
+    }
+    IRExprF::Quote(_) => {
+      non_constant_error(name, expr.pos)
+    }
+    IRExprF::FieldAccess(lhs, _name) => {
+      if is_name_of_enum(lhs, table) {
+        Ok(())
+      } else {
+        non_constant_error(name, expr.pos)
+      }
+    }
+    IRExprF::MethodCall(_, _, _) => {
+      non_constant_error(name, expr.pos)
+    }
+    IRExprF::SuperCall(_, _) => {
+      non_constant_error(name, expr.pos)
+    }
+    IRExprF::LambdaClass(_) => {
+      non_constant_error(name, expr.pos)
+    }
+    IRExprF::Yield(_) => {
+      non_constant_error(name, expr.pos)
+    }
+    IRExprF::Assert(_, _) => {
+      non_constant_error(name, expr.pos)
+    }
+    IRExprF::Return(_) => {
+      non_constant_error(name, expr.pos)
+    }
+    IRExprF::Break => {
+      non_constant_error(name, expr.pos)
+    }
+    IRExprF::Continue => {
+      non_constant_error(name, expr.pos)
+    }
+    IRExprF::SpecialRef(_) => {
+      non_constant_error(name, expr.pos)
+    }
+    IRExprF::ContextualFilename(_) => {
+      // This resolves completely at compile-time and, as far as
+      // GDScript is concerned, is just a constant string.
+      Ok(())
+    }
+    IRExprF::AtomicName(_) => {
+      // AtomicName is explicitly opting out of GDLisp's safety
+      // checks, so we'll let it through and just trust the
+      // programmer.
+      Ok(())
+    }
+    IRExprF::AtomicCall(_name, args) => {
+      // AtomicCall is explicitly opting out of GDLisp's safety
+      // checks, so we'll let the name through and just trust the
+      // programmer. We'll still check the arguments though.
+      for arg in args {
+        validate_const_expr(name, arg, table)?;
+      }
+      Ok(())
+    }
+    IRExprF::Split(_, _) => {
+      // Split specifically requires a temporary variable in order to
+      // work, which we can't do in a constant expression
+      non_constant_error(name, expr.pos)
+    }
+    IRExprF::Preload(_) => {
+      Ok(())
+    }
+  }
+}
+
+fn validate_const_call(name: &str, arg_count: usize, table: &SymbolTable, pos: SourceOffset) -> Result<(), GDError> {
+  let (function, magic) = table.get_fn(name).ok_or_else(|| non_constant_error::<()>(name, pos).unwrap_err())?;
+  if magic.is_default() {
+    // If the call magic passes through to the implementation, then we
+    // need to look at the function and see if it's sufficiently const
+    // for GDScript's tastes.
+    if function.can_be_called_as_const() {
+      Ok(())
+    } else {
+      non_constant_error(name, pos)
+    }
+  } else {
+    // If there's call magic, use that to determine const-ness.
+    if magic.can_be_called_as_const(arg_count) {
+      Ok(())
+    } else {
+      non_constant_error(name, pos)
+    }
+  }
+}
+
+fn is_name_of_enum(lhs: &IRExpr, table: &SymbolTable) -> bool {
+  if let IRExprF::LocalVar(lhs) = &lhs.value {
+    if let Some(LocalVar { value_hint: Some(ValueHint::Enum(_)), .. }) = table.get_var(lhs) {
+      // Note: We don't care if the name we're referencing on the enum
+      // is correct or not here. If we're subscripting an enum, then
+      // it's fine. If the name is bad, then the compiler will catch
+      // it in the next phase and we'll throw a much more accurate
+      // `NoSuchEnumValue` (rather than `NotConstantEnough`).
+      return true;
+    }
+  }
+  false
+}
+
+fn non_constant_error<T>(name: &str, pos: SourceOffset) -> Result<T, GDError> {
+  Err(GDError::new(GDErrorF::NotConstantEnough(name.to_owned()), pos))
+}
 
 /// Trait representing data which can be checked for a const-ness
 /// property.

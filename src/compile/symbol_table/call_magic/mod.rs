@@ -39,6 +39,7 @@ use crate::compile::stateful::StExpr;
 use crate::compile::stmt_wrapper::{self, StmtWrapper};
 use crate::compile::args::{self, Expecting};
 use crate::compile::names::registered::RegisteredNameGenerator;
+use crate::compile::constant::CONSTANT_GDSCRIPT_FUNCTIONS;
 use crate::ir::arglist::vararg::VarArg;
 use crate::util;
 use crate::pipeline::source::SourceOffset;
@@ -229,6 +230,10 @@ impl CallMagic {
   // TODO Currently, this uses the GD name in error messages, which is
   // super wonky, especially for stdlib calls. Store the Lisp name and
   // use it for this.
+
+  pub fn is_default(&self) -> bool {
+    matches!(self, CallMagic::DefaultCall)
+  }
 
   /// Given a [`FnCall`] instance `call` and argument list `args`,
   /// compile the call into a GDScript [`Expr`]. `compiler` provides a
@@ -510,6 +515,35 @@ impl CallMagic {
         }
         fallback.compile(call, compiler, builder, table, args, pos)
       }
+    }
+  }
+
+  /// Returns whether the function indicated by this call magic object
+  /// can be called in a `const` context, given sufficiently constant
+  /// arguments. This function also includes the argument count, for
+  /// magics that depend on the number of arguments.
+  pub fn can_be_called_as_const(&self, arg_count: usize) -> bool {
+    match self {
+      CallMagic::DefaultCall => false, // In the abstract, we cannot perform a function call in const context
+      CallMagic::MinusOperation => true,
+      CallMagic::DivOperation => true,
+      CallMagic::IntDivOperation => true,
+      CallMagic::ModOperation => true,
+      CallMagic::MinFunction => true,
+      CallMagic::MaxFunction => true,
+      CallMagic::NEqOperation(inner_magic) => (arg_count <= 2) || inner_magic.can_be_called_as_const(arg_count),
+      CallMagic::BooleanNotOperation => true,
+      CallMagic::ListOperation => false,
+      CallMagic::VectorOperation => true,
+      CallMagic::ArraySubscript => true,
+      CallMagic::ArraySubscriptAssign => false,
+      CallMagic::ElementOf => true,
+      CallMagic::InstanceOf => false, // Weirdly enough, GDScript seems to not consider `is` a const operator
+      CallMagic::GetNodeSyntax => false, // Either requires `self` or a `get_node` call; either way, non-const
+      CallMagic::CompileToBinOp(_, _, _) => true, // TODO Some operators might cause trouble
+      CallMagic::CompileToTransCmp(_) => true, // TODO Some operators might cause trouble
+      CallMagic::CompileToVarargCall(name) => CONSTANT_GDSCRIPT_FUNCTIONS.contains(&**name),
+      CallMagic::NodePathConstructor(_) => true, // Either a literal string or `NodePath`, both of which are const
     }
   }
 
