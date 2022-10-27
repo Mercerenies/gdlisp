@@ -17,10 +17,11 @@ flowchart LR
     subgraph GDScript
       direction TB
       Bind[Bind all top-level declarations in a global symbol table]
+      Const[Check that any expressions in constant position are actually constant]
       Compile[Compile IR into GDScript syntax representation]
       Optimize[Run GDScript-Level Optimizations]
       Output[Output GDScript to .gd file]
-      Bind-->Compile-->Optimize-->Output
+      Bind-->Const-->Compile-->Optimize-->Output
     end
     AST-->IR-->GDScript
 ```
@@ -60,6 +61,11 @@ Next, the IR is analyzed, and a global symbol table is created. Any
 top-level declarations have their names bound in the global symbol
 table. This ensures that, during compilation, functions can access
 functions declared anywhere in the file.
+
+With the symbol table, any expressions in constant position are
+checked to make sure they are actually constant. This includes `const`
+declarations, the right-hand-side of `enum` values, and the inside of
+`export` clauses.
 
 Then the IR is compiled into an internal representation of GDScript.
 This is basically GDScript source code, but represented as an abstract
