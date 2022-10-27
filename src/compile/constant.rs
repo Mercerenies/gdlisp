@@ -207,7 +207,7 @@ pub fn validate_const_expr(name: &str, expr: &IRExpr, table: &SymbolTable) -> Re
       non_constant_error(name, expr.pos)
     }
     IRExprF::SpecialRef(_) => {
-      non_constant_error(name, expr.pos)
+      Ok(())
     }
     IRExprF::ContextualFilename(_) => {
       // This resolves completely at compile-time and, as far as
