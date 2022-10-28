@@ -294,7 +294,7 @@ impl LocalVar {
   pub fn is_valid_const_expr(&self) -> bool {
     match &self.name {
       VarName::Local(_) => false,
-      VarName::FileConstant(_) => {
+      VarName::FileConstant(_) | VarName::ImportedConstant(_, _) | VarName::SubscriptedConstant(_, _) => {
         // If it's a top-level constant, use the value hint to figure
         // out which constant.
         match self.value_hint {
@@ -309,8 +309,6 @@ impl LocalVar {
         }
       }
       VarName::Superglobal(_) => true,
-      VarName::ImportedConstant(_, _) => true,
-      VarName::SubscriptedConstant(_, _) => true,
       VarName::CurrentFile(_) => false,
       VarName::DirectLoad(_) => false,
       VarName::Null => true,

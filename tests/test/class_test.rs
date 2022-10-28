@@ -552,8 +552,8 @@ pub fn init_member_var_class_test_3() {
 class ClassName extends Node:
 
     func _init(x_0, y_1):
-        var _split_0 = 3
-        self.z = _split_0
+        var _split = 3
+        self.z = _split
         self.x = x_0
         self.y = y_1
 
@@ -593,23 +593,21 @@ export(String) onready var x = "foo"
 
 #[test]
 pub fn complicated_member_var_class_test() {
-  // Note: We use _cond_0 here because _cond disappears during the
-  // failed compilation of (if 1 2 3) via compile_simple_expr.
   assert_eq!(
     parse_compile_decl("((defclass ClassName (Node) main (defvar x (if 1 2 3)) (defn _init (x) (set self:x x)) (defn get-x () self:x)))"),
     r#"extends Node
 
 
 func _init(x):
-    var _cond_0 = null
+    var _cond = null
     if 1:
-        _cond_0 = 2
+        _cond = 2
     else:
         if true:
-            _cond_0 = 3
+            _cond = 3
         else:
-            _cond_0 = null
-    self.x = _cond_0
+            _cond = null
+    self.x = _cond
     self.x = x
 
 
@@ -623,8 +621,6 @@ func get_x():
 
 #[test]
 pub fn complicated_ready_member_var_class_test() {
-  // Note: We use _cond_0 here because _cond disappears during the
-  // failed compilation of (if 1 2 3) via compile_simple_expr.
   assert_eq!(
     parse_compile_decl("((defclass ClassName (Node) main (defvar x (if 1 2 3) onready) (defn _init (x) (set self:x x)) (defn get-x () self:x)))"),
     r#"extends Node
@@ -642,15 +638,15 @@ func get_x():
 
 
 func _ready():
-    var _cond_0 = null
+    var _cond = null
     if 1:
-        _cond_0 = 2
+        _cond = 2
     else:
         if true:
-            _cond_0 = 3
+            _cond = 3
         else:
-            _cond_0 = null
-    self.x = _cond_0
+            _cond = null
+    self.x = _cond
 "#);
 }
 

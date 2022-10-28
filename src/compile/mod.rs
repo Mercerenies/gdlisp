@@ -21,7 +21,7 @@ use body::class_scope::{ClassScope, OutsideOfClass, DirectClassScope};
 use names::fresh::FreshNameGenerator;
 use names::generator::NameGenerator;
 use preload_resolver::PreloadResolver;
-use constant::MaybeConstant;
+use constant::is_const_expr;
 use crate::gdscript::literal::Literal;
 use crate::gdscript::expr::{Expr, ExprF};
 use crate::gdscript::decl::{self, Decl, DeclF, Onready, Setget};
@@ -237,14 +237,15 @@ impl Compiler {
       None => Ok(None),
       Some(value) => {
 
-        // Try to compile as a constant first
-        if let Ok(simple_expr) = frame.compile_simple_expr(name, value, NeedsResult::Yes) {
-          if simple_expr.is_allowable_const(frame.table) {
-            return Ok(Some(simple_expr));
-          }
+        // If the value is a constant expression, then compile it
+        // inline.
+        if is_const_expr(&value, &frame.table) {
+          let simple_expr = frame.compile_simple_expr(name, value, NeedsResult::Yes)?;
+          return Ok(Some(simple_expr));
         }
 
-        // Otherwise, compile as an ordinary expression into the builder.
+        // Otherwise, compile as an ordinary expression into the
+        // builder.
         let destination = stmt_wrapper::AssignToExpr(
           Expr::self_var(pos).attribute(name.to_owned(), pos),
         );

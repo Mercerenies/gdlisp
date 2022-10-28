@@ -156,8 +156,8 @@ pub fn closure_and_init_args_lambda_class_test_2() {
   assert_eq!(result0.1, r#"class _AnonymousClass extends Node:
 
     func _init(a, z, t_0):
-        var _split_0 = 1
-        self.w = _split_0
+        var _split = 1
+        self.w = _split
         self.a = a
         self.t = t_0
         self.z = z

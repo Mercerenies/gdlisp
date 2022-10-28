@@ -289,6 +289,42 @@ static func f(x):
     return a()
 "#);
 }
+
+#[test]
+fn imported_name_to_class_var_test() {
+  let mut loader = MockFileLoader::new();
+  loader.add_file("example.lisp", "(sys/declare value A public) (defconst B 100)");
+  loader.add_file("main.lisp", r#"
+    (use "res://example.lisp" open)
+    (defclass Main (Reference) main
+      (defvar a A)
+      (defvar b B)
+      (defvar a1 A onready)
+      (defvar b1 B onready))
+  "#);
+  let mut pipeline = Pipeline::with_resolver(dummy_config(), Box::new(loader));
+  let result = pipeline.load_file("main.lisp", SourceOffset(0)).unwrap().gdscript.to_gd();
+  assert_eq!(result, r#"extends Reference
+
+
+const _Import_0 = preload("res://example.gd")
+
+
+func _init():
+    self.a = _Import_0.A
+
+
+var a
+var b = _Import_0.B
+var a1
+onready var b1 = _Import_0.B
+
+
+func _ready():
+    self.a1 = _Import_0.A
+"#);
+}
+
 #[test]
 fn cyclic_import_test() {
   let mut loader = MockFileLoader::new();
