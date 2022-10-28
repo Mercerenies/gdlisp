@@ -327,11 +327,16 @@ impl Compiler {
       }
       IRDeclF::ConstDecl(ir::decl::ConstDecl { visibility: _, name, value }) => {
         let mut var = LocalVar::file_constant(names::lisp_to_gd(name)); // Can't assign to constants
+
+        // Do a literal value hint if possible, but fall back to
+        // GlobalConstant if we can't do better.
+        var = var.with_hint(ValueHint::GlobalConstant);
         if let IRExprF::Literal(value) = &value.value {
           if let Ok(value) = Literal::try_from(value.clone()) {
             var = var.with_hint(ValueHint::Literal(value));
           }
         }
+
         table.set_var(name.clone(), var);
       }
       IRDeclF::ClassDecl(ir::decl::ClassDecl { name, main_class, .. }) => {

@@ -39,7 +39,7 @@ pub fn const_test_nonconst_in_class() {
 pub fn const_test_nonconst_in_enum() {
   assert_eq!(
     parse_compile_decl_err("((defenum Foo (A (list->array 1))))"),
-    Err(PError::from(GDError::new(GDErrorF::NotConstantEnough(String::from("A")), SourceOffset(17)))),
+    Err(PError::from(GDError::new(GDErrorF::NotConstantEnough(String::from("Foo")), SourceOffset(17)))),
   );
 }
 

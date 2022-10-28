@@ -87,11 +87,8 @@ fn validate_constant_names_in_class(inner_decls: &[ClassInnerDecl], table: &Symb
 
 pub fn validate_const_expr(name: &str, expr: &IRExpr, table: &SymbolTable) -> Result<(), GDError> {
   match &expr.value {
-    IRExprF::LocalVar(name) => {
-      match table.get_var(name) {
-        Some(var) if var.name.is_valid_const_expr() => Ok(()),
-        _ => non_constant_error(name, expr.pos),
-      }
+    IRExprF::LocalVar(var_name) => {
+      validate_const_var_name(name, var_name, table, expr.pos)
     }
     IRExprF::Literal(lit) => {
       if let Literal::Symbol(_) = lit {
@@ -134,8 +131,8 @@ pub fn validate_const_expr(name: &str, expr: &IRExpr, table: &SymbolTable) -> Re
     IRExprF::ForStmt(_, _, _) => {
       non_constant_error(name, expr.pos)
     }
-    IRExprF::Call(name, args) => {
-      validate_const_call(name, args.len(), table, expr.pos)?;
+    IRExprF::Call(function_name, args) => {
+      validate_const_call(name, function_name, args.len(), table, expr.pos)?;
       for arg in args {
         validate_const_expr(name, arg, table)?;
       }
@@ -240,8 +237,18 @@ pub fn validate_const_expr(name: &str, expr: &IRExpr, table: &SymbolTable) -> Re
   }
 }
 
-fn validate_const_call(name: &str, arg_count: usize, table: &SymbolTable, pos: SourceOffset) -> Result<(), GDError> {
-  let (function, magic) = table.get_fn(name).ok_or_else(|| non_constant_error::<()>(name, pos).unwrap_err())?;
+fn validate_const_var_name(name: &str, var_name: &str, table: &SymbolTable, pos: SourceOffset) -> Result<(), GDError> {
+  let var = table.get_var(var_name).ok_or_else(|| non_constant_error::<()>(name, pos).unwrap_err())?;
+  if var.is_valid_const_expr() {
+    Ok(())
+  } else {
+    non_constant_error(name, pos)
+  }
+
+}
+
+fn validate_const_call(name: &str, function_name: &str, arg_count: usize, table: &SymbolTable, pos: SourceOffset) -> Result<(), GDError> {
+  let (function, magic) = table.get_fn(function_name).ok_or_else(|| non_constant_error::<()>(name, pos).unwrap_err())?;
   if magic.is_default() {
     // If the call magic passes through to the implementation, then we
     // need to look at the function and see if it's sufficiently const

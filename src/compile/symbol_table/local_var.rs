@@ -283,6 +283,40 @@ impl LocalVar {
     }
   }
 
+  /// Returns whether or not the variable name in question compiles to
+  /// an expression which is valid as the right-hand side of a `const`
+  /// in GDScript.
+  ///
+  /// This function is permitted to be overly conservative. That is,
+  /// in situations where the variable name may or may not be valid,
+  /// this function will return `false`. However, if this function
+  /// returns `true`, then it *must* be valid as a `const` expression.
+  pub fn is_valid_const_expr(&self) -> bool {
+    match &self.name {
+      VarName::Local(_) => false,
+      VarName::FileConstant(_) => {
+        // If it's a top-level constant, use the value hint to figure
+        // out which constant.
+        match self.value_hint {
+          None => false,
+          Some(ValueHint::ClassName) => true,
+          Some(ValueHint::ObjectName) => false, // Implemented as a 0-ary function call by GDLisp
+          Some(ValueHint::Literal(_)) => true,
+          Some(ValueHint::Enum(_)) => true,
+          Some(ValueHint::GlobalConstant) => true,
+          Some(ValueHint::Superglobal) => true,
+          Some(ValueHint::SymbolMacro) => false, // How did we even get into this situation?
+        }
+      }
+      VarName::Superglobal(_) => true,
+      VarName::ImportedConstant(_, _) => true,
+      VarName::SubscriptedConstant(_, _) => true,
+      VarName::CurrentFile(_) => false,
+      VarName::DirectLoad(_) => false,
+      VarName::Null => true,
+    }
+  }
+
   /// An `Expr` which references the value of this variable. If this
   /// variable requires a cell (`self.access_type.requires_cell()`),
   /// then this access expression contains the necessary subscripting
@@ -423,27 +457,6 @@ impl VarName {
       VarName::DirectLoad(filename) => VarName::load_expr(filename, pos),
       VarName::CurrentFile(filename) => VarName::load_expr(filename, pos),
       VarName::Null => Expr::null(pos),
-    }
-  }
-
-  /// Returns whether or not the variable name in question compiles to
-  /// an expression which is valid as the right-hand side of a `const`
-  /// in GDScript.
-  ///
-  /// This function is permitted to be overly conservative. That is,
-  /// in situations where the variable name may or may not be valid,
-  /// this function will return `false`. However, if this function
-  /// returns `true`, then it *must* be valid as a `const` expression.
-  pub fn is_valid_const_expr(&self) -> bool {
-    match self {
-      VarName::Local(_) => false,
-      VarName::FileConstant(_) => true,
-      VarName::Superglobal(_) => true,
-      VarName::ImportedConstant(_, _) => true,
-      VarName::SubscriptedConstant(_, _) => true,
-      VarName::CurrentFile(_) => false,
-      VarName::DirectLoad(_) => false,
-      VarName::Null => true,
     }
   }
 
