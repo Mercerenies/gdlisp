@@ -203,7 +203,6 @@ static func f(x):
 }
 
 #[test]
-#[ignore] // TODO Test fails right now, due to late constant validation (See issue #108)
 fn import_declared_constant_test() {
   let mut loader = MockFileLoader::new();
   loader.add_file("example.lisp", "(sys/declare constant a public)");
@@ -227,7 +226,6 @@ static func f(x):
 }
 
 #[test]
-#[ignore] // TODO Test fails right now, due to late constant validation (See issue #108)
 fn import_declared_superglobal_test() {
   let mut loader = MockFileLoader::new();
   loader.add_file("example.lisp", "(sys/declare superglobal a public)");
@@ -243,6 +241,7 @@ fn import_declared_superglobal_test() {
 
 const _Import_0 = preload("res://example.gd")
 const y = a
+
 
 static func f(x):
     return a
