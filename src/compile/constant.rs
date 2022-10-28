@@ -85,6 +85,10 @@ fn validate_constant_names_in_class(inner_decls: &[ClassInnerDecl], table: &Symb
   Ok(())
 }
 
+pub fn is_const_expr(expr: &IRExpr, table: &SymbolTable) -> bool {
+  validate_const_expr("UNUSED NAME IN is_const_expr", expr, table).is_ok()
+}
+
 pub fn validate_const_expr(name: &str, expr: &IRExpr, table: &SymbolTable) -> Result<(), GDError> {
   match &expr.value {
     IRExprF::LocalVar(var_name) => {
