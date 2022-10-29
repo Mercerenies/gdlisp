@@ -92,6 +92,17 @@ impl GodotCommand {
     self.arg("--quit")
   }
 
+  /// Adds a single environment variable that will be visible to the
+  /// Godot process.
+  ///
+  /// See [`Command::env`].
+  pub fn env<K, V>(&mut self, key: K, val: V) -> &mut Self
+  where K: AsRef<OsStr>,
+        V: AsRef<OsStr> {
+    self.command.env(key, val);
+    self
+  }
+
   /// Adds environment variables that will be visible to the Godot
   /// process.
   ///
