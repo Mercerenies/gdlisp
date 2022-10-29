@@ -19,7 +19,7 @@ pub mod response;
 pub mod lazy;
 pub mod named_file_server;
 
-use super::run_project_process;
+use super::godot::GodotCommand;
 use crate::gdscript::library;
 
 use command::ServerCommand;
@@ -27,7 +27,7 @@ use response::ServerResponse;
 
 use std::io::{self, Write, Read, ErrorKind};
 use std::path::PathBuf;
-use std::process::{Child, ExitStatus};
+use std::process::{Child, Stdio, ExitStatus};
 use std::net::{TcpListener, TcpStream};
 use std::convert::{TryFrom, TryInto};
 use std::fs;
@@ -79,8 +79,7 @@ impl MacroServer {
     library::ensure_stdlib_loaded();
     fs::copy(PathBuf::from("GDLisp.gd"), PathBuf::from("MacroServer/GDLisp.gd"))?;
     let (tcp_listener, port) = MacroServer::try_to_bind_port(min_port, max_port)?;
-    let env = vec!(("GDLISP_PORT_NUMBER", port.to_string()));
-    let gd_server = run_project_process(PathBuf::from("MacroServer/"), env.into_iter())?;
+    let gd_server = run_godot_child_process(port)?;
     let (tcp_server, _) = tcp_listener.accept()?;
     Ok(MacroServer {
       tcp_server: tcp_server,
@@ -189,6 +188,14 @@ impl Drop for MacroServer {
     let _r = self._shutdown(); // Ignore io::Result (we're in Drop so we can't handle it)
   }
 
+}
+
+fn run_godot_child_process(port: u16) -> io::Result<Child> {
+  GodotCommand::base()
+    .project_dir(&PathBuf::from("MacroServer/"))
+    .env("GDLISP_PORT_NUMBER", port.to_string())
+    .stdout(Stdio::null())
+    .spawn()
 }
 
 #[cfg(test)]

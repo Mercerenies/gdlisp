@@ -6,9 +6,6 @@
 //! [`macro_server`] provides the more specific use-case of starting
 //! up a Godot process as a server and communicating with it via TCP.
 
-// TODO Clean this up. I'm envisioning a DSL for the different ways of
-// running things.
-
 pub mod godot;
 pub mod into_gd_file;
 pub mod macro_server;
@@ -21,40 +18,15 @@ use godot::GodotCommand;
 
 use tempfile::{Builder, NamedTempFile};
 
-use std::process::{Command, Stdio, Child};
+use std::process::{Command, Stdio};
 use std::path::Path;
 use std::io::{self, Write, Seek, SeekFrom};
-use std::ffi::OsStr;
 
 /// A type containing string output from both `stdout` and `stderr`.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Output {
   pub stdout: String,
   pub stderr: String,
-}
-
-/// Runs a Godot process, with `path` as a project path.
-///
-/// `path` should be the path to a directory which contains a
-/// `project.godot` file (note that `path` should point to the
-/// directory, *not* the `project.godot` file itself). `env` shall be
-/// an iterator of environment variables to be set locally for the
-/// child process. This function returns as soon as the child process
-/// spawns. stdout will be suppressed, and stderr will be inherited by
-/// the parent process. The [`Child`] instance is returned.
-pub fn run_project_process<P, I, K, V>(path: P, env: I) -> io::Result<Child>
-where P : AsRef<Path>,
-      I : Iterator<Item=(K, V)>,
-      K : AsRef<OsStr>,
-      V : AsRef<OsStr> {
-  Command::new("godot")
-    .arg("--no-window")
-    .arg("--path")
-    .arg(path.as_ref().as_os_str())
-    .envs(env)
-    .stderr(Stdio::inherit())
-    .stdout(Stdio::null())
-    .spawn()
 }
 
 /// Runs a Godot process, with `path` as a project path.
