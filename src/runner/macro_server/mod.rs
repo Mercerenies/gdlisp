@@ -196,6 +196,7 @@ mod tests {
   use super::*;
   use crate::sxp::reify::Reify;
   use crate::AST_PARSER;
+  use json::object;
   use std::convert::TryFrom;
   use std::thread::sleep;
   use std::time::Duration;
@@ -286,6 +287,22 @@ mod tests {
     let command = ServerCommand::Exec(String::from("    var tmp_var = 1 + 1\n    return tmp_var"));
     let response = issue_command_and_unwrap(&mut server, &command);
     assert_eq!(response, "2");
+  }
+
+  #[test]
+  fn spawn_server_bad_json_test() {
+    let mut server = MacroServer::new().unwrap();
+    let command = "[{INVALID_JSON";
+    server.send_string(command).unwrap();
+    let response = server.receive_string().unwrap();
+    let response = json::parse(&response).unwrap();
+    let expected_response =
+      object!{
+        "error_code" => 30, // ERR_INVALID_DATA
+        "error_string" => "Invalid JSON Expected key",
+        "response_string" => "",
+      };
+    assert_eq!(response, expected_response);
   }
 
   #[test]

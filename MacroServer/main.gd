@@ -21,8 +21,8 @@ func _process(_delta):
             var payload = json_result.result
             run_command(payload)
         else:
-            # TODO Send error back
             push_error("Invalid JSON " + json_result.error_string)
+            peer.put_string(failed_response(ERR_INVALID_DATA, "Invalid JSON " + json_result.error_string))
 
 
 func failed_response(error_code, error_string = ""):
