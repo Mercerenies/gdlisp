@@ -17,8 +17,6 @@ use godot::GodotCommand;
 
 use tempfile::{Builder, NamedTempFile};
 
-use std::process::{Command, Stdio};
-use std::path::Path;
 use std::io::{self, Seek, SeekFrom};
 use std::fmt;
 use std::error::Error;
@@ -40,46 +38,6 @@ impl fmt::Display for JsonApiError {
 }
 
 impl Error for JsonApiError {}
-
-/// Runs a Godot process, with `path` as a project path.
-///
-/// `path` should be the path to a directory which contains a
-/// `project.godot` file (note that `path` should point to the
-/// directory, *not* the `project.godot` file itself). This function
-/// will wait until the child terminates before returning.
-///
-/// Anything printed to stderr will be passed through to the parent
-/// stderr, and stdout will be collected into a `String` and then
-/// returned. Anything in stdout which is not valid UTF-8 will be
-/// replaced with `U+FFFD`.
-pub fn run_project<P : AsRef<Path>>(path: P) -> io::Result<String> { // TODO Consider returning Cow?
-  let out =
-    Command::new("godot")
-    .arg("--no-window")
-    .arg("--path")
-    .arg(path.as_ref().as_os_str())
-    .stderr(Stdio::inherit())
-    .stdout(Stdio::piped())
-    .output()?;
-  let text = String::from_utf8_lossy(&out.stdout);
-  Ok(text.into())
-}
-
-/// Identical to [`run_project`] except that `stderr` is also captured
-/// and returned. The two return values are `stdout` and `stderr`, respectively.
-pub fn run_project_capturing_stderr<P : AsRef<Path>>(path: P) -> io::Result<Output> { // TODO Consider returning Cow?
-  let out =
-    Command::new("godot")
-    .arg("--no-window")
-    .arg("--path")
-    .arg(path.as_ref().as_os_str())
-    .stderr(Stdio::piped())
-    .stdout(Stdio::piped())
-    .output()?;
-  let stdout = String::from(String::from_utf8_lossy(&out.stdout));
-  let stderr = String::from(String::from_utf8_lossy(&out.stderr));
-  Ok(Output { stdout, stderr })
-}
 
 /// Runs a Godot process to dump the JSON API for GDNative to a
 /// (newly-created) temporary file. This method returns the temporary
