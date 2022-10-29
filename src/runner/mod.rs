@@ -13,11 +13,15 @@ pub mod named_file;
 pub mod path;
 pub mod version;
 
+use godot::GodotCommand;
+
 use tempfile::{Builder, NamedTempFile};
 
 use std::process::{Command, Stdio};
 use std::path::Path;
 use std::io::{self, Seek, SeekFrom};
+use std::fmt;
+use std::error::Error;
 
 /// A type containing string output from both `stdout` and `stderr`.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -25,6 +29,17 @@ pub struct Output {
   pub stdout: String,
   pub stderr: String,
 }
+
+#[derive(Debug, Clone)]
+pub struct JsonApiError;
+
+impl fmt::Display for JsonApiError {
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    write!(f, "error reading JSON API from Godot binary")
+  }
+}
+
+impl Error for JsonApiError {}
 
 /// Runs a Godot process, with `path` as a project path.
 ///
@@ -72,12 +87,14 @@ pub fn run_project_capturing_stderr<P : AsRef<Path>>(path: P) -> io::Result<Outp
 /// returned value is dropped.
 pub fn dump_json_api() -> io::Result<NamedTempFile> {
   let mut file = make_tmp_file()?;
-  Command::new("godot")
-    .arg("--no-window")
-    .arg("--quiet")
+  let status = GodotCommand::base()
+    .quiet()
     .arg("--gdnative-generate-json-api")
     .arg(file.path())
     .status()?;
+  if !status.success() {
+    return Err(io::Error::new(io::ErrorKind::Other, JsonApiError));
+  }
   // Not sure if this is necessary, but better safe than sorry. Ensure
   // that the seek position of the opened file handle is at 0.
   file.seek(SeekFrom::Start(0))?;
@@ -96,7 +113,6 @@ fn make_tmp_file() -> io::Result<NamedTempFile> {
 mod tests {
   use super::*;
   use crate::runner::into_gd_file::IntoGDFile;
-  use crate::runner::godot::GodotCommand;
   use std::io::Write;
 
   fn run_with_temporary(data: &str) -> io::Result<String> {
