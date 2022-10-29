@@ -39,7 +39,7 @@ pub fn validate_all_constant_scopes(decls: &[Decl], table: &SymbolTable) -> Resu
       DeclF::EnumDecl(enum_decl) => {
         for (_, rhs) in &enum_decl.clauses {
           if let Some(rhs) = rhs {
-            validate_const_expr(&enum_decl.name, &rhs, table)?;
+            validate_const_expr(&enum_decl.name, rhs, table)?;
           }
         }
       }

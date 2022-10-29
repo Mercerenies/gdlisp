@@ -239,7 +239,7 @@ impl Compiler {
 
         // If the value is a constant expression, then compile it
         // inline.
-        if is_const_expr(&value, &frame.table) {
+        if is_const_expr(value, frame.table) {
           let simple_expr = frame.compile_simple_expr(name, value, NeedsResult::Yes)?;
           return Ok(Some(simple_expr));
         }
