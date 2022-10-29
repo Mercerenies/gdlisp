@@ -109,15 +109,15 @@ func pretty(value):
         return s + "]"
     elif value is String:
         var s = "\""
-        for x in value.to_ascii(): # TODO Unicode support
+        for x in value:
             # TODO More escaping
             match x:
-                34:
+                "\"":
                     s += "\\\""
-                92:
+                "\\":
                     s += "\\\\"
                 _:
-                    s += char(x)
+                    s += x
         return s + "\""
     elif value.has_meta("__gdlisp_Primitive_Cons"):
         return "(" + _pretty_list(value) + ")"

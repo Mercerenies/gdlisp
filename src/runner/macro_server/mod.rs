@@ -241,6 +241,9 @@ mod tests {
     roundtrip_value(&mut server, "[10 20 (30 40) \"ABC\"]");
     roundtrip_value(&mut server, "[10 20 (30 40 . 50) \"ABC\"]");
     roundtrip_value(&mut server, "[10 20 (30 40 . [50 (60 70)]) \"ABC\"]");
+    roundtrip_value(&mut server, "\"ABC\"");
+    roundtrip_value(&mut server, "\"αβγ ⊕\"");
+    roundtrip_value(&mut server, "\"😁😁😁😁😁😁\"");
     // TODO Test roundtrip on string escaping (once we support parsing
     // escape sequences)
   }
