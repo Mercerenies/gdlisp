@@ -110,8 +110,21 @@ func pretty(value):
     elif value is String:
         var s = "\""
         for x in value:
-            # TODO More escaping
             match x:
+                "\n":
+                    s += "\\n"
+                "\t":
+                    s += "\\t"
+                "\r":
+                    s += "\\r"
+                "\a":
+                    s += "\\a"
+                "\b":
+                    s += "\\b"
+                "\f":
+                    s += "\\f"
+                "\v":
+                    s += "\\v"
                 "\"":
                     s += "\\\""
                 "\\":

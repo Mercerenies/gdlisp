@@ -232,7 +232,7 @@ mod tests {
   }
 
   #[test]
-  fn spawn_server_roundtrip_test() {
+  fn spawn_server_roundtrip_test_1() {
     let mut server = MacroServer::new().unwrap();
     roundtrip_value(&mut server, "(1)");
     roundtrip_value(&mut server, "(1 2 . 3)");
@@ -241,11 +241,33 @@ mod tests {
     roundtrip_value(&mut server, "[10 20 (30 40) \"ABC\"]");
     roundtrip_value(&mut server, "[10 20 (30 40 . 50) \"ABC\"]");
     roundtrip_value(&mut server, "[10 20 (30 40 . [50 (60 70)]) \"ABC\"]");
+  }
+
+  #[test]
+  fn spawn_server_roundtrip_test_2() {
+    let mut server = MacroServer::new().unwrap();
     roundtrip_value(&mut server, "\"ABC\"");
     roundtrip_value(&mut server, "\"αβγ ⊕\"");
     roundtrip_value(&mut server, "\"😁😁😁😁😁😁\"");
-    // TODO Test roundtrip on string escaping (once we support parsing
-    // escape sequences)
+    roundtrip_value(&mut server, r#""abc\"def""#);
+    roundtrip_value(&mut server, r#""''\"'\"'""#);
+    roundtrip_value(&mut server, r#""\\""#);
+    roundtrip_value(&mut server, r#""\"\\\"""#);
+    roundtrip_value(&mut server, r#""\\\\\\""#);
+  }
+
+  #[test]
+  fn spawn_server_roundtrip_test_3() {
+    let mut server = MacroServer::new().unwrap();
+    roundtrip_value(&mut server, r#""\n\t\t\n""#);
+    roundtrip_value(&mut server, r#""\r\r\r\r""#);
+    roundtrip_value(&mut server, r#""abc \a def""#);
+    roundtrip_value(&mut server, r#""\t\v\f\f""#);
+    roundtrip_value(&mut server, r#""xxx\b\b\b""#);
+    roundtrip_value(&mut server, r#""\v""#);
+    roundtrip_value(&mut server, r#""\\v""#);
+    roundtrip_value(&mut server, r#""\\\v""#);
+    roundtrip_value(&mut server, r#""\\\\v""#);
   }
 
   #[test]
