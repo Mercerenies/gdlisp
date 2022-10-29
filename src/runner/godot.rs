@@ -1,7 +1,7 @@
 
 //! Provides a DSL for executing arbitrary Godot subprocesses.
 
-use std::process::{Command, Stdio, Output, Child};
+use std::process::{Command, Stdio, Output, Child, ExitStatus};
 use std::path::Path;
 use std::ffi::OsStr;
 use std::io;
@@ -92,6 +92,11 @@ impl GodotCommand {
     self.arg("--quit")
   }
 
+  /// Adds the `--quiet` option to the command line arguments.
+  pub fn quiet(&mut self) -> &mut Self {
+    self.arg("--quiet")
+  }
+
   /// Adds a single environment variable that will be visible to the
   /// Godot process.
   ///
@@ -145,6 +150,14 @@ impl GodotCommand {
   /// See [`Command::output`].
   pub fn output(&mut self) -> io::Result<Output> {
     self.command.output()
+  }
+
+  /// Executes the command, waits on it to terminate, and then
+  /// returns its exit status.
+  ///
+  /// See [`Command::status`].
+  pub fn status(&mut self) -> io::Result<ExitStatus> {
+    self.command.status()
   }
 
   /// Executes the command, returning a [`Child`] instance
