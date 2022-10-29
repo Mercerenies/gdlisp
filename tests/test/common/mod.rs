@@ -15,7 +15,7 @@ use gdlisp::compile::symbol_table::local_var::LocalVar;
 use gdlisp::compile::symbol_table::function_call::{FnCall, FnScope, FnSpecs};
 use gdlisp::compile::symbol_table::call_magic::CallMagic;
 use gdlisp::compile::preload_resolver::DefaultPreloadResolver;
-use gdlisp::runner;
+use gdlisp::runner::godot::GodotCommand;
 use gdlisp::runner::into_gd_file::IntoGDFile;
 use gdlisp::runner::path::{RPathBuf, PathSrc};
 use gdlisp::runner::version::VersionInfo;
@@ -34,6 +34,7 @@ use gdlisp::pipeline::source::SourceOffset;
 
 use tempfile::{Builder, TempDir};
 
+use std::process::{Output, Stdio};
 use std::path::PathBuf;
 use std::fs::{File, copy};
 use std::io::{self, Write};
@@ -42,6 +43,13 @@ use std::str::FromStr;
 pub const TEST_FUNCTION_NAME: &'static str = "run_test";
 
 pub const BEGIN_GDLISP_TESTS: &'static str = "__BEGIN_GDLISP_TESTS__";
+
+/// A type containing string output from both `stdout` and `stderr`.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct StringOutput {
+  pub stdout: String,
+  pub stderr: String,
+}
 
 /*
 fn template_contents<P : AsRef<Path>>(filename: P) -> String {
@@ -149,7 +157,7 @@ GDLisp="*res://GDLisp.gd"
 
 }
 
-fn parse_and_run_err_impl<T>(input: &str, runner_fn: fn(TempDir) -> io::Result<T>) -> Result<T, PError> {
+fn parse_and_run_err_impl(input: &str, runner: &mut GodotCommand) -> Result<Output, PError> {
   let value = AST_PARSER.parse(input)?;
   let used_names = value.all_symbols();
   let mut table = SymbolTable::new();
@@ -168,13 +176,16 @@ fn parse_and_run_err_impl<T>(input: &str, runner_fn: fn(TempDir) -> io::Result<T
   // println!("{}", code_output.to_gd());
   dump_files(&mut temp_dir, &code_output).map_err(|err| IOError::new(err, SourceOffset(0)))?;
 
-  runner_fn(temp_dir).map_err(|err| PError::from(IOError::new(err, SourceOffset(0))))
+  runner.project_dir(temp_dir.path()).output()
+    .map_err(|err| PError::from(IOError::new(err, SourceOffset(0))))
 }
 
 pub fn parse_and_run_err(input: &str) -> Result<String, PError> {
-  let result = parse_and_run_err_impl(input, runner::run_project)?;
+  let mut runner = GodotCommand::base();
+  let Output { stdout, .. } = parse_and_run_err_impl(input, &mut runner)?;
+  let result = String::from_utf8_lossy(&stdout);
   match result.find(BEGIN_GDLISP_TESTS) {
-    None => Ok(result),
+    None => Ok(result.into_owned()),
     Some(idx) => Ok(result[idx + BEGIN_GDLISP_TESTS.bytes().count()..].to_owned()),
   }
 }
@@ -183,16 +194,24 @@ pub fn parse_and_run(input: &str) -> String {
   parse_and_run_err(input).unwrap()
 }
 
-pub fn parse_and_run_with_stderr_err(input: &str) -> Result<runner::Output, PError> {
-  let runner::Output { stdout, stderr } = parse_and_run_err_impl(input, runner::run_project_capturing_stderr)?;
+pub fn parse_and_run_with_stderr_err(input: &str) -> Result<StringOutput, PError> {
+  let mut runner = GodotCommand::base();
+  runner.stderr(Stdio::piped());
+  let Output { stdout, stderr, .. } = parse_and_run_err_impl(input, &mut runner)?;
+
+  let stdout = String::from_utf8_lossy(&stdout);
+  let stderr = String::from_utf8_lossy(&stderr);
+
   let stdout = match stdout.find(BEGIN_GDLISP_TESTS) {
-    None => stdout,
+    None => stdout.into_owned(),
     Some(idx) => stdout[idx + BEGIN_GDLISP_TESTS.bytes().count()..].to_owned(),
   };
-  Ok(runner::Output { stdout, stderr })
+  let stderr = stderr.into_owned();
+
+  Ok(StringOutput { stdout, stderr })
 }
 
-pub fn parse_and_run_with_stderr(input: &str) -> runner::Output {
+pub fn parse_and_run_with_stderr(input: &str) -> StringOutput {
   parse_and_run_with_stderr_err(input).unwrap()
 }
 

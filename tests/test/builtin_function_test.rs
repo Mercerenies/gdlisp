@@ -2,7 +2,6 @@
 use gdlisp::compile::error::{GDError, GDErrorF};
 use gdlisp::pipeline::error::PError;
 use gdlisp::pipeline::source::SourceOffset;
-use gdlisp::runner;
 use gdlisp::runner::version::{get_godot_version, Version};
 
 use super::common::*;
@@ -391,14 +390,14 @@ pub fn str_running_test_indirect() {
 
 #[test]
 pub fn printerr_running_test() {
-  let runner::Output { stdout, stderr } = parse_and_run_with_stderr("((printerr \"printerr_running_test OUTPUT\"))");
+  let StringOutput { stdout, stderr } = parse_and_run_with_stderr("((printerr \"printerr_running_test OUTPUT\"))");
   assert_eq!(stdout, "\n");
   assert!(stderr.contains("printerr_running_test OUTPUT"));
 }
 
 #[test]
 pub fn printerr_running_test_indirect() {
-  let runner::Output { stdout, stderr } = parse_and_run_with_stderr("((funcall #'printerr \"printerr_running_test_indirect OUTPUT\"))");
+  let StringOutput { stdout, stderr } = parse_and_run_with_stderr("((funcall #'printerr \"printerr_running_test_indirect OUTPUT\"))");
   assert_eq!(stdout, "\n");
   assert!(stderr.contains("printerr_running_test_indirect OUTPUT"));
 }

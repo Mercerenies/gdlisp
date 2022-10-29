@@ -13,14 +13,11 @@ pub mod named_file;
 pub mod path;
 pub mod version;
 
-use into_gd_file::IntoGDFile;
-use godot::GodotCommand;
-
 use tempfile::{Builder, NamedTempFile};
 
 use std::process::{Command, Stdio};
 use std::path::Path;
-use std::io::{self, Write, Seek, SeekFrom};
+use std::io::{self, Seek, SeekFrom};
 
 /// A type containing string output from both `stdout` and `stderr`.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -98,6 +95,9 @@ fn make_tmp_file() -> io::Result<NamedTempFile> {
 #[cfg(test)]
 mod tests {
   use super::*;
+  use crate::runner::into_gd_file::IntoGDFile;
+  use crate::runner::godot::GodotCommand;
+  use std::io::Write;
 
   fn run_with_temporary(data: &str) -> io::Result<String> {
     let mut tmp = make_tmp_file()?;
