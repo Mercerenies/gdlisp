@@ -9,13 +9,15 @@
 // TODO Clean this up. I'm envisioning a DSL for the different ways of
 // running things.
 
-pub mod named_file;
+pub mod godot;
 pub mod into_gd_file;
 pub mod macro_server;
+pub mod named_file;
 pub mod path;
 pub mod version;
 
 use into_gd_file::IntoGDFile;
+use godot::GodotCommand;
 
 use tempfile::{Builder, NamedTempFile};
 
@@ -29,28 +31,6 @@ use std::ffi::OsStr;
 pub struct Output {
   pub stdout: String,
   pub stderr: String,
-}
-
-/// Runs a Godot process, with `path` as a script file. The script
-/// file should inherit from `SceneTree` or `MainLoop`. This function
-/// will wait until the child terminates before returning.
-///
-/// Anything printed to stderr will be passed through to the parent
-/// stderr, and stdout will be collected into a `String` and then
-/// returned. Anything in stdout which is not valid UTF-8 will be
-/// replaced with `U+FFFD`.
-pub fn run_with_file<P : AsRef<Path>>(path: P) -> io::Result<String> {
-  let out =
-    Command::new("godot")
-    .arg("--no-window")
-    .arg("-s")
-    .arg(path.as_ref().as_os_str())
-    .arg("-q")
-    .stderr(Stdio::inherit())
-    .stdout(Stdio::piped())
-    .output()?;
-  let text = String::from_utf8_lossy(&out.stdout);
-  Ok(text.into())
 }
 
 /// Runs a Godot process, with `path` as a project path.
@@ -143,43 +123,23 @@ fn make_tmp_file() -> io::Result<NamedTempFile> {
     .tempfile()
 }
 
-fn make_tmp_file_in<P : AsRef<Path>>(dir: P) -> io::Result<NamedTempFile> {
-  Builder::new()
-    .prefix("__gdlisp_test")
-    .suffix(".gd")
-    .rand_bytes(5)
-    .tempfile_in(dir)
-}
-
-/// Given an [`IntoGDFile`] such as
-/// [`TopLevelClass`](crate::gdscript::decl::TopLevelClass), this
-/// function constructs a temporary file, dumps the contents of `data`
-/// to that file, and then runs it with [`run_with_file`].
-pub fn run_with_temporary<T>(data: &T) -> io::Result<String>
-where T : IntoGDFile + ?Sized {
-  let mut tmp = make_tmp_file()?;
-  data.write_to_gd(&mut tmp)?;
-  tmp.flush()?;
-  run_with_file(tmp.path())
-}
-
-/// Given an [`IntoGDFile`] such as
-/// [`TopLevelClass`](crate::gdscript::decl::TopLevelClass), this
-/// function constructs a temporary file in the directory `dir`, dumps
-/// the contents of `data` to that file, and then runs it with
-/// [`run_with_file`].
-pub fn run_with_temporary_in<T, P>(data: &T, dir: P) -> io::Result<String>
-where T : IntoGDFile + ?Sized,
-      P : AsRef<Path> {
-  let mut tmp = make_tmp_file_in(dir)?;
-  data.write_to_gd(&mut tmp)?;
-  tmp.flush()?;
-  run_with_file(tmp.path())
-}
-
 #[cfg(test)]
 mod tests {
   use super::*;
+
+  fn run_with_temporary(data: &str) -> io::Result<String> {
+    let mut tmp = make_tmp_file()?;
+    data.write_to_gd(&mut tmp)?;
+    tmp.flush()?;
+
+    let out =
+      GodotCommand::base()
+      .script_file(tmp.path())
+      .quit_after_one()
+      .output()?;
+    let text = String::from_utf8_lossy(&out.stdout);
+    Ok(text.into())
+  }
 
   #[test]
   fn run_minimal_test() {
