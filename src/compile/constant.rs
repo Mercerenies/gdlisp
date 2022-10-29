@@ -12,10 +12,8 @@
 
 use super::error::{GDError, GDErrorF};
 use super::symbol_table::SymbolTable;
-use super::symbol_table::local_var::{LocalVar, ValueHint, ValueHintsTable};
-use crate::gdscript::expr::{Expr, ExprF};
-use crate::gdscript::op;
-use crate::pipeline::source::{Sourced, SourceOffset};
+use super::symbol_table::local_var::{LocalVar, ValueHint};
+use crate::pipeline::source::SourceOffset;
 use crate::ir::expr::{Expr as IRExpr, ExprF as IRExprF};
 use crate::ir::decl::{ClassInnerDecl, ClassInnerDeclF, Decl, DeclF};
 use crate::ir::literal::Literal;
