@@ -21,7 +21,8 @@ use std::io::{self, Seek, SeekFrom};
 use std::fmt;
 use std::error::Error;
 
-
+/// An error in the exit status of the process spawned by
+/// `dump_json_api`.
 #[derive(Debug, Clone)]
 pub struct JsonApiError;
 
