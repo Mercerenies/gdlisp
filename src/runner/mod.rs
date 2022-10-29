@@ -21,12 +21,6 @@ use std::io::{self, Seek, SeekFrom};
 use std::fmt;
 use std::error::Error;
 
-/// A type containing string output from both `stdout` and `stderr`.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct Output {
-  pub stdout: String,
-  pub stderr: String,
-}
 
 #[derive(Debug, Clone)]
 pub struct JsonApiError;
