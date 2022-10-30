@@ -44,6 +44,9 @@ pub struct Repl {
   pipeline: Pipeline,
   full_symbol_table: SymbolTable,
   full_macro_table: HashMap<Id, MacroData>,
+  /// Indicates whether the REPL has had its REPL-specific
+  /// initialization code run yet.
+  initialized: bool,
 }
 
 impl Repl {
@@ -59,7 +62,19 @@ impl Repl {
       pipeline,
       full_symbol_table: SymbolTable::new(),
       full_macro_table: HashMap::new(),
+      initialized: false,
     }
+  }
+
+  fn initialize(&mut self) {
+    // Do this first, or else the parse_and_run_code implementation
+    // below will end us up in an infinite loop.
+    self.initialized = true;
+
+    // Re-route print to printerr, since we suppress stdout output.
+    // Fix for https://github.com/Mercerenies/gdlisp/issues/119.
+    self.parse_and_run_code("(defn print (&rest args) (apply #'printerr args))")
+      .expect("Internal error in Repl::initialize");
   }
 
   /// Normally, the macro server and all of the subsystems are lazy
@@ -95,6 +110,11 @@ impl Repl {
   /// For a version that parses the code and *then* runs it, see
   /// [`parse_and_run_code`](Repl::parse_and_run_code).
   pub fn run_code(&mut self, code: &AST) -> Result<String, PError> {
+
+    if !self.initialized {
+      self.initialize();
+    }
+
     self.pipeline.set_currently_loading_file(RPathBuf::try_from(String::from(Repl::REPL_FILENAME)).unwrap());
 
     let mut compiler = Compiler::new(FreshNameGenerator::new(code.all_symbols()), Box::new(DefaultPreloadResolver), false);
