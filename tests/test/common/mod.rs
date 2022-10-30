@@ -222,7 +222,6 @@ fn bind_helper_symbols_comp(table: &mut SymbolTable) {
   table.set_fn(String::from("foo1"), FnCall::file_constant(FnSpecs::new(1, 0, None), FnScope::Global, String::from("foo1")), CallMagic::DefaultCall);
   table.set_fn(String::from("foo2"), FnCall::file_constant(FnSpecs::new(2, 0, None), FnScope::Global, String::from("foo2")), CallMagic::DefaultCall);
   table.set_fn(String::from("bar"), FnCall::file_constant(FnSpecs::new(0, 0, None), FnScope::Global, String::from("bar")), CallMagic::DefaultCall);
-  table.set_fn(String::from("bar"), FnCall::file_constant(FnSpecs::new(0, 0, None), FnScope::Global, String::from("bar")), CallMagic::DefaultCall);
   table.set_var(String::from("foobar"), LocalVar::read(String::from("foobar")));
   table.set_var(String::from("glob"), LocalVar::file_constant(String::from("glob")));
 }
