@@ -188,11 +188,9 @@ pub fn assign_form(icompiler: &mut IncCompiler,
       let x = tail[0];
       let inner: Vec<_> = DottedExpr::new(x).try_into()?;
       if inner[0].value == ASTF::symbol(String::from("access-slot")) {
-        if let ExprF::FieldAccess(lhs, slot_name) = access_slot_form(icompiler, pipeline, &inner[1..], pos)?.value {
-          AssignmentForm::Simple(AssignTarget::InstanceField(inner[0].pos, lhs, slot_name))
-        } else {
-          return Err(PError::from(GDError::new(GDErrorF::InvalidArg(String::from("set"), x.clone(), ExpectedShape::Symbol), pos))); // TODO Is this possible? I think we can prove that this never happens with a bit of refactoring.
-        }
+        let AccessSlotSyntax { object, slot_name } = AccessSlotSyntax::parse_from_tail(&inner[1..], pos)?;
+        let object = icompiler.compile_expr(pipeline, object)?;
+        AssignmentForm::Simple(AssignTarget::InstanceField(inner[0].pos, Box::new(object), slot_name))
       } else {
         let s = ExpectedShape::extract_symbol("set", inner[0].clone())?;
         let head = AssignmentForm::str_to_setter_prefix(&s);

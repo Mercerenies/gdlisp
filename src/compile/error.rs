@@ -63,8 +63,8 @@ pub enum GDErrorF {
   /// something incompatible.
   ///
   /// This error includes the name of the callable object, the faulty
-  /// argument that was passed, and a freeform text description of the
-  /// sort of argument that was expected.
+  /// argument that was passed, and a description of the sort of
+  /// argument that was expected.
   InvalidArg(String, AST, ExpectedShape),
   /// A name was referenced in the variable namespace, but no such
   /// name was found in the symbol table.
