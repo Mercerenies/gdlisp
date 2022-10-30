@@ -1,7 +1,7 @@
 
 use crate::util::unzip_err;
 use crate::ir;
-use crate::ir::expr::{Locals, LocalFnClause};
+use crate::ir::expr::{Locals, Functions, LocalFnClause};
 use crate::ir::access_type::AccessType;
 use crate::compile::{Compiler, StExpr};
 use crate::compile::frame::CompilerFrame;
@@ -70,8 +70,8 @@ pub fn compile_labels_scc(frame: &mut CompilerFrame<StmtBuilder>,
   // Bind all of the closure variables, closure functions, and global
   // variables inside.
   let mut lambda_table = SymbolTable::with_synthetics_from(table);
-  locally_bind_vars(compiler, table, &mut lambda_table, closure.closure_vars.names(), &[], pos)?;
-  locally_bind_fns(compiler, *pipeline, table, &mut lambda_table, closure.closure_fns.names(), pos, &OuterStaticRef::InnerInstanceVar(&outer_ref_name))?;
+  locally_bind_vars(compiler, table, &mut lambda_table, &closure.closure_vars, &[], pos)?;
+  locally_bind_fns(compiler, *pipeline, table, &mut lambda_table, &closure.closure_fns, pos, &OuterStaticRef::InnerInstanceVar(&outer_ref_name))?;
   copy_global_vars(table, &mut lambda_table);
 
   // Convert the closures to GDScript names.
@@ -178,21 +178,17 @@ pub fn special_local_fn_call(labels_var: String, function: String, specs: FnSpec
   }
 }
 
-pub fn locally_bind_vars<'a, I, U>(compiler: &mut Compiler,
-                                   table: &SymbolTable,
-                                   lambda_table: &mut SymbolTable,
-                                   closure_vars: I,
-                                   forbidden_names: &[&str],
-                                   pos: SourceOffset)
-                                   -> Result<(), GDError>
-where I : Iterator<Item=&'a U>,
-      U : Borrow<str>,
-      U : ?Sized,
-      U : 'a {
-  for var in closure_vars {
+pub fn locally_bind_vars<'a>(compiler: &mut Compiler,
+                             table: &SymbolTable,
+                             lambda_table: &mut SymbolTable,
+                             closure_vars: &Locals,
+                             forbidden_names: &[&str],
+                             _pos: SourceOffset) // _pos unused right now, might need it later :)
+                             -> Result<(), GDError> {
+  for (var, _access_type, var_pos) in closure_vars.iter_with_offset() {
     // Ensure the variable actually exists
     match table.get_var(var.borrow()) {
-      None => return Err(GDError::new(GDErrorF::NoSuchVar(var.borrow().to_owned()), pos)),
+      None => return Err(GDError::new(GDErrorF::NoSuchVar(var.borrow().to_owned()), var_pos)),
       Some(gdvar) => {
         let mut new_var = gdvar.to_owned();
         // Ad-hoc rule for closing around self (TODO Generalize?)
@@ -218,23 +214,19 @@ fn protect_closure_var_name(gen: &mut impl NameGenerator, var: &mut LocalVar, fo
   }
 }
 
-pub fn locally_bind_fns<'a, I, U, L>(compiler: &mut Compiler,
-                                     pipeline: &L,
-                                     table: &SymbolTable,
-                                     lambda_table: &mut SymbolTable,
-                                     closure_fns: I,
-                                     pos: SourceOffset,
-                                     outer_static_ref: &OuterStaticRef<'_>)
-                                     -> Result<(), GDError>
-where I : Iterator<Item=&'a U>,
-      U : Borrow<str>,
-      U : ?Sized,
-      U : 'a,
-      L : CanLoad {
-  for func in closure_fns {
+pub fn locally_bind_fns<'a, L>(compiler: &mut Compiler,
+                               pipeline: &L,
+                               table: &SymbolTable,
+                               lambda_table: &mut SymbolTable,
+                               closure_fns: &Functions,
+                               _pos: SourceOffset, // Unused right now, might need it later :)
+                               outer_static_ref: &OuterStaticRef<'_>)
+                               -> Result<(), GDError>
+where L : CanLoad {
+  for (func, (), func_pos) in closure_fns.iter_with_offset() {
     // Ensure the function actually exists
     match table.get_fn(func.borrow()) {
-      None => { return Err(GDError::new(GDErrorF::NoSuchFn(func.borrow().to_owned()), pos)) } // TODO Better error pos
+      None => { return Err(GDError::new(GDErrorF::NoSuchFn(func.borrow().to_owned()), func_pos)) }
       Some((call, magic)) => {
         let mut call = call.clone();
         call.object.update_for_inner_scope(outer_static_ref, compiler.preload_resolver(), pipeline);
@@ -336,8 +328,8 @@ pub fn compile_lambda_stmt(frame: &mut CompilerFrame<StmtBuilder>,
 
   // Bind all of the closure variables, closure functions, and global
   // variables inside.
-  locally_bind_vars(compiler, table, &mut lambda_table, closure.closure_vars.names(), &[], pos)?;
-  locally_bind_fns(compiler, *pipeline, table, &mut lambda_table, closure.closure_fns.names(), pos, &OuterStaticRef::InnerInstanceVar(&outer_ref_name))?;
+  locally_bind_vars(compiler, table, &mut lambda_table, &closure.closure_vars, &[], pos)?;
+  locally_bind_fns(compiler, *pipeline, table, &mut lambda_table, &closure.closure_fns, pos, &OuterStaticRef::InnerInstanceVar(&outer_ref_name))?;
   copy_global_vars(table, &mut lambda_table);
 
   // Convert the closures to GDScript names.

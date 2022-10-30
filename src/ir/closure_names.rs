@@ -117,6 +117,11 @@ impl<T : Lattice> ClosureNames<T> {
     self.0.into_iter().map(|(s, (t, p))| (s, t, p))
   }
 
+  /// Iterates over the entries in the table, by immutable reference.
+  pub fn iter_with_offset(&self) -> impl Iterator<Item=(&str, &T, SourceOffset)> {
+    self.0.iter().map(|(s, (t, p))| (s.as_str(), t, *p))
+  }
+
 }
 
 impl<T : Lattice> Default for ClosureNames<T> {

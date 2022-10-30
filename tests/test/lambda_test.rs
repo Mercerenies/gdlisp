@@ -1,5 +1,8 @@
 
-use super::common::{parse_compile_and_output, parse_compile_and_output_h, parse_and_run};
+use super::common::*;
+use gdlisp::compile::error::{GDError, GDErrorF};
+use gdlisp::pipeline::error::PError;
+use gdlisp::pipeline::source::SourceOffset;
 
 #[test]
 fn simple_lambda_running_test() {
@@ -56,6 +59,20 @@ fn simple_function_ref_run_test() {
      (print (funcall f))))
   "#);
   assert_eq!(output, "\n100\n");
+}
+
+#[test]
+fn nonexistent_var_in_lambda_test() {
+  let output = parse_compile_and_output_err(r#"(lambda () x)"#);
+  assert_eq!(output,
+             Err(PError::from(GDError::new(GDErrorF::NoSuchVar(String::from("x")), SourceOffset(11)))));
+}
+
+#[test]
+fn nonexistent_fn_in_lambda_test() {
+  let output = parse_compile_and_output_err(r#"(lambda () (abc))"#);
+  assert_eq!(output,
+             Err(PError::from(GDError::new(GDErrorF::NoSuchFn(String::from("abc")), SourceOffset(11)))));
 }
 
 #[test]

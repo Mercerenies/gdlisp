@@ -69,8 +69,8 @@ pub fn compile_lambda_class(frame: &mut CompilerFrame<StmtBuilder>,
   // Bind all of the closure variables, closure functions, and global
   // variables inside.
   let forbidden_names = get_all_instance_scoped_vars(decls);
-  lambda::locally_bind_vars(compiler, table, &mut lambda_table, closure.closure_vars.names(), &forbidden_names, pos)?;
-  lambda::locally_bind_fns(compiler, *pipeline, table, &mut lambda_table, closure.closure_fns.names(), pos, &OuterStaticRef::InnerInstanceVar(&outer_ref_name))?;
+  lambda::locally_bind_vars(compiler, table, &mut lambda_table, &closure.closure_vars, &forbidden_names, pos)?;
+  lambda::locally_bind_fns(compiler, *pipeline, table, &mut lambda_table, &closure.closure_fns, pos, &OuterStaticRef::InnerInstanceVar(&outer_ref_name))?;
   lambda::copy_global_vars(table, &mut lambda_table);
 
   // Convert the closures to GDScript names.
