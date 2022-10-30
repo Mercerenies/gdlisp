@@ -1451,7 +1451,7 @@ class ClassName extends Node:
         pass
 
     func __gdlisp_set_x(a):
-        return null
+        pass
 
     func __gdlisp_get_x():
         push_error("Cannot access nonexistent field \'x\'")
@@ -1474,7 +1474,7 @@ class ClassName extends Node:
         pass
 
     func __gdlisp_set_x(a):
-        return null
+        pass
 
     func __gdlisp_get_x():
         return 10
@@ -1496,7 +1496,7 @@ func _init():
 
 
 func __gdlisp_set_x(a):
-    return null
+    pass
 
 
 func __gdlisp_get_x():
@@ -1520,7 +1520,7 @@ func _init():
 
 
 func __gdlisp_set_x_y(a):
-    return null
+    pass
 
 
 func __gdlisp_get_x_y():
@@ -1543,7 +1543,7 @@ func _init():
 
 
 func __gdlisp_set_x_y(a):
-    return null
+    pass
 
 
 func __gdlisp_get_x_y():

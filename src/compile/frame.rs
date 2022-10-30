@@ -382,7 +382,7 @@ impl<'a, 'b, 'c, 'd, 'e> CompilerFrame<'a, 'b, 'c, 'd, 'e, StmtBuilder> {
   /// is false. That is, the expression result will be discarded if
   /// and only if the statement destination is vacuous.
   pub fn compile_stmt(&mut self,
-                      destination: &dyn StmtWrapper,
+                      destination: &(impl StmtWrapper + ?Sized),
                       stmt: &IRExpr)
                       -> Result<(), GDError> {
     let needs_result = NeedsResult::from(!destination.is_vacuous());

@@ -304,8 +304,7 @@ impl ClassInit {
     }
 
     Ok(())
-  } // TODO When we generate a setter synthetically, have it not
-    // generate 'return', similar to the way _init does.
+  }
 
   /// Returns a collection of all of the variable declaration names in
   /// the given class.

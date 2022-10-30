@@ -218,11 +218,18 @@ impl Compiler {
         }
 
         let gd_name = names::lisp_to_gd(f.name.method_name().borrow());
+        let destination: Box<dyn stmt_wrapper::StmtWrapper> =
+          if matches!(&f.name, InstanceFunctionName::Setter(_)) {
+            // Setters do not return anything
+            Box::new(stmt_wrapper::Vacuous)
+          } else {
+            Box::new(stmt_wrapper::Return)
+          };
         let func = factory::declare_function(&mut self.frame(pipeline, builder, table, class_scope),
                                              gd_name,
                                              IRArgList::from(f.args.clone()),
                                              &f.body,
-                                             &stmt_wrapper::Return)?;
+                                             &*destination)?;
         Ok(Decl::new(DeclF::FnDecl(f.is_static, func), decl.pos))
       }
     }

@@ -94,7 +94,7 @@ pub fn declare_function(frame: &mut CompilerFrame<impl HasDecls>,
                         gd_name: String,
                         args: IRArgList,
                         body: &IRExpr,
-                        result_destination: &impl StmtWrapper)
+                        result_destination: &(impl StmtWrapper + ?Sized))
                         -> Result<decl::FnDecl, GDError> {
   let result = declare_function_with_init(frame, gd_name, args, &[], body, result_destination)?;
   assert!(result.inits.is_empty(), "declare_function got nonempty initializers: {:?}", result.inits);
@@ -106,7 +106,7 @@ fn declare_function_with_init(frame: &mut CompilerFrame<impl HasDecls>,
                               args: IRArgList,
                               inits: &[IRExpr],
                               body: &IRExpr,
-                              result_destination: &impl StmtWrapper)
+                              result_destination: &(impl StmtWrapper + ?Sized))
                               -> Result<DeclaredFnWithInit, GDError> {
   let local_vars = body.get_locals();
   let (arglist, gd_args) = args.into_gd_arglist(&mut RegisteredNameGenerator::new_local_var(frame.table));
