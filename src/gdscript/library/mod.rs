@@ -25,7 +25,7 @@ use crate::pipeline::Pipeline;
 use crate::pipeline::translation_unit::TranslationUnit;
 use crate::pipeline::stdlib_unit::StdlibUnit;
 use crate::pipeline::config::ProjectConfig;
-use crate::pipeline::source::SourceOffset;
+use crate::pipeline::source::{SourceOffset, SourcedValue};
 
 use rmp_serde::{encode, decode};
 
@@ -94,7 +94,15 @@ pub fn load_stdlib_to_file() -> StdlibUnit {
 }
 
 fn load_stdlib_file(pipeline: &mut Pipeline) -> &TranslationUnit {
-  pipeline.load_file(&PathBuf::from("GDLisp.lisp"), SourceOffset(0)).expect("Error loading standard library")
+  match pipeline.load_file(&PathBuf::from("GDLisp.lisp"), SourceOffset(0)) {
+    Ok(unit) => unit,
+    Err(err) => {
+      // This is basically .expect() but with a much better error
+      // message.
+      let err = SourcedValue::from_file(&err, "GDLisp.lisp").expect("Error loading stdlib (failed to get further diagnostic information)");
+      panic!("Error loading stdlib: {}", err);
+    }
+  }
 }
 
 /// Ensure that the standard library `GDLisp.lisp` has been compiled.
