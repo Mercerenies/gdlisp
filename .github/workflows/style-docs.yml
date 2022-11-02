@@ -1,0 +1,20 @@
+name: Rustdoc Generation
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  style-checker:
+
+    runs-on: "ubuntu-20.04"
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Generate Documentation
+      run: rake doc

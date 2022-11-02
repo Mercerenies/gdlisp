@@ -10,6 +10,12 @@ task :clippy do |t, args|
   sh 'cargo', 'clippy', *args
 end
 
+task :doc do |t, args|
+  ENV['RUSTDOCFLAGS'] ||= ''
+  ENV['RUSTDOCFLAGS'] += ' -D warnings'
+  sh 'cargo', 'doc', *args
+end
+
 task :build_rs do |t, args|
   sh 'cargo', 'build'
 end
