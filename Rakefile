@@ -16,6 +16,7 @@ end
 
 task build: :build_rs do |t, args|
   sh 'cargo', 'run', '--', '--compile-stdlib'
+  cp 'GDLisp.gd', 'MacroServer/GDLisp.gd'
   cp_r 'MacroServer', 'target/debug'
   cp 'GDLisp.msgpack', 'target/debug'
   cp_r 'MacroServer', 'target/debug/deps'

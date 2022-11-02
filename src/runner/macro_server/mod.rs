@@ -26,11 +26,9 @@ use command::ServerCommand;
 use response::ServerResponse;
 
 use std::io::{self, Write, Read, ErrorKind};
-use std::path::PathBuf;
 use std::process::{Child, Stdio, ExitStatus};
 use std::net::{TcpListener, TcpStream};
 use std::convert::{TryFrom, TryInto};
-use std::fs;
 use std::mem::ManuallyDrop;
 use std::sync::{Mutex, MutexGuard};
 use std::env::current_exe;
@@ -78,7 +76,6 @@ impl MacroServer {
     let _lock_guard = MacroServer::lock_macro_server_init()?;
 
     library::ensure_stdlib_loaded();
-    fs::copy(PathBuf::from("GDLisp.gd"), PathBuf::from("MacroServer/GDLisp.gd"))?;
     let (tcp_listener, port) = MacroServer::try_to_bind_port(min_port, max_port)?;
     let gd_server = run_godot_child_process(port)?;
     let (tcp_server, _) = tcp_listener.accept()?;
