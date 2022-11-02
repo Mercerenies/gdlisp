@@ -7,6 +7,12 @@
 
 use getopts::{Options, ParsingStyle};
 
+const PROGRAM_DESCRIPTION: &str =
+  r#"The GDLisp compiler. If invoked with filenames, compiles the GDLisp sources
+at the given path. If given a directory, compiles all GDLisp source files in the
+Godot project at that directory. If given *no* file or directory arguments, invokes
+the GDLisp REPL."#;
+
 /// This structure contains information about the command line
 /// arguments passed to the compiler. It is usually constructed via
 /// [`parse_args`].
@@ -84,6 +90,6 @@ pub fn parse_args(args: &[String]) -> CommandLineArgs {
 /// Helper function to show the GDLisp compiler help message.
 pub fn show_help_message(program: &str) {
   let opts = options();
-  let brief = format!("Usage: {} [FILE] [options]", program);
+  let brief = format!("Usage: {} [FILE] [options]\n\n{}", program, PROGRAM_DESCRIPTION);
   print!("{}", opts.usage(&brief));
 }
