@@ -32,6 +32,7 @@ use rmp_serde::{encode, decode};
 use std::collections::{HashSet, HashMap};
 use std::path::PathBuf;
 use std::fs::File;
+use std::env::current_exe;
 
 /// The name of the top-level GDLisp singleton object.
 pub const GDLISP_NAME: &str = "GDLisp";
@@ -79,7 +80,9 @@ pub fn gdlisp_project_config(godot_version: VersionInfo) -> ProjectConfig {
 }
 
 fn get_stdlib() -> StdlibUnit {
-  let file = File::open("GDLisp.msgpack").expect("I/O error reading GDLisp.msgpack (this file should have been built as part of the GDLisp build process; are you sure you have compiled GDLisp fully?)");
+  let exe_path = current_exe().expect("Could not locate current executable");
+  let exe_dir = exe_path.parent().expect("Could not locate executable path");
+  let file = File::open(exe_dir.join("GDLisp.msgpack")).expect("I/O error reading GDLisp.msgpack (this file should have been built as part of the GDLisp build process; are you sure you have compiled GDLisp fully?)");
   decode::from_read(file).expect("Error deserializing stdlib (this is likely a GDLisp error and should be reported as a bug)")
 }
 
