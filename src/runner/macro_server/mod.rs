@@ -33,6 +33,7 @@ use std::convert::{TryFrom, TryInto};
 use std::fs;
 use std::mem::ManuallyDrop;
 use std::sync::{Mutex, MutexGuard};
+use std::env::current_exe;
 
 /// The TCP port used for communicating with the macro server.
 pub const DEFAULT_PORT_NUMBER: u16 = 61992;
@@ -191,8 +192,10 @@ impl Drop for MacroServer {
 }
 
 fn run_godot_child_process(port: u16) -> io::Result<Child> {
+  let exe_path = current_exe()?;
+  let exe_dir = exe_path.parent().ok_or_else(|| io::Error::new(io::ErrorKind::Other, "Could not locate executable path"))?;
   GodotCommand::base()
-    .project_dir(&PathBuf::from("MacroServer/"))
+    .project_dir(&exe_dir.join("MacroServer"))
     .env("GDLISP_PORT_NUMBER", port.to_string())
     .stdout(Stdio::null())
     .spawn()
