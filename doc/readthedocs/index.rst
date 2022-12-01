@@ -10,11 +10,12 @@ Welcome to GDLisp's documentation!
    :maxdepth: 2
    :caption: Contents:
 
+   reference/index.rst
+
 
 
 Indices and tables
 ==================
 
 * :ref:`genindex`
-* :ref:`modindex`
 * :ref:`search`
