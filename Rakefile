@@ -38,6 +38,10 @@ task build: :build_rs do |t, args|
   cp 'GDLisp.msgpack', 'target/release'
   cp_r 'MacroServer', 'target/release/deps'
   cp 'GDLisp.msgpack', 'target/release/deps'
+  if release_flag.include? '--release'
+    mkdir_p 'bin/'
+    ln_sf '../target/release/gdlisp', 'bin/gdlisp'
+  end
 end
 
 task run: :build do |t, args|

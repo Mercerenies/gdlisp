@@ -1,4 +1,5 @@
 /target
+/bin
 *~
 GDLisp.gd
 GDLisp.msgpack
