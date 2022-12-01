@@ -7,3 +7,4 @@ GDLisp.msgpack
 /MacroServer/GDLisp.gd
 /tmp/
 /etc/
+/doc/readthedocs/_build/
