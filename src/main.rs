@@ -22,7 +22,7 @@ use gdlisp::runner::version::{VersionInfo, get_godot_version_as_string};
 
 use walkdir::WalkDir;
 
-use std::io::{self, BufRead};
+use std::io::{self, BufRead, Write};
 use std::env;
 use std::path::{PathBuf, Path};
 use std::str::FromStr;
@@ -56,7 +56,21 @@ fn run_pseudo_repl(godot_version: VersionInfo) {
 }
 
 fn run_repl(godot_version: VersionInfo) {
-  let stdin = io::stdin();
+
+  fn prompt() -> Option<String> {
+    let mut line = String::new();
+    let stdin = io::stdin();
+    let mut stdout = io::stdout();
+    print!("> ");
+    stdout.flush().expect("Failed to flush stdout");
+    let bytes = stdin.read_line(&mut line).expect("Could not read from stdin; broken pipe?");
+    if bytes == 0 {
+      None
+    } else {
+      Some(line)
+    }
+  }
+
   let config = ProjectConfig {
     root_directory: PathBuf::from_str(".").unwrap(), // Infallible
     optimizations: true,
@@ -65,8 +79,7 @@ fn run_repl(godot_version: VersionInfo) {
   let mut repl = Repl::new(config);
   repl.force_load();
 
-  for line in stdin.lock().lines() {
-    let line = line.unwrap();
+  while let Some(line) = prompt() {
     let result = repl.parse_and_run_code(&line);
     match result {
       Err(err) => {
