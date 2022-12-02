@@ -171,6 +171,10 @@ The following are examples of valid identifiers in GDLisp: ``foo``,
 ``bar``, ``satisfies?``, ``set-element``, ``list/map``,
 ``com.mercerenies.gdlisp``.
 
+Note that, unlike in some Lisp dialects, symbols in GDLisp are **case
+sensitive**. That is, ``foo`` and ``Foo`` are distinct symbols that
+refer to distinct variables or functions.
+
 Node Path Literals
 ^^^^^^^^^^^^^^^^^^
 
