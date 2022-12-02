@@ -22,6 +22,9 @@ There are six types of declarations: ``defn``, ``defmacro``,
 Additionally, there is one pseudo-declaration, called ``progn``, which
 is treated specially in this context.
 
+Classes and macros will be discussed in a future section. The other
+declaration forms are discussed below.
+
 Namespaces
 ----------
 
@@ -153,6 +156,24 @@ the names indicated in the entries. In the first example above,
 example above, ``Color`` is a value, and ``Color:RED`` is the string
 ``"Red"``, ``Color:GREEN`` is the string ``"Green"``, and
 ``Color:BLUE`` is the string ``"Blue"``.
+
+The ``progn`` Directive
+-----------------------
+
+.. code-block::
+
+   (progn body ...)
+
+``progn`` is a special sort of directive, in that it can be used as a
+declaration *or* an expression. In declaration context, it takes zero
+or more declarations and evaluates them in order in the *current*
+scope, as though the ``progn`` wasn't even there.
+
+A ``progn`` directive is never useful directly in a file in
+declaration context, since it would be easier and more readable to
+simply place the declarations at the top-level. However, it is useful
+in macro expansions, when a macro wishes to define multiple
+declarations but must evaluate to a *single* declaration S-expression.
 
 Visibility Modifiers
 --------------------
