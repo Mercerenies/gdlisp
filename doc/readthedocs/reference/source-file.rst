@@ -87,6 +87,21 @@ arguments passed to the function is validated at compile-time, and an
 error is issued if the count is incompatible with the function's
 lambda list.
 
+Compilation of Functions
+^^^^^^^^^^^^^^^^^^^^^^^^
+
+A GDLisp function translates to a GDScript function with its name
+:ref:`normalized <name-normalization>`. No guarantees are currently
+made about the GDScript signature of the resulting function if
+optional or variable arguments are used. However, if the function only
+accepts *required* arguments, then the resulting function is
+guaranteed to compile to a function that accepts exactly the same
+number of required arguments. Therefore, if you intend to call a
+GDLisp function from GDScript, then the GDLisp function should take
+only required arguments, in order to maximize compatibility.
+
+.. _constants:
+
 Constants
 ---------
 
@@ -177,6 +192,8 @@ simply place the declarations at the top-level. However, it is useful
 in macro expansions, when a macro wishes to define multiple
 declarations but must evaluate to a *single* declaration S-expression.
 
+.. _visibility-modifiers:
+
 Visibility Modifiers
 --------------------
 
@@ -192,6 +209,8 @@ it at their liberty.
 A name with private visibility is only directly usable within the
 current module. The current module can freely use the name, but it is
 an error to attempt to import the name in *another* module.
+
+.. _name-normalization:
 
 Name Normalization
 ------------------

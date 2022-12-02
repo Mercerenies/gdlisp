@@ -11,3 +11,4 @@ Reference Documentation
    source-file.rst
    lambda-lists.rst
    macros.rst
+   classes.rst

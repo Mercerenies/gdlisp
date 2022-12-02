@@ -175,6 +175,10 @@ Note that, unlike in some Lisp dialects, symbols in GDLisp are **case
 sensitive**. That is, ``foo`` and ``Foo`` are distinct symbols that
 refer to distinct variables or functions.
 
+The following names are specifically reserved for use in GDLisp. Users
+should not create variables or functions with these names: ``self``,
+``super``.
+
 Node Path Literals
 ^^^^^^^^^^^^^^^^^^
 

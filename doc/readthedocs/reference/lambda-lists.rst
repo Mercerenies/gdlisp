@@ -33,6 +33,8 @@ directive. Unless otherwise stated, directives do not "stack".
 There are different types of lambda lists, depending on the context in
 which it appears.
 
+.. _simple-lambda-lists:
+
 Simple Lambda Lists
 -------------------
 
@@ -99,6 +101,8 @@ Examples::
   (&rest all-args)
   (&arr all-args-as-array)
   (required-arg &opt optional-arg &rest all-remaining-args)
+
+.. _constructor-lambda-lists:
 
 Constructor Lambda Lists
 ------------------------
