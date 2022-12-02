@@ -9,3 +9,5 @@ Reference Documentation
    parser.rst
    datatypes.rst
    source-file.rst
+   lambda-lists.rst
+   macros.rst

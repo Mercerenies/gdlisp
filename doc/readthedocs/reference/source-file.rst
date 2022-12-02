@@ -22,8 +22,8 @@ There are six types of declarations: ``defn``, ``defmacro``,
 Additionally, there is one pseudo-declaration, called ``progn``, which
 is treated specially in this context.
 
-Classes and macros will be discussed in a future section. The other
-declaration forms are discussed below.
+Macros are discussed in :ref:`macros`. Classes will be discussed in a
+future section. The other declaration forms are discussed below.
 
 Namespaces
 ----------
@@ -45,10 +45,11 @@ define the same name in all three namespaces in a given scope.
   explicitly bound to a function name. Functions are called by simply
   indicating the name of the function as the head of an S-expression
   in the source code. A name in the function namespace is *always*
-  bound to a value of function type. At the top-level, names in the
-  function namespace are declared by ``defn`` and ``defmacro``. Names
-  can be *locally* introduced to the function namespace through
-  several special forms, such as ``flet`` and ``labels``.
+  bound to a value of function type or to a macro. At the top-level,
+  names in the function namespace are declared by ``defn`` and
+  ``defmacro``. Names can be *locally* introduced to the function
+  namespace through several special forms, such as ``flet`` and
+  ``labels``.
 
 * The final namespace is the signal namespace. This namespace only
   exists inside the scope of a class declaration, never at the
@@ -80,10 +81,11 @@ early using the ``return`` special form. If a function body is empty,
 then the function is a no-op which silently returns the null object
 ``()``.
 
-The list of formal arguments is an *ordinary lambda list*. When a
-function is called, the number of arguments passed to the function is
-validated at compile-time, and an error is issued if the count is
-incompatible with the function's lambda list.
+The list of formal arguments is an :ref:`ordinary lambda list
+<ordinary-lambda-lists>`. When a function is called, the number of
+arguments passed to the function is validated at compile-time, and an
+error is issued if the count is incompatible with the function's
+lambda list.
 
 Constants
 ---------
