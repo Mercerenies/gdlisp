@@ -7,3 +7,5 @@ Reference Documentation
    :caption: Contents:
 
    parser.rst
+   datatypes.rst
+   source-file.rst

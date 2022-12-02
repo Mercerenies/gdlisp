@@ -49,6 +49,11 @@ of the following.
 * A nested name or node path
 * A self name or node path
 
+Unless otherwise stated, an arbitrary amount of whitespace is allowed
+between adjacent tokens in the above EBNF grammar. "Whitespace" is,
+here, defined as any Unicode character with the ``White_Space=yes``
+property.
+
 Literals
 --------
 
@@ -196,4 +201,175 @@ dot and enclosed in parentheses.
 
   (a . b)
 
-By convention, lists are built up
+By convention, lists are built up as a singly-linked list, using cons
+cells as the links. The car of each is the first element, or "head",
+of the list, and the cdr of each is the rest of the list, or "tail".
+The end of the list is denoted with the special "null" atom,
+indicating by a pair of parentheses with nothing in between.
+
+This convention is so widely used in Lisp programs that the syntax
+supports it directly. That is, a sequence of of one or more
+S-expressions, followed by the dotted end of the list, is interpreted
+as a list whose final cdr is the rightmost term. Concretely, the
+following are equivalent.
+
+.. code-block:: text
+
+  (a b c . d)
+  (a . (b . (c . d)))
+
+Similarly, if the dotted terminator is left off, it is assumed to be
+the special ``()`` null object, so the following are equivalent.
+
+.. code-block:: text
+
+  (a b c d)
+  (a . (b . (c . d . ())))
+
+An S-expression can be viewed as a *dotted list*, consisting of a
+leading list of values (in the ``car`` portion of cons cells)
+terminated by an arbitrary non-cons value as the final ``cdr``. For
+instance, the S-expression ``(a b c . d)`` (or, equivalently, ``(a .
+(b . (c . d)))`` would be viewed as a dotted list consisting of the
+elements ``a``, ``b``, and ``c``, terminated by ``d``.
+
+We call a dotted list which is terminated by the ``()`` null object a
+*proper list*. All lists appearing unquoted in GDLisp source code must
+be proper lists.
+
+Arrays
+------
+
+.. code-block:: ebnf
+
+   array-expr = "[", {prefixed-expr}, "]" ;
+
+Like in GDScript, a GDLisp array is a general-purpose random-access
+data structure. An array literal consists of square brackets
+containing zero or more expressions. Note that, unlike in GDScript,
+elements in an array literal are *not* separated by commas.
+
+Dictionaries
+------------
+
+.. code-block:: ebnf
+
+   dict-expr = "{", {prefixed-expr, prefixed-expr}, "}" ;
+
+A dictionary expression is a collection of an even number of
+expressions, enclosed in curly braces. The first element of each pair
+of expressions is a key and the second is a value in the resulting
+dictionary. It is an error to have a brace-enclosed collection of an
+*odd* number of expressions.
+
+
+Vectors
+-------
+
+.. code-block:: ebnf
+
+   vector-expr = "V{", prefixed-expr, prefixed-expr, [prefixed-expr], "}" ;
+
+Vectors are used in Godot to represent objects in 2D or 3D space. A
+vector literal in GDLisp consists of two or three (depending on
+dimension) expressions delimited by ``V{`` and ``}``.
+
+Vectors can also be constructed (non-literally) by the ``vector``
+built-in function. This can be useful in macro expansion, where
+returning a literal vector object can introduce complexity.
+
+Nested Names
+------------
+
+.. code-block:: ebnf
+
+   nested-name = expr, ":", symbol ;
+   nested-node-path = expr, ":", node-path ;
+   self-name = "@", symbol ;
+   self-node-path = node-path ;
+
+Godot is built on an single-inheritance, messaging-passing
+object-oriented paradigm. This means that it's very common to call a
+function *on* an object, not just an independent function that exists
+in the abstract.
+
+In GDLisp, the equivalent to the GDScript "dot" operator is the
+``access-slot`` built-in special form. That is, ``foo.bar`` in
+GDScript would be translated to the GDLisp ``(access-slot foo bar)``.
+This is relatively awkward and verbose to write all the time, so
+several shortcuts are provided. These are purely syntax sugar and are
+*not* new data structures in the abstract syntax tree of the
+language.
+
+The following translations are made.
+
+1. ``foo:bar``, with a literal colon in the middle, is translated to
+   ``(access-slot foo bar)``. The left-hand side can be any
+   (non-prefixed) expression, and the right-hand side must be a symbol
+   literal. Note that a prefix in front of the left-hand side will be
+   parsed at a lower precedence than the ``:``, so ``'a:b`` will be
+   parsed as ``(quote (access-slot a b))``, not ``(access-slot
+   (quote a) b)``. If the precedence is not to your liking, then you
+   can always write out the S-expressions by hand rather than using
+   the syntax sugar, and sometimes this is necessary in complex macro
+   expansions.
+
+2. ``foo:$bar`` translates to a function call equivalent to
+   ``(foo:get-node "bar")``. Written in full generality, this is
+   ``((access-slot foo get-node) "bar")``. Internally, the *actual*
+   expression calls a GDLisp built-in function that allows for better
+   optimization potential, but the effect is the same as long as your
+   custom nodes do not override ``get-node``. The right-hand side must
+   be a node path literal, either quoted or unquoted.
+
+3. ``@bar`` translates to ``(access-slot self bar)``, or equivalently
+   ``self:bar``.
+
+4. A node path literal on its own ``$bar`` translates to a function
+   call equivalent to ``((access-slot self get-node) "bar")``. As with
+   the nested form, ``@$bar`` does not *literally* translate to the
+   latter, instead factoring through a GDLisp middleman for
+   optimization purposes.
+
+Prefixes
+--------
+
+.. code-block:: ebnf
+
+   prefixed-expr = [ prefix ], expr ;
+   prefix = "'" | "#'" | "`" | "," | ",." ;
+
+Expressions, in general, can have a single prefix applied to them.
+Each prefix is mere syntax sugar for some slightly more complicated
+S-expression form. The semantics of these forms are explained in
+future sections, but the translations are defined here.
+
+* ``'foo`` translates to ``(quote foo)``
+
+* ``#'foo`` translates to ``(function foo)``
+
+* ```foo`` translates to ``(quasiquote foo)``
+
+* ``,foo`` translates to ``(unquote foo)``
+
+* ``,.foo`` translates to ``(unquote-spliced foo)``
+
+Comments
+--------
+
+There are two types of comments in GDLisp. Both are ignored entirely
+by the implementation and will *not* be present in the compiled
+GDScript code.
+
+Line comments begin with a semicolon ``;`` and continue until the next
+carriage return or linefeed character, or until the end of the file.
+Conventionally, line comments which occupy the *entire* line will be
+written with two semicolons, so it's common to see a pair of
+semicolons denote a line comment. But this is merely a convention and
+is, as far as the GDLisp parser is concerned, an irrelevant
+distinction.
+
+Block comments begin with ``#|`` and continue until the next ``|#``.
+Note that block comments cannot be nested, so additional leading
+sequences of ``#|`` inside a block comment will be ignored, not paired
+off against matching delimiters.
