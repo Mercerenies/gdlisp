@@ -12,12 +12,16 @@ pub fn list_test() {
 }
 
 #[test]
+pub fn array_function_test() {
+  assert_eq!(parse_compile_and_output("(array 1 2 3)"), "return [1, 2, 3]\n");
+}
+
+#[test]
 pub fn array_test() {
   assert_eq!(parse_compile_and_output("[]"), "return []\n");
   assert_eq!(parse_compile_and_output("[1 2 3]"), "return [1, 2, 3]\n");
   assert_eq!(parse_compile_and_output("[2]"), "return [2]\n");
   assert_eq!(parse_compile_and_output("[(foo)]"), "return [foo()]\n");
-  assert_eq!(parse_compile_and_output("(progn [1] [2])"), "return [2]\n");
   assert_eq!(parse_compile_and_output("(progn [(foo)] [2])"), "[foo()]\nreturn [2]\n");
   assert_eq!(parse_compile_and_output("[(if 1 2 3)]"), "var _cond = null\nif 1:\n    _cond = 2\nelse:\n    if true:\n        _cond = 3\n    else:\n        _cond = null\nreturn [_cond]\n");
 }
@@ -129,6 +133,30 @@ pub fn append_test_4() {
     ((print (list->array (append '(1 2 3 4) () '(5 6 7 8) () ()))))
   "#);
   assert_eq!(result, "\n[1, 2, 3, 4, 5, 6, 7, 8]\n");
+}
+
+#[test]
+pub fn array_running_test() {
+  let result = parse_and_run(r#"
+    ((print (array 1 2 3)))
+  "#);
+  assert_eq!(result, "\n[1, 2, 3]\n");
+}
+
+#[test]
+pub fn array_syntax_running_test() {
+  let result = parse_and_run(r#"
+    ((print [1 2 3]))
+  "#);
+  assert_eq!(result, "\n[1, 2, 3]\n");
+}
+
+#[test]
+pub fn array_running_test_indirect() {
+  let result = parse_and_run(r#"
+    ((print (funcall #'array 1 2 3)))
+  "#);
+  assert_eq!(result, "\n[1, 2, 3]\n");
 }
 
 #[test]

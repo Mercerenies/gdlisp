@@ -733,6 +733,10 @@
     ((= z ()) V{x y})
     (#t V{x y z})))
 
+(defn array (&arr xs)
+  (sys/call-magic ARRAY)
+  xs)
+
 (defn NodePath (s)
   (sys/call-magic NODEPATH-SYNTAX)
   ((literally NodePath) s))

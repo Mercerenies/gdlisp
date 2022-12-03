@@ -86,6 +86,9 @@ pub fn bind_magic(table: &mut MagicTable) {
   // List (list)
   table.set(String::from("LIST"), CallMagic::ListOperation);
 
+  // Array (vector)
+  table.set(String::from("ARRAY"), CallMagic::ArrayOperation);
+
   // Vector (vector)
   table.set(String::from("VECTOR"), CallMagic::VectorOperation);
 

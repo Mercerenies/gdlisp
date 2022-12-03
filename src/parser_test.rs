@@ -92,9 +92,9 @@ mod tests {
   #[test]
   fn parser_array() {
     let p = &AST_PARSER;
-    assert_eq!(p.parse("[]").unwrap(), AST::array(vec!(), so(0)));
-    assert_eq!(p.parse("[1]").unwrap(), AST::array(vec!(AST::int(1, so(1))), so(0)));
-    assert_eq!(p.parse("[1 2]").unwrap(), AST::array(vec!(AST::int(1, so(1)), AST::int(2, so(3))), so(0)));
+    assert_eq!(p.parse("[]").unwrap(), AST::list(vec!(AST::symbol("array", so(0))), so(1)));
+    assert_eq!(p.parse("[1]").unwrap(), AST::list(vec!(AST::symbol("array", so(0)), AST::int(1, so(1))), so(2)));
+    assert_eq!(p.parse("[1 2]").unwrap(), AST::list(vec!(AST::symbol("array", so(0)), AST::int(1, so(1)), AST::int(2, so(3))), so(4)));
   }
 
   #[test]

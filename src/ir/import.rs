@@ -402,7 +402,6 @@ mod tests {
     assert!(parse_import(r#"("res://foo/bar" ((a b c)))"#).is_err());
     assert!(parse_import(r#"("res://foo/bar" ([]))"#).is_err());
     assert!(parse_import(r#"("res://foo/bar" (()))"#).is_err());
-    assert!(parse_import(r#"("res://foo/bar" [])"#).is_err());
   }
 
 }

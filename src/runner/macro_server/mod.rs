@@ -245,10 +245,10 @@ mod tests {
     roundtrip_value(&mut server, "(1)");
     roundtrip_value(&mut server, "(1 2 . 3)");
     roundtrip_value(&mut server, "(1 . 2)");
-    roundtrip_value(&mut server, "[#t #f abc def]");
-    roundtrip_value(&mut server, "[10 20 (30 40) \"ABC\"]");
-    roundtrip_value(&mut server, "[10 20 (30 40 . 50) \"ABC\"]");
-    roundtrip_value(&mut server, "[10 20 (30 40 . [50 (60 70)]) \"ABC\"]");
+    roundtrip_value(&mut server, "(array #t #f abc def)");
+    roundtrip_value(&mut server, "(array 10 20 (30 40) \"ABC\")");
+    roundtrip_value(&mut server, "(array 10 20 (30 40 . 50) \"ABC\")");
+    roundtrip_value(&mut server, "(array 10 20 (30 40 50 (60 70)) \"ABC\")");
   }
 
   #[test]
