@@ -327,9 +327,9 @@ mod tests {
     // The quit command will terminate the Godot subprocess within
     // 1/60th of a second (Godot will terminate at the end of the
     // current frame, and the default framerate is 60 frames per
-    // second). So we'll wait 200 milliseconds to make sure it has
+    // second). So we'll wait 300 milliseconds to make sure it has
     // time to terminate.
-    sleep(Duration::from_millis(200));
+    sleep(Duration::from_millis(300));
 
     assert!(!server.is_process_healthy());
   }
