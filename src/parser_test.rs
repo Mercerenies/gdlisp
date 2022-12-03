@@ -100,9 +100,9 @@ mod tests {
   #[test]
   fn parser_dict() {
     let p = &AST_PARSER;
-    assert_eq!(p.parse("{}").unwrap(), AST::dictionary(vec!(), so(0)));
-    assert_eq!(p.parse("{1 2}").unwrap(), AST::dictionary(vec!((AST::int(1, so(1)), AST::int(2, so(3)))), so(0)));
-    assert_eq!(p.parse("{1 2 3 4}").unwrap(), AST::dictionary(vec!((AST::int(1, so(1)), AST::int(2, so(3))), (AST::int(3, so(5)), AST::int(4, so(7)))), so(0)));
+    assert_eq!(p.parse("{}").unwrap(), AST::list(vec!(AST::symbol("dict", so(0))), so(1)));
+    assert_eq!(p.parse("{1 2}").unwrap(), AST::list(vec!(AST::symbol("dict", so(0)), AST::int(1, so(1)), AST::int(2, so(3))), so(4)));
+    assert_eq!(p.parse("{1 2 3 4}").unwrap(), AST::list(vec!(AST::symbol("dict", so(0)), AST::int(1, so(1)), AST::int(2, so(3)), AST::int(3, so(5)), AST::int(4, so(7))), so(8)));
   }
 
   #[test]
