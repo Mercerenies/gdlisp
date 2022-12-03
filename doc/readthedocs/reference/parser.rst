@@ -279,12 +279,10 @@ Vectors
    vector-expr = "V{", prefixed-expr, prefixed-expr, [prefixed-expr], "}" ;
 
 Vectors are used in Godot to represent objects in 2D or 3D space. A
-vector literal in GDLisp consists of two or three (depending on
-dimension) expressions delimited by ``V{`` and ``}``.
-
-Vectors can also be constructed (non-literally) by the ``vector``
-built-in function. This can be useful in macro expansion, where
-returning a literal vector object can introduce complexity.
+vector in GDLisp is constructed using the ``vector`` built-in
+function. Since vectors are so ubiquitous, the syntax ``V{ ... }`` is
+provided, which desugars to a call to the ``vector`` function with the
+given arguments.
 
 Nested Names
 ------------

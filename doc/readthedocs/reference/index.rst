@@ -13,3 +13,4 @@ Reference Documentation
    macros.rst
    classes.rst
    imports.rst
+   expressions.rst
