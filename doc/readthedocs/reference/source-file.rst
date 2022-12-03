@@ -20,10 +20,13 @@ top-level GDScript class body.
 There are six types of declarations: ``defn``, ``defmacro``,
 ``defconst``, ``defclass``, ``defenum``, and ``define-symbol-macro``.
 Additionally, there is one pseudo-declaration, called ``progn``, which
-is treated specially in this context.
+is treated specially in this context. Finally, ``use`` directives
+appear in declaration context, despite not being declarations
+themselves.
 
-Macros are discussed in :ref:`macros`. Classes will be discussed in a
-future section. The other declaration forms are discussed below.
+Macros are discussed in :ref:`macros`. Classes are discussed in
+:ref:`classes`. ``use`` directives are discussed in :ref:`imports`.
+The other declaration forms are discussed below.
 
 Namespaces
 ----------

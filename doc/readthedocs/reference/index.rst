@@ -12,3 +12,4 @@ Reference Documentation
    lambda-lists.rst
    macros.rst
    classes.rst
+   imports.rst

@@ -1,4 +1,6 @@
 
+.. _classes:
+
 Classes and Objected-Oriented Programming
 =========================================
 
@@ -262,8 +264,81 @@ own) to a variable or use it in some way other than the syntax shown.
 Main Classes
 ------------
 
+In GDScript, a single source file maps to a defined class. Functions
+on a source file are, unless marked static, functions on *instances*
+of that class. GDLisp works differently. A GDLisp source file is a
+module, and it may *contain* one or more classes, but it is not itself
+a class. These classes contained in a GDLisp source file will compile
+to *inner classes* in the resulting GDScript source file.
+
+However, there are good reasons to have control over this "top-level"
+class in Godot. Packed scenes will always refer to a file's top-level
+class, not to inner classes. So GDLisp provides a mechanism to define
+a particular class that should be treated as the "main" class.
+
+::
+
+  (defclass ClassName (ParentClassName) main
+    body ...)
+
+
+After the class' parent name and before the class' body, the symbol
+``main`` can be written to indicate that this class is the module's
+"main" class. If your class has a visibility modifier, then the
+``main`` modifier can be written before or after the visibility
+modifier (though a private ``main`` class makes very little sense).
+
+Designating a class as the "main" class does not change how you refer
+to this class in GDLisp. It is still a class name defined on the
+module in the value namespace, just like any other class, and it will
+still be instantiated, imported, and used in the exact same way. The
+``main`` designator does affect how the class is compiled, though.
+Rather than compiling to an inner class, the main class compiles to
+the top-level class of the GDScript file.
+
+There are several limitations.
+
+* There can be at most one ``main`` class in a file.
+
+* There must be no conflicts between names defined inside the ``main``
+  class and names defined at the module level. That is, if a constant
+  is defined at the module level, then there must be no constants or
+  instance variables inside the class with the same name (up to
+  normalization). Likewise, if a function or macro is defined at the
+  top-level, then there must be no instance functions (static or
+  otherwise) with the same name (again, up to normalization).
+
 Visibility Inside a Class
 -------------------------
 
+A class name can, like most module declarations, be declared
+``public`` or ``private``. However, the elements *inside* of a class
+have no visibility modifiers. There is no way to define private fields
+or instance functions in GDLisp. Everything defined inside of a class
+is presumed public.
+
 Name Normalization Within Classes
 ---------------------------------
+
+Name normalization works slightly differently inside of classes. The
+rules for *how* names are normalized within classes are the same as at
+the module level (see :ref:`name-normalization`). However, the
+difference is in how names are resolved.
+
+At the module level, a name must be referred to in the exact same way
+as it was defined. That is, if you define a function called
+``foo-bar``, then you must call it as ``(foo-bar ...)``. Even though,
+at runtime, the resulting GDScript function will be called ``foo_bar``
+(with an underscore in place of the dash), GDLisp will not allow you
+to call the function as ``(foo_bar ...)``.
+
+Inside of classes, the rules are much more lenient, owing to Godot's
+dynamic nature. You may access fields or call functions on classes and
+instances using *any* name that normalizes to the same name that was
+used to define the function or field.
+
+As a consequence, you can call built-in GDScript instance functions
+using the conventions of GDLisp, so you can get a child node from a
+node by writing ``(parent-node:get-node "ChildNodeName")``. This will
+normalize to a function call to ``get_node``, which is defined by
+Godot.
