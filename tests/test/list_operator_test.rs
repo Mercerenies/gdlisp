@@ -1,5 +1,6 @@
 
 use super::common::*;
+use gdlisp::pipeline::error::PError;
 
 #[test]
 pub fn simple_length_test() {
@@ -157,6 +158,38 @@ pub fn array_running_test_indirect() {
     ((print (funcall #'array 1 2 3)))
   "#);
   assert_eq!(result, "\n[1, 2, 3]\n");
+}
+
+#[test]
+pub fn dict_running_test() {
+  let result = parse_and_run(r#"
+    ((print (dict 1 2 3 4)))
+  "#);
+  assert_eq!(result, "\n{1:2, 3:4}\n");
+}
+
+#[test]
+pub fn dict_syntax_running_test() {
+  let result = parse_and_run(r#"
+    ((print {1 2 3 4}))
+  "#);
+  assert_eq!(result, "\n{1:2, 3:4}\n");
+}
+
+#[test]
+pub fn dict_running_test_indirect() {
+  let result = parse_and_run(r#"
+    ((print (funcall #'dict 1 2 3 4)))
+  "#);
+  assert_eq!(result, "\n{1:2, 3:4}\n");
+}
+
+#[test]
+pub fn dict_syntax_odd_error_test() {
+  let result = parse_compile_and_output_err(r#"
+    ((print {1}))
+  "#);
+  assert!(matches!(result, Err(PError::ParseError(_))));
 }
 
 #[test]

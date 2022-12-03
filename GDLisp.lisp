@@ -737,6 +737,15 @@
   (sys/call-magic ARRAY)
   xs)
 
+(defn dict (&arr xs)
+  (sys/call-magic DICT)
+  (let ((resulting-dict {}))
+    (for i (range 0 (len xs) 2)
+      (let ((k (elt xs i))
+            (v (elt xs (+ i 1))))
+        (set (elt resulting-dict k) v)))
+    resulting-dict))
+
 (defn NodePath (s)
   (sys/call-magic NODEPATH-SYNTAX)
   ((literally NodePath) s))

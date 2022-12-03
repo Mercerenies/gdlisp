@@ -93,6 +93,10 @@ pub enum CallMagic {
   /// [`CallMagic`] for the builtin `array` function. This call magic
   /// compiles calls to a literal GDScript array.
   ArrayOperation,
+  /// [`CallMagic`] for the builtin `dict` function. This call magic
+  /// compiles calls to a literal GDScript dictionary. If given an odd
+  /// number of arguments, the last argument will be silently dropped.
+  DictOperation,
   /// [`CallMagic`] for the builtin `vector` function, which compiles
   /// `vector` calls to literal `Vector2` or `Vector3` constructions
   /// in GDScript.
@@ -438,6 +442,11 @@ impl CallMagic {
         let args = strip_st(args);
         Ok(Expr::new(ExprF::ArrayLit(args), pos))
       }
+      CallMagic::DictOperation => {
+        let args = strip_st(args);
+        let contents: Vec<_> = util::each_non_overlapping_pair(args.into_iter()).collect();
+        Ok(Expr::new(ExprF::DictionaryLit(contents), pos))
+      }
       CallMagic::VectorOperation => {
         let args = strip_st(args);
         Expecting::between(2, 3).validate(&call.function, pos, &args)?;
@@ -542,6 +551,7 @@ impl CallMagic {
       CallMagic::BooleanNotOperation => true,
       CallMagic::ListOperation => false,
       CallMagic::ArrayOperation => true,
+      CallMagic::DictOperation => true,
       CallMagic::VectorOperation => true,
       CallMagic::ArraySubscript => true,
       CallMagic::ArraySubscriptAssign => false,

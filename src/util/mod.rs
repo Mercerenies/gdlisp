@@ -64,6 +64,47 @@ impl<T, I> Iterator for PairIter<T, I> where I : Iterator<Item=T>, T : Clone {
 
 }
 
+/// The type of iterator returned by [`each_non_overlapping_pair`].
+pub struct NonOverlappingPairIter<I>(I);
+
+/// Return an iterator over each non-overlapping pair of adjacent
+/// elements in `iter`. If there are an odd number of elements, then
+/// the final element will not be included in any of the pairs.
+///
+/// # Examples
+///
+/// ```
+/// # use gdlisp::util::each_non_overlapping_pair;
+/// let vec1: Vec<i32> = vec!();
+/// assert_eq!(each_non_overlapping_pair(vec1.into_iter()).collect::<Vec<_>>(), vec!());
+///
+/// let vec2: Vec<i32> = vec!(10);
+/// assert_eq!(each_non_overlapping_pair(vec2.into_iter()).collect::<Vec<_>>(), vec!());
+///
+/// let vec3: Vec<i32> = vec!(10, 20);
+/// assert_eq!(each_non_overlapping_pair(vec3.into_iter()).collect::<Vec<_>>(), vec!((10, 20)));
+///
+/// let vec4: Vec<i32> = vec!(10, 20, 30);
+/// assert_eq!(each_non_overlapping_pair(vec4.into_iter()).collect::<Vec<_>>(), vec!((10, 20)));
+///
+/// let vec5: Vec<i32> = vec!(10, 20, 30, 40);
+/// assert_eq!(each_non_overlapping_pair(vec5.into_iter()).collect::<Vec<_>>(), vec!((10, 20), (30, 40)));
+/// ```
+pub fn each_non_overlapping_pair<I: Iterator>(iter: I) -> NonOverlappingPairIter<I> {
+  NonOverlappingPairIter(iter)
+}
+
+impl<I: Iterator> Iterator for NonOverlappingPairIter<I> {
+  type Item = (<I as Iterator>::Item, <I as Iterator>::Item);
+
+  fn next(&mut self) -> Option<Self::Item> {
+    let fst = self.0.next();
+    let snd = self.0.next();
+    fst.and_then(|fst| snd.map(|snd| (fst, snd)))
+  }
+
+}
+
 /// Given two [`HashMap`] values `a` and `b`, merge `b` into `a`.
 ///
 /// For every key of `b` which is not in `a`, that key-value pair is
