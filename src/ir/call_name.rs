@@ -93,7 +93,6 @@ mod tests {
   use crate::pipeline::config::ProjectConfig;
   use crate::pipeline::resolver::PanickingNameResolver;
   use crate::runner::version::VersionInfo;
-  use crate::ir::expr::ExprF;
 
   use std::path::PathBuf;
 
@@ -138,8 +137,8 @@ mod tests {
 
   #[test]
   fn method_name() {
-    assert_eq!(resolve_call("foo:bar"), Ok(CallName::MethodName(Box::new(Expr::new(ExprF::LocalVar(String::from("foo")), SourceOffset(0))), String::from("bar"))));
-    assert_eq!(resolve_call("self:bar"), Ok(CallName::MethodName(Box::new(Expr::new(ExprF::LocalVar(String::from("self")), SourceOffset(0))), String::from("bar"))));
+    assert_eq!(resolve_call("foo:bar"), Ok(CallName::MethodName(Box::new(Expr::var("foo", SourceOffset(0))), String::from("bar"))));
+    assert_eq!(resolve_call("self:bar"), Ok(CallName::MethodName(Box::new(Expr::var("self", SourceOffset(0))), String::from("bar"))));
   }
 
   #[test]

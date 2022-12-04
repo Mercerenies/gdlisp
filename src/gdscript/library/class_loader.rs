@@ -69,7 +69,7 @@ pub fn get_singleton_class_var_declarations(native: &NativeClasses, pos: SourceO
     let name = backing_class_name_of(class);
     let expr = Expr::new(
       ExprF::MethodCall(
-        Box::new(Expr::new(ExprF::LocalVar(String::from("NamedSyntheticType")), pos)),
+        Box::new(Expr::var("NamedSyntheticType", pos)),
         String::from("new"),
         vec!(Expr::from_value(class.name.clone(), pos)), // Note: *Original* class name, not the one we made in backing_class_name_of
       ),
@@ -137,7 +137,7 @@ pub fn native_types_dictionary_literal(native: &NativeClasses, pos: SourceOffset
           // NamedSyntheticType object.
           Expr::new(
             ExprF::FieldAccess(
-              Box::new(Expr::new(ExprF::LocalVar(String::from("self")), pos)),
+              Box::new(Expr::var("self", pos)),
               gdlisp_name,
             ),
             pos,
@@ -145,7 +145,7 @@ pub fn native_types_dictionary_literal(native: &NativeClasses, pos: SourceOffset
         } else {
           // Not a singleton, so the name is globally available in
           // GDScript; use that name.
-          Expr::new(ExprF::LocalVar(gdlisp_name), pos)
+          Expr::var(gdlisp_name, pos)
         }
       };
       (Expr::from_value(original_name, pos), value)
@@ -160,7 +160,7 @@ fn build_dict(terms: impl DoubleEndedIterator<Item=(Expr, Expr)>, pos: SourceOff
 pub fn native_types_dictionary_initializer(native: &NativeClasses, pos: SourceOffset) -> Expr {
   let assign_target = AssignTarget::InstanceField(
     pos,
-    Box::new(Expr::new(ExprF::LocalVar(String::from("self")), pos)),
+    Box::new(Expr::var("self", pos)),
     String::from("native_types_lookup"),
   );
   let dict_literal = native_types_dictionary_literal(native, pos);

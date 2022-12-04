@@ -110,11 +110,11 @@ impl Compiler {
                     table: &mut SymbolTable,
                     expr: &IRExpr) -> Result<Expr, GDError> {
     // Any expression valid as a const is valid here, but then so are
-    // Expr::LocalVar since we need to allow type names.
+    // Expr::BareName since we need to allow type names.
     //
     // TODO Validate that the local vars appearing here make sense.
     match &expr.value {
-      IRExprF::LocalVar(s) => Ok(Expr::new(ExprF::Var(s.to_owned()), expr.pos)),
+      IRExprF::BareName(s) => Ok(Expr::new(ExprF::Var(s.to_gd_name_bare()), expr.pos)),
       _ => {
         let mut class_scope = OutsideOfClass;
         let expr = self.frame(pipeline, &mut (), table, &mut class_scope).compile_simple_expr("export", expr, NeedsResult::Yes)?;

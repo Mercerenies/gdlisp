@@ -60,7 +60,7 @@ impl LoopWalker {
 
   fn check(self, expr: &Expr) -> Result<(), LoopPrimitiveError> {
     match &expr.value {
-      ExprF::LocalVar(_) => {}
+      ExprF::BareName(_) => {}
       ExprF::Literal(_) => {}
       ExprF::Progn(exprs) => {
         for inner in exprs {
@@ -183,7 +183,6 @@ impl LoopWalker {
       }
       ExprF::SpecialRef(_) => {}
       ExprF::ContextualFilename(_) => {}
-      ExprF::AtomicName(_) => {}
       ExprF::AtomicCall(_, args) => {
         for inner in args {
           self.check(inner)?;

@@ -25,7 +25,7 @@ use crate::pipeline::Pipeline;
 use crate::pipeline::error::PError;
 use crate::pipeline::source::SourceOffset;
 use crate::ir;
-use crate::ir::expr::{FuncRefTarget, AssignTarget};
+use crate::ir::expr::{FuncRefTarget, AssignTarget, BareName};
 use crate::ir::special_ref::SpecialRef;
 use crate::gdscript::expr::{Expr, ExprF};
 use crate::gdscript::stmt::Stmt;
@@ -397,10 +397,8 @@ impl<'a, 'b, 'c, 'd, 'e> CompilerFrame<'a, 'b, 'c, 'd, 'e, StmtBuilder> {
                       needs_result: NeedsResult)
                       -> Result<StExpr, GDError> {
     match &expr.value {
-      IRExprF::LocalVar(s) => {
-        self.table.get_var(s).ok_or_else(|| GDError::new(GDErrorF::NoSuchVar(s.clone()), expr.pos)).map(|var| {
-          StExpr { expr: var.expr(expr.pos), side_effects: SideEffects::from(var.access_type) }
-        })
+      IRExprF::BareName(name) => {
+        self.compile_bare_name(name, expr.pos)
       }
       IRExprF::Literal(lit) => {
         let lit = factory::compile_literal(lit, expr.pos);
@@ -454,11 +452,11 @@ impl<'a, 'b, 'c, 'd, 'e> CompilerFrame<'a, 'b, 'c, 'd, 'e, StmtBuilder> {
       IRExprF::FieldAccess(lhs, sym) => {
 
         // This is a special case to validate enum names, as an extra sanity check.
-        if let IRExprF::LocalVar(lhs) = &lhs.value {
+        if let Some(lhs) = lhs.as_plain_name() {
           if let Some(LocalVar { value_hint: Some(ValueHint::Enum(vs)), .. }) = self.table.get_var(lhs) {
             // It's an enum and we know its values; validate
             if !vs.contains(&names::lisp_to_gd(sym)) {
-              return Err(GDError::new(GDErrorF::NoSuchEnumValue(lhs.clone(), sym.clone()), expr.pos));
+              return Err(GDError::new(GDErrorF::NoSuchEnumValue(lhs.to_owned(), sym.clone()), expr.pos));
             }
           }
         }
@@ -531,9 +529,6 @@ impl<'a, 'b, 'c, 'd, 'e> CompilerFrame<'a, 'b, 'c, 'd, 'e, StmtBuilder> {
           .ok_or_else(|| GDError::new(GDErrorF::ContextualFilenameUnresolved, expr.pos))?;
         Ok(StExpr { expr: Expr::from_value(new_filename, expr.pos), side_effects: SideEffects::None })
       }
-      IRExprF::AtomicName(s) => {
-        Ok(StExpr { expr: Expr::var(&names::lisp_to_gd_bare(s), expr.pos), side_effects: SideEffects::ReadsState })
-      }
       IRExprF::AtomicCall(s, args) => {
         let fnname = names::lisp_to_gd_bare(s);
         let args = args.iter()
@@ -575,6 +570,22 @@ impl<'a, 'b, 'c, 'd, 'e> CompilerFrame<'a, 'b, 'c, 'd, 'e, StmtBuilder> {
         Ok(StExpr(expr, true))
       }
        */
+    }
+  }
+
+  fn compile_bare_name(&mut self,
+                       bare_name: &BareName,
+                       pos: SourceOffset)
+                       -> Result<StExpr, GDError> {
+    match bare_name {
+      BareName::Plain(s) => {
+        self.table.get_var(s).ok_or_else(|| GDError::new(GDErrorF::NoSuchVar(s.clone()), pos)).map(|var| {
+          StExpr { expr: var.expr(pos), side_effects: SideEffects::from(var.access_type) }
+        })
+      }
+      BareName::Atomic(s) => {
+        Ok(StExpr { expr: Expr::var(&names::lisp_to_gd_bare(s), pos), side_effects: SideEffects::ReadsState })
+      }
     }
   }
 

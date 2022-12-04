@@ -196,7 +196,7 @@ impl IncCompiler {
           if let Some(macro_result) = macro_result {
             self.compile_expr(pipeline, &macro_result)
           } else {
-            Ok(Expr::new(ExprF::LocalVar(s.to_string()), expr.pos))
+            Ok(Expr::var(s, expr.pos))
           }
         } else {
           Ok(Expr::from_ast_literal(lit, expr.pos))

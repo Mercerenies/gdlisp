@@ -2,7 +2,7 @@
 use super::gdnative::NativeClasses;
 use crate::ir::decl::EnumDecl;
 use crate::ir::export::Visibility;
-use crate::ir::expr::{Expr, ExprF};
+use crate::ir::expr::Expr;
 use crate::pipeline::source::SourceOffset;
 use crate::util::prefix_matcher::PrefixMatcher;
 
@@ -139,7 +139,7 @@ impl From<ConstantEnum> for EnumDecl {
     let pos = constant_enum.pos;
     let clauses: Vec<(String, Option<Expr>)> =
       constant_enum.clauses.into_iter()
-      .map(|(name, value)| (name, Some(Expr::new(ExprF::LocalVar(value), pos))))
+      .map(|(name, value)| (name, Some(Expr::var(value, pos))))
       .collect();
     EnumDecl {
       visibility: Visibility::Public,

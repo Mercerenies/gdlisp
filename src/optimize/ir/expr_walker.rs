@@ -25,7 +25,7 @@ impl<'a, E> ExprWalker<'a, E> {
 
   fn walk_expr(&mut self, expr: &Expr) -> Result<Expr, E> {
     let new_expr = match &expr.value {
-      ExprF::LocalVar(_) => {
+      ExprF::BareName(_) => {
         expr.value.clone()
       }
       ExprF::Literal(_) => {
@@ -38,9 +38,6 @@ impl<'a, E> ExprWalker<'a, E> {
         expr.value.clone()
       }
       ExprF::ContextualFilename(_) => {
-        expr.value.clone()
-      }
-      ExprF::AtomicName(_) => {
         expr.value.clone()
       }
       ExprF::Progn(body) => {

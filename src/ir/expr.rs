@@ -8,6 +8,7 @@ use super::identifier::{Namespace, Id};
 use super::special_ref::SpecialRef;
 use crate::sxp::ast::AST;
 use crate::sxp::literal::{Literal as ASTLiteral};
+use crate::compile::names;
 use crate::pipeline::source::{SourceOffset, Sourced};
 use crate::runner::path::RPathBuf;
 
@@ -19,7 +20,7 @@ pub const DEFAULT_SPLIT_NAME: &str = "_split";
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ExprF {
-  LocalVar(String),
+  BareName(BareName), // A (possibly atomic) bare name, referring to a variable.
   Literal(literal::Literal),
   Progn(Vec<Expr>),
   CondStmt(Vec<(Expr, Option<Expr>)>),
@@ -44,7 +45,6 @@ pub enum ExprF {
   Continue,
   SpecialRef(SpecialRef),
   ContextualFilename(RPathBuf),
-  AtomicName(String),
   AtomicCall(String, Vec<Expr>),
   Split(String, Box<Expr>), // Compiles the inner expression, but forces it to be stored in a local variable with a generated name (the string argument is a prefix for the name)
   Preload(String),
@@ -60,6 +60,15 @@ pub struct Expr {
 pub enum AssignTarget {
   Variable(SourceOffset, String),
   InstanceField(SourceOffset, Box<Expr>, String),
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum BareName {
+  /// An ordinary name, referring to a variable in GDLisp.
+  Plain(String),
+  /// An atomic name, which will be translated literally into GDScript
+  /// without any regard for semantics.
+  Atomic(String),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -108,6 +117,14 @@ impl Expr {
     Expr { value, pos }
   }
 
+  pub fn var(name: impl Into<String>, pos: SourceOffset) -> Expr {
+    Expr::new(ExprF::BareName(BareName::Plain(name.into())), pos)
+  }
+
+  pub fn atomic_var(name: impl Into<String>, pos: SourceOffset) -> Expr {
+    Expr::new(ExprF::BareName(BareName::Atomic(name.into())), pos)
+  }
+
   pub fn while_stmt(cond: Expr, body: Expr, pos: SourceOffset) -> Expr {
     Expr::new(ExprF::WhileStmt(Box::new(cond), Box::new(body)), pos)
   }
@@ -142,6 +159,16 @@ impl Expr {
 
   pub fn assert_expr(cond: Expr, message: Option<Expr>, pos: SourceOffset) -> Expr {
     Expr::new(ExprF::Assert(Box::new(cond), message.map(Box::new)), pos)
+  }
+
+  /// If `self` is a [`BareName::Plain`], then returns a reference to
+  /// the inside of the name. If not, returns `None`.
+  pub fn as_plain_name(&self) -> Option<&str> {
+    if let ExprF::BareName(BareName::Plain(s)) = &self.value {
+      Some(s)
+    } else {
+      None
+    }
   }
 
   /// Converts the AST [`Literal`](crate::sxp::literal::Literal) value
@@ -202,8 +229,16 @@ impl Expr {
 
   fn walk_locals(&self, acc_vars: &mut Locals, acc_fns: &mut Functions) {
     match &self.value {
-      ExprF::LocalVar(s) => {
-        acc_vars.visit(s.to_owned(), AccessType::Read, self.pos);
+      ExprF::BareName(name) => {
+        match name {
+          BareName::Plain(s) => {
+            acc_vars.visit(s.to_owned(), AccessType::Read, self.pos);
+          }
+          BareName::Atomic(_) => {
+            // Never try to reason about these; they have no semantics
+            // by definition.
+          }
+        }
       }
       ExprF::Literal(_) => {}
       ExprF::Progn(exprs) => {
@@ -308,7 +343,7 @@ impl Expr {
             // If the LHS is specifically a variable, then that
             // variable also becomes RW, since it might contain a COW
             // value.
-            if let ExprF::LocalVar(v) = &lhs.value {
+            if let Some(v) = lhs.as_plain_name() {
               acc_vars.visit(v.to_owned(), AccessType::RW, lhs.pos);
             }
           }
@@ -380,7 +415,6 @@ impl Expr {
       ExprF::Continue => {}
       ExprF::SpecialRef(_) => {}
       ExprF::ContextualFilename(_) => {}
-      ExprF::AtomicName(_) => {}
       ExprF::AtomicCall(_, args) => {
         for arg in args {
           arg.walk_locals(acc_vars, acc_fns);
@@ -454,6 +488,24 @@ where literal::Literal: From<T> {
   }
 }
 
+impl BareName {
+
+  pub fn to_gd_name(&self) -> String {
+    match self {
+      BareName::Plain(name) => names::lisp_to_gd(name),
+      BareName::Atomic(name) => name.to_owned(),
+    }
+  }
+
+  pub fn to_gd_name_bare(&self) -> String {
+    match self {
+      BareName::Plain(name) => names::lisp_to_gd_bare(name),
+      BareName::Atomic(name) => name.to_owned(),
+    }
+  }
+
+}
+
 #[cfg(test)]
 mod tests {
   use super::*;
@@ -487,8 +539,8 @@ mod tests {
 
   #[test]
   fn test_locals_simple() {
-    assert_eq!(e(ExprF::LocalVar(String::from("foobar"))).get_locals(), lhash(vec!("foobar".to_owned())));
-    assert_eq!(e(ExprF::LocalVar(String::from("aaa"))).get_locals(), lhash(vec!("aaa".to_owned())));
+    assert_eq!(Expr::var("foobar", SourceOffset(0)).get_locals(), lhash(vec!("foobar".to_owned())));
+    assert_eq!(Expr::var("aaa", SourceOffset(0)).get_locals(), lhash(vec!("aaa".to_owned())));
     assert_eq!(e(ExprF::Literal(Literal::Int(99))).get_locals(), lhash(vec!()));
     assert_eq!(e(ExprF::Literal(Literal::Nil)).get_locals(), lhash(vec!()));
     assert_eq!(e(ExprF::Progn(vec!())).get_locals(), lhash(vec!()));
@@ -496,14 +548,14 @@ mod tests {
 
   #[test]
   fn test_locals_compound() {
-    let progn = e(ExprF::Progn(vec!(e(ExprF::LocalVar(String::from("aa"))),
-                                    e(ExprF::LocalVar(String::from("bb"))))));
+    let progn = e(ExprF::Progn(vec!(Expr::var("aa", SourceOffset(0)),
+                                    Expr::var("bb", SourceOffset(0)))));
     assert_eq!(progn.get_locals(), lhash(vec!("aa".to_owned(), "bb".to_owned())));
   }
 
   #[test]
   fn test_locals_super_call() {
-    let super_call = e(ExprF::SuperCall(String::from("foobar"), vec!(e(ExprF::LocalVar(String::from("aa"))))));
+    let super_call = e(ExprF::SuperCall(String::from("foobar"), vec!(Expr::var("aa", SourceOffset(0)))));
     assert_eq!(super_call.get_locals(), lhash(vec!("aa".to_owned(), "self".to_owned())));
   }
 
@@ -517,21 +569,21 @@ mod tests {
 
     // Declared and used variable
     let e2 = e(ExprF::Let(vec!(lvc("var", e(ExprF::Literal(Literal::Nil)))),
-                          Box::new(e(ExprF::LocalVar("var".to_owned())))));
+                          Box::new(Expr::var("var", SourceOffset(0)))));
     assert_eq!(e2.get_locals(), lhash(vec!()));
 
     // Different variable
     let e3 = e(ExprF::Let(vec!(lvc("var_unused", e(ExprF::Literal(Literal::Nil)))),
-                          Box::new(e(ExprF::LocalVar("var1".to_owned())))));
+                          Box::new(Expr::var("var1", SourceOffset(0)))));
     assert_eq!(e3.get_locals(), lhash(vec!("var1".to_owned())));
 
     // Variable in decl
-    let e4 = e(ExprF::Let(vec!(lvc("var_unused", e(ExprF::LocalVar("var".to_owned())))),
+    let e4 = e(ExprF::Let(vec!(lvc("var_unused", Expr::var("var", SourceOffset(0)))),
                           Box::new(e(ExprF::Literal(Literal::Nil)))));
     assert_eq!(e4.get_locals(), lhash(vec!("var".to_owned())));
 
     // Variable in decl (soon to be shadowed)
-    let e4 = e(ExprF::Let(vec!(lvc("var", e(ExprF::LocalVar("var".to_owned())))),
+    let e4 = e(ExprF::Let(vec!(lvc("var", Expr::var("var", SourceOffset(0)))),
                           Box::new(e(ExprF::Literal(Literal::Nil)))));
     assert_eq!(e4.get_locals(), lhash(vec!("var".to_owned())));
 
@@ -545,19 +597,19 @@ mod tests {
     assert_eq!(e1.get_locals(), lhash_rw(vec!(("var".to_owned(), AccessType::RW))));
 
     // Assignment including RHS
-    let e2 = e(ExprF::Assign(AssignTarget::Variable(SourceOffset::default(), String::from("var1")), Box::new(e(ExprF::LocalVar("var2".to_owned())))));
+    let e2 = e(ExprF::Assign(AssignTarget::Variable(SourceOffset::default(), String::from("var1")), Box::new(Expr::var("var2", SourceOffset(0)))));
     assert_eq!(e2.get_locals(), lhash_rw(vec!(("var1".to_owned(), AccessType::RW), ("var2".to_owned(), AccessType::Read))));
 
     // Reading and writing (I)
     let e3 = e(ExprF::Progn(vec!(
       e(ExprF::Assign(AssignTarget::Variable(SourceOffset::default(), String::from("var")), Box::new(e(ExprF::Literal(Literal::Nil))))),
-      e(ExprF::LocalVar("var".to_owned())),
+      Expr::var("var", SourceOffset(0)),
     )));
     assert_eq!(e3.get_locals(), lhash_rw(vec!(("var".to_owned(), AccessType::RW))));
 
     // Reading and writing (II)
     let e4 = e(ExprF::Progn(vec!(
-      e(ExprF::LocalVar("var".to_owned())),
+      Expr::var("var", SourceOffset(0)),
       e(ExprF::Assign(AssignTarget::Variable(SourceOffset::default(), String::from("var")), Box::new(e(ExprF::Literal(Literal::Nil))))),
     )));
     assert_eq!(e4.get_locals(), lhash_rw(vec!(("var".to_owned(), AccessType::RW))));
@@ -569,7 +621,7 @@ mod tests {
 
     // Simple slot assignment
     let e1 = e(ExprF::Assign(
-      AssignTarget::InstanceField(SourceOffset::default(), Box::new(e(ExprF::LocalVar(String::from("var")))), String::from("foo")),
+      AssignTarget::InstanceField(SourceOffset::default(), Box::new(Expr::var("var", SourceOffset(0))), String::from("foo")),
       Box::new(e(ExprF::Literal(Literal::Nil))),
     ));
     assert_eq!(e1.get_locals(), lhash_rw(vec!(("var".to_owned(), AccessType::RW))));
@@ -577,7 +629,7 @@ mod tests {
     // Nested slot assignment
     let e2 = e(ExprF::Assign(
       AssignTarget::InstanceField(SourceOffset::default(),
-                                  Box::new(e(ExprF::FieldAccess(Box::new(e(ExprF::LocalVar(String::from("var")))), String::from("foo")))),
+                                  Box::new(e(ExprF::FieldAccess(Box::new(Expr::var("var", SourceOffset(0))), String::from("foo")))),
                                   String::from("baro")),
       Box::new(e(ExprF::Literal(Literal::Nil))),
     ));
