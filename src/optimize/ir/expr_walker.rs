@@ -137,14 +137,6 @@ impl<'a, E> ExprWalker<'a, E> {
           Box::new(self.walk_expr(rhs)?),
         )
       }
-      ExprF::Array(body) => {
-        ExprF::Array(self.walk_exprs(body)?)
-      }
-      ExprF::Dictionary(options) => {
-        ExprF::Dictionary(options.iter().map(|(k, v)| {
-          Ok((self.walk_expr(k)?, self.walk_expr(v)?))
-        }).collect::<Result<Vec<_>, _>>()?)
-      }
       ExprF::FieldAccess(lhs, name) => {
         ExprF::FieldAccess(
           Box::new(self.walk_expr(lhs)?),

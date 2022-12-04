@@ -20,16 +20,6 @@ pub enum ASTF {
   /// the second as the cdr. All *proper* Lisp lists are made up of
   /// cons cells and [`Literal::Nil`]. Displays as `(car . cdr)`.
   Cons(Box<AST>, Box<AST>),
-  /// A literal array of values. Whereas a list in Lisp is a linked
-  /// list made of cons cells, an array is a constant-time sequential
-  /// chunk of memory. Displays as `[x0 x1 ... xn]`
-  Array(Vec<AST>),
-  /// A constant-time array of pairs. Note that, while this structure
-  /// *compiles* to a dictionary in GDScript, the [`AST`] structure
-  /// itself is *not* an associative container. It can contain
-  /// duplicate keys and preserves the order in which the keys are
-  /// entered. Displays as `{k1 v1 k2 v2 ... kn vn}`
-  Dictionary(Vec<(AST, AST)>),
 }
 
 /// An `AST` is an [`ASTF`] together with information about the offset
@@ -148,17 +138,6 @@ impl AST {
         func(car)?;
         func(cdr)?;
       }
-      ASTF::Array(arr) => {
-        for x in arr {
-          func(x)?;
-        }
-      }
-      ASTF::Dictionary(d) => {
-        for (k, v) in d {
-          func(k)?;
-          func(v)?;
-        }
-      }
       ASTF::Atom(_) => {
         default()?;
       }
@@ -174,17 +153,6 @@ impl AST {
       ASTF::Cons(car, cdr) => {
         func(&mut *car)?;
         func(&mut *cdr)?;
-      }
-      ASTF::Array(arr) => {
-        for x in arr {
-          func(x)?;
-        }
-      }
-      ASTF::Dictionary(d) => {
-        for (k, v) in d {
-          func(k)?;
-          func(v)?;
-        }
       }
       ASTF::Atom(_) => {
         default()?;
@@ -221,8 +189,7 @@ impl AST {
 
   /// Walk the `AST`, calling a function on the node itself and every
   /// child recursively. That includes both elements of an
-  /// [`ASTF::Cons`], all elements of an [`ASTF::Array`], and any
-  /// other children of nodes. The function will be called on the
+  /// [`ASTF::Cons`] recursively. The function will be called on the
   /// current node *before* recursing on its children.
   ///
   /// Any error that occurs during walking will be propagated to the
@@ -241,8 +208,7 @@ impl AST {
 
   /// Walk the `AST`, calling a function on the node itself and every
   /// child recursively. That includes both elements of an
-  /// [`ASTF::Cons`], all elements of an [`ASTF::Array`], and any
-  /// other children of nodes. The function will be called on the
+  /// [`ASTF::Cons`] recursively. The function will be called on the
   /// current node only *after* recursing on its children.
   ///
   /// Any error that occurs during walking will be propagated to the
@@ -329,16 +295,6 @@ impl AST {
     AST::dotted_list(vec, AST::nil(nil_pos))
   }
 
-  /// An [`ASTF::Array`] at the given position.
-  pub fn array(vec: Vec<AST>, pos: SourceOffset) -> AST {
-    AST::new(ASTF::Array(vec), pos)
-  }
-
-  /// An [`ASTF::Dictionary`] at the given position.
-  pub fn dictionary(vec: Vec<(AST, AST)>, pos: SourceOffset) -> AST {
-    AST::new(ASTF::Dictionary(vec), pos)
-  }
-
   /// Uses a [`From`] instance of [`ASTF`] to construct an `AST`.
   pub fn from_value<T>(value: T, pos: SourceOffset) -> AST
   where ASTF : From<T> {
@@ -371,30 +327,6 @@ impl fmt::Display for AST {
         fmt_list(a, b, f)?;
         write!(f, ")")
       }
-      ASTF::Array(vec) => {
-        write!(f, "[")?;
-        let mut first = true;
-        for x in vec {
-          if !first {
-            write!(f, " ")?;
-          }
-          write!(f, "{}", x)?;
-          first = false;
-        }
-        write!(f, "]")
-      }
-      ASTF::Dictionary(vec) => {
-        write!(f, "{{")?;
-        let mut first = true;
-        for (k, v) in vec {
-          if !first {
-            write!(f, " ")?;
-          }
-          write!(f, "{} {}", k, v)?;
-          first = false;
-        }
-        write!(f, "}}")
-      }
     }
   }
 
@@ -419,8 +351,6 @@ impl Recursive for AST {
     match &self.value {
       ASTF::Atom(_) => 1,
       ASTF::Cons(a, b) => 1 + max(a.depth(), b.depth()),
-      ASTF::Array(v) => 1 + v.iter().map(AST::depth).max().unwrap_or(0),
-      ASTF::Dictionary(v) => 1 + v.iter().map(|(x, y)| max(x.depth(), y.depth())).max().unwrap_or(0),
     }
   }
 
@@ -523,12 +453,6 @@ mod tests {
   }
 
   #[test]
-  fn runtime_repr_vec() {
-    assert_eq!(AST::new(ASTF::Array(vec!()), SourceOffset::default()).to_string(), "[]");
-    assert_eq!(AST::new(ASTF::Array(vec!(int(1), int(2), int(3))), SourceOffset::default()).to_string(), "[1 2 3]");
-  }
-
-  #[test]
   fn get_all_symbols() {
     assert_eq!(nil().all_symbols(), Vec::<&str>::new());
     assert_eq!(int(3).all_symbols(), Vec::<&str>::new());
@@ -542,13 +466,9 @@ mod tests {
 
   #[test]
   fn each_source() {
-    let example1_1 = AST::symbol("foo", SourceOffset(3));
-    let example1_2 = AST::symbol("foo", SourceOffset(13));
-    assert_eq!(example1_1.each_source(add10), example1_2);
-
-    let example2_1 = AST::new(ASTF::Array(vec!(AST::symbol("foo", SourceOffset(3)), AST::symbol("foo", SourceOffset(4)))), SourceOffset(9));
-    let example2_2 = AST::new(ASTF::Array(vec!(AST::symbol("foo", SourceOffset(13)), AST::symbol("foo", SourceOffset(14)))), SourceOffset(19));
-    assert_eq!(example2_1.each_source(add10), example2_2);
+    let example1 = AST::symbol("foo", SourceOffset(3));
+    let example2 = AST::symbol("foo", SourceOffset(13));
+    assert_eq!(example1.each_source(add10), example2);
   }
 
   fn add10(x: SourceOffset) -> SourceOffset {
@@ -571,13 +491,6 @@ mod tests {
     assert_eq!(cons(cons(int(1), int(2)), cons(int(3), int(4))).depth(), 3);
     assert_eq!(cons(cons(int(1), int(2)), int(3)).depth(), 3);
     assert_eq!(cons(cons(int(1), int(2)), cons(int(3), nil())).depth(), 3);
-    assert_eq!(AST::new(ASTF::Array(vec!()), SourceOffset(0)).depth(), 1);
-    assert_eq!(AST::new(ASTF::Array(vec!(int(1), int(2))), SourceOffset(0)).depth(), 2);
-    assert_eq!(AST::new(ASTF::Array(vec!(int(1), cons(int(2), int(3)))), SourceOffset(0)).depth(), 3);
-    assert_eq!(AST::new(ASTF::Dictionary(vec!()), SourceOffset(0)).depth(), 1);
-    assert_eq!(AST::new(ASTF::Dictionary(vec!((int(1), int(1)))), SourceOffset(0)).depth(), 2);
-    assert_eq!(AST::new(ASTF::Dictionary(vec!((int(1), cons(nil(), nil())))), SourceOffset(0)).depth(), 3);
-    assert_eq!(AST::new(ASTF::Dictionary(vec!((cons(nil(), nil()), int(1)))), SourceOffset(0)).depth(), 3);
   }
 
 }

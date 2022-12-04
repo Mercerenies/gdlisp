@@ -126,7 +126,7 @@ fn backing_class_name_of(class: &Class) -> String {
 pub fn native_types_dictionary_literal(native: &NativeClasses, pos: SourceOffset) -> Expr {
   let mut class_names: Vec<&Class> = native.values().collect();
   class_names.sort_unstable_by(|a, b| a.name.cmp(&b.name));
-  let tuples: Vec<(Expr, Expr)> = class_names.into_iter()
+  let classes = class_names.into_iter()
     .filter(|class| !CLASS_NAME_BLACKLIST.contains(&*class.name))
     .map(|class| {
       let original_name = class.name.to_owned();
@@ -149,9 +149,12 @@ pub fn native_types_dictionary_literal(native: &NativeClasses, pos: SourceOffset
         }
       };
       (Expr::from_value(original_name, pos), value)
-    })
-    .collect();
-  Expr::new(ExprF::Dictionary(tuples), pos)
+    });
+  build_dict(classes, pos)
+}
+
+fn build_dict(terms: impl DoubleEndedIterator<Item=(Expr, Expr)>, pos: SourceOffset) -> Expr {
+  Expr::call(String::from("dict"), terms.flat_map(|(k, v)| [k, v]).collect(), pos)
 }
 
 pub fn native_types_dictionary_initializer(native: &NativeClasses, pos: SourceOffset) -> Expr {

@@ -445,12 +445,6 @@ impl<'a, 'b, 'c, 'd, 'e> CompilerFrame<'a, 'b, 'c, 'd, 'e, StmtBuilder> {
       IRExprF::Assign(target, expr) => {
         self.compile_assignment(target, expr, needs_result)
       }
-      IRExprF::Array(vec) => {
-        self.compile_array(vec.iter(), expr.pos)
-      }
-      IRExprF::Dictionary(vec) => {
-        self.compile_dictionary(vec.iter(), expr.pos)
-      }
       IRExprF::Quote(ast) => {
         let mut gen = RegisteredNameGenerator::new_local_var(self.table);
         let (stmts, result) = reify_pretty_expr(ast, MAX_QUOTE_REIFY_DEPTH, &mut gen);
@@ -675,33 +669,6 @@ impl<'a, 'b, 'c, 'd, 'e> CompilerFrame<'a, 'b, 'c, 'd, 'e, StmtBuilder> {
         }
       }
     }
-  }
-
-  fn compile_array<'a1>(&mut self, elements: impl Iterator<Item=&'a1 IRExpr>, pos: SourceOffset)
-                        -> Result<StExpr, GDError> {
-    let mut side_effects = SideEffects::None;
-    let vec = elements.map(|expr| {
-      let StExpr { expr: cexpr, side_effects: state } = self.compile_expr(expr, NeedsResult::Yes)?;
-      side_effects = max(side_effects, state);
-      Ok(cexpr)
-    }).collect::<Result<Vec<_>, GDError>>()?;
-    Ok(StExpr { expr: Expr::new(ExprF::ArrayLit(vec), pos), side_effects })
-  }
-
-  fn compile_dictionary<'a1>(&mut self, elements: impl Iterator<Item=&'a1 (IRExpr, IRExpr)>, pos: SourceOffset)
-                             -> Result<StExpr, GDError> {
-    let mut side_effects = SideEffects::None;
-    let vec = elements.map(|(k, v)| {
-
-      let StExpr { expr: kexpr, side_effects: kstate } = self.compile_expr(k, NeedsResult::Yes)?;
-      side_effects = max(side_effects, kstate);
-
-      let StExpr { expr: vexpr, side_effects: vstate } = self.compile_expr(v, NeedsResult::Yes)?;
-      side_effects = max(side_effects, vstate);
-
-      Ok((kexpr, vexpr))
-    }).collect::<Result<Vec<_>, GDError>>()?;
-    Ok(StExpr { expr: Expr::new(ExprF::DictionaryLit(vec), pos), side_effects })
   }
 
 }

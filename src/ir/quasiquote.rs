@@ -2,7 +2,7 @@
 use crate::sxp::ast::{AST, ASTF};
 use crate::ir::incremental::IncCompiler;
 use crate::compile::error::{GDError, GDErrorF};
-use super::expr::{Expr, ExprF};
+use super::expr::Expr;
 use crate::pipeline::error::PError;
 use crate::pipeline::Pipeline;
 
@@ -246,35 +246,6 @@ impl<'a, 'b> QuasiquoteEngine<'a, 'b> {
                 Expr::call(String::from("append"), vec!(converted_car, cdr), arg.pos)
               }
             }
-          }
-          ASTF::Array(v) => {
-            let v1 = v.iter().map(|x| self.quasiquote_spliced(x, nesting_depth, current_depth + 1)).collect::<Result<Vec<_>, _>>()?;
-
-            let mut acc: Vec<Expr> = vec!();
-            let mut current_vec: Vec<Expr> = vec!();
-            for value in v1 {
-              match value {
-                QQSpliced::Single(x) => {
-                  current_vec.push(x)
-                }
-                QQSpliced::Several(x) => {
-                  let x = Expr::call(String::from("sys/qq-smart-array"), vec!(x), arg.pos);
-                  if !current_vec.is_empty() {
-                    acc.push(Expr::new(ExprF::Array(current_vec), arg.pos));
-                    current_vec = vec!();
-                  }
-                  acc.push(x);
-                }
-              }
-            }
-            if !current_vec.is_empty() {
-              acc.push(Expr::new(ExprF::Array(current_vec), arg.pos))
-            }
-            Expr::call(String::from("+"), acc, arg.pos)
-          }
-          ASTF::Dictionary(v) => {
-            let v1 = v.iter().map(|(k, v)| Ok((self.quasiquote_indexed(k, nesting_depth, current_depth + 1)?, self.quasiquote_indexed(v, nesting_depth, current_depth + 1)?))).collect::<Result<Vec<_>, PError>>()?;
-            Expr::new(ExprF::Dictionary(v1), arg.pos)
           }
         };
         Ok(QQSpliced::Single(body))

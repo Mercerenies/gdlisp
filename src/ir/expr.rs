@@ -32,8 +32,6 @@ pub enum ExprF {
   Lambda(ArgList, Box<Expr>),
   FuncRef(FuncRefTarget),
   Assign(AssignTarget, Box<Expr>),
-  Array(Vec<Expr>),
-  Dictionary(Vec<(Expr, Expr)>),
   Quote(AST),
   FieldAccess(Box<Expr>, String),
   MethodCall(Box<Expr>, String, Vec<Expr>),
@@ -120,6 +118,10 @@ impl Expr {
 
   pub fn literal(literal: literal::Literal, pos: SourceOffset) -> Expr {
     Expr::new(ExprF::Literal(literal), pos)
+  }
+
+  pub fn nil(pos: SourceOffset) -> Expr {
+    Expr::literal(literal::Literal::Nil, pos)
   }
 
   pub fn progn(body: Vec<Expr>, pos: SourceOffset) -> Expr {
@@ -316,17 +318,6 @@ impl Expr {
       ExprF::FuncRef(target) => {
         match target {
           FuncRefTarget::SimpleName(name) => acc_fns.visit(name.to_owned(), (), self.pos),
-        }
-      }
-      ExprF::Array(vec) => {
-        for x in vec {
-          x.walk_locals(acc_vars, acc_fns);
-        }
-      }
-      ExprF::Dictionary(vec) => {
-        for (k, v) in vec {
-          k.walk_locals(acc_vars, acc_fns);
-          v.walk_locals(acc_vars, acc_fns);
         }
       }
       ExprF::Quote(_) => {}

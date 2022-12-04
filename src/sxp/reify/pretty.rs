@@ -2,7 +2,7 @@
 //! Provides pretty-printing facilities for
 //! [`AST`](crate::sxp::ast::AST) nodes.
 
-use crate::gdscript::expr::{Expr, ExprF};
+use crate::gdscript::expr::Expr;
 use crate::gdscript::stmt::Stmt;
 use crate::gdscript::library;
 use crate::compile::names::generator::NameGenerator;
@@ -73,14 +73,6 @@ impl<'a, G: NameGenerator> PrettyPrinter<'a, G> {
           let a = self.reify_pretty_rec(a, depth + 1);
           let b = self.reify_pretty_rec(b, depth + 1);
           Expr::call(Some(library::gdlisp_root(value.pos)), "cons", vec!(a, b), value.pos)
-        }
-        ASTF::Array(v) => {
-          let v = v.iter().map(|x| self.reify_pretty_rec(x, depth + 1)).collect();
-          Expr::new(ExprF::ArrayLit(v), value.pos)
-        }
-        ASTF::Dictionary(v) => {
-          let v = v.iter().map(|(k, v)| (self.reify_pretty_rec(k, depth + 1), self.reify_pretty_rec(v, depth + 1))).collect();
-          Expr::new(ExprF::DictionaryLit(v), value.pos)
         }
       }
     }

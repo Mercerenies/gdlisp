@@ -58,7 +58,6 @@ mod tests {
   fn reify_test() {
     assert_eq!(nil().reify().to_gd(), "null");
     assert_eq!(cons(int(1), int(2)).reify().to_gd(), "GDLisp.cons(1, 2)");
-    assert_eq!(AST::new(ASTF::Array(vec!(int(1), nil())), SourceOffset::default()).reify().to_gd(), "[1, null]");
     assert_eq!(AST::new(ASTF::from(false), SourceOffset::default()).reify().to_gd(), "false");
     assert_eq!(AST::new(ASTF::from(true), SourceOffset::default()).reify().to_gd(), "true");
     assert_eq!(AST::symbol("foo", SourceOffset::default()).reify().to_gd(), "GDLisp.intern(\"foo\")");

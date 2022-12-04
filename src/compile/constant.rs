@@ -158,19 +158,6 @@ pub fn validate_const_expr(name: &str, expr: &IRExpr, table: &SymbolTable) -> Re
     IRExprF::Assign(_, _) => {
       non_constant_error(name, expr.pos)
     }
-    IRExprF::Array(values) => {
-      for value in values {
-        validate_const_expr(name, value, table)?;
-      }
-      Ok(())
-    }
-    IRExprF::Dictionary(rows) => {
-      for (k, v) in rows {
-        validate_const_expr(name, k, table)?;
-        validate_const_expr(name, v, table)?;
-      }
-      Ok(())
-    }
     IRExprF::Quote(_) => {
       non_constant_error(name, expr.pos)
     }

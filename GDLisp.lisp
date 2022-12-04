@@ -672,11 +672,6 @@
   (sys/call-magic ARRAY-MEMBER-CHECK)
   (member? value arr))
 
-(defn sys/qq-smart-array (a)
-  (cond
-    ((instance? a GDLisp:BaseArray) a)
-    (#t (list->array a))))
-
 (defn array/fold (f xs &opt x)
   (let ((starting-index 0))
     (cond

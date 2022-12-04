@@ -128,17 +128,6 @@ impl LoopWalker {
         }
         self.check(rhs)?;
       }
-      ExprF::Array(args) => {
-        for inner in args {
-          self.check(inner)?;
-        }
-      }
-      ExprF::Dictionary(args) => {
-        for (k, v) in args {
-          self.check(k)?;
-          self.check(v)?;
-        }
-      }
       ExprF::Quote(_) => {}
       ExprF::FieldAccess(lhs, _) => {
         self.check(lhs)?;

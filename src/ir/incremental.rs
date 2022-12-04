@@ -187,14 +187,6 @@ impl IncCompiler {
           }
         }
       }
-      ASTF::Array(vec) => {
-        let vec = vec.iter().map(|e| self.compile_expr(pipeline, e)).collect::<Result<Vec<_>, _>>()?;
-        Ok(Expr::new(ExprF::Array(vec), expr.pos))
-      }
-      ASTF::Dictionary(vec) => {
-        let vec = vec.iter().map(|(k, v)| Ok((self.compile_expr(pipeline, k)?, self.compile_expr(pipeline, v)?))).collect::<Result<Vec<_>, PError>>()?;
-        Ok(Expr::new(ExprF::Dictionary(vec), expr.pos))
-      }
       ASTF::Atom(lit) => {
         // We handle symbols specially, but for any other literal, we
         // simply delegate to [`Expr::from_ast_literal`].
