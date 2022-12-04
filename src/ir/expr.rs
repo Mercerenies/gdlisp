@@ -540,7 +540,7 @@ impl FunctionBindingType {
   ///
   /// This function is the two-sided inverse of
   /// [`local_binding::LocalBinding::function_binding_type`].
-  fn into_local_binding(self) -> Box<dyn local_binding::LocalBinding> {
+  pub fn into_local_binding(self) -> Box<dyn local_binding::LocalBinding> {
     match self {
       FunctionBindingType::OuterScoped => Box::new(local_binding::FLetLocalBinding),
       FunctionBindingType::Recursive => Box::new(local_binding::LabelsLocalBinding),
