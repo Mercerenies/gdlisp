@@ -7,6 +7,7 @@ pub fn quote_test() {
   assert_eq!(parse_compile_and_output("(quote (1 2))"), "return GDLisp.cons(1, GDLisp.cons(2, null))\n");
   assert_eq!(parse_compile_and_output("(quote (1 . 2))"), "return GDLisp.cons(1, 2)\n");
   assert_eq!(parse_compile_and_output("(quote [1 2])"), "return GDLisp.cons(GDLisp.intern(\"array\"), GDLisp.cons(1, GDLisp.cons(2, null)))\n");
+  assert_eq!(parse_compile_and_output("(quote {1 2})"), "return GDLisp.cons(GDLisp.intern(\"dict\"), GDLisp.cons(1, GDLisp.cons(2, null)))\n");
 }
 
 #[test]
@@ -15,6 +16,7 @@ pub fn quote_syntax_test() {
   assert_eq!(parse_compile_and_output("'(1 2)"), "return GDLisp.cons(1, GDLisp.cons(2, null))\n");
   assert_eq!(parse_compile_and_output("'(1 . 2)"), "return GDLisp.cons(1, 2)\n");
   assert_eq!(parse_compile_and_output("'[1 2]"), "return GDLisp.cons(GDLisp.intern(\"array\"), GDLisp.cons(1, GDLisp.cons(2, null)))\n");
+  assert_eq!(parse_compile_and_output("'{1 2}"), "return GDLisp.cons(GDLisp.intern(\"dict\"), GDLisp.cons(1, GDLisp.cons(2, null)))\n");
 }
 
 #[test]
@@ -23,6 +25,7 @@ pub fn full_quasiquote_test() {
   assert_eq!(parse_compile_and_output("(quasiquote (1 2))"), "return GDLisp.cons(1, GDLisp.cons(2, null))\n");
   assert_eq!(parse_compile_and_output("(quasiquote (1 . 2))"), "return GDLisp.cons(1, 2)\n");
   assert_eq!(parse_compile_and_output("(quasiquote [1 2])"), "return GDLisp.cons(GDLisp.intern(\"array\"), GDLisp.cons(1, GDLisp.cons(2, null)))\n");
+  assert_eq!(parse_compile_and_output("(quasiquote {1 2})"), "return GDLisp.cons(GDLisp.intern(\"dict\"), GDLisp.cons(1, GDLisp.cons(2, null)))\n");
 }
 
 #[test]
@@ -31,6 +34,7 @@ pub fn full_quasiquote_syntax_test() {
   assert_eq!(parse_compile_and_output("`(1 2)"), "return GDLisp.cons(1, GDLisp.cons(2, null))\n");
   assert_eq!(parse_compile_and_output("`(1 . 2)"), "return GDLisp.cons(1, 2)\n");
   assert_eq!(parse_compile_and_output("`[1 2]"), "return GDLisp.cons(GDLisp.intern(\"array\"), GDLisp.cons(1, GDLisp.cons(2, null)))\n");
+  assert_eq!(parse_compile_and_output("`{1 2}"), "return GDLisp.cons(GDLisp.intern(\"dict\"), GDLisp.cons(1, GDLisp.cons(2, null)))\n");
 }
 
 #[test]
@@ -61,6 +65,20 @@ pub fn partial_quasiquote_test_4() {
 pub fn array_quasiquote_test() {
   assert_eq!(parse_compile_and_output("(let ((a 1)) `[a ,a a])"), r#"var a = 1
 return GDLisp.cons(GDLisp.intern("array"), GDLisp.cons(GDLisp.intern("a"), GDLisp.cons(a, GDLisp.cons(GDLisp.intern("a"), null))))
+"#);
+}
+
+#[test]
+pub fn dict_quasiquote_key_test() {
+  assert_eq!(parse_compile_and_output("(let ((a 1)) `{,a a})"), r#"var a = 1
+return GDLisp.cons(GDLisp.intern("dict"), GDLisp.cons(a, GDLisp.cons(GDLisp.intern("a"), null)))
+"#);
+}
+
+#[test]
+pub fn dict_quasiquote_value_test() {
+  assert_eq!(parse_compile_and_output("(let ((a 1)) `{a ,a})"), r#"var a = 1
+return GDLisp.cons(GDLisp.intern("dict"), GDLisp.cons(GDLisp.intern("a"), GDLisp.cons(a, null)))
 "#);
 }
 
