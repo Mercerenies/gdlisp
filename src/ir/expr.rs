@@ -6,6 +6,7 @@ use super::closure_names::ClosureNames;
 use super::access_type::AccessType;
 use super::identifier::{Namespace, Id};
 use super::special_ref::SpecialRef;
+use super::special_form::local_binding;
 use crate::sxp::ast::AST;
 use crate::sxp::literal::{Literal as ASTLiteral};
 use crate::compile::names;
@@ -28,8 +29,7 @@ pub enum ExprF {
   WhileStmt(Box<Expr>, Box<Expr>),
   ForStmt(String, Box<Expr>, Box<Expr>),
   Let(Vec<LocalVarClause>, Box<Expr>),
-  FLet(Vec<LocalFnClause>, Box<Expr>),
-  Labels(Vec<LocalFnClause>, Box<Expr>),
+  FunctionLet(FunctionBindingType, Vec<LocalFnClause>, Box<Expr>),
   Lambda(ArgList, Box<Expr>),
   FuncRef(FuncRefTarget),
   Assign(AssignTarget, Box<Expr>),
@@ -95,6 +95,23 @@ pub enum BareName {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum FuncRefTarget {
   SimpleName(String),
+}
+
+/// The type of binding to use in a function-namespaced let-binding,
+/// i.e. [`ExprF::FunctionLet`].
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum FunctionBindingType {
+  /// Outer-scoped binding, a la `flet`. Each function name is bound
+  /// in an inner scope, with the function body interpreted in the
+  /// outer scope that `flet` was invoked in. That is, functions
+  /// cannot see themselves or other functions in the same `flet`
+  /// block.
+  OuterScoped,
+  /// Recursive binding, a la `labels`. Each function name is bound in
+  /// an inner scope, with the function body interpreted in that same
+  /// inner scope. Functions in this binding type can see their own
+  /// name and other functions from the same block.
+  Recursive,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -334,7 +351,7 @@ impl Expr {
           }
         }
       }
-      ExprF::FLet(clauses, body) => {
+      ExprF::FunctionLet(_, clauses, body) => {
         let mut fns = HashSet::new();
         for clause in clauses {
           let LocalFnClause { name, args, body: fbody } = clause;
@@ -343,28 +360,6 @@ impl Expr {
           Expr::new(lambda_body, self.pos).walk_locals(acc_vars, acc_fns);
         }
         let mut local_scope = Functions::new();
-        body.walk_locals(acc_vars, &mut local_scope);
-        for (func, (), pos) in local_scope.into_iter_with_offset() {
-          if !fns.contains(&func) {
-            acc_fns.visit(func, (), pos);
-          }
-        }
-      }
-      ExprF::Labels(clauses, body) => {
-        let mut fns = HashSet::new();
-        for clause in clauses {
-          fns.insert(clause.name.to_owned());
-        }
-        // Note that we consider the bodies of the local functions to
-        // be part of the local scope. This is in contrast to the
-        // (simpler) FLet case, where only the body of the FLet itself
-        // is localized.
-        let mut local_scope = Functions::new();
-        for clause in clauses {
-          let LocalFnClause { name: _, args, body: fbody } = clause;
-          let lambda_body = ExprF::Lambda(args.to_owned(), Box::new(fbody.to_owned()));
-          Expr::new(lambda_body, self.pos).walk_locals(acc_vars, acc_fns);
-        }
         body.walk_locals(acc_vars, &mut local_scope);
         for (func, (), pos) in local_scope.into_iter_with_offset() {
           if !fns.contains(&func) {
@@ -538,6 +533,22 @@ impl BareName {
 
 }
 
+impl FunctionBindingType {
+
+  /// Returns a correct [`local_binding::LocalBinding`] implementation
+  /// for the function binding type.
+  ///
+  /// This function is the two-sided inverse of
+  /// [`local_binding::LocalBinding::function_binding_type`].
+  fn into_local_binding(self) -> Box<dyn local_binding::LocalBinding> {
+    match self {
+      FunctionBindingType::OuterScoped => Box::new(local_binding::FLetLocalBinding),
+      FunctionBindingType::Recursive => Box::new(local_binding::LabelsLocalBinding),
+    }
+  }
+
+}
+
 #[cfg(test)]
 mod tests {
   use super::*;
@@ -685,6 +696,14 @@ mod tests {
   fn test_functions_ref() {
     let e1 = e(ExprF::FuncRef(FuncRefTarget::SimpleName("abc".to_owned())));
     assert_eq!(e1.get_functions(), fhash(vec!("abc".to_owned())));
+  }
+
+  #[test]
+  fn test_function_binding_type_local_binding_inverse() {
+    assert_eq!(FunctionBindingType::OuterScoped.into_local_binding().function_binding_type(),
+               FunctionBindingType::OuterScoped);
+    assert_eq!(FunctionBindingType::Recursive.into_local_binding().function_binding_type(),
+               FunctionBindingType::Recursive);
   }
 
 }

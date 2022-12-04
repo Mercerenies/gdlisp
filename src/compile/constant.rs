@@ -149,10 +149,7 @@ pub fn validate_const_expr(name: &str, expr: &IRExpr, table: &SymbolTable) -> Re
     IRExprF::Let(_, _) => {
       non_constant_error(name, expr.pos)
     }
-    IRExprF::FLet(_, _) => {
-      non_constant_error(name, expr.pos)
-    }
-    IRExprF::Labels(_, _) => {
+    IRExprF::FunctionLet(_, _, _) => {
       non_constant_error(name, expr.pos)
     }
     IRExprF::Lambda(_, _) => {

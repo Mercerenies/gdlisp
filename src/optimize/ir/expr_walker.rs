@@ -86,7 +86,7 @@ impl<'a, E> ExprWalker<'a, E> {
           Box::new(self.walk_expr(body)?),
         )
       }
-      ExprF::FLet(clauses, body) => {
+      ExprF::FunctionLet(binding_type, clauses, body) => {
         let clauses = clauses.iter().map(|clause| {
           Ok(expr::LocalFnClause {
             name: clause.name.clone(),
@@ -94,20 +94,8 @@ impl<'a, E> ExprWalker<'a, E> {
             body: self.walk_expr(&clause.body)?,
           })
         }).collect::<Result<Vec<_>, _>>()?;
-        ExprF::FLet(
-          clauses,
-          Box::new(self.walk_expr(body)?),
-        )
-      }
-      ExprF::Labels(clauses, body) => {
-        let clauses = clauses.iter().map(|clause| {
-          Ok(expr::LocalFnClause {
-            name: clause.name.clone(),
-            args: clause.args.clone(),
-            body: self.walk_expr(&clause.body)?,
-          })
-        }).collect::<Result<Vec<_>, _>>()?;
-        ExprF::Labels(
+        ExprF::FunctionLet(
+          *binding_type,
           clauses,
           Box::new(self.walk_expr(body)?),
         )

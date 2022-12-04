@@ -25,7 +25,7 @@ use crate::pipeline::Pipeline;
 use crate::pipeline::error::PError;
 use crate::pipeline::source::SourceOffset;
 use crate::ir;
-use crate::ir::expr::{FuncRefTarget, AssignTarget, BareName, CallTarget};
+use crate::ir::expr::{FuncRefTarget, AssignTarget, BareName, CallTarget, FunctionBindingType};
 use crate::ir::special_ref::SpecialRef;
 use crate::gdscript::expr::{Expr, ExprF};
 use crate::gdscript::stmt::Stmt;
@@ -423,10 +423,10 @@ impl<'a, 'b, 'c, 'd, 'e> CompilerFrame<'a, 'b, 'c, 'd, 'e, StmtBuilder> {
       IRExprF::Let(clauses, body) => {
         let_block::compile_let(self, clauses, body, needs_result, expr.pos)
       }
-      IRExprF::FLet(clauses, body) => {
+      IRExprF::FunctionLet(FunctionBindingType::OuterScoped, clauses, body) => {
         flet::compile_flet(self, clauses, body, needs_result, self.compiler.is_minimalist(), expr.pos)
       }
-      IRExprF::Labels(clauses, body) => {
+      IRExprF::FunctionLet(FunctionBindingType::Recursive, clauses, body) => {
         flet::compile_labels(self, clauses, body, needs_result, expr.pos)
       }
       IRExprF::Lambda(args, body) => {

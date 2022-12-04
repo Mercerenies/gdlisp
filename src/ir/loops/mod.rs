@@ -107,14 +107,7 @@ impl LoopWalker {
         }
         self.check(body)?;
       }
-      ExprF::FLet(clauses, body) => {
-        let closure_walker = self.enter_closure();
-        for clause in clauses {
-          closure_walker.check(&clause.body)?;
-        }
-        self.check(body)?;
-      }
-      ExprF::Labels(clauses, body) => {
+      ExprF::FunctionLet(_, clauses, body) => {
         let closure_walker = self.enter_closure();
         for clause in clauses {
           closure_walker.check(&clause.body)?;
