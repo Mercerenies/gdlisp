@@ -5,7 +5,7 @@
 pub mod error;
 
 use super::decl::TopLevel;
-use super::expr::{Expr, ExprF, AssignTarget, LambdaClass};
+use super::expr::{Expr, ExprF, AssignTarget, LambdaClass, CallTarget};
 use error::{LoopPrimitiveError, LoopPrimitive, LoopPrimitiveErrorF};
 use crate::pipeline::source::SourceOffset;
 
@@ -92,7 +92,11 @@ impl LoopWalker {
         self.check(iter)?;
         self.enter_loop().check(body)?;
       }
-      ExprF::Call(_, args) => {
+      ExprF::Call(object, _, args) => {
+        match object {
+          CallTarget::Scoped | CallTarget::Super | CallTarget::Atomic => {}
+          CallTarget::Object(inner) => { self.check(inner)?; }
+        }
         for inner in args {
           self.check(inner)?;
         }
@@ -131,17 +135,6 @@ impl LoopWalker {
       ExprF::Quote(_) => {}
       ExprF::FieldAccess(lhs, _) => {
         self.check(lhs)?;
-      }
-      ExprF::MethodCall(lhs, _, args) => {
-        self.check(lhs)?;
-        for inner in args {
-          self.check(inner)?;
-        }
-      }
-      ExprF::SuperCall(_, args) => {
-        for inner in args {
-          self.check(inner)?;
-        }
       }
       ExprF::LambdaClass(class) => {
         let walker = self.enter_closure();
@@ -183,11 +176,6 @@ impl LoopWalker {
       }
       ExprF::SpecialRef(_) => {}
       ExprF::ContextualFilename(_) => {}
-      ExprF::AtomicCall(_, args) => {
-        for inner in args {
-          self.check(inner)?;
-        }
-      }
       ExprF::Split(_, expr) => {
         self.check(expr)?;
       }

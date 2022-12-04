@@ -25,7 +25,7 @@ use crate::pipeline::Pipeline;
 use crate::pipeline::error::PError;
 use crate::pipeline::source::SourceOffset;
 use crate::ir;
-use crate::ir::expr::{FuncRefTarget, AssignTarget, BareName};
+use crate::ir::expr::{FuncRefTarget, AssignTarget, BareName, CallTarget};
 use crate::ir::special_ref::SpecialRef;
 use crate::gdscript::expr::{Expr, ExprF};
 use crate::gdscript::stmt::Stmt;
@@ -417,8 +417,8 @@ impl<'a, 'b, 'c, 'd, 'e> CompilerFrame<'a, 'b, 'c, 'd, 'e, StmtBuilder> {
       IRExprF::ForStmt(name, iter, body) => {
         special_form::compile_for_stmt(self, name, iter, body, needs_result, expr.pos)
       }
-      IRExprF::Call(f, args) => {
-        self.compile_function_call(f, args, expr.pos)
+      IRExprF::Call(object, f, args) => {
+        self.compile_function_call(object, f, args, expr.pos)
       }
       IRExprF::Let(clauses, body) => {
         let_block::compile_let(self, clauses, body, needs_result, expr.pos)
@@ -466,31 +466,6 @@ impl<'a, 'b, 'c, 'd, 'e> CompilerFrame<'a, 'b, 'c, 'd, 'e, StmtBuilder> {
         Ok(StExpr { expr: Expr::new(ExprF::Attribute(Box::new(lhs), names::lisp_to_gd(sym)), expr.pos), side_effects })
 
       }
-      IRExprF::MethodCall(lhs, sym, args) => {
-        // Note: No call magic, no optional/rest arguments. When
-        // calling a method, we assume all arguments are required, we
-        // perform no optimization, we do not check arity, and we
-        // simply blindly forward the call on the GDScript side.
-        let lhs = self.compile_expr(lhs, NeedsResult::Yes)?.expr;
-        let args = args.iter()
-          .map(|arg| self.compile_expr(arg, NeedsResult::Yes).map(|x| x.expr))
-          .collect::<Result<Vec<_>, _>>()?;
-        Ok(StExpr {
-          expr: Expr::call(Some(lhs), &names::lisp_to_gd(sym), args, expr.pos),
-          side_effects: SideEffects::ModifiesState
-        })
-      }
-      IRExprF::SuperCall(sym, args) => {
-        let args = args.iter()
-          .map(|arg| self.compile_expr(arg, NeedsResult::Yes).map(|x| x.expr))
-          .collect::<Result<Vec<_>, _>>()?;
-        let self_binding = self.table.get_var("self").ok_or_else(|| GDError::new(GDErrorF::BadSuperCall(String::from(sym)), expr.pos))?;
-        let expr = self.class_scope.super_call(self.compiler.name_generator(), self_binding, sym.to_owned(), args, expr.pos)?;
-        Ok(StExpr {
-          expr: expr,
-          side_effects: SideEffects::ModifiesState,
-        })
-      }
       IRExprF::LambdaClass(cls) => {
         lambda_class::compile_lambda_class(self, cls, expr.pos)
       }
@@ -528,16 +503,6 @@ impl<'a, 'b, 'c, 'd, 'e> CompilerFrame<'a, 'b, 'c, 'd, 'e, StmtBuilder> {
         let new_filename = self.preload_resolver().resolve_preload(filename)
           .ok_or_else(|| GDError::new(GDErrorF::ContextualFilenameUnresolved, expr.pos))?;
         Ok(StExpr { expr: Expr::from_value(new_filename, expr.pos), side_effects: SideEffects::None })
-      }
-      IRExprF::AtomicCall(s, args) => {
-        let fnname = names::lisp_to_gd_bare(s);
-        let args = args.iter()
-          .map(|x| self.compile_expr(x, NeedsResult::Yes).map(|x| x.expr))
-          .collect::<Result<Vec<_>, _>>()?;
-        Ok(StExpr {
-          expr: Expr::call(None, &fnname, args, expr.pos),
-          side_effects: SideEffects::ModifiesState,
-        })
       }
       IRExprF::Split(name, expr) => {
         let pos = expr.pos;
@@ -589,13 +554,61 @@ impl<'a, 'b, 'c, 'd, 'e> CompilerFrame<'a, 'b, 'c, 'd, 'e, StmtBuilder> {
     }
   }
 
+  fn compile_function_call(&mut self,
+                           object: &CallTarget,
+                           name: &str,
+                           args: &[IRExpr],
+                           pos: SourceOffset)
+                           -> Result<StExpr, GDError> {
+    match object {
+      CallTarget::Scoped => {
+        self.compile_ordinary_function_call(name, args, pos)
+      }
+      CallTarget::Object(lhs) => {
+        // Note: No call magic, no optional/rest arguments. When
+        // calling a method, we assume all arguments are required, we
+        // perform no optimization, we do not check arity, and we
+        // simply blindly forward the call on the GDScript side.
+        let lhs = self.compile_expr(lhs, NeedsResult::Yes)?.expr;
+        let args = args.iter()
+          .map(|arg| self.compile_expr(arg, NeedsResult::Yes).map(|x| x.expr))
+          .collect::<Result<Vec<_>, _>>()?;
+        Ok(StExpr {
+          expr: Expr::call(Some(lhs), &names::lisp_to_gd(name), args, pos),
+          side_effects: SideEffects::ModifiesState
+        })
+      }
+      CallTarget::Super => {
+        let args = args.iter()
+          .map(|arg| self.compile_expr(arg, NeedsResult::Yes).map(|x| x.expr))
+          .collect::<Result<Vec<_>, _>>()?;
+        let self_binding = self.table.get_var("self").ok_or_else(|| GDError::new(GDErrorF::BadSuperCall(String::from(name)), pos))?;
+        let expr = self.class_scope.super_call(self.compiler.name_generator(), self_binding, name.to_owned(), args, pos)?;
+        Ok(StExpr {
+          expr: expr,
+          side_effects: SideEffects::ModifiesState,
+        })
+      }
+      CallTarget::Atomic => {
+        let name = names::lisp_to_gd_bare(name);
+        let args = args.iter()
+          .map(|x| self.compile_expr(x, NeedsResult::Yes).map(|x| x.expr))
+          .collect::<Result<Vec<_>, _>>()?;
+        Ok(StExpr {
+          expr: Expr::call(None, &name, args, pos),
+          side_effects: SideEffects::ModifiesState,
+        })
+      }
+    }
+  }
+
   /// Compiles a function call, given the name of the function and its
   /// argument list.
-  pub fn compile_function_call(&mut self,
-                               name: &str,
-                               args: &[IRExpr],
-                               pos: SourceOffset)
-                               -> Result<StExpr, GDError> {
+  pub fn compile_ordinary_function_call(&mut self,
+                                        name: &str,
+                                        args: &[IRExpr],
+                                        pos: SourceOffset)
+                                        -> Result<StExpr, GDError> {
     let (fcall, call_magic) = match self.table.get_fn(name) {
       None => return Err(GDError::new(GDErrorF::NoSuchFn(name.to_owned()), pos)),
       Some((p, m)) => (p.clone(), dyn_clone::clone_box(m))

@@ -11,7 +11,7 @@ use super::arglist::ordinary::ArgList;
 use super::arglist::constructor::ConstructorArgList;
 use super::arglist::simple::SimpleArgList;
 use super::import::{ImportDecl, ImportName};
-use super::expr::{Expr, ExprF};
+use super::expr::Expr;
 use super::special_form;
 use super::depends::Dependencies;
 use super::decl::{self, Decl, DeclF, InstanceFunctionName};
@@ -157,7 +157,7 @@ impl IncCompiler {
       self.compile_expr(pipeline, &result)
     } else {
       let args = tail.iter().map(|x| self.compile_expr(pipeline, x)).collect::<Result<Vec<_>, _>>()?;
-      Ok(Expr::new(ExprF::Call(head.to_owned(), args), pos))
+      Ok(Expr::call(head, args, pos))
     }
   }
 
@@ -168,24 +168,7 @@ impl IncCompiler {
         assert!(!vec.is_empty(), "Internal error in compile_expr, expecting non-empty list, got {:?}", &expr);
         let head = CallName::resolve_call_name(self, pipeline, vec[0])?;
         let tail = &vec[1..];
-        // TODO Can this be part of CallName?
-        match head {
-          CallName::SimpleName(head) => {
-            self.resolve_simple_call(pipeline, &head, tail, expr.pos)
-          }
-          CallName::MethodName(target, head) => {
-            let args = tail.iter().map(|x| self.compile_expr(pipeline, x)).collect::<Result<Vec<_>, _>>()?;
-            Ok(Expr::new(ExprF::MethodCall(target, head, args), expr.pos))
-          }
-          CallName::AtomicName(head) => {
-            let args = tail.iter().map(|x| self.compile_expr(pipeline, x)).collect::<Result<Vec<_>, _>>()?;
-            Ok(Expr::new(ExprF::AtomicCall(head, args), expr.pos))
-          }
-          CallName::SuperName(head) => {
-            let args = tail.iter().map(|x| self.compile_expr(pipeline, x)).collect::<Result<Vec<_>, _>>()?;
-            Ok(Expr::new(ExprF::SuperCall(head, args), expr.pos))
-          }
-        }
+        head.into_expr(self, pipeline, tail, expr.pos)
       }
       ASTF::Atom(lit) => {
         // We handle symbols specially, but for any other literal, we

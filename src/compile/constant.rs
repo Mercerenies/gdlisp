@@ -14,7 +14,7 @@ use super::error::{GDError, GDErrorF};
 use super::symbol_table::SymbolTable;
 use super::symbol_table::local_var::{LocalVar, ValueHint};
 use crate::pipeline::source::SourceOffset;
-use crate::ir::expr::{Expr as IRExpr, ExprF as IRExprF, BareName};
+use crate::ir::expr::{Expr as IRExpr, ExprF as IRExprF, BareName, CallTarget};
 use crate::ir::decl::{ClassInnerDecl, ClassInnerDeclF, Decl, DeclF};
 use crate::ir::literal::Literal;
 use crate::ir::scope::decl::on_each_lambda_class;
@@ -143,12 +143,8 @@ pub fn validate_const_expr(name: &str, expr: &IRExpr, table: &SymbolTable) -> Re
     IRExprF::ForStmt(_, _, _) => {
       non_constant_error(name, expr.pos)
     }
-    IRExprF::Call(function_name, args) => {
-      validate_const_call(name, function_name, args.len(), table, expr.pos)?;
-      for arg in args {
-        validate_const_expr(name, arg, table)?;
-      }
-      Ok(())
+    IRExprF::Call(object, function_name, args) => {
+      validate_const_call(name, object, function_name, args, table, expr.pos)
     }
     IRExprF::Let(_, _) => {
       non_constant_error(name, expr.pos)
@@ -178,12 +174,6 @@ pub fn validate_const_expr(name: &str, expr: &IRExpr, table: &SymbolTable) -> Re
         non_constant_error(name, expr.pos)
       }
     }
-    IRExprF::MethodCall(_, _, _) => {
-      non_constant_error(name, expr.pos)
-    }
-    IRExprF::SuperCall(_, _) => {
-      non_constant_error(name, expr.pos)
-    }
     IRExprF::LambdaClass(_) => {
       non_constant_error(name, expr.pos)
     }
@@ -210,15 +200,6 @@ pub fn validate_const_expr(name: &str, expr: &IRExpr, table: &SymbolTable) -> Re
       // GDScript is concerned, is just a constant string.
       Ok(())
     }
-    IRExprF::AtomicCall(_name, args) => {
-      // AtomicCall is explicitly opting out of GDLisp's safety
-      // checks, so we'll let the name through and just trust the
-      // programmer. We'll still check the arguments though.
-      for arg in args {
-        validate_const_expr(name, arg, table)?;
-      }
-      Ok(())
-    }
     IRExprF::Split(_, _) => {
       // Split specifically requires a temporary variable in order to
       // work, which we can't do in a constant expression
@@ -240,7 +221,29 @@ fn validate_const_var_name(name: &str, var_name: &str, table: &SymbolTable, pos:
 
 }
 
-fn validate_const_call(name: &str, function_name: &str, arg_count: usize, table: &SymbolTable, pos: SourceOffset) -> Result<(), GDError> {
+fn validate_const_call(name: &str, object: &CallTarget, function_name: &str, args: &[IRExpr], table: &SymbolTable, pos: SourceOffset) -> Result<(), GDError> {
+  match object {
+    CallTarget::Super | CallTarget::Object(_) => {
+      // Always disallowed.
+      return non_constant_error(name, pos);
+    }
+    CallTarget::Atomic => {
+      // `Atomic` is explicitly opting out of GDLisp's safety checks,
+      // so we'll let the name through and just trust the programmer.
+      // We'll still check the arguments though.
+    }
+    CallTarget::Scoped => {
+      // Check the name to make sure it's a constant enough function.
+      validate_scoped_const_call(name, function_name, args.len(), table, pos)?;
+    }
+  }
+  for arg in args {
+    validate_const_expr(name, arg, table)?;
+  }
+  Ok(())
+}
+
+fn validate_scoped_const_call(name: &str, function_name: &str, arg_count: usize, table: &SymbolTable, pos: SourceOffset) -> Result<(), GDError> {
   let (function, magic) = table.get_fn(function_name).ok_or_else(|| non_constant_error::<()>(name, pos).unwrap_err())?;
   if magic.is_default() {
     // If the call magic passes through to the implementation, then we

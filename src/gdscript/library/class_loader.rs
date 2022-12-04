@@ -67,14 +67,13 @@ pub fn get_singleton_declarations(native: &NativeClasses) -> Vec<DeclareDecl> {
 pub fn get_singleton_class_var_declarations(native: &NativeClasses, pos: SourceOffset) -> impl Iterator<Item=ClassInnerDecl> + '_ {
   get_all_singleton_classes(native).into_iter().map(move |class| {
     let name = backing_class_name_of(class);
-    let expr = Expr::new(
-      ExprF::MethodCall(
-        Box::new(Expr::var("NamedSyntheticType", pos)),
-        String::from("new"),
+    let expr =
+      Expr::var("NamedSyntheticType", pos)
+      .method_call(
+        "new",
         vec!(Expr::from_value(class.name.clone(), pos)), // Note: *Original* class name, not the one we made in backing_class_name_of
-      ),
-      pos,
-    );
+        pos,
+      );
     ClassInnerDecl::new(
       ClassInnerDeclF::ClassVarDecl(ClassVarDecl {
         export: None,

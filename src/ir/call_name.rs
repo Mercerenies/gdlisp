@@ -9,6 +9,7 @@ use crate::sxp::dotted::DottedExpr;
 use crate::compile::error::{GDError, GDErrorF};
 use crate::pipeline::Pipeline;
 use crate::pipeline::error::PError;
+use crate::pipeline::source::SourceOffset;
 
 use std::convert::TryFrom;
 
@@ -53,6 +54,31 @@ impl CallName {
       Ok(CallName::SimpleName(s.to_owned()))
     } else {
       Err(PError::from(GDError::new(GDErrorF::CannotCall(ast.clone()), ast.pos)))
+    }
+  }
+
+  pub fn into_expr(self,
+                   icompiler: &mut IncCompiler,
+                   pipeline: &mut Pipeline,
+                   tail: &[&AST],
+                   pos: SourceOffset)
+                   -> Result<Expr, PError> {
+    match self {
+      CallName::SimpleName(head) => {
+        icompiler.resolve_simple_call(pipeline, &head, tail, pos)
+      }
+      CallName::MethodName(target, head) => {
+        let args = tail.iter().map(|x| icompiler.compile_expr(pipeline, x)).collect::<Result<Vec<_>, _>>()?;
+        Ok(target.method_call(head, args, pos))
+      }
+      CallName::AtomicName(head) => {
+        let args = tail.iter().map(|x| icompiler.compile_expr(pipeline, x)).collect::<Result<Vec<_>, _>>()?;
+        Ok(Expr::atomic_call(head, args, pos))
+      }
+      CallName::SuperName(head) => {
+        let args = tail.iter().map(|x| icompiler.compile_expr(pipeline, x)).collect::<Result<Vec<_>, _>>()?;
+        Ok(Expr::super_call(head, args, pos))
+      }
     }
   }
 

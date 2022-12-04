@@ -84,7 +84,7 @@ pub fn expr_at_toplevel_test() {
     result,
     Err(PError::from(GDError::new(
       GDErrorF::ExprAtTopLevel(
-        Expr::new(ExprF::Call(String::from("+"), vec!(Expr::from_value(1, SourceOffset(4)), Expr::from_value(1, SourceOffset(6)))), SourceOffset(1)),
+        Expr::call("+", vec!(Expr::from_value(1, SourceOffset(4)), Expr::from_value(1, SourceOffset(6))), SourceOffset(1)),
       ),
       SourceOffset(1),
     ))),

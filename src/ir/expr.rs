@@ -21,12 +21,12 @@ pub const DEFAULT_SPLIT_NAME: &str = "_split";
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ExprF {
   BareName(BareName), // A (possibly atomic) bare name, referring to a variable.
+  Call(CallTarget, String, Vec<Expr>),
   Literal(literal::Literal),
   Progn(Vec<Expr>),
   CondStmt(Vec<(Expr, Option<Expr>)>),
   WhileStmt(Box<Expr>, Box<Expr>),
   ForStmt(String, Box<Expr>, Box<Expr>),
-  Call(String, Vec<Expr>),
   Let(Vec<LocalVarClause>, Box<Expr>),
   FLet(Vec<LocalFnClause>, Box<Expr>),
   Labels(Vec<LocalFnClause>, Box<Expr>),
@@ -35,8 +35,6 @@ pub enum ExprF {
   Assign(AssignTarget, Box<Expr>),
   Quote(AST),
   FieldAccess(Box<Expr>, String),
-  MethodCall(Box<Expr>, String, Vec<Expr>),
-  SuperCall(String, Vec<Expr>),
   LambdaClass(Box<LambdaClass>),
   Yield(Option<(Box<Expr>, Box<Expr>)>),
   Assert(Box<Expr>, Option<Box<Expr>>),
@@ -45,7 +43,6 @@ pub enum ExprF {
   Continue,
   SpecialRef(SpecialRef),
   ContextualFilename(RPathBuf),
-  AtomicCall(String, Vec<Expr>),
   Split(String, Box<Expr>), // Compiles the inner expression, but forces it to be stored in a local variable with a generated name (the string argument is a prefix for the name)
   Preload(String),
 }
@@ -60,6 +57,30 @@ pub struct Expr {
 pub enum AssignTarget {
   Variable(SourceOffset, String),
   InstanceField(SourceOffset, Box<Expr>, String),
+}
+
+/// The object on which a function call is being made, if any.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum CallTarget {
+  /// The call is being made on the current scope itself, not on any
+  /// particular object.
+  Scoped,
+  /// The call is being made on the special `super` object.
+  ///
+  /// This does *not* include superclass *constructor* calls, which
+  /// are handled by a special method modifier in the syntax itself.
+  /// See
+  /// [`compile_class_inner_decl`]](gdlisp::ir::incremental::Incremental::compile_class_inner_decl)
+  /// for details on those super calls.
+  Super,
+  /// The call is being made on a function whose name is considered
+  /// atomic. This is similar to `Scoped` but the name will not be
+  /// considered during any semantic analysis and will be passed
+  /// through to GDScript unmodified.
+  Atomic,
+  /// The call is being made on an ordinary object in GDLisp. That is,
+  /// this is a method call.
+  Object(Box<Expr>),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -145,8 +166,20 @@ impl Expr {
     Expr::new(ExprF::Progn(body), pos)
   }
 
-  pub fn call(name: String, args: Vec<Expr>, pos: SourceOffset) -> Expr {
-    Expr::new(ExprF::Call(name, args), pos)
+  pub fn call(name: impl Into<String>, args: Vec<Expr>, pos: SourceOffset) -> Expr {
+    Expr::new(ExprF::Call(CallTarget::Scoped, name.into(), args), pos)
+  }
+
+  pub fn atomic_call(name: impl Into<String>, args: Vec<Expr>, pos: SourceOffset) -> Expr {
+    Expr::new(ExprF::Call(CallTarget::Atomic, name.into(), args), pos)
+  }
+
+  pub fn super_call(name: impl Into<String>, args: Vec<Expr>, pos: SourceOffset) -> Expr {
+    Expr::new(ExprF::Call(CallTarget::Super, name.into(), args), pos)
+  }
+
+  pub fn method_call(self, name: impl Into<String>, args: Vec<Expr>, pos: SourceOffset) -> Expr {
+    Expr::new(ExprF::Call(CallTarget::Object(Box::new(self)), name.into(), args), pos)
   }
 
   pub fn yield_none(pos: SourceOffset) -> Expr {
@@ -265,8 +298,24 @@ impl Expr {
         local_vars.remove(var);
         acc_vars.merge_with(local_vars);
       }
-      ExprF::Call(name, args) => {
-        acc_fns.visit(name.to_owned(), (), self.pos);
+      ExprF::Call(object, name, args) => {
+        match object {
+          CallTarget::Scoped => {
+            acc_fns.visit(name.to_owned(), (), self.pos);
+          }
+          CallTarget::Atomic => {
+            // Do not log any additional names, other than those
+            // visited in the arguments.
+          }
+          CallTarget::Super => {
+            // A super call implicitly requires read access to a
+            // `self` variable.
+            acc_vars.visit(String::from("self"), AccessType::Read, self.pos);
+          }
+          CallTarget::Object(object) => {
+            object.walk_locals(acc_vars, acc_fns);
+          }
+        }
         for expr in args {
           expr.walk_locals(acc_vars, acc_fns);
         }
@@ -359,18 +408,6 @@ impl Expr {
       ExprF::FieldAccess(lhs, _) => {
         lhs.walk_locals(acc_vars, acc_fns);
       }
-      ExprF::MethodCall(lhs, _, args) => {
-        lhs.walk_locals(acc_vars, acc_fns);
-        for expr in args {
-          expr.walk_locals(acc_vars, acc_fns);
-        }
-      }
-      ExprF::SuperCall(_, args) => {
-        acc_vars.visit(String::from("self"), AccessType::Read, self.pos);
-        for expr in args {
-          expr.walk_locals(acc_vars, acc_fns);
-        }
-      }
       ExprF::LambdaClass(cls) => {
         let LambdaClass { extends, args, constructor, decls } = &**cls;
         for arg in args {
@@ -415,11 +452,6 @@ impl Expr {
       ExprF::Continue => {}
       ExprF::SpecialRef(_) => {}
       ExprF::ContextualFilename(_) => {}
-      ExprF::AtomicCall(_, args) => {
-        for arg in args {
-          arg.walk_locals(acc_vars, acc_fns);
-        }
-      }
       ExprF::Split(_, expr) => {
         // The "name" of the split is not a GDLisp-level name; it's a
         // hint to the later stages of the compiler. So it doesn't
@@ -555,7 +587,7 @@ mod tests {
 
   #[test]
   fn test_locals_super_call() {
-    let super_call = e(ExprF::SuperCall(String::from("foobar"), vec!(Expr::var("aa", SourceOffset(0)))));
+    let super_call = Expr::super_call("foobar", vec!(Expr::var("aa", SourceOffset(0))), SourceOffset(0));
     assert_eq!(super_call.get_locals(), lhash(vec!("aa".to_owned(), "self".to_owned())));
   }
 
@@ -645,7 +677,7 @@ mod tests {
 
   #[test]
   fn test_functions_calls() {
-    let e1 = e(ExprF::Call("abc".to_owned(), vec!(e(ExprF::Call("def".to_owned(), vec!())))));
+    let e1 = Expr::call("abc", vec!(Expr::call("def", vec!(), SourceOffset(0))), SourceOffset(0));
     assert_eq!(e1.get_functions(), fhash(vec!("abc".to_owned(), "def".to_owned())));
   }
 
