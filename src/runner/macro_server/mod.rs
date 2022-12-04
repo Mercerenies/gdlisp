@@ -319,6 +319,7 @@ mod tests {
   }
 
   #[test]
+  #[ignore = "Race condition (see issue #127)"]
   fn unhealthy_server_test() {
     let mut server = MacroServer::new().unwrap();
     let command = ServerCommand::Eval(String::from("GDLisp.get_tree().quit()"));

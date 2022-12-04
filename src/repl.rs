@@ -294,6 +294,7 @@ mod tests {
   }
 
   #[test]
+  #[ignore = "Race condition (see issue #127)"]
   fn terminate_repl_via_tree_test() {
     let mut repl = Repl::new(dummy_config());
     assert_eq!(repl.parse_and_run_code("((GDLisp:get-tree):quit)"), Ok(String::from("()")));
@@ -302,6 +303,7 @@ mod tests {
   }
 
   #[test]
+  #[ignore = "Race condition (see issue #127)"]
   fn terminate_repl_via_quit_test() {
     let mut repl = Repl::new(dummy_config());
     assert_eq!(repl.parse_and_run_code("(quit)"), Ok(String::from("()")));
