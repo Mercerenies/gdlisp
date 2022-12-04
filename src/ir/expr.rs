@@ -70,7 +70,7 @@ pub enum CallTarget {
   /// This does *not* include superclass *constructor* calls, which
   /// are handled by a special method modifier in the syntax itself.
   /// See
-  /// [`compile_class_inner_decl`]](gdlisp::ir::incremental::Incremental::compile_class_inner_decl)
+  /// [`compile_class_inner_decl`](crate::ir::incremental::IncCompiler::compile_class_inner_decl)
   /// for details on those super calls.
   Super,
   /// The call is being made on a function whose name is considered
