@@ -72,6 +72,8 @@ following macro will exhibit undefined behavior if it is ever invoked.
   (defmacro recursive ()
     '(recursive))
 
+.. _symbol-macros:
+
 Symbol Macros
 -------------
 

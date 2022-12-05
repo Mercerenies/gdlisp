@@ -172,6 +172,8 @@ can be invoked on *either* an instance or the class itself using the
 either case, a static function behaves like an instance function
 except that ``self`` is never bound inside the function.
 
+.. _constructor-functions:
+
 Constructor Functions
 ^^^^^^^^^^^^^^^^^^^^^
 

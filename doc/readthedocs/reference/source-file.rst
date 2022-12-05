@@ -222,7 +222,7 @@ GDLisp is far more lenient than GDScript when it comes to identifiers.
 In particular, GDLisp allows several non-standard characters such as
 ``-`` and ``?`` in identifiers, as well as Unicode characters.
 Additionally, GDLisp does not have a notion of "keywords", and it's
-perfectly kosher to define a function called ``if`` or ``while``
+perfectly kosher to define a variable called ``if`` or ``while``
 (though it may confuse the readers of your code).
 
 When the GDLisp compiler translates your code into GDScript, it must
