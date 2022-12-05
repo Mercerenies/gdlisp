@@ -52,17 +52,18 @@ Arrays
 
 GDLisp supports all of the built-in Godot array types, including the
 base ``Array`` and all of its strongly-typed companions. Array
-literals are written in square brackets ``[`` and ``]``, and array
-elements are *not* separated by commas.
+literals are written in square brackets ``[`` and ``]``, or
+equivalently are constructed with the ``array`` function.
 
 Dictionaries
 ------------
 
 GDLisp supports the built-in Godot ``Dictionary`` type, which maps
-keys to values. Dictionaries are written in curly braces ``{`` and
-``}``. The elements of a dictionary are *not* delimited by colons or
-commas; they are merely written side by side. For example, ``{key1
-value1 key2 value2}``.
+keys to values. Dictionaries are constructed using the ``dict``
+function, or equivalently enclosed in curly braces ``{`` and ``}``.
+The elements of a dictionary are *not* delimited by colons or commas;
+they are merely written side by side. For example, ``{key1 value1 key2
+value2}``.
 
 Functions
 ---------

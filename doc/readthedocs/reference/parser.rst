@@ -253,9 +253,18 @@ Arrays
    array-expr = "[", {prefixed-expr}, "]" ;
 
 Like in GDScript, a GDLisp array is a general-purpose random-access
-data structure. An array literal consists of square brackets
-containing zero or more expressions. Note that, unlike in GDScript,
-elements in an array literal are *not* separated by commas.
+data structure. Array literals are written as a proper list whose
+first element is the symbol ``array``. For convenience, zero or more
+expressions wrapped in square brackets will desugar to this syntax.
+Note that, unlike in GDScript, elements in an array literal are *not*
+separated by commas.
+
+Examples:
+
+.. code-block:: text
+
+    [] ==> (array)
+    [1 2 3 4] ==> (array 1 2 3 4)
 
 Dictionaries
 ------------
@@ -265,10 +274,21 @@ Dictionaries
    dict-expr = "{", {prefixed-expr, prefixed-expr}, "}" ;
 
 A dictionary expression is a collection of an even number of
-expressions, enclosed in curly braces. The first element of each pair
-of expressions is a key and the second is a value in the resulting
-dictionary. It is an error to have a brace-enclosed collection of an
-*odd* number of expressions.
+expressions, enclosed in curly braces. Like array literals, dictionary
+literals are not a new form of syntax but are instead mere sugar for
+something that can be expressed with only basic S-expressions. The
+first element of each pair of expressions is a key and the second is a
+value in the resulting dictionary. It is an error to have a
+brace-enclosed collection of an *odd* number of expressions. A
+dictionary literal desugars to a proper list whose first element is
+the symbol ``dict``.
+
+Examples:
+
+.. code-block:: text
+
+    {} ==> (dict)
+    {1 2 3 4} ==> (dict 1 2 3 4)
 
 
 Vectors
