@@ -479,7 +479,8 @@ pub fn gensym_test_1() {
 static func foo(a):
     var x = GDLisp.gensym(null)
     var _quasiquote = null
-    return GDLisp.cons(GDLisp.intern("let"), GDLisp.cons(GDLisp.cons(GDLisp.cons(x, GDLisp.cons(a, _quasiquote)), null), GDLisp.cons([x, x], null)))
+    var _quasiquote_0 = GDLisp.cons(x, null)
+    return GDLisp.cons(GDLisp.intern("let"), GDLisp.cons(GDLisp.cons(GDLisp.cons(x, GDLisp.cons(a, _quasiquote)), null), GDLisp.cons(GDLisp.cons(GDLisp.intern("array"), GDLisp.cons(x, _quasiquote_0)), null)))
 
 
 static func bar():
@@ -497,7 +498,8 @@ pub fn gensym_test_2() {
 static func foo(a):
     var x = GDLisp.gensym(null)
     var _quasiquote = null
-    return GDLisp.cons(GDLisp.intern("let"), GDLisp.cons(GDLisp.cons(GDLisp.cons(x, GDLisp.cons(a, _quasiquote)), null), GDLisp.cons([x, x], null)))
+    var _quasiquote_0 = GDLisp.cons(x, null)
+    return GDLisp.cons(GDLisp.intern("let"), GDLisp.cons(GDLisp.cons(GDLisp.cons(x, GDLisp.cons(a, _quasiquote)), null), GDLisp.cons(GDLisp.cons(GDLisp.intern("array"), GDLisp.cons(x, _quasiquote_0)), null)))
 
 
 static func bar():

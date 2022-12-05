@@ -66,6 +66,18 @@ pub fn unquote_spliced(value: AST, pos: SourceOffset) -> AST {
   unary("unquote-spliced", value, pos)
 }
 
+/// Produces the syntactic form `(array ...)`, given the tail of the
+/// list of arguments.
+pub fn array(tail: AST, pos: SourceOffset) -> AST {
+  AST::cons(AST::symbol("array", pos), tail, pos)
+}
+
+/// Produces the syntactic form `(dict ...)`, given the tail of the
+/// list of arguments.
+pub fn dict(tail: AST, pos: SourceOffset) -> AST {
+  AST::cons(AST::symbol("dict", pos), tail, pos)
+}
+
 /// Produces the syntactic form `(vector x y)`
 pub fn vector2(x: AST, y: AST, pos: SourceOffset) -> AST {
   binary("vector", x, y, pos)

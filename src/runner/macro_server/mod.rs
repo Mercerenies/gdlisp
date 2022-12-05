@@ -245,10 +245,10 @@ mod tests {
     roundtrip_value(&mut server, "(1)");
     roundtrip_value(&mut server, "(1 2 . 3)");
     roundtrip_value(&mut server, "(1 . 2)");
-    roundtrip_value(&mut server, "[#t #f abc def]");
-    roundtrip_value(&mut server, "[10 20 (30 40) \"ABC\"]");
-    roundtrip_value(&mut server, "[10 20 (30 40 . 50) \"ABC\"]");
-    roundtrip_value(&mut server, "[10 20 (30 40 . [50 (60 70)]) \"ABC\"]");
+    roundtrip_value(&mut server, "(array #t #f abc def)");
+    roundtrip_value(&mut server, "(array 10 20 (30 40) \"ABC\")");
+    roundtrip_value(&mut server, "(array 10 20 (30 40 . 50) \"ABC\")");
+    roundtrip_value(&mut server, "(array 10 20 (30 40 50 (60 70)) \"ABC\")");
   }
 
   #[test]
@@ -319,6 +319,7 @@ mod tests {
   }
 
   #[test]
+  #[ignore = "Race condition (see issue #127)"]
   fn unhealthy_server_test() {
     let mut server = MacroServer::new().unwrap();
     let command = ServerCommand::Eval(String::from("GDLisp.get_tree().quit()"));
@@ -327,9 +328,9 @@ mod tests {
     // The quit command will terminate the Godot subprocess within
     // 1/60th of a second (Godot will terminate at the end of the
     // current frame, and the default framerate is 60 frames per
-    // second). So we'll wait 200 milliseconds to make sure it has
+    // second). So we'll wait 300 milliseconds to make sure it has
     // time to terminate.
-    sleep(Duration::from_millis(200));
+    sleep(Duration::from_millis(300));
 
     assert!(!server.is_process_healthy());
   }

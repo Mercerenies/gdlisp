@@ -25,7 +25,7 @@ impl<'a, E> ExprWalker<'a, E> {
 
   fn walk_expr(&mut self, expr: &Expr) -> Result<Expr, E> {
     let new_expr = match &expr.value {
-      ExprF::LocalVar(_) => {
+      ExprF::BareName(_) => {
         expr.value.clone()
       }
       ExprF::Literal(_) => {
@@ -38,9 +38,6 @@ impl<'a, E> ExprWalker<'a, E> {
         expr.value.clone()
       }
       ExprF::ContextualFilename(_) => {
-        expr.value.clone()
-      }
-      ExprF::AtomicName(_) => {
         expr.value.clone()
       }
       ExprF::Progn(body) => {
@@ -64,8 +61,15 @@ impl<'a, E> ExprWalker<'a, E> {
           Box::new(self.walk_expr(body)?),
         )
       }
-      ExprF::Call(name, body) => {
+      ExprF::Call(object, name, body) => {
+        let object = match object {
+          expr::CallTarget::Scoped => expr::CallTarget::Scoped,
+          expr::CallTarget::Super => expr::CallTarget::Super,
+          expr::CallTarget::Atomic => expr::CallTarget::Atomic,
+          expr::CallTarget::Object(inner) => expr::CallTarget::Object(Box::new(self.walk_expr(inner)?)),
+        };
         ExprF::Call(
+          object,
           name.clone(),
           self.walk_exprs(body)?,
         )
@@ -82,7 +86,7 @@ impl<'a, E> ExprWalker<'a, E> {
           Box::new(self.walk_expr(body)?),
         )
       }
-      ExprF::FLet(clauses, body) => {
+      ExprF::FunctionLet(binding_type, clauses, body) => {
         let clauses = clauses.iter().map(|clause| {
           Ok(expr::LocalFnClause {
             name: clause.name.clone(),
@@ -90,20 +94,8 @@ impl<'a, E> ExprWalker<'a, E> {
             body: self.walk_expr(&clause.body)?,
           })
         }).collect::<Result<Vec<_>, _>>()?;
-        ExprF::FLet(
-          clauses,
-          Box::new(self.walk_expr(body)?),
-        )
-      }
-      ExprF::Labels(clauses, body) => {
-        let clauses = clauses.iter().map(|clause| {
-          Ok(expr::LocalFnClause {
-            name: clause.name.clone(),
-            args: clause.args.clone(),
-            body: self.walk_expr(&clause.body)?,
-          })
-        }).collect::<Result<Vec<_>, _>>()?;
-        ExprF::Labels(
+        ExprF::FunctionLet(
+          *binding_type,
           clauses,
           Box::new(self.walk_expr(body)?),
         )
@@ -137,31 +129,10 @@ impl<'a, E> ExprWalker<'a, E> {
           Box::new(self.walk_expr(rhs)?),
         )
       }
-      ExprF::Array(body) => {
-        ExprF::Array(self.walk_exprs(body)?)
-      }
-      ExprF::Dictionary(options) => {
-        ExprF::Dictionary(options.iter().map(|(k, v)| {
-          Ok((self.walk_expr(k)?, self.walk_expr(v)?))
-        }).collect::<Result<Vec<_>, _>>()?)
-      }
       ExprF::FieldAccess(lhs, name) => {
         ExprF::FieldAccess(
           Box::new(self.walk_expr(lhs)?),
           name.clone(),
-        )
-      }
-      ExprF::MethodCall(lhs, name, args) => {
-        ExprF::MethodCall(
-          Box::new(self.walk_expr(lhs)?),
-          name.clone(),
-          self.walk_exprs(args)?,
-        )
-      }
-      ExprF::SuperCall(name, args) => {
-        ExprF::SuperCall(
-          name.clone(),
-          self.walk_exprs(args)?,
         )
       }
       ExprF::LambdaClass(cls) => {
@@ -191,12 +162,6 @@ impl<'a, E> ExprWalker<'a, E> {
       }
       ExprF::Continue => {
         ExprF::Continue
-      }
-      ExprF::AtomicCall(name, body) => {
-        ExprF::AtomicCall(
-          name.clone(),
-          self.walk_exprs(body)?,
-        )
       }
       ExprF::Split(name, body) => {
         ExprF::Split(

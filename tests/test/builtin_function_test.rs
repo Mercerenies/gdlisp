@@ -19,6 +19,33 @@ pub fn vector_syntax_test() {
 }
 
 #[test]
+pub fn array_test() {
+  assert_eq!(parse_compile_and_output("(array 9 10)"), "return [9, 10]\n");
+  assert_eq!(parse_compile_and_output("(array 9 10 11)"), "return [9, 10, 11]\n");
+}
+
+#[test]
+pub fn array_syntax_test() {
+  assert_eq!(parse_compile_and_output("[1 2 3 4]"), "return [1, 2, 3, 4]\n");
+}
+
+#[test]
+pub fn dictionary_test() {
+  assert_eq!(parse_compile_and_output("(dict 1 2 3 4)"), "return {1: 2, 3: 4}\n");
+}
+
+#[test]
+pub fn dictionary_odd_args_test() {
+  // Drops the last arg silently.
+  assert_eq!(parse_compile_and_output("(dict 1 2 3)"), "return {1: 2}\n");
+}
+
+#[test]
+pub fn dictionary_literal_test() {
+  assert_eq!(parse_compile_and_output("{1 2 3 4}"), "return {1: 2, 3: 4}\n");
+}
+
+#[test]
 pub fn yield_test() {
   assert_eq!(parse_compile_and_output("(yield)"), "return yield()\n");
   assert_eq!(parse_compile_and_output("(yield 1 2)"), "return yield(1, 2)\n");

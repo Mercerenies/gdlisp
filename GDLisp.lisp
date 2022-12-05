@@ -672,11 +672,6 @@
   (sys/call-magic ARRAY-MEMBER-CHECK)
   (member? value arr))
 
-(defn sys/qq-smart-array (a)
-  (cond
-    ((instance? a GDLisp:BaseArray) a)
-    (#t (list->array a))))
-
 (defn array/fold (f xs &opt x)
   (let ((starting-index 0))
     (cond
@@ -732,6 +727,19 @@
   (cond
     ((= z ()) V{x y})
     (#t V{x y z})))
+
+(defn array (&arr xs)
+  (sys/call-magic ARRAY)
+  xs)
+
+(defn dict (&arr xs)
+  (sys/call-magic DICT)
+  (let ((resulting-dict {}))
+    (for i (range 0 (len xs) 2)
+      (let ((k (elt xs i))
+            (v (elt xs (+ i 1))))
+        (set (elt resulting-dict k) v)))
+    resulting-dict))
 
 (defn NodePath (s)
   (sys/call-magic NODEPATH-SYNTAX)

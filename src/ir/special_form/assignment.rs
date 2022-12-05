@@ -23,7 +23,7 @@ impl AssignmentForm {
       }
       AssignmentForm::SetterCall(f, mut args) => {
         args.insert(0, rhs);
-        Expr::new(ExprF::Call(f, args), pos)
+        Expr::call(f, args, pos)
       }
     }
   }

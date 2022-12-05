@@ -67,14 +67,13 @@ pub fn get_singleton_declarations(native: &NativeClasses) -> Vec<DeclareDecl> {
 pub fn get_singleton_class_var_declarations(native: &NativeClasses, pos: SourceOffset) -> impl Iterator<Item=ClassInnerDecl> + '_ {
   get_all_singleton_classes(native).into_iter().map(move |class| {
     let name = backing_class_name_of(class);
-    let expr = Expr::new(
-      ExprF::MethodCall(
-        Box::new(Expr::new(ExprF::LocalVar(String::from("NamedSyntheticType")), pos)),
-        String::from("new"),
+    let expr =
+      Expr::var("NamedSyntheticType", pos)
+      .method_call(
+        "new",
         vec!(Expr::from_value(class.name.clone(), pos)), // Note: *Original* class name, not the one we made in backing_class_name_of
-      ),
-      pos,
-    );
+        pos,
+      );
     ClassInnerDecl::new(
       ClassInnerDeclF::ClassVarDecl(ClassVarDecl {
         export: None,
@@ -126,7 +125,7 @@ fn backing_class_name_of(class: &Class) -> String {
 pub fn native_types_dictionary_literal(native: &NativeClasses, pos: SourceOffset) -> Expr {
   let mut class_names: Vec<&Class> = native.values().collect();
   class_names.sort_unstable_by(|a, b| a.name.cmp(&b.name));
-  let tuples: Vec<(Expr, Expr)> = class_names.into_iter()
+  let classes = class_names.into_iter()
     .filter(|class| !CLASS_NAME_BLACKLIST.contains(&*class.name))
     .map(|class| {
       let original_name = class.name.to_owned();
@@ -137,7 +136,7 @@ pub fn native_types_dictionary_literal(native: &NativeClasses, pos: SourceOffset
           // NamedSyntheticType object.
           Expr::new(
             ExprF::FieldAccess(
-              Box::new(Expr::new(ExprF::LocalVar(String::from("self")), pos)),
+              Box::new(Expr::var("self", pos)),
               gdlisp_name,
             ),
             pos,
@@ -145,19 +144,22 @@ pub fn native_types_dictionary_literal(native: &NativeClasses, pos: SourceOffset
         } else {
           // Not a singleton, so the name is globally available in
           // GDScript; use that name.
-          Expr::new(ExprF::LocalVar(gdlisp_name), pos)
+          Expr::var(gdlisp_name, pos)
         }
       };
       (Expr::from_value(original_name, pos), value)
-    })
-    .collect();
-  Expr::new(ExprF::Dictionary(tuples), pos)
+    });
+  build_dict(classes, pos)
+}
+
+fn build_dict(terms: impl DoubleEndedIterator<Item=(Expr, Expr)>, pos: SourceOffset) -> Expr {
+  Expr::call(String::from("dict"), terms.flat_map(|(k, v)| [k, v]).collect(), pos)
 }
 
 pub fn native_types_dictionary_initializer(native: &NativeClasses, pos: SourceOffset) -> Expr {
   let assign_target = AssignTarget::InstanceField(
     pos,
-    Box::new(Expr::new(ExprF::LocalVar(String::from("self")), pos)),
+    Box::new(Expr::var("self", pos)),
     String::from("native_types_lookup"),
   );
   let dict_literal = native_types_dictionary_literal(native, pos);

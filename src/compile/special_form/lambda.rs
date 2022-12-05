@@ -178,13 +178,13 @@ pub fn special_local_fn_call(labels_var: String, function: String, specs: FnSpec
   }
 }
 
-pub fn locally_bind_vars<'a>(compiler: &mut Compiler,
-                             table: &SymbolTable,
-                             lambda_table: &mut SymbolTable,
-                             closure_vars: &Locals,
-                             forbidden_names: &[&str],
-                             _pos: SourceOffset) // _pos unused right now, might need it later :)
-                             -> Result<(), GDError> {
+pub fn locally_bind_vars(compiler: &mut Compiler,
+                         table: &SymbolTable,
+                         lambda_table: &mut SymbolTable,
+                         closure_vars: &Locals,
+                         forbidden_names: &[&str],
+                         _pos: SourceOffset) // _pos unused right now, might need it later :)
+                         -> Result<(), GDError> {
   for (var, _access_type, var_pos) in closure_vars.iter_with_offset() {
     // Ensure the variable actually exists
     match table.get_var(var.borrow()) {
@@ -214,14 +214,14 @@ fn protect_closure_var_name(gen: &mut impl NameGenerator, var: &mut LocalVar, fo
   }
 }
 
-pub fn locally_bind_fns<'a, L>(compiler: &mut Compiler,
-                               pipeline: &L,
-                               table: &SymbolTable,
-                               lambda_table: &mut SymbolTable,
-                               closure_fns: &Functions,
-                               _pos: SourceOffset, // Unused right now, might need it later :)
-                               outer_static_ref: &OuterStaticRef<'_>)
-                               -> Result<(), GDError>
+pub fn locally_bind_fns<L>(compiler: &mut Compiler,
+                           pipeline: &L,
+                           table: &SymbolTable,
+                           lambda_table: &mut SymbolTable,
+                           closure_fns: &Functions,
+                           _pos: SourceOffset, // Unused right now, might need it later :)
+                           outer_static_ref: &OuterStaticRef<'_>)
+                           -> Result<(), GDError>
 where L : CanLoad {
   for (func, (), func_pos) in closure_fns.iter_with_offset() {
     // Ensure the function actually exists

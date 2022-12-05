@@ -14,7 +14,7 @@ use super::error::{GDError, GDErrorF};
 use super::symbol_table::SymbolTable;
 use super::symbol_table::local_var::{LocalVar, ValueHint};
 use crate::pipeline::source::SourceOffset;
-use crate::ir::expr::{Expr as IRExpr, ExprF as IRExprF};
+use crate::ir::expr::{Expr as IRExpr, ExprF as IRExprF, BareName, CallTarget};
 use crate::ir::decl::{ClassInnerDecl, ClassInnerDeclF, Decl, DeclF};
 use crate::ir::literal::Literal;
 use crate::ir::scope::decl::on_each_lambda_class;
@@ -71,7 +71,7 @@ fn validate_constant_names_in_class(inner_decls: &[ClassInnerDecl], table: &Symb
             // appearing here, since they can reference things like
             // `int` freely. (TODO Just generally make exports fit
             // better with the rest of GDLisp)
-            if !(matches!(&arg.value, IRExprF::LocalVar(_))) {
+            if !(matches!(&arg.value, IRExprF::BareName(_))) {
               validate_const_expr(&var_decl.name, arg, table)?;
             }
           }
@@ -89,8 +89,18 @@ pub fn is_const_expr(expr: &IRExpr, table: &SymbolTable) -> bool {
 
 pub fn validate_const_expr(name: &str, expr: &IRExpr, table: &SymbolTable) -> Result<(), GDError> {
   match &expr.value {
-    IRExprF::LocalVar(var_name) => {
-      validate_const_var_name(name, var_name, table, expr.pos)
+    IRExprF::BareName(var) => {
+      match var {
+        BareName::Plain(var_name) => {
+          validate_const_var_name(name, var_name, table, expr.pos)
+        }
+        BareName::Atomic(_) => {
+          // AtomicName is explicitly opting out of GDLisp's safety
+          // checks, so we'll let it through and just trust the
+          // programmer.
+          Ok(())
+        }
+      }
     }
     IRExprF::Literal(lit) => {
       if let Literal::Symbol(_) = lit {
@@ -133,20 +143,13 @@ pub fn validate_const_expr(name: &str, expr: &IRExpr, table: &SymbolTable) -> Re
     IRExprF::ForStmt(_, _, _) => {
       non_constant_error(name, expr.pos)
     }
-    IRExprF::Call(function_name, args) => {
-      validate_const_call(name, function_name, args.len(), table, expr.pos)?;
-      for arg in args {
-        validate_const_expr(name, arg, table)?;
-      }
-      Ok(())
+    IRExprF::Call(object, function_name, args) => {
+      validate_const_call(name, object, function_name, args, table, expr.pos)
     }
     IRExprF::Let(_, _) => {
       non_constant_error(name, expr.pos)
     }
-    IRExprF::FLet(_, _) => {
-      non_constant_error(name, expr.pos)
-    }
-    IRExprF::Labels(_, _) => {
+    IRExprF::FunctionLet(_, _, _) => {
       non_constant_error(name, expr.pos)
     }
     IRExprF::Lambda(_, _) => {
@@ -158,19 +161,6 @@ pub fn validate_const_expr(name: &str, expr: &IRExpr, table: &SymbolTable) -> Re
     IRExprF::Assign(_, _) => {
       non_constant_error(name, expr.pos)
     }
-    IRExprF::Array(values) => {
-      for value in values {
-        validate_const_expr(name, value, table)?;
-      }
-      Ok(())
-    }
-    IRExprF::Dictionary(rows) => {
-      for (k, v) in rows {
-        validate_const_expr(name, k, table)?;
-        validate_const_expr(name, v, table)?;
-      }
-      Ok(())
-    }
     IRExprF::Quote(_) => {
       non_constant_error(name, expr.pos)
     }
@@ -180,12 +170,6 @@ pub fn validate_const_expr(name: &str, expr: &IRExpr, table: &SymbolTable) -> Re
       } else {
         non_constant_error(name, expr.pos)
       }
-    }
-    IRExprF::MethodCall(_, _, _) => {
-      non_constant_error(name, expr.pos)
-    }
-    IRExprF::SuperCall(_, _) => {
-      non_constant_error(name, expr.pos)
     }
     IRExprF::LambdaClass(_) => {
       non_constant_error(name, expr.pos)
@@ -213,21 +197,6 @@ pub fn validate_const_expr(name: &str, expr: &IRExpr, table: &SymbolTable) -> Re
       // GDScript is concerned, is just a constant string.
       Ok(())
     }
-    IRExprF::AtomicName(_) => {
-      // AtomicName is explicitly opting out of GDLisp's safety
-      // checks, so we'll let it through and just trust the
-      // programmer.
-      Ok(())
-    }
-    IRExprF::AtomicCall(_name, args) => {
-      // AtomicCall is explicitly opting out of GDLisp's safety
-      // checks, so we'll let the name through and just trust the
-      // programmer. We'll still check the arguments though.
-      for arg in args {
-        validate_const_expr(name, arg, table)?;
-      }
-      Ok(())
-    }
     IRExprF::Split(_, _) => {
       // Split specifically requires a temporary variable in order to
       // work, which we can't do in a constant expression
@@ -249,7 +218,29 @@ fn validate_const_var_name(name: &str, var_name: &str, table: &SymbolTable, pos:
 
 }
 
-fn validate_const_call(name: &str, function_name: &str, arg_count: usize, table: &SymbolTable, pos: SourceOffset) -> Result<(), GDError> {
+fn validate_const_call(name: &str, object: &CallTarget, function_name: &str, args: &[IRExpr], table: &SymbolTable, pos: SourceOffset) -> Result<(), GDError> {
+  match object {
+    CallTarget::Super | CallTarget::Object(_) => {
+      // Always disallowed.
+      return non_constant_error(name, pos);
+    }
+    CallTarget::Atomic => {
+      // `Atomic` is explicitly opting out of GDLisp's safety checks,
+      // so we'll let the name through and just trust the programmer.
+      // We'll still check the arguments though.
+    }
+    CallTarget::Scoped => {
+      // Check the name to make sure it's a constant enough function.
+      validate_scoped_const_call(name, function_name, args.len(), table, pos)?;
+    }
+  }
+  for arg in args {
+    validate_const_expr(name, arg, table)?;
+  }
+  Ok(())
+}
+
+fn validate_scoped_const_call(name: &str, function_name: &str, arg_count: usize, table: &SymbolTable, pos: SourceOffset) -> Result<(), GDError> {
   let (function, magic) = table.get_fn(function_name).ok_or_else(|| non_constant_error::<()>(name, pos).unwrap_err())?;
   if magic.is_default() {
     // If the call magic passes through to the implementation, then we
@@ -271,7 +262,7 @@ fn validate_const_call(name: &str, function_name: &str, arg_count: usize, table:
 }
 
 fn is_name_of_enum(lhs: &IRExpr, table: &SymbolTable) -> bool {
-  if let IRExprF::LocalVar(lhs) = &lhs.value {
+  if let Some(lhs) = lhs.as_plain_name() {
     if let Some(LocalVar { value_hint: Some(ValueHint::Enum(_)), .. }) = table.get_var(lhs) {
       // Note: We don't care if the name we're referencing on the enum
       // is correct or not here. If we're subscripting an enum, then

@@ -25,7 +25,7 @@ use crate::pipeline::Pipeline;
 use crate::pipeline::error::PError;
 use crate::pipeline::source::SourceOffset;
 use crate::ir;
-use crate::ir::expr::{FuncRefTarget, AssignTarget};
+use crate::ir::expr::{FuncRefTarget, AssignTarget, BareName, CallTarget, FunctionBindingType};
 use crate::ir::special_ref::SpecialRef;
 use crate::gdscript::expr::{Expr, ExprF};
 use crate::gdscript::stmt::Stmt;
@@ -397,10 +397,8 @@ impl<'a, 'b, 'c, 'd, 'e> CompilerFrame<'a, 'b, 'c, 'd, 'e, StmtBuilder> {
                       needs_result: NeedsResult)
                       -> Result<StExpr, GDError> {
     match &expr.value {
-      IRExprF::LocalVar(s) => {
-        self.table.get_var(s).ok_or_else(|| GDError::new(GDErrorF::NoSuchVar(s.clone()), expr.pos)).map(|var| {
-          StExpr { expr: var.expr(expr.pos), side_effects: SideEffects::from(var.access_type) }
-        })
+      IRExprF::BareName(name) => {
+        self.compile_bare_name(name, expr.pos)
       }
       IRExprF::Literal(lit) => {
         let lit = factory::compile_literal(lit, expr.pos);
@@ -419,16 +417,16 @@ impl<'a, 'b, 'c, 'd, 'e> CompilerFrame<'a, 'b, 'c, 'd, 'e, StmtBuilder> {
       IRExprF::ForStmt(name, iter, body) => {
         special_form::compile_for_stmt(self, name, iter, body, needs_result, expr.pos)
       }
-      IRExprF::Call(f, args) => {
-        self.compile_function_call(f, args, expr.pos)
+      IRExprF::Call(object, f, args) => {
+        self.compile_function_call(object, f, args, expr.pos)
       }
       IRExprF::Let(clauses, body) => {
         let_block::compile_let(self, clauses, body, needs_result, expr.pos)
       }
-      IRExprF::FLet(clauses, body) => {
+      IRExprF::FunctionLet(FunctionBindingType::OuterScoped, clauses, body) => {
         flet::compile_flet(self, clauses, body, needs_result, self.compiler.is_minimalist(), expr.pos)
       }
-      IRExprF::Labels(clauses, body) => {
+      IRExprF::FunctionLet(FunctionBindingType::Recursive, clauses, body) => {
         flet::compile_labels(self, clauses, body, needs_result, expr.pos)
       }
       IRExprF::Lambda(args, body) => {
@@ -445,12 +443,6 @@ impl<'a, 'b, 'c, 'd, 'e> CompilerFrame<'a, 'b, 'c, 'd, 'e, StmtBuilder> {
       IRExprF::Assign(target, expr) => {
         self.compile_assignment(target, expr, needs_result)
       }
-      IRExprF::Array(vec) => {
-        self.compile_array(vec.iter(), expr.pos)
-      }
-      IRExprF::Dictionary(vec) => {
-        self.compile_dictionary(vec.iter(), expr.pos)
-      }
       IRExprF::Quote(ast) => {
         let mut gen = RegisteredNameGenerator::new_local_var(self.table);
         let (stmts, result) = reify_pretty_expr(ast, MAX_QUOTE_REIFY_DEPTH, &mut gen);
@@ -460,11 +452,11 @@ impl<'a, 'b, 'c, 'd, 'e> CompilerFrame<'a, 'b, 'c, 'd, 'e, StmtBuilder> {
       IRExprF::FieldAccess(lhs, sym) => {
 
         // This is a special case to validate enum names, as an extra sanity check.
-        if let IRExprF::LocalVar(lhs) = &lhs.value {
+        if let Some(lhs) = lhs.as_plain_name() {
           if let Some(LocalVar { value_hint: Some(ValueHint::Enum(vs)), .. }) = self.table.get_var(lhs) {
             // It's an enum and we know its values; validate
             if !vs.contains(&names::lisp_to_gd(sym)) {
-              return Err(GDError::new(GDErrorF::NoSuchEnumValue(lhs.clone(), sym.clone()), expr.pos));
+              return Err(GDError::new(GDErrorF::NoSuchEnumValue(lhs.to_owned(), sym.clone()), expr.pos));
             }
           }
         }
@@ -473,31 +465,6 @@ impl<'a, 'b, 'c, 'd, 'e> CompilerFrame<'a, 'b, 'c, 'd, 'e, StmtBuilder> {
         let side_effects = max(SideEffects::ReadsState, state);
         Ok(StExpr { expr: Expr::new(ExprF::Attribute(Box::new(lhs), names::lisp_to_gd(sym)), expr.pos), side_effects })
 
-      }
-      IRExprF::MethodCall(lhs, sym, args) => {
-        // Note: No call magic, no optional/rest arguments. When
-        // calling a method, we assume all arguments are required, we
-        // perform no optimization, we do not check arity, and we
-        // simply blindly forward the call on the GDScript side.
-        let lhs = self.compile_expr(lhs, NeedsResult::Yes)?.expr;
-        let args = args.iter()
-          .map(|arg| self.compile_expr(arg, NeedsResult::Yes).map(|x| x.expr))
-          .collect::<Result<Vec<_>, _>>()?;
-        Ok(StExpr {
-          expr: Expr::call(Some(lhs), &names::lisp_to_gd(sym), args, expr.pos),
-          side_effects: SideEffects::ModifiesState
-        })
-      }
-      IRExprF::SuperCall(sym, args) => {
-        let args = args.iter()
-          .map(|arg| self.compile_expr(arg, NeedsResult::Yes).map(|x| x.expr))
-          .collect::<Result<Vec<_>, _>>()?;
-        let self_binding = self.table.get_var("self").ok_or_else(|| GDError::new(GDErrorF::BadSuperCall(String::from(sym)), expr.pos))?;
-        let expr = self.class_scope.super_call(self.compiler.name_generator(), self_binding, sym.to_owned(), args, expr.pos)?;
-        Ok(StExpr {
-          expr: expr,
-          side_effects: SideEffects::ModifiesState,
-        })
       }
       IRExprF::LambdaClass(cls) => {
         lambda_class::compile_lambda_class(self, cls, expr.pos)
@@ -537,19 +504,6 @@ impl<'a, 'b, 'c, 'd, 'e> CompilerFrame<'a, 'b, 'c, 'd, 'e, StmtBuilder> {
           .ok_or_else(|| GDError::new(GDErrorF::ContextualFilenameUnresolved, expr.pos))?;
         Ok(StExpr { expr: Expr::from_value(new_filename, expr.pos), side_effects: SideEffects::None })
       }
-      IRExprF::AtomicName(s) => {
-        Ok(StExpr { expr: Expr::var(&names::lisp_to_gd_bare(s), expr.pos), side_effects: SideEffects::ReadsState })
-      }
-      IRExprF::AtomicCall(s, args) => {
-        let fnname = names::lisp_to_gd_bare(s);
-        let args = args.iter()
-          .map(|x| self.compile_expr(x, NeedsResult::Yes).map(|x| x.expr))
-          .collect::<Result<Vec<_>, _>>()?;
-        Ok(StExpr {
-          expr: Expr::call(None, &fnname, args, expr.pos),
-          side_effects: SideEffects::ModifiesState,
-        })
-      }
       IRExprF::Split(name, expr) => {
         let pos = expr.pos;
         let expr = self.compile_expr(expr, NeedsResult::Yes)?.expr;
@@ -584,13 +538,77 @@ impl<'a, 'b, 'c, 'd, 'e> CompilerFrame<'a, 'b, 'c, 'd, 'e, StmtBuilder> {
     }
   }
 
+  fn compile_bare_name(&mut self,
+                       bare_name: &BareName,
+                       pos: SourceOffset)
+                       -> Result<StExpr, GDError> {
+    match bare_name {
+      BareName::Plain(s) => {
+        self.table.get_var(s).ok_or_else(|| GDError::new(GDErrorF::NoSuchVar(s.clone()), pos)).map(|var| {
+          StExpr { expr: var.expr(pos), side_effects: SideEffects::from(var.access_type) }
+        })
+      }
+      BareName::Atomic(s) => {
+        Ok(StExpr { expr: Expr::var(&names::lisp_to_gd_bare(s), pos), side_effects: SideEffects::ReadsState })
+      }
+    }
+  }
+
+  fn compile_function_call(&mut self,
+                           object: &CallTarget,
+                           name: &str,
+                           args: &[IRExpr],
+                           pos: SourceOffset)
+                           -> Result<StExpr, GDError> {
+    match object {
+      CallTarget::Scoped => {
+        self.compile_ordinary_function_call(name, args, pos)
+      }
+      CallTarget::Object(lhs) => {
+        // Note: No call magic, no optional/rest arguments. When
+        // calling a method, we assume all arguments are required, we
+        // perform no optimization, we do not check arity, and we
+        // simply blindly forward the call on the GDScript side.
+        let lhs = self.compile_expr(lhs, NeedsResult::Yes)?.expr;
+        let args = args.iter()
+          .map(|arg| self.compile_expr(arg, NeedsResult::Yes).map(|x| x.expr))
+          .collect::<Result<Vec<_>, _>>()?;
+        Ok(StExpr {
+          expr: Expr::call(Some(lhs), &names::lisp_to_gd(name), args, pos),
+          side_effects: SideEffects::ModifiesState
+        })
+      }
+      CallTarget::Super => {
+        let args = args.iter()
+          .map(|arg| self.compile_expr(arg, NeedsResult::Yes).map(|x| x.expr))
+          .collect::<Result<Vec<_>, _>>()?;
+        let self_binding = self.table.get_var("self").ok_or_else(|| GDError::new(GDErrorF::BadSuperCall(String::from(name)), pos))?;
+        let expr = self.class_scope.super_call(self.compiler.name_generator(), self_binding, name.to_owned(), args, pos)?;
+        Ok(StExpr {
+          expr: expr,
+          side_effects: SideEffects::ModifiesState,
+        })
+      }
+      CallTarget::Atomic => {
+        let name = names::lisp_to_gd_bare(name);
+        let args = args.iter()
+          .map(|x| self.compile_expr(x, NeedsResult::Yes).map(|x| x.expr))
+          .collect::<Result<Vec<_>, _>>()?;
+        Ok(StExpr {
+          expr: Expr::call(None, &name, args, pos),
+          side_effects: SideEffects::ModifiesState,
+        })
+      }
+    }
+  }
+
   /// Compiles a function call, given the name of the function and its
   /// argument list.
-  pub fn compile_function_call(&mut self,
-                               name: &str,
-                               args: &[IRExpr],
-                               pos: SourceOffset)
-                               -> Result<StExpr, GDError> {
+  pub fn compile_ordinary_function_call(&mut self,
+                                        name: &str,
+                                        args: &[IRExpr],
+                                        pos: SourceOffset)
+                                        -> Result<StExpr, GDError> {
     let (fcall, call_magic) = match self.table.get_fn(name) {
       None => return Err(GDError::new(GDErrorF::NoSuchFn(name.to_owned()), pos)),
       Some((p, m)) => (p.clone(), dyn_clone::clone_box(m))
@@ -675,33 +693,6 @@ impl<'a, 'b, 'c, 'd, 'e> CompilerFrame<'a, 'b, 'c, 'd, 'e, StmtBuilder> {
         }
       }
     }
-  }
-
-  fn compile_array<'a1>(&mut self, elements: impl Iterator<Item=&'a1 IRExpr>, pos: SourceOffset)
-                        -> Result<StExpr, GDError> {
-    let mut side_effects = SideEffects::None;
-    let vec = elements.map(|expr| {
-      let StExpr { expr: cexpr, side_effects: state } = self.compile_expr(expr, NeedsResult::Yes)?;
-      side_effects = max(side_effects, state);
-      Ok(cexpr)
-    }).collect::<Result<Vec<_>, GDError>>()?;
-    Ok(StExpr { expr: Expr::new(ExprF::ArrayLit(vec), pos), side_effects })
-  }
-
-  fn compile_dictionary<'a1>(&mut self, elements: impl Iterator<Item=&'a1 (IRExpr, IRExpr)>, pos: SourceOffset)
-                             -> Result<StExpr, GDError> {
-    let mut side_effects = SideEffects::None;
-    let vec = elements.map(|(k, v)| {
-
-      let StExpr { expr: kexpr, side_effects: kstate } = self.compile_expr(k, NeedsResult::Yes)?;
-      side_effects = max(side_effects, kstate);
-
-      let StExpr { expr: vexpr, side_effects: vstate } = self.compile_expr(v, NeedsResult::Yes)?;
-      side_effects = max(side_effects, vstate);
-
-      Ok((kexpr, vexpr))
-    }).collect::<Result<Vec<_>, GDError>>()?;
-    Ok(StExpr { expr: Expr::new(ExprF::DictionaryLit(vec), pos), side_effects })
   }
 
 }

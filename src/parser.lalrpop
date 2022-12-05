@@ -87,8 +87,8 @@ pub LiteralOrNestedAST: AST = {
   <pos:@L> <s: Symbol> => AST::symbol(s, SourceOffset(pos)),
   <pos:@L> "(" ")" => AST::nil(SourceOffset(pos)),
   <pos:@L> "(" <car: AST> <cdr: Cdr> ")" => AST::cons(car, cdr, SourceOffset(pos)),
-  <pos:@L> "[" <contents: ArrayContents> "]" => AST::array(contents, SourceOffset(pos)),
-  <pos:@L> "{" <contents: DictContents> "}" => AST::dictionary(contents, SourceOffset(pos)),
+  <pos:@L> "[" <contents: ArrayContents> "]" => syntax::array(contents, SourceOffset(pos)),
+  <pos:@L> "{" <contents: DictContents> "}" => syntax::dict(contents, SourceOffset(pos)),
   <pos:@L> "V{" <x: AST> <y: AST> "}" => syntax::vector2(x, y, SourceOffset(pos)),
   <pos:@L> "V{" <x: AST> <y: AST> <z: AST> "}" => syntax::vector3(x, y, z, SourceOffset(pos)),
   <pos:@L> <body: LiteralOrNestedAST> ":" <rpos:@L> <name: Symbol> => syntax::access_slot(body, AST::symbol(name, SourceOffset(rpos)), SourceOffset(pos)),
@@ -100,21 +100,21 @@ pub LiteralOrNestedAST: AST = {
 Cdr: AST = {
   <pos:@L> => AST::nil(SourceOffset(pos)),
   "." <cdr: AST> => cdr,
-  <pos:@L> <cadr: AST> <cddr: Cdr> => AST::cons(cadr, cddr, SourceOffset(pos)),
-}
-
-ArrayContents: Vec<AST> = {
-  => vec!(),
-  <mut init: ArrayContents> <last: AST> => {
-    init.push(last);
-    init
+  <pos:@L> <cadr: AST> <cddr: Cdr> => {
+    AST::cons(cadr, cddr, SourceOffset(pos))
   }
 }
 
-DictContents: Vec<(AST, AST)> = {
-  => vec!(),
-  <mut init: DictContents> <lastk: AST> <lastv: AST> => {
-    init.push((lastk, lastv));
-    init
+ArrayContents: AST = {
+  <pos:@L> => AST::nil(SourceOffset(pos)),
+  <pos:@L> <first: AST> <rest: ArrayContents> => {
+    AST::cons(first, rest, SourceOffset(pos))
+  }
+}
+
+DictContents: AST = {
+  <pos:@L> => AST::nil(SourceOffset(pos)),
+  <pos:@L> <first_key: AST> <mpos:@L> <first_value: AST> <rest: DictContents> => {
+    AST::cons(first_key, AST::cons(first_value, rest, SourceOffset(mpos)), SourceOffset(pos))
   }
 }

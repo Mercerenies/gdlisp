@@ -489,7 +489,7 @@ pub fn context_filename_form(_icompiler: &mut IncCompiler,
 pub fn literally_form(tail: &[&AST], pos: SourceOffset) -> Result<Expr, PError> {
   Expecting::exactly(1).validate("literally", pos, tail)?;
   let name = ExpectedShape::extract_symbol("literally", tail[0].clone())?;
-  Ok(Expr::new(ExprF::AtomicName(name), pos))
+  Ok(Expr::atomic_var(name, pos))
 }
 
 pub fn split_form(icompiler: &mut IncCompiler,

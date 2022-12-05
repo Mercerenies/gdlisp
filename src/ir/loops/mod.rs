@@ -5,7 +5,7 @@
 pub mod error;
 
 use super::decl::TopLevel;
-use super::expr::{Expr, ExprF, AssignTarget, LambdaClass};
+use super::expr::{Expr, ExprF, AssignTarget, LambdaClass, CallTarget};
 use error::{LoopPrimitiveError, LoopPrimitive, LoopPrimitiveErrorF};
 use crate::pipeline::source::SourceOffset;
 
@@ -60,7 +60,7 @@ impl LoopWalker {
 
   fn check(self, expr: &Expr) -> Result<(), LoopPrimitiveError> {
     match &expr.value {
-      ExprF::LocalVar(_) => {}
+      ExprF::BareName(_) => {}
       ExprF::Literal(_) => {}
       ExprF::Progn(exprs) => {
         for inner in exprs {
@@ -92,7 +92,11 @@ impl LoopWalker {
         self.check(iter)?;
         self.enter_loop().check(body)?;
       }
-      ExprF::Call(_, args) => {
+      ExprF::Call(object, _, args) => {
+        match object {
+          CallTarget::Scoped | CallTarget::Super | CallTarget::Atomic => {}
+          CallTarget::Object(inner) => { self.check(inner)?; }
+        }
         for inner in args {
           self.check(inner)?;
         }
@@ -103,14 +107,7 @@ impl LoopWalker {
         }
         self.check(body)?;
       }
-      ExprF::FLet(clauses, body) => {
-        let closure_walker = self.enter_closure();
-        for clause in clauses {
-          closure_walker.check(&clause.body)?;
-        }
-        self.check(body)?;
-      }
-      ExprF::Labels(clauses, body) => {
+      ExprF::FunctionLet(_, clauses, body) => {
         let closure_walker = self.enter_closure();
         for clause in clauses {
           closure_walker.check(&clause.body)?;
@@ -128,31 +125,9 @@ impl LoopWalker {
         }
         self.check(rhs)?;
       }
-      ExprF::Array(args) => {
-        for inner in args {
-          self.check(inner)?;
-        }
-      }
-      ExprF::Dictionary(args) => {
-        for (k, v) in args {
-          self.check(k)?;
-          self.check(v)?;
-        }
-      }
       ExprF::Quote(_) => {}
       ExprF::FieldAccess(lhs, _) => {
         self.check(lhs)?;
-      }
-      ExprF::MethodCall(lhs, _, args) => {
-        self.check(lhs)?;
-        for inner in args {
-          self.check(inner)?;
-        }
-      }
-      ExprF::SuperCall(_, args) => {
-        for inner in args {
-          self.check(inner)?;
-        }
       }
       ExprF::LambdaClass(class) => {
         let walker = self.enter_closure();
@@ -194,12 +169,6 @@ impl LoopWalker {
       }
       ExprF::SpecialRef(_) => {}
       ExprF::ContextualFilename(_) => {}
-      ExprF::AtomicName(_) => {}
-      ExprF::AtomicCall(_, args) => {
-        for inner in args {
-          self.check(inner)?;
-        }
-      }
       ExprF::Split(_, expr) => {
         self.check(expr)?;
       }
