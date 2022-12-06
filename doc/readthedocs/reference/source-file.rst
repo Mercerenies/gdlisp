@@ -177,6 +177,8 @@ example above, ``Color`` is a value, and ``Color:RED`` is the string
 ``"Red"``, ``Color:GREEN`` is the string ``"Green"``, and
 ``Color:BLUE`` is the string ``"Blue"``.
 
+.. _progn:
+
 The ``progn`` Directive
 -----------------------
 

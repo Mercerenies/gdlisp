@@ -143,12 +143,150 @@ definition syntax. For more details, see :ref:`constructor-functions`.
 Special Forms
 -------------
 
-(the rest)
+Special forms are elements of the GDLisp syntax that have special
+meanings baked into the compiler. Special forms can be thought of as
+similar to macros but more primitive, the building blocks on which
+GDLisp syntax is constructed. There are 25 special forms in GDLisp.
+
+``progn`` Forms
+^^^^^^^^^^^^^^^
+
+::
+
+   (progn args ...)
+
+A ``progn`` form evaluates each of its arguments in order and returns
+the final argument. ``progn`` is a useful way to insert multiple
+expressions which have side effects in a context, such as the
+right-hand side of a ``defvar``, that only accepts one expression.
+
+An empty ``progn`` silently returns ``()``, the null object.
+
+Note that ``progn`` can also be used in declaration (or class
+declaration) context. See :ref:`progn` for details.
+
+``cond`` Forms
+^^^^^^^^^^^^^^
+
+::
+
+    (cond clauses ...)
+
+A ``cond`` form is the most basic form of conditional in GDLisp.
+``cond`` takes zero or more clauses. Each clause's conditional portion
+is evaluated in turn. If the conditional is true, then the clause's
+body portion is evaluated and returned. Otherwise, the next clause
+is tried. If all clauses are exhausted, then the null object ``()`` is
+returned.
+
+Each clause must be a proper list containing one or more elements. If
+the list contains at least two elements, then the first element is the
+conditional term and the rest form the body of the clause. The body is
+treated as though it is inside a ``progn``, so the last expression
+will be returned. If the list contains only one element, then that
+element is *both* the condition and the body of the clause, and it
+will only be evaluated once.
+
+For example,
+
+::
+
+   (cond
+     ((foo1) (bar1) (baz1))
+     ((foo2) (bar2)))
+
+This is a ``cond`` form consisting of two clauses. When this form is
+evaluated, first, we will call the function ``foo1`` with no
+arguments. If that function returns a truthy value, then we call
+``bar1`` and then ``baz1``, using the latter as the result of the
+whole ``cond`` form. If ``foo1`` returns a falsy value, then we try
+``foo2``. If ``foo2`` evaluates to a truthy value, then ``bar2`` is
+evaluated and its result is returned. Otherwise, ``()`` is returned as
+a default value.
+
+As an example of the one-argument clause form, consider
+
+::
+
+   (cond
+     ((my-dict:get "x"))
+     ((my-dict:get "y"))
+     ((my-dict:get "z")))
+
+Assuming ``my-dict`` is a dictionary object, this expression will
+attempt to get the keys ``x``, ``y``, and then ``z`` from the
+dictionary in order, returning the first one which exists and is
+truthy. If none satisfy the condition, then ``()`` is returned as a
+default value.
+
+A common idiom is to make the condition of the last clause be the
+literal ``#t`` true object. This acts as a sort of "else" clause,
+triggering unconditionally if all of the other branches fail.
+
+``while`` Forms
+^^^^^^^^^^^^^^^
+
+::
+
+   (while condition body ...)
+   (while condition)
+
+A ``while`` form is one of the two most basic forms of looping in
+GDLisp. A ``while`` form takes a condition and then zero or more
+expressions forming a body as arguments. The ``while`` loop iterates
+zero or more times. At each iteration, the loop runs the condition
+first. If the condition is falsy, then the loop exits immediately.
+Otherwise, the body runs, and then the loop starts over.
+
+A ``while`` loop always returns the null object ``()``. It is possible
+to have a ``while`` loop where the body is empty, in which case, the
+condition is evaluated multiple times until it returns a falsy value.
+This can be used to emulate the "do ... while" construct seen in some
+programming languages, where the condition is evaluated at the end of
+the body, rather than the beginning. That is, to emulate such a
+construct in GDLisp, consider
+
+::
+
+   (while (progn
+     body ...
+     condition))
+
+``for`` Forms
+^^^^^^^^^^^^^
+
+::
+
+   (for var iterable body ...)
+
+A ``for`` form is the second of the two most basic looping constructs
+in GDLisp. The first argument to ``for`` must be a literal symbol,
+then the other arguments are arbitrary expressions. First,
+``iterable`` is evaluated once, and it must evaluate to an array
+(including pool arrays), string, or dictionary object. Then a new
+lexical scope is created. Then ``body`` is run in that lexical scope,
+once for each element of the iterable object. At each loop iteration,
+the variable ``var`` is bound to the current value. ``for`` forms
+always return the null object ``()``.
+
+For arrays, a ``for`` form iterates over each element of the array.
+For dictionaries, a ``for`` form iterates over each *key* of the
+dictionary, consistent with Python's semantics for the same. For
+strings, a ``for`` form iterates over each character (as a
+single-character string) of the string.
+
+Note that the behavior is undefined if the result of ``iterable`` is
+not an array, dictionary, or string. Currently, ``for`` loops in
+GDLisp compile to ``for`` loops in GDScript, which means some legacy
+GDScript behavior (such as iterating over numerical literals) may
+work, but this behavior may change in the future, so it is always
+recommended to explicitly call ``range`` if the intent is to iterate
+up to a number.
 
 .. _expr-literal-forms:
 
-Literal Forms
-^^^^^^^^^^^^^
+``literally`` Forms
+^^^^^^^^^^^^^^^^^^^
 
 ::
 

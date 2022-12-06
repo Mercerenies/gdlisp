@@ -46,7 +46,9 @@ Macro expansion takes place inside of class declaration scopes, just
 like it does at the top level of a module.
 
 Inside of classes, there are four valid types of declarations:
-``defsignal``, ``defconst``, ``defvar``, and ``defn``.
+``defsignal``, ``defconst``, ``defvar``, and ``defn``. Additionally,
+:ref:`progn <progn>` forms can appear in class bodies and behave
+identically to the same forms at the top-level.
 
 Class Constants
 ---------------
