@@ -171,13 +171,13 @@ The following are examples of valid identifiers in GDLisp: ``foo``,
 ``bar``, ``satisfies?``, ``set-element``, ``list/map``,
 ``com.mercerenies.gdlisp``.
 
-Note that, unlike in some Lisp dialects, symbols in GDLisp are **case
-sensitive**. That is, ``foo`` and ``Foo`` are distinct symbols that
-refer to distinct variables or functions.
-
 The following names are specifically reserved for use in GDLisp. Users
 should not create variables or functions with these names: ``self``,
 ``super``.
+
+.. Note:: Unlike in some Lisp dialects, symbols in GDLisp are **case
+          sensitive**. That is, ``foo`` and ``Foo`` are distinct
+          symbols that refer to distinct variables or functions.
 
 Node Path Literals
 ^^^^^^^^^^^^^^^^^^
@@ -189,7 +189,7 @@ literal or a sequence of one or more of the following:
 * An ASCII letter or number
 * Any of the following: ``_~+=-\/!$%^&*<>?``
 
-Note thta only ASCII characters are allowed in the non-quoted node
+Note that only ASCII characters are allowed in the non-quoted node
 path form. To include Unicode characters in a node path, it is
 necessary to quote the path.
 

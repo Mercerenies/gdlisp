@@ -259,11 +259,11 @@ maximize compatibility.
 * Any other characters, or a ``?`` that is not at the end of a name,
   will translate in an implementation-defined way.
 
-It is undefined behavior to define two names in the same scope and
-namespace that will normalize to the same name under these rules. So,
-for example, it is undefined behavior to define functions called
-``foo-bar`` and ``foo_bar`` in the same scope, since these names will
-both translate to ``foo_bar``.
+.. Warning:: It is undefined behavior to define two names in the same
+   scope and namespace that will normalize to the same name under
+   these rules. So, for example, it is undefined behavior to define
+   functions called ``foo-bar`` and ``foo_bar`` in the same scope,
+   since these names will both translate to ``foo_bar``.
 
 Reserved Names
 --------------

@@ -90,8 +90,8 @@ scope in GDScript, without regard to whether or not that call is valid
 or makes sense. ``literally`` calls never undergo macro expansion and
 are never considered special forms.
 
-All of the same caveats that apply to literal forms apply to literal
-calls, and they should be used with caution.
+.. Warning:: All of the same caveats that apply to literal forms apply
+             to literal calls, and they should be used with caution.
 
 Method Calls
 ^^^^^^^^^^^^
@@ -162,8 +162,8 @@ right-hand side of a ``defvar``, that only accepts one expression.
 
 An empty ``progn`` silently returns ``()``, the null object.
 
-Note that ``progn`` can also be used in declaration (or class
-declaration) context. See :ref:`progn` for details.
+.. Note:: ``progn`` can also be used in declaration (or class
+          declaration) context. See :ref:`progn` for details.
 
 ``cond`` Forms
 ^^^^^^^^^^^^^^
@@ -219,9 +219,10 @@ dictionary in order, returning the first one which exists and is
 truthy. If none satisfy the condition, then ``()`` is returned as a
 default value.
 
-A common idiom is to make the condition of the last clause be the
-literal ``#t`` true object. This acts as a sort of "else" clause,
-triggering unconditionally if all of the other branches fail.
+.. Tip:: A common idiom is to make the condition of the last clause be
+         the literal ``#t`` true object. This acts as a sort of "else"
+         clause, triggering unconditionally if all of the other
+         branches fail.
 
 ``while`` Forms
 ^^^^^^^^^^^^^^^
@@ -279,16 +280,17 @@ dictionary, consistent with Python's semantics for the same. For
 strings, a ``for`` form iterates over each character (as a
 single-character string) of the string.
 
-Note that the behavior is undefined if the result of ``iterable`` is
-not an array, dictionary, or string. Currently, ``for`` loops in
-GDLisp compile to ``for`` loops in GDScript, which means some legacy
-GDScript behavior (such as iterating over numerical literals) may
-work, but this behavior may change in the future, so it is always
-recommended to explicitly call ``range`` if the intent is to iterate
-up to a number.
-
 A ``for`` loop defines a loop context for its body. This means that
 ``break`` and ``continue`` can be used in the body of a ``for`` loop.
+
+.. Warning:: Note that the behavior is undefined if the result of
+             ``iterable`` is not an array, dictionary, or string.
+             Currently, ``for`` loops in GDLisp compile to ``for``
+             loops in GDScript, which means some legacy GDScript
+             behavior (such as iterating over numerical literals) may
+             work, but this behavior may change in the future, so it
+             is always recommended to explicitly call ``range`` if the
+             intent is to iterate up to a number.
 
 ``let`` Forms
 ^^^^^^^^^^^^^
@@ -452,9 +454,9 @@ outlives the scope of that local function's binding.
 ``function`` *cannot* be used to create references to instance
 methods. Explicit ``lambda`` expressions must be used to do so.
 
-The target name of a ``function`` form must be the name of a valid
-function. If the name refers to a macro, then the behavior is
-undefined.
+.. Warning:: The target name of a ``function`` form must be the name
+             of a valid function. If the name refers to a macro, then
+             the behavior is undefined.
 
 ``set`` Forms
 ^^^^^^^^^^^^^
@@ -616,14 +618,16 @@ body of the ``new`` form. This means that a ``break`` or ``continue``
 expression inside of the body of the ``new`` cannot be used to control
 a loop that began outside of the body.
 
-**Note:** ``new`` is *not* a general-purpose constructor. Programmers
- used to Java or C# may be used to prefixing type names with ``new``
- to construct ordinary instances of the type. That is not how object
- construction works in GDLisp. To construct ordinary instances of some
- class, call the method ``new`` on that class, such as
- ``(ClassName:new 1 2 3)``. The ``new`` special form is only intended
- to be used when behavior (such as instance variables or methods) is
- being added anonymously to the class for this instance alone.
+.. Attention:: ``new`` is *not* a general-purpose constructor.
+               Programmers used to Java or C# may be used to prefixing
+               type names with ``new`` to construct ordinary instances
+               of the type. That is not how object construction works
+               in GDLisp. To construct ordinary instances of some
+               class, call the method ``new`` on that class, such as
+               ``(ClassName:new 1 2 3)``. The ``new`` special form is
+               only intended to be used when behavior (such as
+               instance variables or methods) is being added
+               anonymously to the class for this instance alone.
 
 ``yield`` Forms
 ^^^^^^^^^^^^^^^
@@ -705,15 +709,16 @@ The macros defined by a ``macrolet`` are only defined inside of the
 ``body`` scope. During that scope, those names are subject to macro
 expansion.
 
-The clauses of a ``macrolet`` form may **not** create closures. If a
-locally-defined macro depends on a local variable or function defined
-in an enclosing scope, then the behavior is undefined.
-
 ``macrolet`` creates a loop barrier between the enclosing scope and
 the clauses of the ``macrolet`` form. This means that a ``break`` or
 ``continue`` expression inside of a clause of the ``macrolet`` cannot
 be used to control a loop that began outside of the clause. This
 constraint does not exist for the body of the ``macrolet``.
+
+.. Warning:: The clauses of a ``macrolet`` form **cannot** create
+             closures. If a locally-defined macro depends on a local
+             variable or function defined in an enclosing scope, then
+             the behavior is undefined.
 
 ``symbol-macrolet`` Forms
 ^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -736,17 +741,17 @@ Both parts are mandatory. ``name`` is the name of the symbol macro
 (which will be bound in the value namespace). ``value`` is the
 expression which should be run to evaluate the macro.
 
-Like ``macrolet``, the clauses of a ``symbol-macrolet`` may **not**
-create closures. It is undefined behavior to write a local symbol
-macro that depends on a local variable or function defined in an
-enclosing scope.
-
 ``symbol-macrolet`` creates a loop barrier between the enclosing scope
 and the clauses of the ``symbol-macrolet`` form. This means that a
 ``break`` or ``continue`` expression inside of a clause of the
 ``symbol-macrolet`` cannot be used to control a loop that began
 outside of the clause. This constraint does not exist for the body of
 the ``symbol-macrolet``.
+
+.. Warning:: Like ``macrolet``, the clauses of a ``symbol-macrolet``
+             **cannot** create closures. It is undefined behavior to
+             write a local symbol macro that depends on a local
+             variable or function defined in an enclosing scope.
 
 .. _expr-literal-forms:
 
@@ -801,11 +806,12 @@ imported, using the Godot ``res://`` notation. ``preload`` works like
 the built-in function ``load`` but performs the act of loading at
 compile-time. It is an error if the pathname does not point to a file.
 
-Note that, in GDLisp, most ``preload`` calls should be replaced with
-``use`` directives. See :ref:`imports` for details. ``preload`` can be
-used in situations (such as macro expansion) where the name being
-loaded may not be known at definition time but will be known before
-compilation is complete.
+.. Tip:: In GDLisp, most ``preload`` calls should be replaced with
+         ``use`` directives. See :ref:`imports` for details.
+         ``preload`` can be used in situations (such as macro
+         expansion) where the name being loaded may not be known at
+         definition time but will be known before compilation is
+         complete.
 
 ``break`` Forms
 ^^^^^^^^^^^^^^^

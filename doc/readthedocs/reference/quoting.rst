@@ -93,6 +93,10 @@ error will be issued when the offending expression is interpolated.
 Nested Quasiquotes
 ^^^^^^^^^^^^^^^^^^
 
+.. Warning:: Nested quasiquotes are an experimental feature, whose
+             behavior may change in a future version of GDLisp. Use
+             with caution.
+
 Quasiquotes can be nested. If a ``quasiquote`` appears inside of
 another ``quasiquote``, then it effectively cancels off with one
 ``unquote`` or ``unquote-spliced`` on the inner list. That is,
@@ -112,6 +116,3 @@ hand,
 This *will* evaluate the inner ``unquote`` but not the outer one, so
 if ``a`` has value ``1``, then this will return ``(quasiquote (unquote
 1))``.
-
-**Warning:** Nested quasiquotes are an experimental feature, whose
-behavior may change in a future version of GDLisp. Use with caution.

@@ -108,6 +108,10 @@ the class' constructor, immediately after calling the superclass
 constructor. If not provided, the initial value of the variable shall
 be the null ``()`` object.
 
+.. Note:: GDLisp, like GDScript, has no notion of static instance
+          variables. All instance variables are scoped to a particular
+          instance.
+
 Initialization Time
 ^^^^^^^^^^^^^^^^^^^
 
