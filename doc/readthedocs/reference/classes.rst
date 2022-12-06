@@ -204,6 +204,8 @@ given. This must be the first expression in a constructor function. If
 an explicit ``super`` call is not supplied, then the parent class'
 constructor will be called implicitly with no arguments.
 
+.. _getter-and-setter:
+
 Getter and Setter Functions
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
 

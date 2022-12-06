@@ -14,3 +14,4 @@ Reference Documentation
    classes.rst
    imports.rst
    expressions.rst
+   quoting.rst
