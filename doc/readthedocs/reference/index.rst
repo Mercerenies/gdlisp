@@ -15,3 +15,4 @@ Reference Documentation
    imports.rst
    expressions.rst
    quoting.rst
+   command-line.rst
