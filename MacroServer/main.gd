@@ -107,6 +107,15 @@ func pretty(value):
             s += pretty(x)
             first = false
         return s + "]"
+    elif value is Dictionary:
+        var s = "{"
+        var first = true
+        for k in value:
+            if not first:
+                s += " "
+            s += pretty(k) + " " + pretty(value[k])
+            first = false
+        return s + "}"
     elif value is String:
         var s = "\""
         for x in value:
