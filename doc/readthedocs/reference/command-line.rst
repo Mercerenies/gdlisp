@@ -20,6 +20,9 @@ following dependencies must be explicitly installed before building
   and must be available on the system path under the name ``godot``
   (case sensitive).
 
+* If building on Windows, you will also need the `win32-file gem
+  <https://www.rubydoc.info/gems/win32-file>`_.
+
 Once the dependencies are installed, to build the release version of
 GDLisp, it should suffice to run
 
