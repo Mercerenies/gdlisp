@@ -268,16 +268,22 @@ maximize compatibility.
 Reserved Names
 --------------
 
-When choosing function or variable names, it's important to keep a few
-basic rules in mind. In particular, all names that begin with ``sys/``
-(including the forward slash) or ``__gdlisp`` are reserved for current
-and future use by the GDLisp implementation. A programmer writing
-GDLisp code should *never* define a name that starts with either of
-those prefixes. Further, names defined in the ``sys/`` namespace are
-strictly reserved for *internal* use and are an implementation detail
-of the compiler. GDLisp programmers should never directly invoke such
-functions or reference such values, and the behavior of those names
-may change at any time, even in a maintenance release.
+While GDLisp allows the programmer to define variables and functions
+with a very broad set of identifier names, some names are specifically
+reserved for use by the GDLisp compiler. GDLisp programs should
+*never* define any names, in any namespace, that conflict with a
+GDLisp reserved name. The compiler may or may not flag such behavior.
+
+* The names ``self``, ``super``, and ``GDLisp`` are reserved.
+
+* All names beginning with ``sys/`` (including the forward slash) or
+  ``__gdlisp`` are reserved.
+
+Further, names defined in the ``sys/`` namespace are strictly reserved
+for *internal* use and are an implementation detail of the compiler.
+GDLisp programmers should never directly invoke such functions or
+reference such values, and the behavior of those names may change at
+any time, even in a maintenance release.
 
 Order of Definition
 -------------------
