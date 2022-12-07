@@ -148,22 +148,56 @@ meanings baked into the compiler. Special forms can be thought of as
 similar to macros but more primitive, the building blocks on which
 GDLisp syntax is constructed. There are 25 special forms in GDLisp.
 
-``progn`` Forms
+``access-slot`` Forms
+^^^^^^^^^^^^^^^^^^^^^
+
+::
+
+   expr:field
+   (access-slot expr field)
+
+The ``access-slot`` form, usually written using the infix ``:``
+notation, accesses a field on an object. That is, ``expr`` is
+evaluated, and then the slot with the name ``field`` (which must be a
+symbol literal) is returned from the object referenced by the
+expression.
+
+The field name is not validated. That is, GDLisp makes no effort to
+ensure that the name ``field`` is a field that exists on the type of
+``expr``. There is one exception to this rule. If ``expr`` is the
+literal name of an enumeration (a la ``defenum``) whose definition is
+statically known, GDLisp will validate that the name ``field`` is
+actually a defined enumeration constant on that type.
+
+``assert`` Forms
+^^^^^^^^^^^^^^^^
+
+::
+
+   (assert condition)
+   (assert condition message)
+
+The ``assert`` special form evaluates the condition and message as
+expressions. If ``condition`` is true, then the code proceeds as
+planned. If ``condition`` is false, then an error is generated, using
+``message`` in the error message if provided.
+
+``assert`` special forms are only used when the resulting Godot
+runtime is in debug mode. In release mode, these forms will be
+ignored, and their arguments will not even be evaluated. As such,
+arguments which have side effects should generally not be given to
+``assert``.
+
+``break`` Forms
 ^^^^^^^^^^^^^^^
 
 ::
 
-   (progn args ...)
+   (break)
 
-A ``progn`` form evaluates each of its arguments in order and returns
-the final argument. ``progn`` is a useful way to insert multiple
-expressions which have side effects in a context, such as the
-right-hand side of a ``defvar``, that only accepts one expression.
-
-An empty ``progn`` silently returns ``()``, the null object.
-
-.. Note:: ``progn`` can also be used in declaration (or class
-          declaration) context. See :ref:`progn` for details.
+``break`` is a special form that can only be used inside of loop
+contexts. ``break`` exits the current loop and continues immediately
+after the loop body.
 
 ``cond`` Forms
 ^^^^^^^^^^^^^^
@@ -224,115 +258,6 @@ default value.
          clause, triggering unconditionally if all of the other
          branches fail.
 
-``while`` Forms
-^^^^^^^^^^^^^^^
-
-::
-
-   (while condition body ...)
-   (while condition)
-
-A ``while`` form is one of the two most basic forms of looping in
-GDLisp. A ``while`` form takes a condition and then zero or more
-expressions forming a body as arguments. The ``while`` loop iterates
-zero or more times. At each iteration, the loop runs the condition
-first. If the condition is falsy, then the loop exits immediately.
-Otherwise, the body runs, and then the loop starts over.
-
-A ``while`` loop always returns the null object ``()``. It is possible
-to have a ``while`` loop where the body is empty, in which case, the
-condition is evaluated multiple times until it returns a falsy value.
-This can be used to emulate the "do ... while" construct seen in some
-programming languages, where the condition is evaluated at the end of
-the body, rather than the beginning. That is, to emulate such a
-construct in GDLisp, consider
-
-::
-
-   (while (progn
-     body ...
-     condition))
-
-A ``while`` loop defines a loop context, for both its condition and
-its body. This means that ``break`` and ``continue`` can be used in
-either the condition or the body.
-
-``for`` Forms
-^^^^^^^^^^^^^
-
-::
-
-   (for var iterable body ...)
-
-A ``for`` form is the second of the two most basic looping constructs
-in GDLisp. The first argument to ``for`` must be a literal symbol,
-then the other arguments are arbitrary expressions. First,
-``iterable`` is evaluated once, and it must evaluate to an array
-(including pool arrays), string, or dictionary object. Then a new
-lexical scope is created. Then ``body`` is run in that lexical scope,
-once for each element of the iterable object. At each loop iteration,
-the variable ``var`` is bound to the current value. ``for`` forms
-always return the null object ``()``.
-
-For arrays, a ``for`` form iterates over each element of the array.
-For dictionaries, a ``for`` form iterates over each *key* of the
-dictionary, consistent with Python's semantics for the same. For
-strings, a ``for`` form iterates over each character (as a
-single-character string) of the string.
-
-A ``for`` loop defines a loop context for its body. This means that
-``break`` and ``continue`` can be used in the body of a ``for`` loop.
-
-.. Warning:: Note that the behavior is undefined if the result of
-             ``iterable`` is not an array, dictionary, or string.
-             Currently, ``for`` loops in GDLisp compile to ``for``
-             loops in GDScript, which means some legacy GDScript
-             behavior (such as iterating over numerical literals) may
-             work, but this behavior may change in the future, so it
-             is always recommended to explicitly call ``range`` if the
-             intent is to iterate up to a number.
-
-``let`` Forms
-^^^^^^^^^^^^^
-
-::
-
-   (let (clauses ...) body ...)
-
-``let`` is the most basic form of local variable binding in GDLisp. A
-``let`` form creates a new lexical scope in which zero or more local
-variables are bound, and then runs ``body`` in that local scope. The
-value of the final expression of ``body`` is returned, or ``()`` if
-``body`` is empty.
-
-Each variable clause takes one of the following forms.
-
-::
-
-   var-name
-   (var-name initial-value ...)
-
-In the second (and most general) form, a variable clause takes the
-form of a proper list whose first element is a literal symbol
-indicating the name of the variable to declare. The remaining elements
-are evaluated to determine the variable's initial value. Note
-carefully: the ``initial-value`` expressions are evaluated in the
-*outer* scope, not in the newly-created scope that the variable is
-being declared in. This means that, in a ``let`` statement which
-declares multiple variables, none of the variables have access to each
-other during initialization, even those declared later in the same
-block. The ``initial-value`` block is treated as a ``progn`` block, so
-if the block is empty then ``()`` is used as the variable's initial
-value.
-
-A variable name ``var-name`` that appears on its own (that is, a
-symbol literal *not* contained in a sublist) is treated as
-``(var-name)`` and will initialize the variable to ``()``.
-
-``let`` always binds in the value namespace. To bind in the function
-in the function namespace, see :ref:`expr-flet` and
-:ref:`expr-labels`.
-
 .. _expr-flet:
 
 ``flet`` Forms
@@ -376,6 +301,73 @@ scope and the clauses of the ``flet`` form. This means that a
 ``flet`` cannot be used to control a loop that began outside of the
 clauses. This constraint does not exist for the body of the ``flet``,
 only the clauses.
+
+``for`` Forms
+^^^^^^^^^^^^^
+
+::
+
+   (for var iterable body ...)
+
+A ``for`` form is the second of the two most basic looping constructs
+in GDLisp. The first argument to ``for`` must be a literal symbol,
+then the other arguments are arbitrary expressions. First,
+``iterable`` is evaluated once, and it must evaluate to an array
+(including pool arrays), string, or dictionary object. Then a new
+lexical scope is created. Then ``body`` is run in that lexical scope,
+once for each element of the iterable object. At each loop iteration,
+the variable ``var`` is bound to the current value. ``for`` forms
+always return the null object ``()``.
+
+For arrays, a ``for`` form iterates over each element of the array.
+For dictionaries, a ``for`` form iterates over each *key* of the
+dictionary, consistent with Python's semantics for the same. For
+strings, a ``for`` form iterates over each character (as a
+single-character string) of the string.
+
+A ``for`` loop defines a loop context for its body. This means that
+``break`` and ``continue`` can be used in the body of a ``for`` loop.
+
+.. Warning:: Note that the behavior is undefined if the result of
+             ``iterable`` is not an array, dictionary, or string.
+             Currently, ``for`` loops in GDLisp compile to ``for``
+             loops in GDScript, which means some legacy GDScript
+             behavior (such as iterating over numerical literals) may
+             work, but this behavior may change in the future, so it
+             is always recommended to explicitly call ``range`` if the
+             intent is to iterate up to a number.
+
+``function`` Forms
+^^^^^^^^^^^^^^^^^^
+
+::
+
+   #'name
+   (function name)
+
+The ``function`` special form is used to take a function that exists
+in the function namespace and convert it into a first-class value. The
+``function`` form is often abbreviated using the (equivalent) syntax
+``#'name``.
+
+The ``name`` argument must be a symbol, and it must be a valid name in
+the function namespace of the current lexical scope. A function object
+is created (as a value) which, when called, invoked the function with
+the given name, forwarding all arguments.
+
+The name can refer to a function defined at module scope or to a local
+function defined in the current scope. In the latter case, the local
+function will be kept alive (by reference semantics) until the
+function object constructed by this ``function`` form is discarded.
+That is, it is permitted to have a reference to a local function which
+outlives the scope of that local function's binding.
+
+``function`` *cannot* be used to create references to instance
+methods. Explicit ``lambda`` expressions must be used to do so.
+
+.. Warning:: The target name of a ``function`` form must be the name
+             of a valid function. If the name refers to a macro, then
+             the behavior is undefined.
 
 .. _expr-labels:
 
@@ -426,37 +418,224 @@ body of the ``lambda`` form. This means that a ``break`` or
 ``continue`` expression inside of the body of the ``lambda`` cannot be
 used to control a loop that began outside of the body.
 
-``function`` Forms
+``let`` Forms
+^^^^^^^^^^^^^
+
+::
+
+   (let (clauses ...) body ...)
+
+``let`` is the most basic form of local variable binding in GDLisp. A
+``let`` form creates a new lexical scope in which zero or more local
+variables are bound, and then runs ``body`` in that local scope. The
+value of the final expression of ``body`` is returned, or ``()`` if
+``body`` is empty.
+
+Each variable clause takes one of the following forms.
+
+::
+
+   var-name
+   (var-name initial-value ...)
+
+In the second (and most general) form, a variable clause takes the
+form of a proper list whose first element is a literal symbol
+indicating the name of the variable to declare. The remaining elements
+are evaluated to determine the variable's initial value. Note
+carefully: the ``initial-value`` expressions are evaluated in the
+*outer* scope, not in the newly-created scope that the variable is
+being declared in. This means that, in a ``let`` statement which
+declares multiple variables, none of the variables have access to each
+other during initialization, even those declared later in the same
+block. The ``initial-value`` block is treated as a ``progn`` block, so
+if the block is empty then ``()`` is used as the variable's initial
+value.
+
+A variable name ``var-name`` that appears on its own (that is, a
+symbol literal *not* contained in a sublist) is treated as
+``(var-name)`` and will initialize the variable to ``()``.
+
+``let`` always binds in the value namespace. To bind in the function
+in the function namespace, see :ref:`expr-flet` and
+:ref:`expr-labels`.
+
+.. _expr-literal-forms:
+
+``literally`` Forms
+^^^^^^^^^^^^^^^^^^^
+
+::
+
+   (literally variable-name)
+
+A ``literally`` form is a backdoor through the GDLisp scoping system.
+The sole argument to ``literally`` must be a symbol literal.
+``(literally x)`` will be translated into the variable name ``x`` in
+the resulting GDScript code. This will be done **without any
+consideration** to whether or not ``x`` is a valid variable name.
+GDLisp will not check that the name is defined, or what scope it is
+defined in. GDLisp will merely assume that you know what you're doing
+and pass the name through.
+
+The name ``variable-name`` given to this form will undergo a partial
+form of :ref:`name normalization <name-normalization>`. Specifically,
+``variable-name`` will be escaped in the same way as an ordinary
+variable name, with the exception that GDScript reserved words will
+not be prefixed with an underscore.
+
+Care must be taken when using ``literally``. Since GDLisp does not
+perform any semantic analysis on the given name, it cannot guarantee
+that the name is valid, or even syntactically makes sense in GDScript
+in the case of keywords. Additionally, names referenced inside of
+``literally`` will not have closures created for them if they occur
+inside of a ``lambda`` or other closure-producing construct. This can
+result in difficult-to-debug situations that GDLisp cannot handle.
+
+The primary intended use case for ``literally`` is to port future
+GDScript functions to GDLisp without having to wait on official
+support from the GDLisp compiler. If a future iteration of Godot adds
+a function called ``frobnicate`` to the global namespace, then you can
+call that function by using the name ``(literally frobnicate)``, even
+if the version of the GDLisp compiler you're using is not aware that
+such a function exists.
+
+``macrolet`` Forms
 ^^^^^^^^^^^^^^^^^^
 
 ::
 
-   #'name
-   (function name)
+   (macrolet (clauses ...) body ...)
 
-The ``function`` special form is used to take a function that exists
-in the function namespace and convert it into a first-class value. The
-``function`` form is often abbreviated using the (equivalent) syntax
-``#'name``.
+A ``macrolet`` form is syntactically identical to an ``flet``.
+However, whereas ``flet`` binds functions in the function namespace of
+the current scope, ``macrolet`` binds *macros* in the same namespace.
+The macros defined by a ``macrolet`` are only defined inside of the
+``body`` scope. During that scope, those names are subject to macro
+expansion.
 
-The ``name`` argument must be a symbol, and it must be a valid name in
-the function namespace of the current lexical scope. A function object
-is created (as a value) which, when called, invoked the function with
-the given name, forwarding all arguments.
+``macrolet`` creates a loop barrier between the enclosing scope and
+the clauses of the ``macrolet`` form. This means that a ``break`` or
+``continue`` expression inside of a clause of the ``macrolet`` cannot
+be used to control a loop that began outside of the clause. This
+constraint does not exist for the body of the ``macrolet``.
 
-The name can refer to a function defined at module scope or to a local
-function defined in the current scope. In the latter case, the local
-function will be kept alive (by reference semantics) until the
-function object constructed by this ``function`` form is discarded.
-That is, it is permitted to have a reference to a local function which
-outlives the scope of that local function's binding.
-
-``function`` *cannot* be used to create references to instance
-methods. Explicit ``lambda`` expressions must be used to do so.
-
-.. Warning:: The target name of a ``function`` form must be the name
-             of a valid function. If the name refers to a macro, then
+.. Warning:: The clauses of a ``macrolet`` form **cannot** create
+             closures. If a locally-defined macro depends on a local
+             variable or function defined in an enclosing scope, then
              the behavior is undefined.
+
+``new`` Forms
+^^^^^^^^^^^^^
+
+::
+
+   (new Superclass body ...)
+   (new (Superclass args ...) body ...)
+
+The ``new`` form constructs a new local *anonymous* class. That is,
+``new`` is to ``defclass`` as ``lambda`` is to ``defn``. The
+newly-defined class is not given a name, and the only instances of
+that class are those created by this particular ``new`` form.
+
+When this form is evaluated, an instance of a subclass of
+``Superclass`` is constructed. The body of this subclass shall be
+``body``, which can consist of zero or more :ref:`class declarations
+<classes>`, with the exception that it is illegal to define static
+methods in an anonymous class. The constructor of this class shall be
+invoked with ``args``, or with zero arguments if the non-parameterized
+version of ``new`` is used.
+
+The body of a ``new`` statement is capable of creating :ref:`closures
+<expr-capture>`.
+
+``new`` creates a loop barrier between the enclosing scope and the
+body of the ``new`` form. This means that a ``break`` or ``continue``
+expression inside of the body of the ``new`` cannot be used to control
+a loop that began outside of the body.
+
+.. Attention:: ``new`` is *not* a general-purpose constructor.
+               Programmers used to Java or C# may be used to prefixing
+               type names with ``new`` to construct ordinary instances
+               of the type. That is not how object construction works
+               in GDLisp. To construct ordinary instances of some
+               class, call the method ``new`` on that class, such as
+               ``(ClassName:new 1 2 3)``. The ``new`` special form is
+               only intended to be used when behavior (such as
+               instance variables or methods) is being added
+               anonymously to the class for this instance alone.
+
+``preload`` Forms
+^^^^^^^^^^^^^^^^^
+
+::
+
+   (preload name)
+
+``preload`` is a special form which takes a single string literal as
+argument. The string literal must be the name of a file which can be
+imported, using the Godot ``res://`` notation. ``preload`` works like
+the built-in function ``load`` but performs the act of loading at
+compile-time. It is an error if the pathname does not point to a file.
+
+.. Tip:: In GDLisp, most ``preload`` calls should be replaced with
+         ``use`` directives. See :ref:`imports` for details.
+         ``preload`` can be used in situations (such as macro
+         expansion) where the name being loaded may not be known at
+         definition time but will be known before compilation is
+         complete.
+
+``progn`` Forms
+^^^^^^^^^^^^^^^
+
+::
+
+   (progn args ...)
+
+A ``progn`` form evaluates each of its arguments in order and returns
+the final argument. ``progn`` is a useful way to insert multiple
+expressions which have side effects in a context, such as the
+right-hand side of a ``defvar``, that only accepts one expression.
+
+An empty ``progn`` silently returns ``()``, the null object.
+
+.. Note:: ``progn`` can also be used in declaration (or class
+          declaration) context. See :ref:`progn` for details.
+
+``quasiquote`` Forms
+^^^^^^^^^^^^^^^^^^^^
+
+::
+
+   `s-expression
+   (quasiquote s-expression)
+
+A ``quasiquote`` form refuses to evaluate its argument and returns the
+S-expression representing it, similar to ``quote``. However,
+``unquote`` and ``unquote-spliced`` have special meaning inside of
+``quasiquote`` forms. See :ref:`quoting` for more details.
+
+``quote`` Forms
+^^^^^^^^^^^^^^^
+
+::
+
+   's-expression
+   (quote s-expression)
+
+A ``quote`` form refuses to evaluate its argument and returns the
+S-expression representing it verbatim. See :ref:`quoting` for more
+details. Note that a ``quote`` form is usually written abbreviated as
+``'s-expression``.
+
+``return`` Forms
+^^^^^^^^^^^^^^^^
+
+::
+
+   (return expr)
+
+Evaluates the expression and then returns that expression immediately
+from the enclosing function or instance method.
 
 ``set`` Forms
 ^^^^^^^^^^^^^
@@ -518,31 +697,38 @@ passed to the delegated function. The return value of the function is
 returned from the ``set`` form, so by convention a function intended
 to be used in this way should return the assigned value.
 
-``quote`` Forms
-^^^^^^^^^^^^^^^
+``symbol-macrolet`` Forms
+^^^^^^^^^^^^^^^^^^^^^^^^^
 
 ::
 
-   's-expression
-   (quote s-expression)
+   (symbol-macrolet (clauses ...) body ...)
 
-A ``quote`` form refuses to evaluate its argument and returns the
-S-expression representing it verbatim. See :ref:`quoting` for more
-details. Note that a ``quote`` form is usually written abbreviated as
-``'s-expression``.
+A ``symbol-macrolet`` clause binds local macros, just like
+``macrolet``, but the former binds *symbol* macros, which are subject
+to macro expansion when a literal symbol is used.
 
-``quasiquote`` Forms
-^^^^^^^^^^^^^^^^^^^^
+Each clause is of the form
 
 ::
 
-   `s-expression
-   (quasiquote s-expression)
+   (name value)
 
-A ``quasiquote`` form refuses to evaluate its argument and returns the
-S-expression representing it, similar to ``quote``. However,
-``unquote`` and ``unquote-spliced`` have special meaning inside of
-``quasiquote`` forms. See :ref:`quoting` for more details.
+Both parts are mandatory. ``name`` is the name of the symbol macro
+(which will be bound in the value namespace). ``value`` is the
+expression which should be run to evaluate the macro.
+
+``symbol-macrolet`` creates a loop barrier between the enclosing scope
+and the clauses of the ``symbol-macrolet`` form. This means that a
+``break`` or ``continue`` expression inside of a clause of the
+``symbol-macrolet`` cannot be used to control a loop that began
+outside of the clause. This constraint does not exist for the body of
+the ``symbol-macrolet``.
+
+.. Warning:: Like ``macrolet``, the clauses of a ``symbol-macrolet``
+             **cannot** create closures. It is undefined behavior to
+             write a local symbol macro that depends on a local
+             variable or function defined in an enclosing scope.
 
 ``unquote`` Forms
 ^^^^^^^^^^^^^^^^^
@@ -568,66 +754,38 @@ An ``unquote-spliced`` form can only be used inside of a
 ``quasiquote`` form. It is an error for this special form to appear in
 an expression context.
 
-``access-slot`` Forms
-^^^^^^^^^^^^^^^^^^^^^
+``while`` Forms
+^^^^^^^^^^^^^^^
 
 ::
 
-   expr:field
-   (access-slot expr field)
+   (while condition body ...)
+   (while condition)
 
-The ``access-slot`` form, usually written using the infix ``:``
-notation, accesses a field on an object. That is, ``expr`` is
-evaluated, and then the slot with the name ``field`` (which must be a
-symbol literal) is returned from the object referenced by the
-expression.
+A ``while`` form is one of the two most basic forms of looping in
+GDLisp. A ``while`` form takes a condition and then zero or more
+expressions forming a body as arguments. The ``while`` loop iterates
+zero or more times. At each iteration, the loop runs the condition
+first. If the condition is falsy, then the loop exits immediately.
+Otherwise, the body runs, and then the loop starts over.
 
-The field name is not validated. That is, GDLisp makes no effort to
-ensure that the name ``field`` is a field that exists on the type of
-``expr``. There is one exception to this rule. If ``expr`` is the
-literal name of an enumeration (a la ``defenum``) whose definition is
-statically known, GDLisp will validate that the name ``field`` is
-actually a defined enumeration constant on that type.
-
-``new`` Forms
-^^^^^^^^^^^^^
+A ``while`` loop always returns the null object ``()``. It is possible
+to have a ``while`` loop where the body is empty, in which case, the
+condition is evaluated multiple times until it returns a falsy value.
+This can be used to emulate the "do ... while" construct seen in some
+programming languages, where the condition is evaluated at the end of
+the body, rather than the beginning. That is, to emulate such a
+construct in GDLisp, consider
 
 ::
 
-   (new Superclass body ...)
-   (new (Superclass args ...) body ...)
+   (while (progn
+     body ...
+     condition))
 
-The ``new`` form constructs a new local *anonymous* class. That is,
-``new`` is to ``defclass`` as ``lambda`` is to ``defn``. The
-newly-defined class is not given a name, and the only instances of
-that class are those created by this particular ``new`` form.
-
-When this form is evaluated, an instance of a subclass of
-``Superclass`` is constructed. The body of this subclass shall be
-``body``, which can consist of zero or more :ref:`class declarations
-<classes>`, with the exception that it is illegal to define static
-methods in an anonymous class. The constructor of this class shall be
-invoked with ``args``, or with zero arguments if the non-parameterized
-version of ``new`` is used.
-
-The body of a ``new`` statement is capable of creating :ref:`closures
-<expr-capture>`.
-
-``new`` creates a loop barrier between the enclosing scope and the
-body of the ``new`` form. This means that a ``break`` or ``continue``
-expression inside of the body of the ``new`` cannot be used to control
-a loop that began outside of the body.
-
-.. Attention:: ``new`` is *not* a general-purpose constructor.
-               Programmers used to Java or C# may be used to prefixing
-               type names with ``new`` to construct ordinary instances
-               of the type. That is not how object construction works
-               in GDLisp. To construct ordinary instances of some
-               class, call the method ``new`` on that class, such as
-               ``(ClassName:new 1 2 3)``. The ``new`` special form is
-               only intended to be used when behavior (such as
-               instance variables or methods) is being added
-               anonymously to the class for this instance alone.
+A ``while`` loop defines a loop context, for both its condition and
+its body. This means that ``break`` and ``continue`` can be used in
+either the condition or the body.
 
 ``yield`` Forms
 ^^^^^^^^^^^^^^^
@@ -665,175 +823,6 @@ args))`` are equivalent functions. This is not true for ``yield``,
 since the former, when called, will halt the current function, whereas
 the latter will halt an inner function and return a (somewhat useless)
 function state object that resumes at the end of the inner function.
-
-``assert`` Forms
-^^^^^^^^^^^^^^^^
-
-::
-
-   (assert condition)
-   (assert condition message)
-
-The ``assert`` special form evaluates the condition and message as
-expressions. If ``condition`` is true, then the code proceeds as
-planned. If ``condition`` is false, then an error is generated, using
-``message`` in the error message if provided.
-
-``assert`` special forms are only used when the resulting Godot
-runtime is in debug mode. In release mode, these forms will be
-ignored, and their arguments will not even be evaluated. As such,
-arguments which have side effects should generally not be given to
-``assert``.
-
-``return`` Forms
-^^^^^^^^^^^^^^^^
-
-::
-
-   (return expr)
-
-Evaluates the expression and then returns that expression immediately
-from the enclosing function or instance method.
-
-``macrolet`` Forms
-^^^^^^^^^^^^^^^^^^
-
-::
-
-   (macrolet (clauses ...) body ...)
-
-A ``macrolet`` form is syntactically identical to an ``flet``.
-However, whereas ``flet`` binds functions in the function namespace of
-the current scope, ``macrolet`` binds *macros* in the same namespace.
-The macros defined by a ``macrolet`` are only defined inside of the
-``body`` scope. During that scope, those names are subject to macro
-expansion.
-
-``macrolet`` creates a loop barrier between the enclosing scope and
-the clauses of the ``macrolet`` form. This means that a ``break`` or
-``continue`` expression inside of a clause of the ``macrolet`` cannot
-be used to control a loop that began outside of the clause. This
-constraint does not exist for the body of the ``macrolet``.
-
-.. Warning:: The clauses of a ``macrolet`` form **cannot** create
-             closures. If a locally-defined macro depends on a local
-             variable or function defined in an enclosing scope, then
-             the behavior is undefined.
-
-``symbol-macrolet`` Forms
-^^^^^^^^^^^^^^^^^^^^^^^^^
-
-::
-
-   (symbol-macrolet (clauses ...) body ...)
-
-A ``symbol-macrolet`` clause binds local macros, just like
-``macrolet``, but the former binds *symbol* macros, which are subject
-to macro expansion when a literal symbol is used.
-
-Each clause is of the form
-
-::
-
-   (name value)
-
-Both parts are mandatory. ``name`` is the name of the symbol macro
-(which will be bound in the value namespace). ``value`` is the
-expression which should be run to evaluate the macro.
-
-``symbol-macrolet`` creates a loop barrier between the enclosing scope
-and the clauses of the ``symbol-macrolet`` form. This means that a
-``break`` or ``continue`` expression inside of a clause of the
-``symbol-macrolet`` cannot be used to control a loop that began
-outside of the clause. This constraint does not exist for the body of
-the ``symbol-macrolet``.
-
-.. Warning:: Like ``macrolet``, the clauses of a ``symbol-macrolet``
-             **cannot** create closures. It is undefined behavior to
-             write a local symbol macro that depends on a local
-             variable or function defined in an enclosing scope.
-
-.. _expr-literal-forms:
-
-``literally`` Forms
-^^^^^^^^^^^^^^^^^^^
-
-::
-
-   (literally variable-name)
-
-A ``literally`` form is a backdoor through the GDLisp scoping system.
-The sole argument to ``literally`` must be a symbol literal.
-``(literally x)`` will be translated into the variable name ``x`` in
-the resulting GDScript code. This will be done **without any
-consideration** to whether or not ``x`` is a valid variable name.
-GDLisp will not check that the name is defined, or what scope it is
-defined in. GDLisp will merely assume that you know what you're doing
-and pass the name through.
-
-The name ``variable-name`` given to this form will undergo a partial
-form of :ref:`name normalization <name-normalization>`. Specifically,
-``variable-name`` will be escaped in the same way as an ordinary
-variable name, with the exception that GDScript reserved words will
-not be prefixed with an underscore.
-
-Care must be taken when using ``literally``. Since GDLisp does not
-perform any semantic analysis on the given name, it cannot guarantee
-that the name is valid, or even syntactically makes sense in GDScript
-in the case of keywords. Additionally, names referenced inside of
-``literally`` will not have closures created for them if they occur
-inside of a ``lambda`` or other closure-producing construct. This can
-result in difficult-to-debug situations that GDLisp cannot handle.
-
-The primary intended use case for ``literally`` is to port future
-GDScript functions to GDLisp without having to wait on official
-support from the GDLisp compiler. If a future iteration of Godot adds
-a function called ``frobnicate`` to the global namespace, then you can
-call that function by using the name ``(literally frobnicate)``, even
-if the version of the GDLisp compiler you're using is not aware that
-such a function exists.
-
-``preload`` Forms
-^^^^^^^^^^^^^^^^^
-
-::
-
-   (preload name)
-
-``preload`` is a special form which takes a single string literal as
-argument. The string literal must be the name of a file which can be
-imported, using the Godot ``res://`` notation. ``preload`` works like
-the built-in function ``load`` but performs the act of loading at
-compile-time. It is an error if the pathname does not point to a file.
-
-.. Tip:: In GDLisp, most ``preload`` calls should be replaced with
-         ``use`` directives. See :ref:`imports` for details.
-         ``preload`` can be used in situations (such as macro
-         expansion) where the name being loaded may not be known at
-         definition time but will be known before compilation is
-         complete.
-
-``break`` Forms
-^^^^^^^^^^^^^^^
-
-::
-
-   (break)
-
-``break`` is a special form that can only be used inside of loop
-contexts. ``break`` exits the current loop and continues immediately
-after the loop body.
-
-``continue`` Forms
-^^^^^^^^^^^^^^^^^^
-
-::
-
-   (continue)
-
-``continue`` is a special form that can only be used inside of loop
-contexts. ``continue`` exits the current iteration of the loop and
-continues at the top of the loop body.
 
 .. _expr-capture:
 
