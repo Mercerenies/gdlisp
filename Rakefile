@@ -2,6 +2,11 @@
 require 'logger'
 require 'fileutils'
 
+if Gem.win_platform?
+  # Needed to be able to create symlinks on Windows.
+  require 'win32/file'
+end
+
 $logger = Logger.new($stdout)
 
 release_flag =
@@ -40,7 +45,7 @@ task build: :build_rs do |t, args|
   cp 'GDLisp.msgpack', 'target/release/deps'
   if release_flag.include? '--release'
     mkdir_p 'bin/'
-    ln_sf '../target/release/gdlisp', 'bin/gdlisp'
+    File.symlink('../target/release/gdlisp', 'bin/gdlisp')
   end
 end
 
