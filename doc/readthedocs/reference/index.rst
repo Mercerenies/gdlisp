@@ -16,3 +16,4 @@ Reference Documentation
    expressions.rst
    quoting.rst
    command-line.rst
+   standard-library/index.rst

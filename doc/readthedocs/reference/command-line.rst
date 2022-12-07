@@ -93,4 +93,35 @@ The REPL
 
 Invoking ``gdlisp`` with no arguments drops you into a read-eval-print
 loop (or REPL, for short), where you can run arbitrary GDLisp
-declarations or expressions and see the output. /////
+declarations or expressions and see the output.
+
+.. _support-file:
+
+The GDLisp Support File
+-----------------------
+
+GDLisp has a single-file support library that **must** be included in
+any project that uses GDLisp source code. This file defines all of the
+built-in functions and values available to GDLisp programmers, as well
+as providing some scaffolding necessary for the generated code as
+well.
+
+In a project that needs to utilize GDLisp source code, you must
+include the ``GDLisp.gd`` file. This file is bootstrapped from
+``GDLisp.lisp`` and is produced into the root project directory as
+part of the build process above.
+
+1. Copy and paste the ``GDLisp.gd`` file into the root of your project
+   directory.
+
+2. Create a Godot autoload (sometimes called a singleton) for this
+   file in your project. The autoload must be called ``GDLisp`` (with
+   that exact capitalization). All GDLisp source files will assume
+   that this global variable exists.
+
+.. Warning:: Some versions of Godot try to choose the capitalization
+             for your autoloads in a different way. Specifically,
+             Godot may suggest the name ``GdLisp`` (with a lowercase
+             ``d``) as a default name. The name of the autoload must
+             be ``GDLisp``, with that *exact* capitalization, or
+             GDLisp generated source files will not load.
