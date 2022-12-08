@@ -21,6 +21,23 @@ are available unmodified in GDLisp as well. The exceptions to this are:
   addition to strings, arrays, and dictionaries. See
   :ref:`function-len`.
 
+``append``
+----------
+
+::
+
+   (defn append (&rest args)
+     ...)
+
+Appends all of the lists together, returning a list which contains all
+of the elements of each argument, in the same order they appeared.
+
+The resulting list will share structure with the final argument to
+``append``. That is, the cons cells leading up to the final argument
+to ``append`` will *not* be rebuilt. Additionally, the final argument
+to ``append`` can be an improper list, while all of the other
+arguments must be proper lists.
+
 ``array->list``
 ---------------
 
@@ -102,6 +119,86 @@ order.
      ...)
 
 Converts a proper list into a Godot array.
+
+``list/elt``
+------------
+
+::
+
+   (defn list/elt (list n)
+     ...)
+
+Given a list and an index, returns the element of the list at that
+0-indexed position. Produces an error if the index is out of bounds.
+
+``list/filter``
+---------------
+
+::
+
+   (defn list/filter (p xs)
+     ...)
+
+Applies the unary predicate ``p`` to each element of ``xs`` and
+returns a list of all elements for which the predicate returned
+truthy. The returned list shares no structure with the argument list.
+
+``list/fold``
+-------------
+
+::
+
+   (defn list/fold (f xs &opt x)
+     ...)
+
+A left-fold over a list. ``f`` shall be a function of two arguments,
+``xs`` shall be a proper list, and ``x`` (if supplied) shall be a
+non-null starting value.
+
+The list is traversed from the beginning to the end. At each list
+element, the call ``(funcall f acc element)`` is made, where ``acc``
+is the value we've accumulated so far and ``element`` is the current
+element. The return value of that function call is used as the new
+value of ``acc``. At the end, ``acc`` is returned.
+
+The initial value of ``acc`` is ``x`` if supplied. If ``x`` is not
+supplied, then the initial value is the first element of the list, and
+iteration begins at the second. If ``x`` is not supplied and the list
+is empty, then an error is produced.
+
+``list/map``
+------------
+
+::
+
+   (defn list/map (f xs)
+     ...)
+
+Applies the unary function ``f`` to each element of the list ``xs``
+and returns a new list of the result values.
+
+``list/reverse``
+----------------
+
+::
+
+   (defn list/reverse (arg)
+     ...)
+
+Returns a list containing all of the same elements as ``arg`` but in
+reverse order. Does not mutate ``arg``.
+
+``list/tail``
+-------------
+
+::
+
+   (defn list/tail (list k)
+     ...)
+
+Returns the ``k``\ th cdr of ``list``. That is, returns a tail of the
+list with the first ``k`` elements removed. The resulting list shares
+structure with ``list``.
 
 ``snoc``
 --------
