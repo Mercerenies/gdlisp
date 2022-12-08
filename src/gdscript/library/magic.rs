@@ -101,6 +101,12 @@ pub fn bind_magic(table: &mut MagicTable) {
   // Array Subscript Assignment (set-elt)
   table.set(String::from("ARRAY-SUBSCRIPT-ASSIGNMENT"), CallMagic::ArraySubscriptAssign);
 
+  // Dictionary Subscript (dict/elt; same as elt)
+  table.set(String::from("DICT-SUBSCRIPT"), CallMagic::ArraySubscript);
+
+  // Dictionary Subscript Assignment (set-dict/elt; same as set-elt)
+  table.set(String::from("DICT-SUBSCRIPT-ASSIGNMENT"), CallMagic::ArraySubscriptAssign);
+
   // Direct Instance Check (sys/instance_direct?)
   table.set(String::from("DIRECT-INSTANCE-CHECK"), CallMagic::InstanceOf);
 

@@ -326,6 +326,11 @@ pub fn array_subscript_test() {
 }
 
 #[test]
+pub fn dict_subscript_test() {
+  assert_eq!(parse_compile_and_output("(dict/elt 1 2)"), "return 1[2]\n");
+}
+
+#[test]
 pub fn array_subscript_test_run() {
   assert_eq!(parse_and_run("((let ((x [10 20 30])) (print (elt x 2))))"), "\n30\n");
 }
@@ -333,6 +338,16 @@ pub fn array_subscript_test_run() {
 #[test]
 pub fn array_subscript_test_run_indirect() {
   assert_eq!(parse_and_run("((let ((x [10 20 30])) (print (funcall #'elt x 2))))"), "\n30\n");
+}
+
+#[test]
+pub fn dict_subscript_test_run() {
+  assert_eq!(parse_and_run("((let ((x {10 20})) (print (dict/elt x 10))))"), "\n20\n");
+}
+
+#[test]
+pub fn dict_subscript_test_run_indirect() {
+  assert_eq!(parse_and_run("((let ((x {10 20})) (print (funcall #'dict/elt x 10))))"), "\n20\n");
 }
 
 #[test]
@@ -348,6 +363,16 @@ pub fn array_subscript_assign_test_run_2() {
 #[test]
 pub fn array_subscript_assign_test_run_3() {
   assert_eq!(parse_and_run("((let ((x [10 20 30])) (funcall #'set-elt 999 x 1) (print x)))"), "\n[10, 999, 30]\n");
+}
+
+#[test]
+pub fn dict_subscript_assign_test_run_1() {
+  assert_eq!(parse_and_run("((let ((x {})) (set (dict/elt x 1) 999) (print x)))"), "\n{1:999}\n");
+}
+
+#[test]
+pub fn dict_subscript_assign_test_run_2() {
+  assert_eq!(parse_and_run("((let ((x {2 0})) (set (dict/elt x 2) 1) (print x)))"), "\n{2:1}\n");
 }
 
 #[test]
