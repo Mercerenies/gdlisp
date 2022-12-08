@@ -255,6 +255,10 @@ dictionary in order, returning the first one which exists and is
 truthy. If none satisfy the condition, then ``()`` is returned as a
 default value.
 
+Note that if all you want is a simple if statement with a "true" and a
+"false" case, then the :ref:`if macro <macro-if>` may be more
+convenient for your use case.
+
 .. Tip:: A common idiom is to make the condition of the last clause be
          the literal ``#t`` true object. This acts as a sort of "else"
          clause, triggering unconditionally if all of the other
@@ -640,6 +644,8 @@ details. Note that a ``quote`` form is usually written abbreviated as
 
 Evaluates the expression and then returns that expression immediately
 from the enclosing function or instance method.
+
+.. _expr-set:
 
 ``set`` Forms
 ^^^^^^^^^^^^^

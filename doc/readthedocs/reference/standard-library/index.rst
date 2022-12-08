@@ -10,7 +10,7 @@ All names defined in the GDLisp standard library are available at the
 global scope in every GDLisp source file.
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 1
    :caption: Contents:
 
    values.rst
