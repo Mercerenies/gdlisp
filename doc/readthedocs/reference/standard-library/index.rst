@@ -12,3 +12,8 @@ global scope in every GDLisp source file.
 .. toctree::
    :maxdepth: 2
    :caption: Contents:
+
+   values.rst
+   functions.rst
+   macros.rst
+   types.rst
