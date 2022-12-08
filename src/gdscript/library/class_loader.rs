@@ -160,7 +160,7 @@ pub fn native_types_dictionary_initializer(native: &NativeClasses, pos: SourceOf
   let assign_target = AssignTarget::InstanceField(
     pos,
     Box::new(Expr::var("self", pos)),
-    String::from("native_types_lookup"),
+    String::from("__gdlisp_Global_native_types_lookup"),
   );
   let dict_literal = native_types_dictionary_literal(native, pos);
   Expr::new(

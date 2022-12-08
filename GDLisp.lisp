@@ -47,9 +47,9 @@
 ;;; GDLisp main class initialization
 
 (defclass _GDLisp (Node) main
-  (defvar global_name_generator (FreshNameGenerator:new [] 0))
+  (defvar __gdlisp_Global_name_generator (FreshNameGenerator:new [] 0))
 
-  (defvar symbol_table {})
+  (defvar __gdlisp_Global_symbol_table {})
 
   ;; Primitive types
   (defvar Null (PrimitiveType:new TYPE_NIL))
@@ -89,13 +89,13 @@
   (defvar Nothing (NothingType:new))
 
   ;; GDScript native types lookup table
-  (defvar native_types_lookup)
-  (defvar primitive_types_lookup)
+  (defvar __gdlisp_Global_native_types_lookup)
+  (defvar __gdlisp_Global_primitive_types_lookup)
 
   (sys/bootstrap singleton-backing-types)
 
   (defn _init ()
-    (set self:primitive_types_lookup
+    (set self:__gdlisp_Global_primitive_types_lookup
          {TYPE_NIL @Null TYPE_BOOL @Bool TYPE_INT @Int TYPE_REAL @Float TYPE_STRING @String TYPE_VECTOR2 @Vector2
           TYPE_RECT2 @Rect2 TYPE_VECTOR3 @Vector3 TYPE_TRANSFORM2D @Transform2D TYPE_PLANE @Plane TYPE_QUAT @Quat
           TYPE_AABB @AABB TYPE_BASIS @Basis TYPE_TRANSFORM @Transform TYPE_COLOR @Color TYPE_NODE_PATH @NodePath
@@ -105,14 +105,14 @@
           TYPE_VECTOR3_ARRAY @PoolVector3Array TYPE_COLOR_ARRAY @PoolColorArray})
 
     (sys/bootstrap native-types-table)
-    (set (elt self:native_types_lookup "Object") @Object))
+    (set (elt self:__gdlisp_Global_native_types_lookup "Object") @Object))
 
   (defn typeof (value)
     (let ((t ((literally typeof) value)))
       (cond
-        ((/= t TYPE_OBJECT) (elt self:primitive_types_lookup t))
+        ((/= t TYPE_OBJECT) (elt self:__gdlisp_Global_primitive_types_lookup t))
         ((value:get_script))
-        (#t (self:native_types_lookup:get (value:get_class) self:Any))))))
+        (#t (self:__gdlisp_Global_native_types_lookup:get (value:get_class) self:Any))))))
 
 ;;; Public support classes
 
@@ -751,13 +751,13 @@
 
 (defn intern (a)
   (cond
-    ((member? a GDLisp:symbol_table) (elt GDLisp:symbol_table a))
-    (#t (set (elt GDLisp:symbol_table a) (Symbol:new a)))))
+    ((member? a GDLisp:__gdlisp_Global_symbol_table) (elt GDLisp:__gdlisp_Global_symbol_table a))
+    (#t (set (elt GDLisp:__gdlisp_Global_symbol_table a) (Symbol:new a)))))
 
 (defn gensym (&opt prefix)
   (cond
-    ((= prefix ()) (Symbol:new (GDLisp:global_name_generator:generate)))
-    (#t (Symbol:new (GDLisp:global_name_generator:generate_with prefix)))))
+    ((= prefix ()) (Symbol:new (GDLisp:__gdlisp_Global_name_generator:generate)))
+    (#t (Symbol:new (GDLisp:__gdlisp_Global_name_generator:generate_with prefix)))))
 
 (defn sys/get-node (obj path)
   (sys/call-magic GET-NODE-SYNTAX)
