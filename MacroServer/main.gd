@@ -144,7 +144,7 @@ func pretty(value):
     elif value.has_meta("__gdlisp_Primitive_Cons"):
         return "(" + _pretty_list(value) + ")"
     elif value.has_meta("__gdlisp_Primitive_Symbol"):
-        return value.contents
+        return value.__gdlisp_contents
     else:
         return str(value)
 

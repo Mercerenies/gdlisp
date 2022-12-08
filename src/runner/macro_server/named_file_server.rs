@@ -259,7 +259,7 @@ impl NamedFileServer {
   pub fn set_global_name_generator(&mut self, gen: &FreshNameGenerator) -> io::Result<()> {
     let server = self.server.get_mut()?;
     let json = gen.to_json();
-    let exec_str = format!("    GDLisp.__gdlisp_Global_name_generator = GDLisp.FreshNameGenerator.from_json({})", json);
+    let exec_str = format!("    GDLisp.__gdlisp_Global_name_generator = GDLisp.sys_DIV_FreshNameGenerator.from_json({})", json);
     let cmd = ServerCommand::Exec(exec_str);
     let _result = response_to_string(server.issue_command(&cmd)?)?;
     Ok(())
@@ -269,7 +269,7 @@ impl NamedFileServer {
   /// to a newly-constructed name generator.
   pub fn reset_global_name_generator(&mut self) -> io::Result<()> {
     let server = self.server.get_mut()?;
-    let exec_str = String::from(r#"    GDLisp.__gdlisp_Global_name_generator = GDLisp.FreshNameGenerator.new([], "")"#);
+    let exec_str = String::from(r#"    GDLisp.__gdlisp_Global_name_generator = GDLisp.sys_DIV_FreshNameGenerator.new([], "")"#);
     let cmd = ServerCommand::Exec(exec_str);
     let _result = response_to_string(server.issue_command(&cmd)?)?;
     Ok(())
