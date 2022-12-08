@@ -47,6 +47,91 @@ as ``Key:SHIFT``. The following name translations take place
 * ``HORIZONTAL`` and ``VERTICAL`` go in their own enum called
   ``Orientation``.
 
+Godot Primitive Types
+---------------------
+
+The 27 Godot primitive types are also available in GDLisp. In GDLisp,
+these types are real type objects and can be used as the right-hand
+side of an ``instance?`` call. Since they are real objects in the
+GDLisp ecosystem, they can also be assigned to variables and passed as
+function arguments. Additionally, the names of the GDLisp primitive
+types are normalized to be consistent with other class names.
+Specifically,
+
+* ``Null`` refers to the Godot type whose constant is ``TYPE_NIL`` and
+  whose only value is the null object ``()``.
+
+* ``Bool`` refers to the Godot type ``bool`` whose constant is
+  ``TYPE_BOOL``.
+
+* ``Int`` refers to the Godot type ``int`` whose constant is
+  ``TYPE_INT``.
+
+* ``Float`` refers to the Godot type ``float`` whose constant is
+  ``TYPE_REAL``.
+
+* ``String``, ``Vector2``, ``Rect2``, ``Vector3``, ``Transform2D``,
+  ``Plane``, ``Quat``, ``AABB``, ``Basis``, ``Transform``, ``Color``,
+  ``NodePath``, ``RID``, ``Object``, ``Dictionary``, ``Array``,
+  ``PoolByteArray``, ``PoolIntArray``, ``PoolStringArray``,
+  ``PoolVector2Array``, ``PoolVector3Array``, and ``PoolColorArray``
+  are available in GDLisp and refer to the Godot primitive types of
+  the same name.
+
+``_GDLisp``
+-----------
+
+::
+
+   (defclass _GDLisp (Node)
+     ...)
+
+The class of the singleton GDLisp support object. The behavior of the
+program is undefined if an attempt is made to construct any additional
+instances of this type.
+
+``Any``
+-------
+
+::
+
+   (defclass Any (<no-parent>)
+     ...)
+
+The type of all values in GDLisp. Every single value is an value of
+this type.
+
+``AnyRef``
+----------
+
+::
+
+   (defclass AnyRef (Any)
+     ...)
+
+The type of all object values in GDLisp.
+
+``AnyVal``
+----------
+
+::
+
+   (defclass AnyVal (<no-parent>)
+     ...)
+
+The type of all primitive values in GDLisp. All values which are not
+instances of ``AnyRef`` are instances of ``AnyVal``.
+
+``BaseArray``
+
+::
+
+   (defclass BaseArray (AnyVal)
+     ...)
+
+The common supertype of all array types in GDLisp, including ``Array``
+itself and the seven strictly-typed pool array types.
+
 ``ConnectFlags``
 ----------------
 
@@ -62,6 +147,17 @@ This enumeration makes global the `ConnectFlags enumeration
 <https://docs.godotengine.org/en/stable/classes/class_object.html#enumerations>`_
 in Godot.
 
+``Nothing``
+-----------
+
+::
+
+   (defclass Nothing (<all-parents>)
+     ...)
+
+The bottom of the type hierarchy. There are not, and never will be,
+values of this type in GDLisp.
+
 ``Notification``
 ----------------
 
@@ -75,3 +171,13 @@ An enumeration representing the Godot notification constants `defined
 on Object
 <https://docs.godotengine.org/en/stable/classes/class_object.html#constants>`_.
 
+``Number``
+----------
+
+::
+
+   (defclass Number (AnyVal)
+     ...)
+
+The type of numbers in GDLisp. Integers and floating-point numbers are
+both instances of this type.
