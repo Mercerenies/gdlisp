@@ -2,7 +2,7 @@
 use gdlisp::compile::error::{GDError, GDErrorF};
 use gdlisp::pipeline::error::PError;
 use gdlisp::pipeline::source::SourceOffset;
-use gdlisp::ir::expr::{Expr, ExprF};
+use gdlisp::ir::expr::Expr;
 
 use super::common::*;
 
