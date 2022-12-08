@@ -123,6 +123,7 @@ The type of all primitive values in GDLisp. All values which are not
 instances of ``AnyRef`` are instances of ``AnyVal``.
 
 ``BaseArray``
+-------------
 
 ::
 
@@ -131,6 +132,22 @@ instances of ``AnyRef`` are instances of ``AnyVal``.
 
 The common supertype of all array types in GDLisp, including ``Array``
 itself and the seven strictly-typed pool array types.
+
+``Cell``
+--------
+
+::
+
+   (defclass Cell (Reference)
+     (defvar contents)
+     (defn _init (contents)
+       ...))
+
+The type of simple cells containing one single value. ``Cell`` has a
+single public mutable field, ``contents``, and a constructor of one
+argument.
+
+See also :ref:`cell-type`.
 
 ``ConnectFlags``
 ----------------
@@ -201,6 +218,8 @@ getters are defined for various nestings of ``car`` and ``cdr`` up to
 three layers deep. For instance, ``cons-cell:caddr`` is equivalent to
 ``cons-cell:car:cdr:cdr``.
 
+See also :ref:`cons-cell`.
+
 ``Function``
 ------------
 
@@ -209,7 +228,9 @@ three layers deep. For instance, ``cons-cell:caddr`` is equivalent to
    (defclass Function (Reference)
      ...)
 
-/////
+The type of GDLisp function objects which have been reified into the
+value namespace. These are valid arguments to ``funcall`` and
+``apply``.
 
 ``Nothing``
 -----------
@@ -245,3 +266,13 @@ on Object
 
 The type of numbers in GDLisp. Integers and floating-point numbers are
 both instances of this type.
+
+``Symbol``
+----------
+
+::
+
+   (defclass Symbol (Reference)
+     ...)
+
+The type of symbols at runtime in GDLisp.

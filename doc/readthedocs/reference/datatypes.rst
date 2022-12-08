@@ -37,6 +37,8 @@ They are listed here for completeness.
   behave identically to GDScript. There is no literal syntax for any
   of these types.
 
+.. _cons-cell:
+
 Cons Cells
 ----------
 
@@ -73,6 +75,8 @@ are defined using top-level declaration forms such as ``defn`` or by
 the ``lambda`` or ``function`` special forms. Calling functions is
 done with the built-in ``funcall`` or its fully general companion
 ``apply``.
+
+.. _cell-type:
 
 Cells
 -----
