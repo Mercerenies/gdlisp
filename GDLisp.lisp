@@ -779,6 +779,14 @@
     ((sys/instance-direct? type PrimitiveType) ((literally convert) what type:primitive-value))
     (#t ((literally convert) what type))))
 
+(defn dict/elt (dict n)
+  (sys/call-magic DICT-SUBSCRIPT)
+  (dict/elt dict n))
+
+(defn set-dict/elt (x dict n)
+  (sys/call-magic DICT-SUBSCRIPT-ASSIGNMENT)
+  (set-dict/elt x dict n))
+
 ;;; Math operators
 
 (defn + (&rest args)
