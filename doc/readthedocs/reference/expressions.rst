@@ -169,6 +169,8 @@ literal name of an enumeration (a la ``defenum``) whose definition is
 statically known, GDLisp will validate that the name ``field`` is
 actually a defined enumeration constant on that type.
 
+.. _expr-assert:
+
 ``assert`` Forms
 ^^^^^^^^^^^^^^^^
 
@@ -564,6 +566,8 @@ a loop that began outside of the body.
                instance variables or methods) is being added
                anonymously to the class for this instance alone.
 
+.. _expr-preload:
+
 ``preload`` Forms
 ^^^^^^^^^^^^^^^^^
 
@@ -786,6 +790,8 @@ construct in GDLisp, consider
 A ``while`` loop defines a loop context, for both its condition and
 its body. This means that ``break`` and ``continue`` can be used in
 either the condition or the body.
+
+.. _expr-yield:
 
 ``yield`` Forms
 ^^^^^^^^^^^^^^^

@@ -147,6 +147,70 @@ This enumeration makes global the `ConnectFlags enumeration
 <https://docs.godotengine.org/en/stable/classes/class_object.html#enumerations>`_
 in Godot.
 
+``Cons``
+--------
+
+::
+
+   (defclass Cons (Reference)
+     (defvar car)
+     (defvar cdr)
+
+     (defn _init (car cdr)
+       ...)
+
+     (defn (get caar) ()
+       ...)
+
+     (defn (get cadr) ()
+       ...)
+
+     (defn (get cdar) ()
+       ...)
+
+     (defn (get cddr) ()
+       ...)
+
+     (defn (get caaar) ()
+       ...)
+
+     (defn (get caadr) ()
+       ...)
+
+     (defn (get cadar) ()
+       ...)
+
+     (defn (get caddr) ()
+       ...)
+
+     (defn (get cdaar) ()
+       ...)
+
+     (defn (get cdadr) ()
+       ...)
+
+     (defn (get cddar) ()
+       ...)
+
+     (defn (get cdddr) ()
+       ...))
+
+The type of pairs, or cons cells, in GDLisp. Cons cells have two
+public mutable fields, called ``car`` and ``cdr``. Additionally,
+getters are defined for various nestings of ``car`` and ``cdr`` up to
+three layers deep. For instance, ``cons-cell:caddr`` is equivalent to
+``cons-cell:car:cdr:cdr``.
+
+``Function``
+------------
+
+::
+
+   (defclass Function (Reference)
+     ...)
+
+/////
+
 ``Nothing``
 -----------
 
