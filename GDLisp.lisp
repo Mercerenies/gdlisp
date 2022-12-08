@@ -47,7 +47,7 @@
 ;;; GDLisp main class initialization
 
 (defclass _GDLisp (Node) main
-  (defvar __gdlisp_Global_name_generator (FreshNameGenerator:new [] 0))
+  (defvar __gdlisp_Global_name_generator (sys/FreshNameGenerator:new [] 0))
 
   (defvar __gdlisp_Global_symbol_table {})
 
@@ -160,7 +160,7 @@
     self:cdr:cdr:cdr))
 
 (defclass Function (Reference)
-  (defvar __is_gdlisp_function #t)
+  (defvar __gdlisp_is_function #t)
   (defvar __gdlisp_required 0)
   (defvar __gdlisp_optional 0)
   (defvar __gdlisp_rest 1)
@@ -178,11 +178,11 @@
   ;; Note: This will be obsolete once we have StringName in GDScript,
   ;; which seems to be coming in Godot 4. For now, this manual wrapper
   ;; stores symbols in the least efficient way possible.
-  (defvar contents)
-  (defn _init (@contents)
+  (defvar __gdlisp_contents)
+  (defn _init (@__gdlisp_contents)
     (self:set-meta "__gdlisp_Primitive_Symbol" 1)))
 
-(defclass FreshNameGenerator (Reference)
+(defclass sys/FreshNameGenerator (Reference)
   ;; This is meant to be identical to FreshNameGenerator in the Rust
   ;; source. We want to be able to consistently generate names in the
   ;; same way on both Rust and Godot and to be able to communicate
@@ -197,7 +197,7 @@
   (defn _init (@reserved @index))
 
   (defn generate ()
-    (self:generate_with FreshNameGenerator:DEFAULT_PREFIX))
+    (self:generate_with sys/FreshNameGenerator:DEFAULT_PREFIX))
 
   (defn generate_with (prefix)
     (let ((name ("{}_{}":format [prefix self:index] "{}")))
@@ -210,7 +210,7 @@
     {"reserved" self:reserved "index" self:index})
 
   (defn from_json (json) static
-    (FreshNameGenerator:new
+    (sys/FreshNameGenerator:new
      (elt json "reserved")
      (elt json "index"))))
 
@@ -1317,7 +1317,7 @@
   (let ((fn-name (gensym "_lazy"))
         (this-file (gensym "_this_file"))
         (value-var (gensym "_value"))
-        (meta-name ("__gdlisp_Lazy_{}":format [(gensym):contents] "{}"))) ; TODO Find a better way to convert symbol to string than accessing a, theoretically, private field
+        (meta-name ("__gdlisp_Lazy_{}":format [(gensym):__gdlisp_contents] "{}"))) ; TODO Find a better way to convert symbol to string than accessing a, theoretically, private field
     `(progn
        (defn ,fn-name ()
          (let ((,this-file (this-file)))
