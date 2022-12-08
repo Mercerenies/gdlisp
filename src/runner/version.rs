@@ -54,6 +54,13 @@ impl VersionInfo {
   /// initialized to an appropriate default (zero in the case of
   /// version numbers).
   pub fn parse(version_string: &str) -> VersionInfo {
+    if version_string == "" {
+      // Corner case, since .split() will give us a single empty
+      // string (rather than no values) in the case of an empty string
+      // as input.
+      return VersionInfo::default();
+    }
+
     let mut atoms: VecDeque<&str> = version_string.split('.').collect();
 
     // Try to identify major, minor, patch version
@@ -96,5 +103,99 @@ pub fn get_godot_version() -> io::Result<VersionInfo> {
 }
 
 fn pop_version_number(atoms: &mut VecDeque<&str>) -> Option<i32> {
-  atoms.pop_front().and_then(|atom| i32::from_str(atom).ok())
+  // Only pop the first element if it can actually be parsed.
+  let v = atoms.front().and_then(|atom| i32::from_str(atom).ok())?;
+  atoms.pop_front();
+  Some(v)
+}
+
+#[cfg(test)]
+mod tests {
+  use super::*;
+
+  #[test]
+  fn test_parse_basic_version_string() {
+
+    assert_eq!(
+      VersionInfo::parse("1.2.3"),
+      VersionInfo {
+        version: Version::new(1, 2, 3),
+        modifiers: vec!(),
+      },
+    );
+
+    assert_eq!(
+      VersionInfo::parse("1.2"),
+      VersionInfo {
+        version: Version::new(1, 2, 0),
+        modifiers: vec!(),
+      },
+    );
+
+    assert_eq!(
+      VersionInfo::parse("1"),
+      VersionInfo {
+        version: Version::new(1, 0, 0),
+        modifiers: vec!(),
+      },
+    );
+
+    assert_eq!(
+      VersionInfo::parse(""),
+      VersionInfo {
+        version: Version::new(0, 0, 0),
+        modifiers: vec!(),
+      },
+    );
+  }
+
+  #[test]
+  fn test_parse_nonsense_version_string() {
+    // Parsing version strings does not fail. It may just produce
+    // minimal information.
+    assert_eq!(
+      VersionInfo::parse("e"),
+      VersionInfo {
+        version: Version::new(0, 0, 0),
+        modifiers: vec!(String::from("e")),
+      },
+    );
+  }
+
+  #[test]
+  fn test_parse_full_version_string() {
+    assert_eq!(
+      VersionInfo::parse("10.9.0.a.b.foo"),
+      VersionInfo {
+        version: Version::new(10, 9, 0),
+        modifiers: vec!(String::from("a"), String::from("b"), String::from("foo")),
+      },
+    );
+    assert_eq!(
+      VersionInfo::parse("10.9.1.a.b.foo"),
+      VersionInfo {
+        version: Version::new(10, 9, 1),
+        modifiers: vec!(String::from("a"), String::from("b"), String::from("foo")),
+      },
+    );
+  }
+
+  #[test]
+  fn test_parse_partial_version_string() {
+    assert_eq!(
+      VersionInfo::parse("10.9.a.b.foo"),
+      VersionInfo {
+        version: Version::new(10, 9, 0),
+        modifiers: vec!(String::from("a"), String::from("b"), String::from("foo")),
+      },
+    );
+    assert_eq!(
+      VersionInfo::parse("10.a.b.foo"),
+      VersionInfo {
+        version: Version::new(10, 0, 0),
+        modifiers: vec!(String::from("a"), String::from("b"), String::from("foo")),
+      },
+    );
+  }
+
 }
