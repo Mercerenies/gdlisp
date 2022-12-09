@@ -93,7 +93,7 @@ pub fn access_slot(x: AST, y: AST, pos: SourceOffset) -> AST {
   binary(ACCESS_SLOT_FORM_NAME, x, y, pos)
 }
 
-/// Produces the form `(x:get-node y)`.
+/// Produces a function call which will perform `(x:get-node y)`.
 ///
 /// Written in full generality, this is the form `((access-slot x
 /// get-node) y)`.
