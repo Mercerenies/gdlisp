@@ -259,7 +259,7 @@ impl FnSpecs {
   /// assert_eq!(FnSpecs::new(1, 2, Some(VarArg::ArrArg)).runtime_arity(), 4);
   /// ```
   pub fn runtime_arity(&self) -> usize {
-    self.required + self.optional + if self.has_rest() { 1 } else { 0 }
+    self.required + self.optional + usize::from(self.has_rest())
   }
 
   /// The minimum number of arguments necessary to correctly call a

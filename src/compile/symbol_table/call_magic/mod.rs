@@ -249,7 +249,7 @@ impl CallMagic {
   /// provides the enclosing scope information.
   pub fn compile(&self,
                  call: FnCall,
-                 compiler: &mut Compiler,
+                 _compiler: &mut Compiler,
                  builder: &mut StmtBuilder,
                  table: &mut SymbolTable,
                  mut args: Vec<StExpr>, // TODO Get this declared immutable here and mutable on inner scopes only
@@ -283,7 +283,7 @@ impl CallMagic {
           }
           1 => {
             // Dump to the builder as a simple statement if it's stateful.
-            (&stmt_wrapper::Vacuous).wrap_to_builder(builder, args[0].clone());
+            stmt_wrapper::Vacuous.wrap_to_builder(builder, args[0].clone());
             Ok(Expr::from_value(true, pos))
           }
           2 => {
@@ -416,7 +416,7 @@ impl CallMagic {
           }
           1 => {
             // Dump to the builder as a simple statement if it's stateful.
-            (&stmt_wrapper::Vacuous).wrap_to_builder(builder, args[0].clone());
+            stmt_wrapper::Vacuous.wrap_to_builder(builder, args[0].clone());
             Ok(Expr::from_value(true, pos))
           }
           2 => {
@@ -424,7 +424,7 @@ impl CallMagic {
             Ok(lhs.binary(op::BinaryOp::NE, rhs, pos))
           }
           _ => {
-            fallback.compile(call, compiler, builder, table, args, pos)
+            fallback.compile(call, _compiler, builder, table, args, pos)
           }
         }
       }
@@ -529,7 +529,7 @@ impl CallMagic {
             );
           }
         }
-        fallback.compile(call, compiler, builder, table, args, pos)
+        fallback.compile(call, _compiler, builder, table, args, pos)
       }
     }
   }

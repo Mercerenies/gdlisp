@@ -33,11 +33,11 @@ fn walk_impl_expr<'a, E>(walker: &mut (impl FnMut(&Expr) -> Result<Expr, E> + 'a
   let mut expr = expr.clone();
   match &mut expr.value {
     ExprF::Subscript(a, b) => {
-      **a = walk_impl_expr(walker, &**a)?;
-      **b = walk_impl_expr(walker, &**b)?;
+      **a = walk_impl_expr(walker, a)?;
+      **b = walk_impl_expr(walker, b)?;
     }
     ExprF::Attribute(a, _) => {
-      **a = walk_impl_expr(walker, &**a)?;
+      **a = walk_impl_expr(walker, a)?;
     }
     ExprF::Call(lhs, _, args) => {
       if let Some(lhs) = lhs.as_mut() {
@@ -53,16 +53,16 @@ fn walk_impl_expr<'a, E>(walker: &mut (impl FnMut(&Expr) -> Result<Expr, E> + 'a
       }
     }
     ExprF::Unary(_, a) => {
-      **a = walk_impl_expr(walker, &**a)?;
+      **a = walk_impl_expr(walker, a)?;
     }
     ExprF::Binary(a, _, b) => {
-      **a = walk_impl_expr(walker, &**a)?;
-      **b = walk_impl_expr(walker, &**b)?;
+      **a = walk_impl_expr(walker, a)?;
+      **b = walk_impl_expr(walker, b)?;
     }
     ExprF::TernaryIf(expr::TernaryIf { true_case: a, cond: b, false_case: c }) => {
-      **a = walk_impl_expr(walker, &**a)?;
-      **b = walk_impl_expr(walker, &**b)?;
-      **c = walk_impl_expr(walker, &**c)?;
+      **a = walk_impl_expr(walker, a)?;
+      **b = walk_impl_expr(walker, b)?;
+      **c = walk_impl_expr(walker, c)?;
     }
     ExprF::ArrayLit(args) => {
       for arg in args.iter_mut() {

@@ -54,7 +54,7 @@ impl VersionInfo {
   /// initialized to an appropriate default (zero in the case of
   /// version numbers).
   pub fn parse(version_string: &str) -> VersionInfo {
-    if version_string == "" {
+    if version_string.is_empty() {
       // Corner case, since .split() will give us a single empty
       // string (rather than no values) in the case of an empty string
       // as input.

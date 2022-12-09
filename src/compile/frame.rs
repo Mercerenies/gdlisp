@@ -623,7 +623,7 @@ impl<'a, 'b, 'c, 'd, 'e> CompilerFrame<'a, 'b, 'c, 'd, 'e, StmtBuilder> {
       .map(|x| self.compile_expr(x, NeedsResult::Yes))
       .collect::<Result<Vec<_>, _>>()?;
     Ok(StExpr {
-      expr: fcall.into_expr_with_magic(&*call_magic, self.compiler, self.builder, self.table, args, pos)?,
+      expr: fcall.into_expr_with_magic(&call_magic, self.compiler, self.builder, self.table, args, pos)?,
       side_effects: SideEffects::ModifiesState,
     })
   }

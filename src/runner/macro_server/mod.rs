@@ -112,7 +112,7 @@ impl MacroServer {
   fn send_string(&mut self, string: &str) -> io::Result<()> {
     let mut buf = Vec::new();
     let len: u32 = string.len().try_into().expect("String too long to send to Godot TCP server");
-    buf.extend(&len.to_be_bytes());
+    buf.extend(len.to_be_bytes());
     buf.extend(string.bytes());
     self.tcp_server.write_all(&buf)?;
     Ok(())
