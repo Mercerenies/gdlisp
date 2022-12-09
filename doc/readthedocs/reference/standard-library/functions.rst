@@ -510,6 +510,17 @@ Converts a proper list into a Godot array.
 Given a list and an index, returns the element of the list at that
 0-indexed position. Produces an error if the index is out of bounds.
 
+``list/copy``
+-------------
+
+::
+
+   (defn list/copy (list)
+     ...)
+
+Returns a new list containing the same elements as ``list`` in the
+same order. The two lists will not share any structure.
+
 ``list/filter``
 ---------------
 
