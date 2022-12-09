@@ -559,4 +559,15 @@ return foo2(2, v_1)
 "#);
 }
 
+#[test]
+pub fn list_is_not_shared_running_test() {
+  assert_eq!(parse_and_run(r#"
+    ((let* ((first-list (list 1 2 3 4))
+            (second-list (apply #'list first-list)))
+       (set first-list:car 0)
+       (print (list->array first-list))
+       (print (list->array second-list))))"#),
+             "\n[0, 2, 3, 4]\n[1, 2, 3, 4]\n");
+}
+
 // TODO Test gensym at runtime once we can pretty-print symbols

@@ -559,7 +559,13 @@
 
 (defn list (&rest args)
   (sys/call-magic LIST)
-  args)
+  ;; The argument list may be shared with some other code, but `list`
+  ;; should always allocate a new list, so defensively copy the
+  ;; argument list.
+  (list/copy args))
+
+(defn list/copy (xs)
+  (list/map (lambda (x) x) xs))
 
 (defn cons (a b)
   (Cons:new a b))
