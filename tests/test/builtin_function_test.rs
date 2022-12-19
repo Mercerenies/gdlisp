@@ -570,4 +570,22 @@ pub fn list_is_not_shared_running_test() {
              "\n[0, 2, 3, 4]\n[1, 2, 3, 4]\n");
 }
 
+#[test]
+pub fn array_find_test() {
+  assert_eq!(parse_and_run(r#"
+    ((let ((arr [1 2 3 4 5 6]))
+       (print (array/find (lambda (x) (> x 3)) arr))
+       (print (array/find (lambda (x) (> x 10)) arr))))"#),
+             "\n4\nNull\n");
+}
+
+#[test]
+pub fn list_find_test() {
+  assert_eq!(parse_and_run(r#"
+    ((let ((list '(1 2 3 4 5 6)))
+       (print (list/find (lambda (x) (> x 3)) list))
+       (print (list/find (lambda (x) (> x 10)) list))))"#),
+             "\n4\nNull\n");
+}
+
 // TODO Test gensym at runtime once we can pretty-print symbols

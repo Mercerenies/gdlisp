@@ -631,6 +631,13 @@
         (set xs xs:cdr))
       outer:cdr)))
 
+(defn list/find (f xs &opt default)
+  (while (/= xs nil)
+    (cond
+      ((funcall f xs:car) (return xs:car)))
+    (set xs xs:cdr))
+  default)
+
 (defn list/reverse (arg)
   (let ((rev nil))
     (while (/= arg nil)
@@ -708,6 +715,12 @@
     (for i (range len)
       (set (elt result i) (elt arr (- len i 1))))
     result))
+
+(defn array/find (f arr &opt default)
+  (for elem arr
+    (cond
+      ((funcall f elem) (return elem))))
+  default)
 
 ;;; Higher-order functions
 
