@@ -223,6 +223,20 @@ Applies the unary predicate ``p`` to each element of the array ``xs``
 and returns a filter of all elements for which the predicate returned
 truthy. Does not modify ``xs``.
 
+``array/find``
+----------------
+
+::
+
+   (defn array/find (p arr &opt default)
+     ...)
+
+Applies the unary predicate ``p`` to each element of the array
+``arr``. Returns the first element of the array for which the
+predicate returned true. If no element returns true, then ``default``
+is returned. This function will short-circuit and stop calling ``p``
+as soon as a match is found.
+
 ``array/fold``
 --------------
 
@@ -532,6 +546,20 @@ same order. The two lists will not share any structure.
 Applies the unary predicate ``p`` to each element of ``xs`` and
 returns a list of all elements for which the predicate returned
 truthy. The returned list shares no structure with the argument list.
+
+``list/find``
+----------------
+
+::
+
+   (defn list/find (p xs &opt default)
+     ...)
+
+Applies the unary predicate ``p`` to each element of the proper list
+``xs``. Returns the first element of the list for which the predicate
+returned true. If no element returns true, then ``default`` is
+returned. This function will short-circuit and stop calling ``p`` as
+soon as a match is found.
 
 ``list/fold``
 -------------
