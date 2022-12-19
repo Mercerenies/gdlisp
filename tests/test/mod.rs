@@ -25,6 +25,7 @@ pub mod lazy_val_test;
 pub mod let_var_test;
 pub mod list_operator_test;
 pub mod macro_test;
+pub mod meta_test;
 pub mod name_translation_test;
 pub mod object_test;
 pub mod operator_test;

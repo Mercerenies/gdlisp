@@ -22,8 +22,6 @@ use crate::pipeline::source::SourceOffset;
 /// The prefix applied to all GDLisp metadata.
 pub const PREFIX: &str = "__gdlisp";
 
-// TODO Test for presence of these two metas
-
 /// The metadata field that exists (and is truthy) on all cons cells
 /// in GDLisp.
 pub const CONS_META: &str = "__gdlisp_Primitive_Cons";
