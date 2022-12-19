@@ -17,7 +17,6 @@ use crate::compile::Compiler;
 use crate::compile::names;
 use crate::compile::symbol_table::SymbolTable;
 use crate::compile::symbol_table::local_var::VarName;
-use crate::ir::arglist::ordinary::ArgList;
 use crate::ir::identifier::{Id, Namespace};
 use crate::ir::macros::MacroData;
 use crate::runner::version::{VersionInfo, get_godot_version};
@@ -198,23 +197,8 @@ pub fn bind_builtin_macros(macros: &mut HashMap<Id, MacroData>,
 
   for name in &unit.exports {
     if let Some(data) = unit.macros.get(name) {
-
       macros.insert(name.to_owned(), data.to_imported());
-
-      // Reverse-engineer the macro arguments from the function table,
-      // then add it to the new pipeline. (TODO Messy hack)
-      let args = match name.namespace {
-        Namespace::Value => {
-          ArgList::empty()
-        }
-        Namespace::Function => {
-          let (call, _) = unit.table.get_fn(&name.name).expect("Error in bind_builtin_macros");
-          ArgList::from_specs(call.specs)
-        }
-      };
-
-      pipeline.get_server_mut().add_reserved_macro(names::lisp_to_gd(&name.name), args);
-
+      pipeline.get_server_mut().add_reserved_macro(names::lisp_to_gd(&name.name));
     }
   }
 

@@ -18,7 +18,6 @@ use crate::compile::stmt_wrapper::{self, StmtWrapper};
 use crate::gdscript::expr::{Expr as GDExpr};
 use crate::gdscript::stmt::Stmt;
 use crate::gdscript::library;
-use crate::ir::arglist::ordinary::ArgList;
 use crate::pipeline::error::{PError, IOError};
 use crate::pipeline::source::SourceOffset;
 use crate::AST_PARSER;
@@ -71,7 +70,6 @@ struct MacroCall {
   #[allow(dead_code)]
   original_name: String, // Probably not needed, but we have it so we may as well keep track of it.
   name: String,
-  parms: ArgList,
   #[allow(dead_code)]
   file: Option<NamedTempFile>, // Macros can optionally retain a file resource, which will be deleted when the macro is discarded from scope.
 }
@@ -109,17 +107,16 @@ impl NamedFileServer {
   /// time). This function does *not* instruct the Godot process to
   /// load any new files or to do anything at all. Instead, this
   /// function simply makes the `NamedFileServer` struct aware that
-  /// there is a macro with the given name and argument list in the
-  /// standard library file. It is the caller's responsibility to
-  /// ensure that the information is actually correct.
-  pub fn add_reserved_macro(&mut self, name: String, parms: ArgList) -> MacroID {
+  /// there is a macro with the given name in the standard library
+  /// file. It is the caller's responsibility to ensure that the
+  /// information is actually correct.
+  pub fn add_reserved_macro(&mut self, name: String) -> MacroID {
     let id = self.next_reserved_id;
     self.next_reserved_id = self.next_reserved_id.next();
     self.macro_files.insert(id, MacroCall {
       index: RESERVED_MACRO_INDEX,
       original_name: name.clone(),
       name,
-      parms,
       file: None,
     });
     id
@@ -159,10 +156,10 @@ impl NamedFileServer {
   ///
   /// This method returns a [`MacroID`] which can be used later to
   /// call the macro.
-  pub fn stand_up_macro(&mut self, name: String, parms: ArgList, file: NamedTempFile) -> io::Result<MacroID> {
+  pub fn stand_up_macro(&mut self, name: String, file: NamedTempFile) -> io::Result<MacroID> {
     let idx = self.load_file_on_server(file.path())?;
     let gdname = names::lisp_to_gd(&name);
-    let call = MacroCall { index: idx, original_name: name, name: gdname, parms, file: Some(file) };
+    let call = MacroCall { index: idx, original_name: name, name: gdname, file: Some(file) };
     let id = self.next_id;
     self.next_id = self.next_id.next();
     self.macro_files.insert(id, call);
@@ -191,18 +188,17 @@ impl NamedFileServer {
   /// must be the macro ID from a prior invocation of `stand_up_macro`
   /// or [`add_reserved_macro`](NamedFileServer::add_reserved_macro)
   /// on the same `NamedFileServer` instance.
-  pub fn run_server_file(&mut self, id: MacroID, prelude: Vec<Stmt>, args: Vec<GDExpr>, pos: SourceOffset)
+  pub fn run_server_file(&mut self, id: MacroID, prelude: Vec<Stmt>, specs: FnSpecs, args: Vec<GDExpr>, pos: SourceOffset)
                          -> Result<AST, PError> {
-    let result = self.run_server_file_str(id, prelude, args, pos)?;
+    let result = self.run_server_file_str(id, prelude, specs, args, pos)?;
     let parsed = AST_PARSER.parse(&result)?;
     //println!("{}", parsed);
     Ok(parsed)
   }
 
-  pub fn run_server_file_str(&mut self, id: MacroID, prelude: Vec<Stmt>, args: Vec<GDExpr>, pos: SourceOffset)
+  pub fn run_server_file_str(&mut self, id: MacroID, prelude: Vec<Stmt>, specs: FnSpecs, args: Vec<GDExpr>, pos: SourceOffset)
                              -> Result<String, PError> {
     let call = self.get_file(id).expect("Invalid MacroID in run_server_file");
-    let specs = FnSpecs::from(call.parms.clone());
     let call_object =
       if id.is_reserved() {
         let gdlisp_root = library::gdlisp_root_var_name();

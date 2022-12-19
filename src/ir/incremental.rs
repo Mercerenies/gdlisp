@@ -26,6 +26,7 @@ use crate::sxp::ast::{AST, ASTF};
 use crate::sxp::literal::{Literal as ASTLiteral};
 use crate::sxp::reify::pretty::reify_pretty_expr;
 use crate::compile::symbol_table::SymbolTable;
+use crate::compile::symbol_table::function_call::FnSpecs;
 use crate::compile::error::{GDError, GDErrorF};
 use crate::compile::resource_type::ResourceType;
 use crate::compile::args::{self, Expecting, ExpectedShape};
@@ -41,7 +42,6 @@ use crate::pipeline::error::{PError, IOError};
 use crate::pipeline::Pipeline;
 use crate::pipeline::translation_unit::TranslationUnit;
 use crate::pipeline::source::SourceOffset;
-use crate::runner::macro_server::named_file_server::MacroID;
 
 use std::convert::{TryFrom, TryInto};
 use std::borrow::{Cow, Borrow};
@@ -80,7 +80,7 @@ impl IncCompiler {
                                    pipeline: &mut Pipeline,
                                    head: &K,
                                    tail: &[&AST],
-                                   macro_id: MacroID,
+                                   macro_data: &MacroData,
                                    pos: SourceOffset)
                                    -> Result<AST, PError>
   where Id : Borrow<K>,
@@ -105,7 +105,7 @@ impl IncCompiler {
     let server = pipeline.get_server_mut();
     server.set_global_name_generator(&self.names).map_err(|err| IOError::new(err, pos))?;
 
-    let ast = server.run_server_file(macro_id, prelude, args, pos);
+    let ast = server.run_server_file(macro_data.id, prelude, macro_data.specs, args, pos);
 
     server.reset_global_name_generator().map_err(|err| IOError::new(err, pos))?;
 
@@ -130,9 +130,9 @@ impl IncCompiler {
       let head = CallName::resolve_call_name(self, pipeline, vec[0])?;
       if let CallName::SimpleName(head) = head {
         let tail = &vec[1..];
-        if let Some(MacroData { id, imported: _ }) = self.macros.get(&*Id::build(Namespace::Function, &head)) {
-          let id = *id;
-          return self.resolve_macro_call(pipeline, &*Id::build(Namespace::Function, &head), tail, id, ast.pos).map(Some);
+        if let Some(macro_data) = self.macros.get(&*Id::build(Namespace::Function, &head)) {
+          let macro_data = macro_data.to_owned();
+          return self.resolve_macro_call(pipeline, &*Id::build(Namespace::Function, &head), tail, &macro_data, ast.pos).map(Some);
         }
       }
     }
@@ -140,9 +140,9 @@ impl IncCompiler {
   }
 
   fn try_resolve_symbol_macro_call(&mut self, pipeline: &mut Pipeline, head: &str, pos: SourceOffset) -> Result<Option<AST>, PError> {
-    if let Some(MacroData { id, imported: _ }) = self.macros.get(&*Id::build(Namespace::Value, head)) {
-      let id = *id;
-      return self.resolve_macro_call(pipeline, &*Id::build(Namespace::Value, head), &[], id, pos).map(Some);
+    if let Some(macro_data) = self.macros.get(&*Id::build(Namespace::Value, head)) {
+      let macro_data = macro_data.to_owned();
+      return self.resolve_macro_call(pipeline, &*Id::build(Namespace::Value, head), &[], &macro_data, pos).map(Some);
     }
     Ok(None)
   }
@@ -151,9 +151,9 @@ impl IncCompiler {
                              -> Result<Expr, PError> {
     if let Some(sf) = special_form::dispatch_form(self, pipeline, head, tail, pos)? {
       Ok(sf)
-    } else if let Some(MacroData { id, imported: _ }) = self.macros.get(&*Id::build(Namespace::Function, head)) {
-      let id = *id;
-      let result = self.resolve_macro_call(pipeline, &*Id::build(Namespace::Function, head), tail, id, pos)?;
+    } else if let Some(macro_data) = self.macros.get(&*Id::build(Namespace::Function, head)) {
+      let macro_data = macro_data.to_owned();
+      let result = self.resolve_macro_call(pipeline, &*Id::build(Namespace::Function, head), tail, &macro_data, pos)?;
       self.compile_expr(pipeline, &result)
     } else {
       let args = tail.iter().map(|x| self.compile_expr(pipeline, x)).collect::<Result<Vec<_>, _>>()?;
@@ -685,8 +685,8 @@ impl IncCompiler {
 
     // bind_macro is a no-op in a minimalist compile
     if self.minimalist {
-      let id = pipeline.get_server_mut().add_reserved_macro(names::lisp_to_gd(&orig_name), decl.args);
-      self.macros.insert(Id::new(namespace, orig_name), MacroData { id, imported: false });
+      let id = pipeline.get_server_mut().add_reserved_macro(names::lisp_to_gd(&orig_name));
+      self.macros.insert(Id::new(namespace, orig_name), MacroData { id, specs: FnSpecs::from(decl.args), imported: false });
       return Ok(());
     }
 
@@ -741,8 +741,8 @@ impl IncCompiler {
     // all referenced functions are already defined.
     let names = deps.try_into_knowns()?;
     let tmpfile = macros::create_macro_file(pipeline, self.imports.clone(), table.borrow(), names, &self.ambient_symbols, pos, self.minimalist)?;
-    let m_id = pipeline.get_server_mut().stand_up_macro(runtime_name, decl.args, tmpfile).map_err(|err| IOError::new(err, pos))?;
-    self.macros.insert(Id::new(namespace, orig_name), MacroData { id: m_id, imported: false });
+    let m_id = pipeline.get_server_mut().stand_up_macro(runtime_name, tmpfile).map_err(|err| IOError::new(err, pos))?;
+    self.macros.insert(Id::new(namespace, orig_name), MacroData { id: m_id, specs: FnSpecs::from(decl.args), imported: false });
 
     Ok(())
   }

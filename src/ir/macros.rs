@@ -4,6 +4,7 @@ use crate::compile::names::fresh::FreshNameGenerator;
 use crate::compile::body::builder::CodeBuilder;
 use crate::compile::body::class_scope::OutsideOfClass;
 use crate::compile::symbol_table::SymbolTable;
+use crate::compile::symbol_table::function_call::FnSpecs;
 use crate::gdscript::library;
 use crate::gdscript::class_extends::ClassExtends;
 use crate::runner::into_gd_file::IntoGDFile;
@@ -27,6 +28,7 @@ use std::collections::HashSet;
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct MacroData {
   pub id: MacroID,
+  pub specs: FnSpecs,
   pub imported: bool,
 }
 

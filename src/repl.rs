@@ -10,12 +10,12 @@ use crate::ir::incremental::IncCompiler;
 use crate::ir::macros::MacroData;
 use crate::ir::identifier::{Namespace, Id};
 use crate::ir::main_function::StaticMainFunctionHandler;
-use crate::ir::arglist::ordinary::ArgList;
 use crate::compile::Compiler;
 use crate::compile::body::builder::CodeBuilder;
 use crate::compile::body::class_scope::OutsideOfClass;
 use crate::compile::symbol_table::SymbolTable;
 use crate::compile::symbol_table::local_var::VarName;
+use crate::compile::symbol_table::function_call::FnSpecs;
 use crate::compile::symbol_table::call_magic::CallMagic;
 use crate::compile::names::fresh::FreshNameGenerator;
 use crate::compile::preload_resolver::DefaultPreloadResolver;
@@ -152,10 +152,10 @@ impl Repl {
 
     let server = self.pipeline.get_server_mut();
     let macro_id =
-      server.stand_up_macro(String::from(REPL_FUNCTION_NAME), ArgList::empty(), tmpfile)
+      server.stand_up_macro(String::from(REPL_FUNCTION_NAME), tmpfile)
       .map_err(|err| IOError::new(err, SourceOffset(0)))?;
 
-    let final_result = server.run_server_file_str(macro_id, vec!(), vec!(), SourceOffset(0))?;
+    let final_result = server.run_server_file_str(macro_id, vec!(), FnSpecs::EMPTY, vec!(), SourceOffset(0))?;
 
     // If everything happened correctly, then save the symbols we got
     // from this line.

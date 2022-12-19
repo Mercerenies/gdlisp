@@ -218,6 +218,9 @@ impl FnCall {
 
 impl FnSpecs {
 
+  /// An `FnSpecs` object representing a function of no arguments.
+  pub const EMPTY: FnSpecs = FnSpecs { required: 0, optional: 0, rest: None };
+
   /// Convenience constructor for a `FnSpecs`.
   pub fn new(required: usize, optional: usize, rest: Option<VarArg>) -> FnSpecs {
     FnSpecs { required, optional, rest }
