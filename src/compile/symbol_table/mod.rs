@@ -12,6 +12,7 @@ pub mod function_call;
 pub mod call_magic;
 pub mod local_var;
 
+use crate::ir::identifier::{Id, Namespace};
 use function_call::FnCall;
 use call_magic::{CallMagic};
 use local_var::{LocalVar, ValueHint, ValueHintsTable};
@@ -224,6 +225,24 @@ impl SymbolTable {
     self.functions.iter_mut().map(|(name, value)| {
       (name.borrow(), &mut value.0, &mut value.1)
     })
+  }
+
+  /// An iterator over all of the names in the symbol table, in both
+  /// namespaces. The order in which this iterator outputs names is
+  /// not specified.
+  pub fn keys(&self) -> impl Iterator<Item=(Namespace, &str)> {
+    let vars = self.vars().map(|(name, _)| (Namespace::Value, name));
+    let fns = self.fns().map(|(name, _, _)| (Namespace::Function, name));
+    vars.chain(fns)
+  }
+
+  /// An iterator over all of the names in the symbol table, taking
+  /// ownership of the respective identifiers, in both namespaces. The
+  /// order in which this iterator outputs names is not specified.
+  pub fn into_keys(self) -> impl Iterator<Item=Id> {
+    let vars = self.locals.into_iter().map(|(name, _)| Id::new(Namespace::Value, name));
+    let fns = self.functions.into_iter().map(|(name, _)| Id::new(Namespace::Function, name));
+    vars.chain(fns)
   }
 
   /// Iterates over both namespaces of `other` and sets the variable

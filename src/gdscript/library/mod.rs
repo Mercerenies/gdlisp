@@ -168,7 +168,6 @@ fn bind_builtins_unchecked(table: &mut SymbolTable, unit: Option<&StdlibUnit>) {
     }
   }
 
-  // TODO The remaining constants from @GlobalScope need to be copied over here
 }
 
 /// Get a collection of all of the built-in names in GDLisp and
@@ -177,19 +176,13 @@ fn bind_builtins_unchecked(table: &mut SymbolTable, unit: Option<&StdlibUnit>) {
 /// `minimalist` is passed onto [`bind_builtins`] as-is and will be
 /// interpreted in the same way it is in that function.
 pub fn all_builtin_names(minimalist: bool) -> HashSet<Id> {
-  // This is a *really* roundabout way of doing this, but whatever.
-  // The canonical list is given in bind_builtins, so for the sake of
-  // DRY we'll delegate to that function.
+  // bind_builtins is the single source of truth for built-in names.
+  // So if we want them in a HashSet, we should let bind_builtins
+  // build a symbol table, and then we should convert that into a
+  // HashSet.
   let mut table = SymbolTable::new();
   bind_builtins(&mut table, minimalist);
-  let mut names = HashSet::new();
-  for (func, _, _) in table.fns() {
-    names.insert(Id::new(Namespace::Function, func.to_owned()));
-  }
-  for (var, _) in table.vars() {
-    names.insert(Id::new(Namespace::Value, var.to_owned()));
-  }
-  names
+  table.into_keys().collect()
 }
 
 /// Bind all of the built-in GDLisp macros and symbol macros to the
