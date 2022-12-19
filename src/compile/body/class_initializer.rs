@@ -252,10 +252,6 @@ impl Default for InitTime {
 
 impl ClassInit {
 
-  // TODO Is it possible for variables to be shadowed by the
-  // initializer arguments here? Should we throw an error in that
-  // case?
-
   /// Applies the initializer information to the given class
   /// declaration. The class declaration is mutated in-place. If an
   /// error occurs, then the class declaration is left in a valid but
