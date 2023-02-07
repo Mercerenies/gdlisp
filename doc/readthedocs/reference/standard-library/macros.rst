@@ -272,6 +272,8 @@ macro expansion but it should be used in situations where a macro is
 attempting to expand *into* a ``load`` call which will happen at
 runtime.
 
+.. _macro-unless:
+
 ``unless``
 ----------
 
@@ -309,6 +311,8 @@ Examples::
   (update b -) ; Sets b equal to its negative
   (update player:position (* 2)) ; Multiplies the position field on player by 2
   (update (elt x 0) (/ 2)) ; Divides the first element of the array x by 2
+
+.. _macro-when:
 
 ``when``
 --------

@@ -264,6 +264,17 @@ convenient for your use case.
          clause, triggering unconditionally if all of the other
          branches fail.
 
+``continue`` Forms
+^^^^^^^^^^^^^^^^^^
+
+::
+
+   (continue)
+
+``continue`` is a special form that can only be used inside of loop
+contexts. ``continue`` exits the current loop iteration and continues
+the next iteration of the loop.
+
 .. _expr-flet:
 
 ``flet`` Forms
@@ -591,6 +602,8 @@ compile-time. It is an error if the pathname does not point to a file.
          expansion) where the name being loaded may not be known at
          definition time but will be known before compilation is
          complete.
+
+.. _expr-progn:
 
 ``progn`` Forms
 ^^^^^^^^^^^^^^^

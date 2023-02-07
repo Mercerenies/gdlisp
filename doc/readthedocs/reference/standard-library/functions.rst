@@ -211,6 +211,8 @@ desugars to a call to this function.
 
 Converts a Godot array or pooled array into a proper list.
 
+.. _function-array-filter:
+
 ``array/filter``
 ----------------
 
@@ -222,6 +224,8 @@ Converts a Godot array or pooled array into a proper list.
 Applies the unary predicate ``p`` to each element of the array ``xs``
 and returns a filter of all elements for which the predicate returned
 truthy. Does not modify ``xs``.
+
+.. _function-array-find:
 
 ``array/find``
 ----------------
@@ -236,6 +240,8 @@ Applies the unary predicate ``p`` to each element of the array
 predicate returned true. If no element returns true, then ``default``
 is returned. This function will short-circuit and stop calling ``p``
 as soon as a match is found.
+
+.. _function-array-fold:
 
 ``array/fold``
 --------------
