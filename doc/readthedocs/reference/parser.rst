@@ -1,4 +1,6 @@
 
+.. _parser:
+
 The GDLisp Parser
 =================
 

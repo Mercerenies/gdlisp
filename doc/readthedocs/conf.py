@@ -7,7 +7,7 @@
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 
 project = 'GDLisp'
-copyright = '2022, Mercerenies'
+copyright = '2022-2023, Mercerenies'
 author = 'Mercerenies'
 
 # -- General configuration ---------------------------------------------------

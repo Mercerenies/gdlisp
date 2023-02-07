@@ -10,12 +10,5 @@ Welcome to GDLisp's documentation!
    :maxdepth: 2
    :caption: Contents:
 
+   tutorial/index.rst
    reference/index.rst
-
-
-
-Indices and tables
-==================
-
-* :ref:`genindex`
-* :ref:`search`

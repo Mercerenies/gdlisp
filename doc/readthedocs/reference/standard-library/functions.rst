@@ -260,6 +260,8 @@ supplied, then the initial value is the first element of the array,
 and iteration begins at the second. If ``x`` is not supplied and the
 array is empty, then an error is produced.
 
+.. _function-array-map:
+
 ``array/map``
 -------------
 

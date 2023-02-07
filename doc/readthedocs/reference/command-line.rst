@@ -6,6 +6,8 @@ The core interface to the GDLisp compiler and programming language is
 the command line tool ``gdlisp``. This tool is written mostly in Rust,
 with a small portion written in GDScript for bootstrapping purposes.
 
+.. _building:
+
 Building
 --------
 
