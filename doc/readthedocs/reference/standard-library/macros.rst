@@ -161,6 +161,8 @@ Evaluates ``cond``. If it's true, then evalautes and returns
 ``true-case``. If ``cond`` is false, then evaluates and returns
 ``false-case``. If not provided, ``false-case`` defaults to ``()``.
 
+.. _macro-let-star:
+
 ``let*``
 --------
 

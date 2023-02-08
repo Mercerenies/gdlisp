@@ -71,6 +71,54 @@ All of the operators support variable arguments, with associativity to
 the left when it matters (so, for instance ``(/ a b c)`` is equivalent
 to ``(/ (/ a b) c)``, not ``(/ a (/ b c))``).
 
+Comments
+--------
+
+GDLisp line comments start with a semicolon.
+
+::
+
+   ; This is a line comment
+
+By convention, a single semicolon is used to annotate a line of code,
+and a pair of semicolons is used when a line comment stands on its own
+line.
+
+::
+
+   ;; This is a standalone line comment.
+   (+ 1 1) ; This comment annotates other code.
+
+Block comments begin with ``#|`` and are terminated by ``|#``. Block
+comments cannot be nested.
+
+Data Types
+----------
+
+GDLisp supports the same basic data types as GDScript, albeit with
+different syntax.
+
+The GDLisp equivalent of Godot's "null" value is called "nil" and is
+written in GDLisp as ``()``. GDLisp also defines a global constant
+called ``nil``, which evaluates to ``()``.
+
+The Boolean values "true" and "false" are written, respectively, as
+``#t`` and ``#f``.
+
+Integers and floats are written in GDLisp in the same way as in
+GDScript.
+
+Strings are written in GDLisp using double quotes ``"..."``. Strings
+*cannot* be written using single quotes, as the single quote character
+is used for something different in GDLisp. Aside from that, all of the
+usual escape sequences work. Additionally, GDLisp supports two methods
+of escaping Unicode values in strings. The first consists of ``\u``
+followed by exactly four hexadecimal digits, exactly like GDScript's
+syntax for the same. The second consists of ``\u{...}``, with any
+number of hexadecimal digits enclosed in the curly braces. This syntax
+can be used to represent *any* Unicode code point, including those
+outside the basic multilingual plane.
+
 Conditionals
 ------------
 
@@ -401,3 +449,93 @@ We've already seen examples that use the most basic primitive:
 The ``let`` form takes a list of variable clauses and then a body. The
 given variables are declared and bound to their initial values. Then
 the body is evaluated in a scope where the local variables exist.
+
+You can declare any number of variables in a ``let`` clause.
+Crucially, the variables' scope is bound strictly to the ``let``
+block, so as soon as the body of the ``let`` finishes evaluating, the
+variables are no longer accessible. This is in contrast to GDScript,
+where a ``var`` declaration implicitly lasts until the end of the
+*enclosing* scope. In GDLisp, a local variable always defines its own
+scope when it's declared.
+
+Example::
+
+  (let ((a 1) (b 2))
+    (+ a b)) ; 3
+
+Note that when a ``let`` block has multiple variable clauses, the
+clauses are evaluated in parallel.
+
+::
+
+   (let ((x 1) (y (+ x 1))) y)
+
+In this example, the ``x`` from the first clause is *not* in scope
+when the ``y`` clause is evaluated. If there's an ``x`` from an
+*enclosing* scope available, then ``y`` will be set to that variable
+plus one. If not, this code will produce an error at compile-time.
+
+It's common to want several variable bindings to be evaluated in
+order, such as when initializing several pieces of data to perform
+some calculations. For this use case, GDLisp provides the
+:ref:`macro-let-star` macro.
+
+::
+
+   (let* ((x 1) (y (+ x 1))) y) ; 2
+
+``let*`` works exactly like ``let`` and shares all of the same syntax,
+except that the variables in a ``let*`` are bound sequentially, with
+each subsequent variable having access to all of the prior ones. In
+effect, a ``let*`` form is equivalent to several nested ``let`` forms,
+each having only one variable clause.
+
+To change the value of an existing local variable, use ``set``.
+
+::
+
+   (let ((x 1))
+     (print x) ; 1
+     (set x (+ x 1))
+     (print x)) ; 2
+
+Note that local variables, even mutable local variables, fully support
+closures. That is, if a ``lambda`` or other local function construct
+closes around a local variable, then both the closure function and the
+enclosing scope can modify the variable, and both scopes will reflect
+the change.
+
+Local Functions
+^^^^^^^^^^^^^^^
+
+Similar to ``let``, GDLisp provides the ``flet`` primitive for
+declaring one or more local functions. This is most useful when you
+have a private function that is only needed inside one function.
+
+::
+
+   (flet ((normalize-name (name) ((name:capitalize):substr 0 10)))
+     (print "Hello, " (normalize-name first-name) (normalize-name last-name))
+     (print "You have an unread message from " (normalize-name caller-name)))
+
+In this hypothetical example, we need to print some messages involving
+people's names. For consistency in our hypothetical UI, we want all
+names to be capitalized in a particular way and to truncate their
+length to ten characters. We can define the function to normalize
+these names as a local function with ``flet`` and then call it as many
+times as we want inside the ``flet`` block. Outside the block, the
+function doesn't exist.
+
+``labels`` is a variant of ``flet`` with the same syntax but more
+powerful binding semantics. ``labels`` evaluates its function bodies
+in a scope where all of the function clauses already exist. This
+allows your local helper functions to be recursive or to depend on
+each other in any order.
+
+.. Tip:: If you're declaring a local function with the intent of
+         passing it (as an argument) to a higher-order function like
+         ``array/map`` or ``array/filter``, you'll have better luck
+         using an ordinary ``let`` and a ``lambda``, since you need to
+         reify the function as a value anyway. ``flet`` and ``labels``
+         are intended for situations where you want to locally *call*
+         the function inside the scope.
