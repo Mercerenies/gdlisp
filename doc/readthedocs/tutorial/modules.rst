@@ -78,4 +78,22 @@ number of arguments, the GDLisp compiler will emit an error.
 Constants
 ---------
 
-Constants are declared with ``defconst``.
+Constants are declared with ``defconst``. Like functions, constants
+are public by default but can be made private to the module.
+
+Examples::
+
+  (defconst DAYS_IN_YEAR 365)
+  (defconst DEFAULT_PLAYER_NAME "Steve")
+  (defconst EPOCH 1970 private) ; Private constant
+
+.. Important:: Unlike GDScript, GDLisp does **not** use constants to
+               load resources and other scripts. GDLisp has a
+               dedicated import syntax for loading other files,
+               whether those files are resources, source files, or
+               packed scenes.
+
+Enumerations
+------------
+
+Enumerations are declared with ``defenum``.

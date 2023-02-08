@@ -21,4 +21,4 @@ for folks new to the engine.
 
    lisping.rst
    control-flow.rst
-   functions.rst
+   modules.rst
