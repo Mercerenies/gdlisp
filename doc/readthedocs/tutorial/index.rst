@@ -20,5 +20,5 @@ for folks new to the engine.
    :caption: Contents:
 
    lisping.rst
-   control_flow.rst
+   control-flow.rst
    functions.rst
