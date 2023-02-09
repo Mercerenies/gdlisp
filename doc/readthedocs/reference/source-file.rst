@@ -165,7 +165,7 @@ Examples::
       ATTACK DEFEND HEAL PASS)
 
    (defenum Color
-     (RED "Red") (GREEN "Green") (BLUE "Blue"))
+     (RED 0) (GREEN 1) (BLUE 2))
 
 An enumeration defines a name in the value namespace. This name
 behaves like a GDLisp object and has fields defined corresponding to
@@ -173,9 +173,9 @@ the names indicated in the entries. In the first example above,
 ``PlayerChoice`` is a value for which ``PlayerChoice:ATTACK``,
 ``PlayerChoice:DEFEND``, ``PlayerChoice:HEAL``, and
 ``PlayerChoice:PASS`` are all distinct integer values. In the second
-example above, ``Color`` is a value, and ``Color:RED`` is the string
-``"Red"``, ``Color:GREEN`` is the string ``"Green"``, and
-``Color:BLUE`` is the string ``"Blue"``.
+example above, ``Color`` is a value, and ``Color:RED`` is the value 0,
+``Color:GREEN`` is the value 1, and ``Color:BLUE`` is the value 2. If
+provided, the value of an enumeration constant must be an integer.
 
 .. _progn:
 
