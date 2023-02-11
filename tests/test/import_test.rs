@@ -1046,3 +1046,14 @@ func _init():
     pass
 "#);
 }
+
+#[test]
+fn load_non_gdlisp_resource_in_macro_test() {
+  let mut loader = MockFileLoader::new();
+  loader.add_file("a.lisp", r#"(use "res://some_resource.png") (defmacro foo () some_resource)"#);
+  loader.add_file("main.lisp", r#"(use "res://a.lisp" (foo)) (defn bar () (foo))"#);
+  let mut pipeline = Pipeline::with_resolver(dummy_config(), Box::new(loader));
+  let result = pipeline.load_file("main.lisp", SourceOffset(0)).unwrap_err();
+  assert_eq!(result, PError::from(GDError::new(GDErrorF::NoSuchVar(String::from("some_resource")),
+                                               SourceOffset(49))));
+}

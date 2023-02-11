@@ -18,6 +18,7 @@ use std::collections::HashMap;
 /// As such, this structure necessarily keeps all of the information
 /// needed to reconstruct the entire relevant compilation process for
 /// import purposes.
+#[derive(Debug)]
 pub struct TranslationUnit {
   /// The path to the file this translation unit references.
   pub filename: PathBuf,

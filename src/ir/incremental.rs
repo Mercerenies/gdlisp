@@ -691,8 +691,13 @@ impl IncCompiler {
     }
 
     let translation_names = self.imports.iter().map(|import| {
-      let unit = pipeline.load_file(&import.filename.path(), pos)?;
-      Ok(import.names(&unit.exports))
+      let res_type = ResourceType::from(import);
+      if res_type.can_have_macros() {
+        let unit = pipeline.load_file(&import.filename.path(), pos)?;
+        Ok(import.names(&unit.exports))
+      } else {
+        Ok(vec!())
+      }
     }).collect::<Result<Vec<_>, PError>>()?;
     let mut imported_names: HashSet<_> =
       translation_names.into_iter().flatten().map(ImportName::into_imported_id).collect();
