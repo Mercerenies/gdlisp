@@ -45,11 +45,11 @@ Qualified Imports
 A qualified import takes the form of either the ``use`` symbol
 followed by the path name and nothing else, or the ``use`` symbol
 followed by ``as`` and then followed by the desired alias name. If the
-alias name is not provided, it will be chosen as follows: Take the
-full path to the file, excluding the ``res://`` prefix, then remove
-the file extension. So the import ``"res://foo/bar/baz.lisp`` would
-have a default alias name of ``foo/bar/baz``. Remember that forward
-slashes are valid in identifiers in GDLisp.
+alias name is not provided, then the default alias shall be the name
+of the file, without the path or the file extension. So the import
+``"res://foo/bar/baz.lisp`` would have a default alias name of
+``foo/bar/baz``. Remember that forward slashes are valid in
+identifiers in GDLisp.
 
 Every public identifier in the target module will be imported into the
 current scope, in the appropriate namespace. The name in the current

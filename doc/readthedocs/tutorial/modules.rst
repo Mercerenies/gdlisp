@@ -172,15 +172,11 @@ names ``MySprite`` and ``MyScene``, other modules that *import* our
 module cannot import those names from it.
 
 If you don't specify an alias for the import, one will be chosen for
-you based on the full path of the resource. The following two lines
-are equivalent::
+you based on the name of the resource. The following two lines are
+equivalent::
 
-   (use "res://Example/MySprite.png" as Example/MySprite)
+   (use "res://Example/MySprite.png" as MySprite)
    (use "res://Example/MySprite.png")
-
-Remember that GDLisp is very liberal in what it considers a valid
-identifier, so ``Example/MySprite`` is a valid constant name in
-GDLisp.
 
 This is also how source files written in GDScript are imported into
 GDLisp. The entire GDScript resource is imported as a single name

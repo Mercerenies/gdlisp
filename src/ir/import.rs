@@ -76,8 +76,9 @@ impl ImportDecl {
     path
       .components_no_root()
       .filter_map(|x| x.as_os_str().to_str())
-      .collect::<Vec<_>>()
-      .join("/")
+      .last()
+      .unwrap_or("/")
+      .to_owned()
   }
 
   pub fn parse_path_param(arg: &str) -> Option<RPathBuf> {
@@ -350,11 +351,12 @@ mod tests {
 
   #[test]
   fn default_import_name_test() {
-    assert_eq!(ImportDecl::default_import_name(&str_to_rpathbuf("/a/b/c")), "a/b/c");
+    assert_eq!(ImportDecl::default_import_name(&str_to_rpathbuf("/a/b/c")), "c");
     assert_eq!(ImportDecl::default_import_name(&str_to_rpathbuf("/abcd")), "abcd");
-    assert_eq!(ImportDecl::default_import_name(&str_to_rpathbuf("res://foo/bar")), "foo/bar");
-    assert_eq!(ImportDecl::default_import_name(&str_to_rpathbuf("res://foo/bar.lisp")), "foo/bar");
-    assert_eq!(ImportDecl::default_import_name(&str_to_rpathbuf("res://foo/bar.gd")), "foo/bar");
+    assert_eq!(ImportDecl::default_import_name(&str_to_rpathbuf("res://foo/bar")), "bar");
+    assert_eq!(ImportDecl::default_import_name(&str_to_rpathbuf("res://foo/bar.lisp")), "bar");
+    assert_eq!(ImportDecl::default_import_name(&str_to_rpathbuf("res://foo/bar.gd")), "bar");
+    assert_eq!(ImportDecl::default_import_name(&str_to_rpathbuf("res://")), "/"); // Degenerate case
   }
 
   #[test]
@@ -362,7 +364,7 @@ mod tests {
     assert_eq!(parse_import(r#"("res://foo/bar")"#).unwrap(),
                ImportDecl::named(str_to_rpathbuf("res://foo/bar"), None, so(1)));
     assert_eq!(parse_import(r#"("res://foo/bar")"#).unwrap(),
-               ImportDecl::named(str_to_rpathbuf("res://foo/bar"), Some(String::from("foo/bar")), so(1)));
+               ImportDecl::named(str_to_rpathbuf("res://foo/bar"), Some(String::from("bar")), so(1)));
     assert_eq!(parse_import(r#"("res://foo/bar" as foo)"#).unwrap(),
                ImportDecl::named(str_to_rpathbuf("res://foo/bar"), Some(String::from("foo")), so(1)));
     assert_eq!(parse_import(r#"("res://foo/bar" as foo.baz)"#).unwrap(),
