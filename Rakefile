@@ -45,6 +45,7 @@ task build: :build_rs do |t, args|
   cp 'GDLisp.msgpack', 'target/release/deps'
   if release_flag.include? '--release'
     mkdir_p 'bin/'
+    File.delete('bin/gdlisp') if File.exist?('bin/gdlisp')
     File.symlink('../target/release/gdlisp', 'bin/gdlisp')
   end
 end
