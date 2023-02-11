@@ -588,4 +588,14 @@ pub fn list_find_test() {
              "\n4\nNull\n");
 }
 
+#[test]
+pub fn dict_find_test() {
+  assert_eq!(parse_and_run(r#"
+    ((let ((dict {1 2 3 4 5 6}))
+       (print (dict/find (lambda (k v) (> k 1)) dict))
+       (print (dict/find (lambda (k v) (> v 1)) dict))
+       (print (dict/find (lambda (k v) (> k 100)) dict))))"#),
+             "\n3\n1\nNull\n");
+}
+
 // TODO Test gensym at runtime once we can pretty-print symbols

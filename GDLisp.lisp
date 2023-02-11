@@ -806,6 +806,12 @@
   (sys/call-magic DICT-SUBSCRIPT-ASSIGNMENT)
   (set-dict/elt x dict n))
 
+(defn dict/find (f dict &opt default)
+  (for key dict
+    (cond
+      ((funcall f key (dict/elt dict key)) (return key))))
+  default)
+
 ;;; Math operators
 
 (defn + (&rest args)

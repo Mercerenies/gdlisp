@@ -341,6 +341,21 @@ arguments.
 
 Gets the value corresponding to key ``k`` of the dictionary ``dict``.
 
+``dict/find``
+------------
+
+::
+
+   (defn dict/find (p dict &opt default)
+     ...)
+
+Iterates over the dictionary ``dict`` in element insertion order. For
+each key-value pair of the dictionary, the predicate ``p`` is called
+with two arguments: the key and the value. Returns the first *key* for
+which the predicate returned true, or ``default`` if no match is
+found. This function will short-circuit and stop calling ``p`` as soon
+as a match is found.
+
 ``equal?``
 ----------
 
