@@ -739,6 +739,21 @@
       ((sys/instance-direct? f Function) (f:call_funcv (append args1 args2)))
       (#t (push-error "Attempt to call non-function")))))
 
+;;; Vector functions
+
+(defn vector/map (f arg &rest args)
+  (flet ((-x (v) v:x)
+         (-y (v) v:y)
+         (-z (v) v:z))
+    (let ((args (cons arg args)))
+      (cond
+        ((instance? arg GDLisp:Vector2) (Vector2 (apply f (list/map #'-x args))
+                                                 (apply f (list/map #'-y args))))
+        ((instance? arg GDLisp:Vector3) (Vector3 (apply f (list/map #'-x args))
+                                                 (apply f (list/map #'-y args))
+                                                 (apply f (list/map #'-z args))))
+        (#t (push-error "Attempted vector/map on non-vector"))))))
+
 ;;; Miscellaneous simple functions
 
 (defn vector (x y &opt z)

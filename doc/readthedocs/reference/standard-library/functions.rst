@@ -784,3 +784,25 @@ checks.
 
 Constructs a vector of two or three dimensions with the given
 arguments. The ``V{ ... }`` syntax desugars to calls to this function.
+
+``vector/map``
+--------------
+
+::
+
+   (defn vector/map (f arg &rest args)
+     ...)
+
+Applies a function to each component of the 2D or 3D vectors. In its
+simplest form (with two arguments), ``vector/map`` produces a new
+vector of the same dimension as the input, where ``f`` has been
+applied to the X and Y (and Z, if 3D) coordinates of the input vector.
+
+If given more than two arguments, the arguments must all be of the
+dimension. ``f`` will be applied to the X components of *all* input
+vectors at once, then to the Y components, then to the Z components
+(if needed), producing a single new vector.
+
+Example::
+
+  (vector/map #'+ V{1 2} V{100 200}) ; Returns V{101 202}

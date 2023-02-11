@@ -598,4 +598,20 @@ pub fn dict_find_test() {
              "\n3\n1\nNull\n");
 }
 
+#[test]
+pub fn vector_map_test() {
+  assert_eq!(parse_and_run("((let ((a V{1 3})) (print (vector/map (lambda (x) (+ x 1)) a))))"),
+             "\n(2, 4)\n");
+  assert_eq!(parse_and_run("((let ((a V{1 3 10})) (print (vector/map (lambda (x) (+ x 2)) a))))"),
+             "\n(3, 5, 12)\n");
+}
+
+#[test]
+pub fn vector_map_two_arguments_test() {
+  assert_eq!(parse_and_run("((let ((a V{1 3}) (b V{10 30})) (print (vector/map #'+ a b))))"),
+             "\n(11, 33)\n");
+  assert_eq!(parse_and_run("((let ((a V{1 3 10}) (b V{9 8 7})) (print (vector/map #'+ a b))))"),
+             "\n(10, 11, 17)\n");
+}
+
 // TODO Test gensym at runtime once we can pretty-print symbols
