@@ -7,6 +7,7 @@ use crate::compile::{Compiler, StExpr};
 use crate::compile::frame::CompilerFrame;
 use crate::compile::body::builder::StmtBuilder;
 use crate::compile::symbol_table::SymbolTable;
+use crate::compile::symbol_table::inner::InnerSymbolTable;
 use crate::compile::symbol_table::local_var::{LocalVar, VarScope, VarName};
 use crate::compile::symbol_table::function_call::{FnCall, FnSpecs, FnScope, FnName, OuterStaticRef};
 use crate::compile::symbol_table::call_magic::CallMagic;
@@ -80,6 +81,8 @@ pub fn compile_labels_scc(frame: &mut CompilerFrame<StmtBuilder>,
 
   let local_var_name = RegisteredNameGenerator::new_local_var(table).generate_with("_locals");
 
+  let mut lambda_table = InnerSymbolTable::new(lambda_table, table);
+
   // Bind the functions themselves
   let named_clauses = generate_names_for_scc_clauses(clauses.iter().copied(), compiler.name_generator());
   for (func_name, clause) in &named_clauses {
@@ -89,7 +92,7 @@ pub fn compile_labels_scc(frame: &mut CompilerFrame<StmtBuilder>,
   }
 
   let (bound_calls, functions) = unzip_err::<GDError, Vec<_>, Vec<_>, _, _, _>(named_clauses.iter().map(|(func_name, clause)| {
-    let mut lambda_table = lambda_table.clone(); // New table for this particular function
+    let mut lambda_table = InnerSymbolTable::cloned_from(&mut lambda_table); // New table for this particular function
     let mut lambda_builder = StmtBuilder::new();
     let (arglist, gd_args) = clause.args.clone().into_gd_arglist(&mut RegisteredNameGenerator::new_local_var(&mut lambda_table));
     // Bind the function arguments
@@ -335,6 +338,8 @@ pub fn compile_lambda_stmt(frame: &mut CompilerFrame<StmtBuilder>,
   // Convert the closures to GDScript names.
   let gd_closure_vars = closure.to_gd_closure_vars(&lambda_table);
   let gd_src_closure_vars = closure.to_gd_closure_vars(table);
+
+  let mut lambda_table = InnerSymbolTable::new(lambda_table, table);
 
   let lambda_body = {
     let mut lambda_builder = StmtBuilder::new();

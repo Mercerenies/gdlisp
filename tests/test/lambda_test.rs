@@ -350,3 +350,26 @@ pub fn several_nested_lambdas_test() {
   "#);
   assert_eq!(result, "\n1\n");
 }
+
+#[test]
+pub fn several_nested_lambda_classes_test() {
+  // This is a regression test for issue #139.
+  let result = parse_and_run(r#"
+    ((defn foo1 () (new Reference (defn foo () (new Reference))))
+     (defn foo2 () (new Reference))
+     (defn foo3 () (new Reference))
+     (print 1))
+  "#);
+  assert_eq!(result, "\n1\n");
+}
+
+#[test]
+pub fn several_nested_labels_test() {
+  // This is a regression test for issue #139.
+  let result = parse_and_run(r#"
+    ((defn foo1 () (labels ((f (x) (f x) (labels ((g (x) (g x))) (f x))))))
+     (defn foo2 () (labels ((f (x) (f x) (labels ((g (x) (g x))) (f x))))))
+     (print 1))
+  "#);
+  assert_eq!(result, "\n1\n");
+}

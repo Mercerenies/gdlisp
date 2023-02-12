@@ -8,8 +8,9 @@
 //! [`function_call::FnCall`] to keep track of its value, and we use
 //! [`call_magic::CallMagic`] for special call semantics on functions.
 
-pub mod function_call;
 pub mod call_magic;
+pub mod function_call;
+pub mod inner;
 pub mod local_var;
 
 use crate::ir::identifier::{Id, Namespace};

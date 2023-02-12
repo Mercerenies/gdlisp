@@ -10,6 +10,7 @@ use crate::compile::body::builder::{StmtBuilder, HasDecls};
 use crate::compile::body::class_initializer::ClassBuilder;
 use crate::compile::body::class_scope::DirectClassScope;
 use crate::compile::symbol_table::{SymbolTable, ClassTablePair};
+use crate::compile::symbol_table::inner::InnerSymbolTable;
 use crate::compile::symbol_table::local_var::LocalVar;
 use crate::compile::symbol_table::function_call::OuterStaticRef;
 use crate::compile::names::registered::RegisteredNameGenerator;
@@ -77,6 +78,8 @@ pub fn compile_lambda_class(frame: &mut CompilerFrame<StmtBuilder>,
   let gd_closure_vars = closure.to_gd_closure_vars(&lambda_table);
   let gd_src_closure_vars = closure.to_gd_closure_vars(table);
 
+  let mut lambda_table = InnerSymbolTable::new(lambda_table, table);
+
   // Build the constructor for the lambda class.
   let default_constructor: ir::decl::ConstructorDecl;
   let constructor = match constructor {
@@ -120,6 +123,8 @@ pub fn compile_lambda_class(frame: &mut CompilerFrame<StmtBuilder>,
     }
     class_body
   };
+
+  drop(lambda_table);
 
   let mut class = decl::ClassDecl {
     name: gd_class_name.clone(),

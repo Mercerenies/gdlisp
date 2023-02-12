@@ -351,7 +351,7 @@ impl Expr {
           }
         }
       }
-      ExprF::FunctionLet(_, clauses, body) => {
+      ExprF::FunctionLet(FunctionBindingType::OuterScoped, clauses, body) => {
         let mut fns = HashSet::new();
         for clause in clauses {
           let LocalFnClause { name, args, body: fbody } = clause;
@@ -360,6 +360,22 @@ impl Expr {
           Expr::new(lambda_body, self.pos).walk_locals(acc_vars, acc_fns);
         }
         let mut local_scope = Functions::new();
+        body.walk_locals(acc_vars, &mut local_scope);
+        for (func, (), pos) in local_scope.into_iter_with_offset() {
+          if !fns.contains(&func) {
+            acc_fns.visit(func, (), pos);
+          }
+        }
+      }
+      ExprF::FunctionLet(FunctionBindingType::Recursive, clauses, body) => {
+        let mut fns = HashSet::new();
+        let mut local_scope = Functions::new();
+        for clause in clauses {
+          let LocalFnClause { name, args, body: fbody } = clause;
+          fns.insert(name.to_owned());
+          let lambda_body = ExprF::Lambda(args.to_owned(), Box::new(fbody.to_owned()));
+          Expr::new(lambda_body, self.pos).walk_locals(acc_vars, &mut local_scope);
+        }
         body.walk_locals(acc_vars, &mut local_scope);
         for (func, (), pos) in local_scope.into_iter_with_offset() {
           if !fns.contains(&func) {
