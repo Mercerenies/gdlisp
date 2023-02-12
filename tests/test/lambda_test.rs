@@ -337,3 +337,16 @@ pub fn outer_class_in_nested_lambda_class_test_3() {
   "#);
   assert_eq!(result, "\n3\n");
 }
+
+#[test]
+pub fn several_nested_lambdas_test() {
+  // This is a regression test for issue #139.
+  let result = parse_and_run(r#"
+    ((defn foo1 () (lambda () (lambda () (lambda ()))))
+     (defn foo2 () (lambda () (lambda ())))
+     (defn foo3 () (lambda () (lambda () (lambda ()))))
+     (defn foo4 () (lambda ()))
+     (print 1))
+  "#);
+  assert_eq!(result, "\n1\n");
+}
