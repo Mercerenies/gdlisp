@@ -289,3 +289,51 @@ pub fn function_ref_test() {
             push_error("Too many arguments")
 "#);
 }
+
+#[test]
+pub fn outer_class_in_nested_lambda_test() {
+  let result = parse_and_run(r#"
+    ((defn example () 3)
+     (defn foo ()
+       (lambda () (lambda () (example))))
+     (let ((fn (funcall (foo))))
+       (print (funcall fn))))
+  "#);
+  assert_eq!(result, "\n3\n");
+}
+
+#[test]
+pub fn outer_class_in_nested_lambda_class_test_1() {
+  let result = parse_and_run(r#"
+    ((defn example () 3)
+     (defn foo ()
+       (new (Reference) (defn bar () (lambda () (example)))))
+     (let ((x (foo)))
+       (print (funcall (x:bar)))))
+  "#);
+  assert_eq!(result, "\n3\n");
+}
+
+#[test]
+pub fn outer_class_in_nested_lambda_class_test_2() {
+  let result = parse_and_run(r#"
+    ((defn example () 3)
+     (defn foo ()
+       (lambda () (new (Reference) (defn bar () (example)))))
+     (let ((x (funcall (foo))))
+       (print (x:bar))))
+  "#);
+  assert_eq!(result, "\n3\n");
+}
+
+#[test]
+pub fn outer_class_in_nested_lambda_class_test_3() {
+  let result = parse_and_run(r#"
+    ((defn example () 3)
+     (defn foo ()
+       (new (Reference) (defn bar () (new Reference (defn bar () (example))))))
+     (let ((x (foo)))
+       (print ((x:bar):bar))))
+  "#);
+  assert_eq!(result, "\n3\n");
+}

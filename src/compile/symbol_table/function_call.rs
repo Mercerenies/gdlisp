@@ -431,14 +431,36 @@ impl FnName {
                                 binding_type: &OuterStaticRef<'_>,
                                 resolver: &(impl PreloadResolver + ?Sized),
                                 loader: &impl CanLoad) {
-    if *self == FnName::FileConstant {
+    if self.needs_inner_scope_reference() {
       match binding_type {
         OuterStaticRef::InnerStatic => {
           *self = FnName::inner_static_load(resolver, loader);
         }
         OuterStaticRef::InnerInstanceVar(outer_ref_name) => {
-          *self = FnName::OnLocalVar(Box::new(VarName::local(outer_ref_name)));
+          *self = FnName::OnLocalVar(Box::new(VarName::outer_class_ref(outer_ref_name)));
         }
+      }
+    }
+  }
+
+  /**
+   * Returns true if this function name type requires an outer class
+   * reference in order to be called. Functions require an outer class
+   * reference if they are either (1) a file-level constant, or (2)
+   * already an outer class reference. The latter case occurs if we're
+   * in a nested lambda inside of a lambda scope that already has an
+   * outer class reference.
+   */
+  pub fn needs_inner_scope_reference(&self) -> bool {
+    match self {
+      FnName::FileConstant => {
+        true
+      }
+      FnName::OnLocalVar(var_name) => {
+        matches!(&**var_name, VarName::OuterClassRef(_))
+      }
+      _ => {
+        false
       }
     }
   }

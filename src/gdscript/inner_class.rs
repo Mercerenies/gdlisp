@@ -20,7 +20,6 @@ use crate::pipeline::can_load::CanLoad;
 use crate::pipeline::source::SourceOffset;
 use crate::compile::symbol_table::SymbolTable;
 use crate::compile::symbol_table::local_var::VarName;
-use crate::compile::symbol_table::function_call::FnName;
 use crate::compile::preload_resolver::PreloadResolver;
 use crate::ir;
 use crate::ir::identifier::{Id, Namespace};
@@ -81,7 +80,7 @@ fn check_dependencies_for_outer_class_ref(deps: impl Iterator<Item=Id>, table: &
     if dep.namespace == Namespace::Function {
       if let Some((func, _)) = table.get_fn(&dep.name) {
         // TODO Abstract this check alongside the inner static update pattern into one place
-        if func.object == FnName::FileConstant {
+        if func.object.needs_inner_scope_reference() {
           return true;
         }
       }

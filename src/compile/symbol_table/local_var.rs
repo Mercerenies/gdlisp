@@ -50,6 +50,11 @@ pub enum VarName {
   /// A variable which is local to the current scope and can be seen
   /// unqualified.
   Local(String),
+  /// Similar to `Local`, with the caveat that the variable
+  /// `OuterClassRef` refers to is an outer class reference. These are
+  /// treated like local variables for most purposes but will be
+  /// handled specially when used in nested closures.
+  OuterClassRef(String),
   /// A file-level constant defined in the current file.
   FileConstant(String),
   /// A superglobal name, such as built-in GDScript constants. These
@@ -193,6 +198,18 @@ impl LocalVar {
     }
   }
 
+  /// A local outer class reference variable with the given access
+  /// type.
+  pub fn outer_class_ref(name: String, access_type: AccessType) -> LocalVar {
+    LocalVar {
+      name: VarName::OuterClassRef(name),
+      access_type: access_type,
+      scope: VarScope::LocalVar,
+      assignable: true,
+      value_hint: None,
+    }
+  }
+
   /// A superglobal variable, available in all GDScript scopes, not
   /// just the current file. Superglobals are always
   /// [`AccessType::Read`] and are never `assignable`.
@@ -269,6 +286,9 @@ impl LocalVar {
       VarName::Local(s) => {
         *s = name;
       }
+      VarName::OuterClassRef(s) => {
+        *s = name;
+      }
       VarName::FileConstant(s) => {
         *s = name;
       }
@@ -294,6 +314,7 @@ impl LocalVar {
   pub fn is_valid_const_expr(&self) -> bool {
     match &self.name {
       VarName::Local(_) => false,
+      VarName::OuterClassRef(_) => false,
       VarName::FileConstant(_) | VarName::ImportedConstant(_, _) | VarName::SubscriptedConstant(_, _) => {
         // If it's a top-level constant, use the value hint to figure
         // out which constant.
@@ -347,6 +368,11 @@ impl VarName {
     VarName::Local(String::from(name))
   }
 
+  /// `VarName` for an outer class reference (local) variable.
+  pub fn outer_class_ref(name: &str) -> VarName {
+    VarName::OuterClassRef(String::from(name))
+  }
+
   /// `VarName` for a file-level constant.
   pub fn file_constant(name: &str) -> VarName {
     VarName::FileConstant(String::from(name))
@@ -381,6 +407,7 @@ impl VarName {
   pub fn simple_name(&self) -> Option<&str> {
     match self {
       VarName::Local(s) => Some(s),
+      VarName::OuterClassRef(s) => Some(s),
       VarName::FileConstant(s) => Some(s),
       VarName::Superglobal(s) => Some(s),
       VarName::ImportedConstant(_, _) => None,
@@ -405,6 +432,11 @@ impl VarName {
   pub fn into_imported_var(self, import: VarName) -> VarName {
     match self {
       VarName::Local(s) => {
+        // To be honest, this case probably should never occur. So
+        // we'll just pretend it's FileConstant.
+        VarName::ImportedConstant(Box::new(import), s)
+      }
+      VarName::OuterClassRef(s) => {
         // To be honest, this case probably should never occur. So
         // we'll just pretend it's FileConstant.
         VarName::ImportedConstant(Box::new(import), s)
@@ -448,6 +480,7 @@ impl VarName {
   pub fn into_expr(self, pos: SourceOffset) -> Expr {
     match self {
       VarName::Local(s) => Expr::new(ExprF::Var(s), pos),
+      VarName::OuterClassRef(s) => Expr::new(ExprF::Var(s), pos),
       VarName::FileConstant(s) => Expr::new(ExprF::Var(s), pos),
       VarName::Superglobal(s) => Expr::new(ExprF::Var(s), pos),
       VarName::ImportedConstant(lhs, s) => Expr::new(ExprF::Attribute(Box::new(lhs.into_expr(pos)), s), pos),
@@ -474,6 +507,9 @@ impl TryFrom<VarName> for ClassExtends {
   fn try_from(var_name: VarName) -> Result<ClassExtends, VarNameIntoExtendsError> {
     match var_name {
       VarName::Local(s) => {
+        Err(VarNameIntoExtendsError::CannotExtendLocal(s))
+      }
+      VarName::OuterClassRef(s) => {
         Err(VarNameIntoExtendsError::CannotExtendLocal(s))
       }
       VarName::FileConstant(s) => {
