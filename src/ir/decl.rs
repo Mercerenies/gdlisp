@@ -514,8 +514,16 @@ impl ClassInnerDecl {
 
   pub fn get_names(&self) -> (Locals, Functions) {
     match &self.value {
-      ClassInnerDeclF::ClassSignalDecl(_) | ClassInnerDeclF::ClassVarDecl(_) |
-        ClassInnerDeclF::ClassConstDecl(_) => (Locals::new(), Functions::new()),
+      ClassInnerDeclF::ClassSignalDecl(_) | ClassInnerDeclF::ClassConstDecl(_) => {
+        (Locals::new(), Functions::new())
+      }
+      ClassInnerDeclF::ClassVarDecl(vdecl) => {
+        if let Some(initial_value) = &vdecl.value {
+          initial_value.get_names()
+        } else {
+          (Locals::new(), Functions::new())
+        }
+      }
       ClassInnerDeclF::ClassFnDecl(fndecl) => {
         let (mut loc, func) = fndecl.body.get_names();
         for name in fndecl.args.iter_vars() {

@@ -405,3 +405,16 @@ pub fn lambda_class_duplicate_name_test() {
     Err(PError::from(GDError::new(GDErrorF::DuplicateName(ClassNamespace::Function, String::from("foo")), SourceOffset(49)))),
   );
 }
+
+#[test]
+pub fn initialized_var_in_lambda_class_test() {
+  let result = parse_compile_and_output_h("(new (Node) (defvar example []))");
+  assert_eq!(result.0, "return _AnonymousClass.new()\n");
+  assert_eq!(result.1, r#"class _AnonymousClass extends Node:
+
+    func _init():
+        pass
+
+    var example = []
+"#);
+}

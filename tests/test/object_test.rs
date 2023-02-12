@@ -210,3 +210,15 @@ pub fn initialization_of_object_test() {
      (print "End"))"#);
   assert_eq!(output, "\nStart\nInitializing\n18\nMiddle\n18\nEnd\n");
 }
+
+#[test]
+pub fn object_uses_gdlisp_functions_test() {
+  let output = parse_and_run(r#"
+    ((defobject MyObject (Reference)
+       (defvar example-var [1 2 3 4])
+       (defn sum ()
+         (array/fold #'+ @example-var 0)))
+     (print (MyObject:sum)))
+  "#);
+  assert_eq!(output, "\n10\n");
+}
