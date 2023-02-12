@@ -84,20 +84,24 @@ impl SymbolTable {
   /// prior table are discarded.
   pub fn with_synthetics_from(table: &SymbolTable) -> SymbolTable {
     let mut new_table = SymbolTable::new();
+    table.dump_synthetics_to(&mut new_table);
+    new_table
+  }
 
+  /// Copies the global synthetic variables and functions from `self`
+  /// back into the given table. Local synthetic names are ignored.
+  pub fn dump_synthetics_to(&self, destination_table: &mut SymbolTable) {
     // Variables
-    for (var, is_local) in &table.synthetic_locals {
+    for (var, is_local) in &self.synthetic_locals {
       if !is_local {
-        new_table.add_synthetic_var(var.to_owned(), false);
+        destination_table.add_synthetic_var(var.to_owned(), false);
       }
     }
 
     // Functions (cannot be local, so assume all are global)
-    for fun in &table.synthetic_functions {
-      new_table.add_synthetic_fn(fun.to_owned());
+    for fun in &self.synthetic_functions {
+      destination_table.add_synthetic_fn(fun.to_owned());
     }
-
-    new_table
   }
 
   /// Gets the variable with the given GDLisp name, or `None` if no such
