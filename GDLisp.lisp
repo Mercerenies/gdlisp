@@ -754,6 +754,53 @@
                                                  (apply f (list/map #'-z args))))
         (#t (push-error "Attempted vector/map on non-vector"))))))
 
+;;; Node functions
+
+(defclass SignalAdaptor (Reference) private
+  (defvar function)
+
+  (defn _init (@function))
+
+  (defn invoke (a b c d e f) sys/nullargs
+    ;; Identify the first non-null argument.
+    (let ((arglist (cond
+                     ((/= f ()) (list a b c d e f))
+                     ((/= e ()) (list a b c d e))
+                     ((/= d ()) (list a b c d))
+                     ((/= c ()) (list a b c))
+                     ((/= b ()) (list a b))
+                     ((/= a ()) (list a))
+                     (#t (list)))))
+      (apply @function arglist))))
+
+(defn get-signals-meta (obj) private
+  (cond
+    ((obj:has-meta "__gdlisp_signals") (obj:get-meta "__gdlisp_signals"))
+    (#t (let ((new-meta {"__key" 0})) (obj:set-meta "__gdlisp_signals" new-meta) new-meta))))
+
+(defn connect>> (obj signal-name function)
+  (let ((function (SignalAdaptor:new function)))
+    (obj:connect signal-name function "invoke")
+    (let ((meta (get-signals-meta obj)))
+      (let ((key (dict/elt meta "__key")))
+        (set (dict/elt meta key) function)
+        (set (dict/elt meta "__key") (+ (dict/elt meta "__key") 1))
+        key))))
+
+(defn connect1>> (obj signal-name function)
+  (let ((key nil)
+        (weakref (weakref obj)))
+    (flet ((oneshot-function (&rest args)
+             (apply function args)
+             (let ((obj (weakref:get-ref)))
+               (cond
+                 (obj (disconnect>> obj signal-name key))))))
+      (set key (connect>> obj signal-name #'oneshot-function)))))
+
+(defn disconnect>> (obj signal-name index)
+  (let ((meta (get-signals-meta obj)))
+    (meta:erase index)))
+
 ;;; Miscellaneous simple functions
 
 (defn vector (x y &opt z)

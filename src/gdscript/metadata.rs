@@ -34,6 +34,10 @@ pub const SYMBOL_META: &str = "__gdlisp_Primitive_Symbol";
 /// indicate the REPL code to be run.
 pub const REPL_FUNCTION_NAME: &str = "__gdlisp_Repl_runner";
 
+/// The name of the dictionary on an object's metadata that lists any
+/// objects being kept alive for the purposes of signal dispatch.
+pub const SIGNAL_META: &str = "__gdlisp_signals";
+
 /// Given a GDScript function name, prefix it appropriately for a
 /// symbol macro with the given name.
 pub fn symbol_macro(name: &str) -> String {
