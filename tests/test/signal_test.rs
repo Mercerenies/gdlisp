@@ -1,9 +1,4 @@
 
-use gdlisp::compile::error::{GDError, GDErrorF};
-use gdlisp::pipeline::error::PError;
-use gdlisp::pipeline::source::SourceOffset;
-use gdlisp::runner::version::{get_godot_version, Version};
-
 use super::common::*;
 
 #[test]
@@ -49,4 +44,21 @@ pub fn signal_multiple_fires_oneshot_test() {
   "#), "\nA\nReceived\nB\n");
 }
 
-///// test more and then document these new functions
+#[test]
+pub fn signal_connect_disconnect_test() {
+  assert_eq!(parse_and_run(r#"
+    ((defclass Foo (Reference)
+       (defsignal frobnicated))
+     (let ((foo (Foo:new)))
+       (let ((index (connect>> foo "frobnicated" (lambda () (print "1")))))
+         (print "A")
+         (foo:emit-signal "frobnicated")
+         (print "B")
+         (disconnect>> foo "frobnicated" index)
+         (foo:emit-signal "frobnicated")
+         (connect>> foo "frobnicated" (lambda () (print "2")))
+         (print "C")
+         (foo:emit-signal "frobnicated")
+         (print "D"))))
+  "#), "\nA\n1\nB\nC\n2\nD\n");
+}
