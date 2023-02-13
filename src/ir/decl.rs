@@ -154,7 +154,7 @@ pub struct ClassFnDecl {
   /// false, or optional ones otherwise.
   pub args: SimpleArgList,
   /// The body of the function, as a single [`Expr`]. For functions
-  /// which require multiple expressions, [`ExprF::Progn`] can be
+  /// which require multiple expressions, [`expr::ExprF::Progn`] can be
   /// used.
   pub body: Expr,
 }
