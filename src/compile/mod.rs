@@ -225,11 +225,14 @@ impl Compiler {
           } else {
             Box::new(stmt_wrapper::Return)
           };
-        let func = factory::declare_function(&mut self.frame(pipeline, builder, table, class_scope),
-                                             gd_name,
-                                             IRArgList::from(f.args.clone()),
-                                             &f.body,
-                                             &*destination)?;
+        let mut func = factory::declare_function(&mut self.frame(pipeline, builder, table, class_scope),
+                                                 gd_name,
+                                                 IRArgList::from(f.args.clone()),
+                                                 &f.body,
+                                                 &*destination)?;
+        if f.is_nullargs {
+          func.args.optionalize_all(&Expr::null(decl.pos));
+        }
         Ok(Decl::new(DeclF::FnDecl(f.is_static, func), decl.pos))
       }
     }

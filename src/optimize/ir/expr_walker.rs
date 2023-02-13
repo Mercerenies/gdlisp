@@ -200,6 +200,7 @@ impl<'a, E> ExprWalker<'a, E> {
         decl::ClassInnerDeclF::ClassFnDecl(inner) => {
           decl::ClassInnerDeclF::ClassFnDecl(decl::ClassFnDecl {
             is_static: inner.is_static,
+            is_nullargs: inner.is_nullargs,
             name: inner.name.clone(),
             args: inner.args.clone(),
             body: self.walk_expr(&inner.body)?,
@@ -294,6 +295,7 @@ pub fn walk_exprs_in_decl<'a, E>(decl: &Decl, walker: impl FnMut(&Expr) -> Resul
           decl::ClassInnerDeclF::ClassFnDecl(inner) => {
             decl::ClassInnerDeclF::ClassFnDecl(decl::ClassFnDecl {
               is_static: inner.is_static,
+              is_nullargs: inner.is_nullargs,
               name: inner.name.clone(),
               args: inner.args.clone(),
               body: walker.walk_expr(&inner.body)?,

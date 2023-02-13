@@ -25,8 +25,6 @@ pub struct ArgList {
   optional_args: Vec<(String, Expr)>,
 }
 
-// TODO Support default arguments
-
 impl ArgList {
 
   /// An empty argument list.
@@ -70,6 +68,15 @@ impl ArgList {
     let mut new_vec: Vec<_> = required.collect();
     swap(&mut new_vec, &mut self.required_args);
     self.required_args.extend(new_vec);
+  }
+
+  /// Converts all required arguments into optional arguments, where
+  /// the default value is the given value.
+  ///
+  /// The default value will be cloned once for each argument.
+  pub fn optionalize_all(&mut self, default_value: &Expr) {
+    let required_args = self.required_args.drain(..).map(|arg| (arg, default_value.to_owned()));
+    self.optional_args.splice(0..0, required_args);
   }
 
   /// All of the arguments, required and optional alike, as an

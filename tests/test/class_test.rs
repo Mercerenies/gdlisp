@@ -688,6 +688,15 @@ pub fn bad_static_constructor_class_test() {
 }
 
 #[test]
+pub fn bad_nullargs_constructor_class_test() {
+  // Constructors cannot be sys/nullargs
+  assert_eq!(
+    parse_compile_decl_err("((defclass ClassName (Node) (defn _init () sys/nullargs)))"),
+    Err(PError::from(GDError::new(GDErrorF::NullargsConstructor, SourceOffset(29)))),
+  );
+}
+
+#[test]
 pub fn bad_super_in_instance_function_test() {
   // Can't have super in non-constructor method
   assert_eq!(
@@ -798,6 +807,71 @@ class ClassName extends Node:
         pass
 
     static func foo():
+        return 1
+"#);
+}
+
+#[test]
+pub fn nullargs_in_class_test_1() {
+  // No effect since there are no arguments.
+  assert_eq!(parse_compile_decl("((defclass ClassName (Node) (defn foo () sys/nullargs 1)))"),
+             r#"extends Reference
+
+
+class ClassName extends Node:
+
+    func _init():
+        pass
+
+    func foo():
+        return 1
+"#);
+}
+
+#[test]
+pub fn nullargs_in_class_test_2() {
+  assert_eq!(parse_compile_decl("((defclass ClassName (Node) (defn foo (x y z) sys/nullargs 1)))"),
+             r#"extends Reference
+
+
+class ClassName extends Node:
+
+    func _init():
+        pass
+
+    func foo(x = null, y = null, z = null):
+        return 1
+"#);
+}
+
+#[test]
+pub fn nullargs_in_class_test_3() {
+  assert_eq!(parse_compile_decl("((defclass ClassName (Node) (defn foo (x y z) sys/nullargs static 1)))"),
+             r#"extends Reference
+
+
+class ClassName extends Node:
+
+    func _init():
+        pass
+
+    static func foo(x = null, y = null, z = null):
+        return 1
+"#);
+}
+
+#[test]
+pub fn nullargs_in_class_test_4() {
+  assert_eq!(parse_compile_decl("((defclass ClassName (Node) (defn foo (x y z) static sys/nullargs 1)))"),
+             r#"extends Reference
+
+
+class ClassName extends Node:
+
+    func _init():
+        pass
+
+    static func foo(x = null, y = null, z = null):
         return 1
 "#);
 }

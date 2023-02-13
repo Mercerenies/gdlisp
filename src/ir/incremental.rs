@@ -546,6 +546,7 @@ impl IncCompiler {
               }
               let mut decl = decl::ClassFnDecl {
                 is_static: Static::NonStatic,
+                is_nullargs: false,
                 name: fname,
                 args,
                 body: Expr::progn(body, vec[0].pos),

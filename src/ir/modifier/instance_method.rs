@@ -13,6 +13,9 @@ pub enum MethodMod {
   /// `static` declarations allow the instance method to be called
   /// without an instance of the class available.
   Static,
+  /// `sys/nullargs` declarations force all formal arguments to the
+  /// instance method to be given a default value of `null`.
+  Nullargs,
 }
 
 impl MethodMod {
@@ -22,6 +25,9 @@ impl MethodMod {
     match self {
       MethodMod::Static => {
         decl.is_static = Static::IsStatic;
+      }
+      MethodMod::Nullargs => {
+        decl.is_nullargs = true;
       }
     }
   }
@@ -34,6 +40,9 @@ impl MethodMod {
       MethodMod::Static => {
         Err(GDError::new(GDErrorF::StaticConstructor, decl.body.pos))
       }
+      MethodMod::Nullargs => {
+        Err(GDError::new(GDErrorF::NullargsConstructor, decl.body.pos))
+      }
     }
   }
 }
@@ -41,6 +50,7 @@ impl MethodMod {
 /// Parse rule for `MethodMod`.
 pub fn parser() -> impl ParseRule<Modifier=MethodMod> {
   Several::new(vec!(
-    Box::new(Constant::new("static", MethodMod::Static).unique())
+    Box::new(Constant::new("static", MethodMod::Static).unique()),
+    Box::new(Constant::new("sys/nullargs", MethodMod::Nullargs).unique()),
   ))
 }

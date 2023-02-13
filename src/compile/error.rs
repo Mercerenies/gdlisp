@@ -258,6 +258,8 @@ pub enum GDErrorF {
   MinimalistAtRepl,
   /// A file load was attempted in a cyclic order.
   CyclicImport(String),
+  /// A constructor `_init` function was labeled as `&sys/nullargs`.
+  NullargsConstructor,
 }
 
 /// Variant of [`GDErrorF`] with source offset information. See
@@ -386,6 +388,7 @@ impl GDErrorF {
       GDErrorF::ExprAtTopLevel(_) => 58,
       GDErrorF::MinimalistAtRepl => 59,
       GDErrorF::CyclicImport(_) => 60,
+      GDErrorF::NullargsConstructor => 61,
     }
   }
 
@@ -403,6 +406,7 @@ impl GDErrorF {
       GDErrorF::BadSysDeclare(_) => true,
       GDErrorF::BadBootstrappingDirective(_) => true,
       GDErrorF::MinimalistAtRepl => true,
+      GDErrorF::NullargsConstructor => true,
       _ => false,
     }
   }
@@ -550,6 +554,9 @@ impl fmt::Display for GDErrorF {
       }
       GDErrorF::CyclicImport(filename) => {
         write!(f, "Attempted to load '{}' while it was being loaded (cyclic import)", filename)?;
+      }
+      GDErrorF::NullargsConstructor => {
+        write!(f, "Class constructors cannot be marked sys/nullargs")?;
       }
     }
     if self.is_internal() {

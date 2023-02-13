@@ -135,9 +135,27 @@ pub struct ClassVarDecl {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ClassFnDecl {
+  /// Indicates whether or not the function is a static instance function.
   pub is_static: Static,
+  /// If this field is true, then all of the arguments to this
+  /// function will be compiled to optional GDScript arguments whose
+  /// default values are `null`.
+  ///
+  /// There is no user-exposed way to set this flag to true. This is
+  /// used in `GDLisp.lisp` to emulate variable arguments for small
+  /// argument counts.
+  pub is_nullargs: bool,
+  /// The name of the function, which can be an ordinary name or a
+  /// getter or setter.
   pub name: InstanceFunctionName,
+  /// The list of arguments to the function. These arguments are
+  /// always required on the GDLisp side. When compiled, these
+  /// arguments compile to required arguments if `is_nullargs` is
+  /// false, or optional ones otherwise.
   pub args: SimpleArgList,
+  /// The body of the function, as a single [`Expr`]. For functions
+  /// which require multiple expressions, [`ExprF::Progn`] can be
+  /// used.
   pub body: Expr,
 }
 
