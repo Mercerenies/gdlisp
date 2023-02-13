@@ -302,6 +302,46 @@ array ``arg`` but in reverse order. Does not mutate ``arg``.
 Constructs a fresh cons cell, with the first argument as car and the
 second as cdr.
 
+``connect>>``
+-------------
+
+::
+
+   (defn connect>> (obj signal-name function)
+     ...)
+
+Connects the signal on ``obj`` whose name is the string
+``signal-name`` to the given function. This function is similar to the
+built-in method ``connect`` on Godot objects, but the former is
+designed to work on GDLisp first-class functions, such as those
+constructed with :ref:`expr-lambda` or :ref:`expr-function`.
+
+This function returns a unique identifier which can be passed to
+:ref:`function-disconnect` to disconnect the signal.
+
+.. Warning:: Due to current limitations in the implementation, signals
+             connected in this way can only accept up to six
+             arguments. If you need more than six arguments, use the
+             built-in Godot method ``Object.connect`` instead.
+
+``connect1>>``
+--------------
+
+::
+
+   (defn connect1>> (obj signal-name function)
+      ...)
+
+Connects the signal on ``obj`` whose name is the string
+``signal-name`` to the given function. The connection will be dropped
+as soon as it's been called once.
+
+Returns an identifier that can be passed to :ref:`function-disconnect`
+to disconnect the signal.
+
+.. Warning:: Like ``connect>>``, functions connected with this
+             function can only accept up to six arguments.
+
 .. _function-convert:
 
 ``convert``
@@ -342,7 +382,7 @@ arguments.
 Gets the value corresponding to key ``k`` of the dictionary ``dict``.
 
 ``dict/find``
-------------
+-------------
 
 ::
 
@@ -355,6 +395,26 @@ with two arguments: the key and the value. Returns the first *key* for
 which the predicate returned true, or ``default`` if no match is
 found. This function will short-circuit and stop calling ``p`` as soon
 as a match is found.
+
+.. _function-disconnect:
+
+``disconnect>>``
+----------------
+
+::
+
+   (defn disconnect>> (obj signal-name index)
+     ...)
+
+Disconnects a signal that was connected using ``connect>>`` or
+``connect1>>``. The index shall be the return value of the function
+that was used to make the connection.
+
+Note that signals connected with Godot's built-in ``connect`` method
+should be disconnected, correspondingly, with the
+``Object.disconnect`` method. This function is only designed to
+disconnect signals made using the GDLisp functions ``connect>>`` and
+``connect1>>``.
 
 ``equal?``
 ----------

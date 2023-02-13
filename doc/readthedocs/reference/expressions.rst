@@ -354,6 +354,8 @@ A ``for`` loop defines a loop context for its body. This means that
              is always recommended to explicitly call ``range`` if the
              intent is to iterate up to a number.
 
+.. _expr-function:
+
 ``function`` Forms
 ^^^^^^^^^^^^^^^^^^
 
@@ -410,6 +412,8 @@ that a ``break`` or ``continue`` expression inside of a clause of the
 ``labels`` cannot be used to control a loop that began outside of the
 clauses. This constraint does not exist for the body of the
 ``labels``, only the clauses.
+
+.. _expr-lambda:
 
 ``lambda`` Forms
 ^^^^^^^^^^^^^^^^
