@@ -803,6 +803,13 @@
 
 ;;; Miscellaneous simple functions
 
+(defn bool (x)
+  ;; Like the GDScript primitive but works for all types, not just
+  ;; strings and numbers.
+  (cond
+    (x #t)
+    (#t #f)))
+
 (defn vector (x y &opt z)
   (sys/call-magic VECTOR)
   (cond
@@ -1083,7 +1090,6 @@
 ;; anyway.
 
 (sys/declare superfunction (int int) (a) public)
-(sys/declare superfunction (bool bool) (a) public)
 (sys/declare superfunction (randomize randomize) () public)
 (sys/declare superfunction (randi randi) () public)
 (sys/declare superfunction (randf randf) () public)

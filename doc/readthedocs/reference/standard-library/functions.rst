@@ -27,6 +27,9 @@ GDLisp for instance. The exceptions to this are:
   addition to strings, arrays, and dictionaries. See
   :ref:`function-len`.
 
+* ``bool`` has been extended to support all types. See
+  :ref:`function-bool`.
+
 ``*``
 -----
 
@@ -290,6 +293,17 @@ and returns a new array of the returned values. Does not modify
 
 Returns a new array containing all of the same elements as the input
 array ``arg`` but in reverse order. Does not mutate ``arg``.
+
+``bool``
+--------
+
+::
+
+   (defn bool (x)
+     ...)
+
+Normalizes the argument to Boolean. Returns ``#t`` if ``x`` is truthy,
+or ``#f`` otherwise.
 
 ``cons``
 --------

@@ -27,7 +27,8 @@ pub fn str_running_test() {
 
 #[test]
 pub fn bool_test() {
-  assert_eq!(parse_compile_and_output("(bool 10)"), "return bool(10)\n");
+  // We wrap bool(...) to support more types.
+  assert_eq!(parse_compile_and_output("(bool 10)"), "return GDLisp._bool(10)\n");
 }
 
 #[test]
@@ -38,4 +39,12 @@ pub fn char_test() {
 #[test]
 pub fn ord_test() {
   assert_eq!(parse_compile_and_output("(ord \"A\")"), "return ord(\"A\")\n");
+}
+
+#[test]
+pub fn bool_running_test() {
+  assert_eq!(parse_and_run("((print (bool 10))
+                             (print (bool 0))
+                             (print (bool (Reference:new))))"),
+             "\nTrue\nFalse\nTrue\n");
 }
