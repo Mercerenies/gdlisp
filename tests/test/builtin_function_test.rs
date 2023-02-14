@@ -614,4 +614,10 @@ pub fn vector_map_two_arguments_test() {
              "\n(10, 11, 17)\n");
 }
 
+#[test]
+pub fn array_concat_running_test() {
+  assert_eq!(parse_and_run("((print (array/concat)) (print (array/concat [1 2] [3 4])))"),
+             "\n[]\n[1, 2, 3, 4]\n");
+}
+
 // TODO Test gensym at runtime once we can pretty-print symbols

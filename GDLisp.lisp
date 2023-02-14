@@ -739,6 +739,13 @@
       ((sys/instance-direct? f Function) (f:call_funcv (append args1 args2)))
       (#t (push-error "Attempt to call non-function")))))
 
+;;; Array functions
+
+(defn array/concat (&rest arrays)
+  (cond
+    ((= (len arrays) 0) [])
+    (#t (apply #'+ arrays))))
+
 ;;; Vector functions
 
 (defn vector/map (f arg &rest args)

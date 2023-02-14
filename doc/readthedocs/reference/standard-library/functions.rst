@@ -214,6 +214,19 @@ desugars to a call to this function.
 
 Converts a Godot array or pooled array into a proper list.
 
+``array/concat``
+----------------
+
+::
+
+    (defn array/concat (&rest arrays)
+      ...)
+
+Concatenates all of the arrays in order, producing a new array. The
+existing arrays are not modified. If given an empty argument list,
+returns an empty array.
+
+
 .. _function-array-filter:
 
 ``array/filter``
