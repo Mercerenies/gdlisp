@@ -1813,3 +1813,139 @@ pub fn builtin_singleton_class_test() {
   assert_eq!(parse_and_run("((print (typeof Engine):name) (print _Engine:name) (print (Engine:get_class)))"),
              "\n_Engine\n_Engine\n_Engine\n");
 }
+
+#[test]
+pub fn lambdas_inside_class_and_out_test() {
+  // This is a regression test for issue #139.
+  let result = parse_compile_decl(r#"
+   ((defclass Foo () (defn foo () (lambda () 1)))
+     (defn bar () (lambda () 2)))
+  "#);
+  assert_eq!(result, r#"extends Reference
+
+
+class _LambdaBlock extends GDLisp.Function:
+
+    func _init():
+        self.__gdlisp_required = 0
+        self.__gdlisp_optional = 0
+        self.__gdlisp_rest = 0
+
+    func call_func():
+        return 1
+
+    func call_funcv(args):
+        if args == null:
+            return call_func()
+        else:
+            push_error("Too many arguments")
+
+
+class Foo extends Reference:
+
+    func _init():
+        pass
+
+    func foo():
+        return _LambdaBlock.new()
+
+
+class _LambdaBlock_0 extends GDLisp.Function:
+
+    func _init():
+        self.__gdlisp_required = 0
+        self.__gdlisp_optional = 0
+        self.__gdlisp_rest = 0
+
+    func call_func():
+        return 2
+
+    func call_funcv(args):
+        if args == null:
+            return call_func()
+        else:
+            push_error("Too many arguments")
+
+
+static func bar():
+    return _LambdaBlock_0.new()
+"#);
+}
+
+#[test]
+pub fn lambdas_inside_class_static_and_out_test() {
+  // This is a regression test for issue #139.
+  let result = parse_compile_decl(r#"
+   ((defclass Foo () (defn foo () (lambda () 1)) (defn bar () static (lambda () 2)))
+     (defn baz () (lambda () 3)))
+  "#);
+  assert_eq!(result, r#"extends Reference
+
+
+class _LambdaBlock extends GDLisp.Function:
+
+    func _init():
+        self.__gdlisp_required = 0
+        self.__gdlisp_optional = 0
+        self.__gdlisp_rest = 0
+
+    func call_func():
+        return 1
+
+    func call_funcv(args):
+        if args == null:
+            return call_func()
+        else:
+            push_error("Too many arguments")
+
+
+class _LambdaBlock_0 extends GDLisp.Function:
+
+    func _init():
+        self.__gdlisp_required = 0
+        self.__gdlisp_optional = 0
+        self.__gdlisp_rest = 0
+
+    func call_func():
+        return 2
+
+    func call_funcv(args):
+        if args == null:
+            return call_func()
+        else:
+            push_error("Too many arguments")
+
+
+class Foo extends Reference:
+
+    func _init():
+        pass
+
+    func foo():
+        return _LambdaBlock.new()
+
+    static func bar():
+        return _LambdaBlock_0.new()
+
+
+class _LambdaBlock_1 extends GDLisp.Function:
+
+    func _init():
+        self.__gdlisp_required = 0
+        self.__gdlisp_optional = 0
+        self.__gdlisp_rest = 0
+
+    func call_func():
+        return 3
+
+    func call_funcv(args):
+        if args == null:
+            return call_func()
+        else:
+            push_error("Too many arguments")
+
+
+static func baz():
+    return _LambdaBlock_1.new()
+"#);
+}

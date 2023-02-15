@@ -200,9 +200,23 @@ pub fn declare_class(frame: &mut CompilerFrame<impl HasDecls>,
     }
 
     for d in decls {
+
+      // Do the actual declaration.
       let tables = ClassTablePair { instance_table, static_table: &mut static_table };
       body.push(frame.compiler.compile_class_inner_decl(frame.pipeline, &mut class_init_builder, tables, &mut class_scope, d)?);
+
+      // Sync up the instance and static tables' synthetic variables.
+      // (TODO (HACK) Can we make the tables sync up properly, rather
+      // than just blindly throwing information at each other at every
+      // turn?)
+      instance_table.dump_synthetics_to(&mut static_table);
+      static_table.dump_synthetics_to(instance_table);
+
     }
+
+    // The instance and static tables should have the same synthetics,
+    // so dump one into the parent.
+    instance_table.dump_synthetics_to(frame.table);
 
     Ok(())
   })?;
