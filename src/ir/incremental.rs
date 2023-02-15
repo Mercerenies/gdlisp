@@ -110,11 +110,7 @@ impl IncCompiler {
     server.reset_global_name_generator().map_err(|err| IOError::new(err, pos))?;
 
     // Set the source position for the entire macro expansion to
-    // be the source of the macro call (TODO A long-term solution
-    // for this is to make SourceOffset unbelievably complex, so
-    // we can do cool errors that say "error occured at line 6,
-    // which is line 8 of macro expansion for blah blah blah, but
-    // that's very involved)
+    // be the source of the macro call
     let mut ast = ast?;
     ast.each_source_mut(|_| pos);
 

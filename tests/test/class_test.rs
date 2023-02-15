@@ -300,6 +300,22 @@ class Foo extends Reference:
 }
 
 #[test]
+pub fn super_call_in_class_test_5() {
+  assert_eq!(parse_compile_decl(r#"((defclass Foo () (defn foo-bar () (super:foo-bar))))"#),
+             r#"extends Reference
+
+
+class Foo extends Reference:
+
+    func _init():
+        pass
+
+    func foo_bar():
+        return .foo_bar()
+"#);
+}
+
+#[test]
 pub fn super_call_closed_in_class_test_1() {
   assert_eq!(parse_compile_decl(r#"((defclass Foo () (defn foo () (lambda () (super:foo)))))"#),
              r#"extends Reference
@@ -378,6 +394,49 @@ class Foo extends Reference:
 
     func __gdlisp_super_2():
         return .bar()
+"#);
+}
+
+#[test]
+pub fn super_call_closed_in_class_test_3() {
+  assert_eq!(parse_compile_decl(r#"((defclass Foo () (defn foo () (lambda () (super:foo-bar) (super:bar-bar)))))"#),
+             r#"extends Reference
+
+
+class _LambdaBlock extends GDLisp.Function:
+
+    var _self_0
+
+    func _init(_self_0):
+        self._self_0 = _self_0
+        self.__gdlisp_required = 0
+        self.__gdlisp_optional = 0
+        self.__gdlisp_rest = 0
+
+    func call_func():
+        _self_0.__gdlisp_super_1()
+        return _self_0.__gdlisp_super_2()
+
+    func call_funcv(args):
+        if args == null:
+            return call_func()
+        else:
+            push_error("Too many arguments")
+
+
+class Foo extends Reference:
+
+    func _init():
+        pass
+
+    func foo():
+        return _LambdaBlock.new(self)
+
+    func __gdlisp_super_1():
+        return .foo_bar()
+
+    func __gdlisp_super_2():
+        return .bar_bar()
 "#);
 }
 

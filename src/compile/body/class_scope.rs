@@ -7,6 +7,7 @@
 
 use crate::compile::error::{GDError, GDErrorF};
 use crate::compile::symbol_table::local_var::LocalVar;
+use crate::compile::names::lisp_to_gd;
 use crate::compile::names::fresh::FreshNameGenerator;
 use crate::gdscript::expr::Expr;
 use crate::pipeline::source::SourceOffset;
@@ -41,8 +42,9 @@ pub struct ClosedClassScope<'a>(pub &'a mut DirectClassScope);
 /// should be called when we invoke a `super` method.
 pub trait ClassScope {
 
-  /// Compile the necessary code to make a supermethod call, and then
-  /// return an expression which will perform the call.
+  /// Compiles the necessary code to make a supermethod call to the
+  /// GDLisp name `super_name`, and then returns an expression which
+  /// will perform the call.
   fn super_call(&mut self,
                 gen: &mut FreshNameGenerator,
                 self_binding: &LocalVar,
@@ -127,7 +129,7 @@ impl ClassScope for DirectClassScope {
                 args: Vec<Expr>,
                 pos: SourceOffset)
                 -> Result<Expr, GDError> {
-    Ok(Expr::super_call(&super_name, args, pos))
+    Ok(Expr::super_call(&lisp_to_gd(&super_name), args, pos))
   }
 
   fn closure_mut(&mut self) -> Box<dyn ClassScope + '_> {

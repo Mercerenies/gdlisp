@@ -6,6 +6,7 @@ use crate::pipeline::source::SourceOffset;
 use crate::gdscript::decl::FnDecl;
 use crate::gdscript::expr::Expr;
 use crate::gdscript::stmt::Stmt;
+use crate::compile::names::lisp_to_gd;
 use crate::compile::names::fresh::FreshNameGenerator;
 use crate::compile::names::generator::NameGenerator;
 use crate::compile::special_form::lambda::simple_arg_names;
@@ -33,10 +34,12 @@ impl SuperProxy {
   pub const PROXY_NAME: &'static str = "__gdlisp_super";
 
   /// Generates a superclass proxy method for the method with the
-  /// given name and argument count. The provided name generator is
-  /// used to come up with a unique name for the proxy method.
+  /// given (GDLisp) name and argument count. The provided name
+  /// generator is used to come up with a unique name for the proxy
+  /// method.
   pub fn generate(gen: &mut FreshNameGenerator, super_name: String, args: usize, pos: SourceOffset) -> SuperProxy {
     let name = gen.generate_with(SuperProxy::PROXY_NAME);
+    let super_name = lisp_to_gd(&super_name);
     SuperProxy { name, super_name, args, pos }
   }
 
