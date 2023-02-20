@@ -17,6 +17,10 @@ The current version of GDLisp is tested against Godot 3.5 and expects
 a command called `godot` to be on your system's path which points to
 the Godot executable.
 
+Check out the [official
+documentation](https://gdlisp.readthedocs.io/en/stable/) for a
+"Getting Started" guide!
+
 ## Features
 
 * Support for standard GDScript functionality, including function
