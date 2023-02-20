@@ -307,6 +307,8 @@ and returns a new array of the returned values. Does not modify
 Returns a new array containing all of the same elements as the input
 array ``arg`` but in reverse order. Does not mutate ``arg``.
 
+.. _function-bool:
+
 ``bool``
 --------
 

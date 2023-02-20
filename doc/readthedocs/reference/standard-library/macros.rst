@@ -127,6 +127,8 @@ initialized to the name ``name``. The first time ``name`` is
 evaluated, the instance is constructed and returned. On future
 evaluations of ``name``, the same instance will be returned.
 
+.. _macro-defvars:
+
 ``defvars``
 -----------
 

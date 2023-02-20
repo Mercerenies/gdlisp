@@ -1,4 +1,6 @@
 
+.. _comprehensive:
+
 Reference Documentation
 =======================
 

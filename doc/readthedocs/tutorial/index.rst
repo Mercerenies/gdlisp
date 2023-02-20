@@ -23,3 +23,5 @@ for folks new to the engine.
    control-flow.rst
    modules.rst
    classes.rst
+   macros.rst
+   what-now.rst
