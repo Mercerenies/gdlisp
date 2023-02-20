@@ -21,6 +21,9 @@ Check out the [official
 documentation](https://gdlisp.readthedocs.io/en/stable/) for a
 "Getting Started" guide!
 
+GDLisp is not affiliated with or endorsed by the Godot project in any
+official capacity. This is an independent project.
+
 ## Features
 
 * Support for standard GDScript functionality, including function
