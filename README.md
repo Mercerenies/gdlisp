@@ -47,3 +47,9 @@ can be used from GDScript, and vice versa.
 
 ## License
 
+GDLisp is distributed under the terms of the GNU General Public
+License version 3 or later. For more details, see `COPYING`.
+
+As a special exception to the GNU General Public License, the GDLisp
+support file `GDLisp.lisp` can be used and redistributed without any
+restrictions.
