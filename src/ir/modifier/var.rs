@@ -1,5 +1,6 @@
 
-//! Parse rule for modifiers that can be applied to constant declarations.
+//! Parse rule for modifiers that can be applied to instance variable
+//! declarations.
 
 use crate::ir::decl::ClassVarDecl;
 use crate::compile::body::class_initializer::InitTime;
