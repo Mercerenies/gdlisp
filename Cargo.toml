@@ -1,7 +1,7 @@
 [package]
 name = "gdlisp"
-version = "0.1.0"
-authors = ["Silvio Mayolo <mercerenies@comcast.net>"]
+version = "1.0.0"
+authors = ["Silvio Mayolo <mercerenies@gmail.com>"]
 edition = "2018"
 build = "build.rs"
 
