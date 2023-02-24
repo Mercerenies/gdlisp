@@ -152,7 +152,7 @@ func _ready():
 "#, BEGIN_GDLISP_TESTS)?;
 
   // The GDLisp.gd file
-  copy("GDLisp.gd", dir.path().join("GDLisp.gd"))?;
+  copy("../GDLisp.gd", dir.path().join("GDLisp.gd"))?;
 
   // Project file
   let mut project_file = File::create(dir.path().join("project.godot"))?;
