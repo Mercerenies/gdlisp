@@ -15,18 +15,45 @@
 // You should have received a copy of the GNU General Public License
 // along with GDLisp. If not, see <https://www.gnu.org/licenses/>.
 
+pub mod data;
+
+use gdextension_api::{ExtensionApi, load_extension_api_from_str};
 use crate::internal::godot::{GDExtensionInterface, GDExtensionClassLibraryPtr};
+use data::GodotString;
+
+use std::ffi::{c_void, c_char};
 
 #[derive(Debug)]
 pub struct GodotInterface<'a> {
   interface: &'a GDExtensionInterface,
   library: GDExtensionClassLibraryPtr,
+  extension_api: ExtensionApi,
+  string_new_with_utf8_chars: unsafe extern fn(*mut c_void, *const c_char),
 }
+
+static JSON_EXTENSION_DATA: &'static str = include_str!("../../extension_api.json");
 
 impl<'a> GodotInterface<'a> {
 
   pub fn new(interface: &'a GDExtensionInterface, library: GDExtensionClassLibraryPtr) -> Self {
-    Self { interface, library }
+    // Go ahead and extract pointers to all of the library functions
+    // we need. If any are null for some reason, we catch it now
+    // rather than later.
+    let string_new_with_utf8_chars = interface.string_new_with_utf8_chars.unwrap();
+
+    // Load the extension API from the JSON file.
+    let extension_api = load_extension_api_from_str(JSON_EXTENSION_DATA).unwrap();
+
+    Self {
+      interface,
+      library,
+      extension_api,
+      string_new_with_utf8_chars,
+    }
   }
+
+  //pub fn string(&self, input_string: impl Into<Vec<u8>>) -> GodotString {
+  //  (self.string_new_with_utf8_chars)
+  //}
 
 }

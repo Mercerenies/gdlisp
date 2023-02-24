@@ -44,3 +44,7 @@ pub struct ExtensionApi {
 pub fn load_extension_api(rdr: impl Read) -> Result<ExtensionApi, serde_json::Error> {
   serde_json::from_reader(rdr)
 }
+
+pub fn load_extension_api_from_str(s: &str) -> Result<ExtensionApi, serde_json::Error> {
+  serde_json::from_str(s)
+}

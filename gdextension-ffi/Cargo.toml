@@ -9,6 +9,7 @@ build = "build.rs"
 
 [dependencies]
 cty = "0.2.2"
+gdextension-api = { path = "../gdextension-api" }
 
 [build-dependencies]
 bindgen = "0.53.1"

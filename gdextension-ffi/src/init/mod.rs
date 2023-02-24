@@ -30,14 +30,13 @@ pub struct InitObject<'a> {
 }
 
 pub trait ExtensionInitializer {
-
-  //pub fn initialize_level(&mut self, level: 
-
+  fn initialize_level(&mut self, interface: &mut GodotInterface<'_>, level: InitializationLevel);
+  fn deinitialize_level(&mut self, interface: &mut GodotInterface<'_>, level: InitializationLevel);
 }
 
-#[derive(Debug)]
-struct InitObjectUserdata<'a> {
+struct InitObjectUserdata<'a, 'b> {
   implementation: GodotInterface<'a>,
+  initializer: Box<dyn ExtensionInitializer + 'b>,
 }
 
 impl<'a> InitObject<'a> {
@@ -46,31 +45,37 @@ impl<'a> InitObject<'a> {
     Self { interface, library }
   }
 
-  pub fn setup_init(&self, initialization: &mut godot::GDExtensionInitialization, init_level: InitializationLevel) {
+  pub fn setup_init<'b>(&self,
+                        initializer: impl ExtensionInitializer + 'b,
+                        godot_initialization: &mut godot::GDExtensionInitialization,
+                        init_level: InitializationLevel) {
     // Note: In the current implementation, we do NOT free this
     // userdata at any point. This shouldn't be a problem since there
     // should only be one InitObject total for the duration of the
-    // whole program, and InitObjectUserdata is a relatively small
-    // structure.
+    // whole program, and InitObjectUserdata is (hopefully) a
+    // relatively small structure.
     //
     // TODO Might be worth looking into whether or not we can safely
     // deallocate this in deinitialize(..).
     let userdata = Box::new(InitObjectUserdata {
       implementation: GodotInterface::new(self.interface, self.library),
+      initializer: Box::new(initializer),
     });
 
-    initialization.userdata = Box::into_raw(userdata) as *mut c_void;
-    initialization.initialize = Some(Self::initialize);
-    initialization.deinitialize = Some(Self::deinitialize);
-    initialization.minimum_initialization_level = init_level.into_u32();
+    godot_initialization.userdata = Box::into_raw(userdata) as *mut c_void;
+    godot_initialization.initialize = Some(Self::initialize);
+    godot_initialization.deinitialize = Some(Self::deinitialize);
+    godot_initialization.minimum_initialization_level = init_level.into_u32();
   }
 
-  extern fn initialize(userdata: *mut c_void, level: godot::GDExtensionInitializationLevel) {
-
+  unsafe extern fn initialize(userdata: *mut c_void, level: godot::GDExtensionInitializationLevel) {
+    let userdata = &mut *(userdata as *mut InitObjectUserdata);
+    userdata.initializer.initialize_level(&mut userdata.implementation, InitializationLevel::from_u32(level));
   }
 
-  extern fn deinitialize(userdata: *mut c_void, level: godot::GDExtensionInitializationLevel) {
-
+  unsafe extern fn deinitialize(userdata: *mut c_void, level: godot::GDExtensionInitializationLevel) {
+    let userdata = &mut *(userdata as *mut InitObjectUserdata);
+    userdata.initializer.deinitialize_level(&mut userdata.implementation, InitializationLevel::from_u32(level));
   }
 
 }
