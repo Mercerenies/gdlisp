@@ -20,7 +20,6 @@ pub mod data;
 use gdextension_api::{ExtensionApi, load_extension_api_from_str};
 use crate::internal::godot::{GDExtensionInterface, GDExtensionClassLibraryPtr};
 use crate::get_build_config;
-use data::GodotString;
 
 use std::ffi::{c_void, c_char};
 
@@ -59,13 +58,6 @@ impl<'a> GodotInterface<'a> {
       sizes,
       string_new_with_utf8_chars,
     }
-  }
-
-  pub fn string(&self, input_string: impl Into<Vec<u8>>) -> GodotString {
-    let mut s = GodotString { opaque: alloc(self.sizes.string) };
-    let cstring = CString::new(input_string);
-    unsafe {
-      (self.string_new_with_utf8_chars)(
   }
 
 }
