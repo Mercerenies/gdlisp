@@ -1,0 +1,40 @@
+name: "Windows Server 2022 (Godot v3.5)"
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  test-suite:
+
+    runs-on: "windows-2022"
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Install Godot
+      shell: pwsh
+      run: |
+        mkdir godot-build
+        cd godot-build
+        Invoke-WebRequest -Uri https://downloads.tuxfamily.org/godotengine/3.5/Godot_v3.5-stable_win64.exe.zip -OutFile Godot_v3.5-stable_win64.exe.zip
+        Expand-Archive -LiteralPath Godot_v3.5-stable_win64.exe.zip
+        mv Godot_v3.5-stable_win64.exe godot.exe
+        dir
+        cd ..
+    - name: Build
+      shell: pwsh
+      run: |
+        [Environment]::SetEnvironmentVariable("PATH", (pwd).path+"/godot-build/;"+$Env:PATH)
+        echo "$Env:PATH"
+        rake 'build[--verbose]'
+    - name: Run Standard Test Suite
+      shell: pwsh
+      run: |
+        [Environment]::SetEnvironmentVariable("PATH", (pwd).path+"/godot-build/;"+$Env:PATH)
+        echo "$Env:PATH"
+        rake 'test[--verbose]'
