@@ -26,6 +26,10 @@ jobs:
         mv Godot_v3.5-stable_win64.exe godot.exe
         dir
         cd ..
+    - name: Install Build Dependencies
+      shell: pwsh
+      run: |
+        gem install win32-file
     - name: Build
       shell: pwsh
       run: |
