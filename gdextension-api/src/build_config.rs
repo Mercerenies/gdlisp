@@ -46,3 +46,13 @@ pub struct PrimitiveMemberOffset {
   pub member: String,
   pub offset: usize,
 }
+
+impl BuiltinClassSizeConfig {
+
+  pub fn size_of(&self, name: &str) -> Option<usize> {
+    self.sizes.iter()
+      .find(|x| x.name == name)
+      .map(|x| x.size)
+  }
+
+}

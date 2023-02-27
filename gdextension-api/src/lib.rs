@@ -41,6 +41,14 @@ pub struct ExtensionApi {
   pub native_structures: Vec<native_structure::NativeStructure>,
 }
 
+impl ExtensionApi {
+
+  pub fn get_builtin_class_size_config(&self, build_config: &str) -> Option<&build_config::BuiltinClassSizeConfig> {
+    self.builtin_class_sizes.iter().find(|x| x.build_configuration == build_config)
+  }
+
+}
+
 pub fn load_extension_api(rdr: impl Read) -> Result<ExtensionApi, serde_json::Error> {
   serde_json::from_reader(rdr)
 }
