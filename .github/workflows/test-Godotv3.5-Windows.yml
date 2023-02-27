@@ -23,7 +23,7 @@ jobs:
         cd godot-build
         Invoke-WebRequest -Uri https://downloads.tuxfamily.org/godotengine/3.5/Godot_v3.5-stable_win64.exe.zip -OutFile Godot_v3.5-stable_win64.exe.zip
         Expand-Archive -LiteralPath Godot_v3.5-stable_win64.exe.zip
-        mv Godot_v3.5-stable_win64.exe godot.exe
+        mv Godot_v3.5-stable_win64.exe/Godot_v3.5-stable_win64.exe godot.exe
         dir
         cd ..
     - name: Install Build Dependencies
