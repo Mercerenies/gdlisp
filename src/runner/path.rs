@@ -210,11 +210,24 @@ mod tests {
   use super::*;
 
   #[test]
-  fn test_rpathbuf_new() {
-    assert!(RPathBuf::new(PathSrc::Absolute, PathBuf::from_str("/a/b").unwrap()).is_ok());
+  fn test_rpathbuf_new_relative() {
     assert!(RPathBuf::new(PathSrc::Res, PathBuf::from_str("a/b").unwrap()).is_ok());
     assert!(RPathBuf::new(PathSrc::User, PathBuf::from_str("a/b").unwrap()).is_ok());
     assert!(RPathBuf::new(PathSrc::Absolute, PathBuf::from_str("a/b").unwrap()).is_err());
+  }
+
+  #[test]
+  #[cfg(target_family = "windows")]
+  fn test_rpathbuf_new_absolute_windows() {
+    assert!(RPathBuf::new(PathSrc::Absolute, PathBuf::from_str("C:/a/b").unwrap()).is_ok());
+    assert!(RPathBuf::new(PathSrc::Res, PathBuf::from_str("C:/a/b").unwrap()).is_err());
+    assert!(RPathBuf::new(PathSrc::User, PathBuf::from_str("C:/a/b").unwrap()).is_err());
+  }
+
+  #[test]
+  #[cfg(target_family = "unix")]
+  fn test_rpathbuf_new_absolute_unix() {
+    assert!(RPathBuf::new(PathSrc::Absolute, PathBuf::from_str("/a/b").unwrap()).is_ok());
     assert!(RPathBuf::new(PathSrc::Res, PathBuf::from_str("/a/b").unwrap()).is_err());
     assert!(RPathBuf::new(PathSrc::User, PathBuf::from_str("/a/b").unwrap()).is_err());
   }
@@ -234,6 +247,23 @@ mod tests {
     assert_eq!(user.source(), PathSrc::User);
     assert_eq!(user.path(), PathBuf::from_str("foo/bar").unwrap());
 
+  }
+
+  #[test]
+  #[cfg(target_family = "windows")]
+  fn test_rpath_parse_windows() {
+
+    let abs = RPathBuf::try_from(String::from("C:/foo/bar"));
+    assert!(abs.is_ok());
+    let abs = abs.unwrap();
+    assert_eq!(abs.source(), PathSrc::Absolute);
+    assert_eq!(abs.path(), PathBuf::from_str("C:/foo/bar").unwrap());
+  }
+
+  #[test]
+  #[cfg(target_family = "unix")]
+  fn test_rpath_parse_unix() {
+
     let abs = RPathBuf::try_from(String::from("/foo/bar"));
     assert!(abs.is_ok());
     let abs = abs.unwrap();
@@ -245,6 +275,17 @@ mod tests {
   fn test_rpathbuf_display() {
     assert_eq!(RPathBuf::try_from(String::from("res://foo/bar")).unwrap().to_string(), "res://foo/bar");
     assert_eq!(RPathBuf::try_from(String::from("user://foo/bar")).unwrap().to_string(), "user://foo/bar");
+  }
+
+  #[test]
+  #[cfg(target_family = "windows")]
+  fn test_rpathbuf_display_windows() {
+    assert_eq!(RPathBuf::try_from(String::from("C:/foo/bar")).unwrap().to_string(), "C:/foo/bar");
+  }
+
+  #[test]
+  #[cfg(target_family = "unix")]
+  fn test_rpathbuf_display_unix() {
     assert_eq!(RPathBuf::try_from(String::from("/foo/bar")).unwrap().to_string(), "/foo/bar");
   }
 
