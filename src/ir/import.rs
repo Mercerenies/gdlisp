@@ -366,13 +366,25 @@ mod tests {
   }
 
   #[test]
-  fn default_import_name_test() {
-    assert_eq!(ImportDecl::default_import_name(&str_to_rpathbuf("/a/b/c")), "c");
-    assert_eq!(ImportDecl::default_import_name(&str_to_rpathbuf("/abcd")), "abcd");
+  fn default_import_name_test_relative() {
     assert_eq!(ImportDecl::default_import_name(&str_to_rpathbuf("res://foo/bar")), "bar");
     assert_eq!(ImportDecl::default_import_name(&str_to_rpathbuf("res://foo/bar.lisp")), "bar");
     assert_eq!(ImportDecl::default_import_name(&str_to_rpathbuf("res://foo/bar.gd")), "bar");
     assert_eq!(ImportDecl::default_import_name(&str_to_rpathbuf("res://")), "/"); // Degenerate case
+  }
+
+  #[test]
+  #[cfg(target_family = "windows")]
+  fn default_import_name_test_absolute_windows() {
+    assert_eq!(ImportDecl::default_import_name(&str_to_rpathbuf("C:/a/b/c")), "c");
+    assert_eq!(ImportDecl::default_import_name(&str_to_rpathbuf("C:/abcd")), "abcd");
+  }
+
+  #[test]
+  #[cfg(target_family = "unix")]
+  fn default_import_name_test_absolute_unix() {
+    assert_eq!(ImportDecl::default_import_name(&str_to_rpathbuf("/a/b/c")), "c");
+    assert_eq!(ImportDecl::default_import_name(&str_to_rpathbuf("/abcd")), "abcd");
   }
 
   #[test]

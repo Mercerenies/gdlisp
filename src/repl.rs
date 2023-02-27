@@ -67,7 +67,8 @@ pub struct Repl {
 
 impl Repl {
 
-  const REPL_FILENAME: &'static str = "/tmp/REPL.lisp";
+  const REPL_FILENAME: &'static str =
+    if cfg!(windows) { "C:/tmp/REPL.lisp" } else { "/tmp/REPL.lisp" };
 
   pub fn new(config: ProjectConfig) -> Repl {
     Repl::with_pipeline(Pipeline::new(config))

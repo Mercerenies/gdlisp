@@ -353,9 +353,12 @@ fn cyclic_import_test() {
   "#);
   let mut pipeline = Pipeline::with_resolver(dummy_config(), Box::new(loader));
   let result = pipeline.load_file("main.lisp", SourceOffset(0));
+
+  let error_filename = String::from(if cfg!(windows) { ".\\b.lisp" } else { "./b.lisp" });
+
   assert_eq!(result.map(|_| ()),
              Err(PError::from(
-               GDError::new(GDErrorF::CyclicImport(String::from("./b.lisp")), SourceOffset(0)),
+               GDError::new(GDErrorF::CyclicImport(error_filename), SourceOffset(0)),
              )));
 }
 

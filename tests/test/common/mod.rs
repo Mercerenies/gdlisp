@@ -196,13 +196,19 @@ fn parse_and_run_err_impl(input: &str, runner: &mut GodotCommand) -> Result<Outp
     .map_err(|err| PError::from(IOError::new(err, SourceOffset(0))))
 }
 
+fn strip_cr(input: &str) -> String {
+  // Windows outputs \r\n and Linux outputs \n. We strip \r so our
+  // tests can look for \n in every case.
+  input.replace("\r", "")
+}
+
 pub fn parse_and_run_err(input: &str) -> Result<String, PError> {
   let mut runner = GodotCommand::base();
   let Output { stdout, .. } = parse_and_run_err_impl(input, &mut runner)?;
   let result = String::from_utf8_lossy(&stdout);
   match result.find(BEGIN_GDLISP_TESTS) {
-    None => Ok(result.into_owned()),
-    Some(idx) => Ok(result[idx + BEGIN_GDLISP_TESTS.bytes().count()..].to_owned()),
+    None => Ok(strip_cr(&result)),
+    Some(idx) => Ok(strip_cr(&result[idx + BEGIN_GDLISP_TESTS.bytes().count()..])),
   }
 }
 
@@ -219,10 +225,10 @@ pub fn parse_and_run_with_stderr_err(input: &str) -> Result<StringOutput, PError
   let stderr = String::from_utf8_lossy(&stderr);
 
   let stdout = match stdout.find(BEGIN_GDLISP_TESTS) {
-    None => stdout.into_owned(),
-    Some(idx) => stdout[idx + BEGIN_GDLISP_TESTS.bytes().count()..].to_owned(),
+    None => strip_cr(&stdout),
+    Some(idx) => strip_cr(&stdout[idx + BEGIN_GDLISP_TESTS.bytes().count()..]),
   };
-  let stderr = stderr.into_owned();
+  let stderr = strip_cr(&stderr);
 
   Ok(StringOutput { stdout, stderr })
 }
