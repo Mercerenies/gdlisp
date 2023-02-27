@@ -18,3 +18,22 @@
 pub mod init;
 pub mod interface;
 mod internal;
+
+const BUILD_CONFIG: Option<&'static str> = option_env!("GDLISP_BUILD_CONFIGURATION");
+
+pub const VALID_BUILD_CONFIGS: [&'static str; 4] = ["float_32", "float_64", "double_32", "double_64"];
+
+pub fn get_build_config() -> &'static str {
+  BUILD_CONFIG.unwrap_or("float_64")
+}
+
+#[cfg(test)]
+mod tests {
+  use super::*;
+
+  #[test]
+  fn test_is_build_config_valid() {
+    assert!(VALID_BUILD_CONFIGS.contains(&get_build_config()), "{} is not a valid build configuration. Valid options are float_32, float_64, double_32, double_64", get_build_config());
+  }
+
+}
