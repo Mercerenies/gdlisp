@@ -18,6 +18,7 @@
 pub mod init;
 pub mod interface;
 pub mod language;
+pub mod gdlisp;
 mod internal;
 
 const BUILD_CONFIG: Option<&'static str> = option_env!("GDLISP_BUILD_CONFIGURATION");

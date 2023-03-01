@@ -19,3 +19,8 @@
 pub struct GodotString {
   pub(super) opaque: Vec<u8>,
 }
+
+#[derive(Debug)]
+pub struct StringName {
+  pub(super) opaque: Vec<u8>,
+}
