@@ -40,6 +40,7 @@ pub struct GodotInterface<'a> {
   variant_get_ptr_constructor: unsafe extern fn(godot::GDExtensionVariantType, i32) -> godot::GDExtensionPtrConstructor,
   object_set_instance: unsafe extern fn(godot::GDExtensionObjectPtr, godot::GDExtensionConstStringNamePtr, godot::GDExtensionClassInstancePtr),
   classdb_register_extension_class: unsafe extern fn(godot::GDExtensionClassLibraryPtr, godot::GDExtensionConstStringNamePtr, godot::GDExtensionConstStringNamePtr, *const godot::GDExtensionClassCreationInfo),
+  classdb_unregister_extension_class: unsafe extern fn(godot::GDExtensionClassLibraryPtr, godot::GDExtensionConstStringNamePtr),
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -61,6 +62,7 @@ impl<'a> GodotInterface<'a> {
     let variant_get_ptr_constructor = interface.variant_get_ptr_constructor.unwrap();
     let object_set_instance = interface.object_set_instance.unwrap();
     let classdb_register_extension_class = interface.classdb_register_extension_class.unwrap();
+    let classdb_unregister_extension_class = interface.classdb_unregister_extension_class.unwrap();
 
     // Load the extension API from the JSON file.
     let extension_api = load_extension_api_from_str(JSON_EXTENSION_DATA).unwrap();
@@ -76,6 +78,7 @@ impl<'a> GodotInterface<'a> {
       variant_get_ptr_constructor,
       object_set_instance,
       classdb_register_extension_class,
+      classdb_unregister_extension_class,
     }
   }
 
@@ -141,6 +144,13 @@ impl<'a> GodotInterface<'a> {
         parent_class_name.opaque.as_ptr() as *const c_void,
         &info,
       );
+    }
+  }
+
+  pub fn unregister_class(&mut self, class_name: &str) {
+    let class_name = self.string_name(class_name);
+    unsafe {
+      (self.classdb_unregister_extension_class)(self.library, class_name.opaque.as_ptr() as *const c_void);
     }
   }
 
