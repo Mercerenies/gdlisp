@@ -1,5 +1,8 @@
 
+mod singleton;
+
 use super::script::GDLispScript;
+use super::template::{ScriptTemplate, TemplateLocation};
 
 use godot::prelude::*;
 use godot::engine::{global, ScriptLanguageExtension, ScriptLanguageExtensionVirtual, Script};
@@ -12,8 +15,37 @@ pub struct GDLispScriptLanguage {
   base: Base<ScriptLanguageExtension>,
 }
 
+fn gdlisp_templates() -> impl IntoIterator<Item=ScriptTemplate> {
+  [
+    ScriptTemplate {
+      inherit: String::from("Object"),
+      name: String::from("Empty"),
+      description: String::from("Empty template suitable for all Objects"),
+      content: String::from(""), // TODO
+      id: 0,
+      origin: TemplateLocation::BuiltIn,
+    }
+  ]
+}
+
 #[godot_api]
 impl GDLispScriptLanguage {
+
+  /// Initialize the singleton, if it isn't already initialized. Note
+  /// that called [`singleton`] will also initialize the singleton,
+  /// but this method should be preferred if you don't actually need
+  /// the return value right now, to be more explicit.
+  pub fn init_singleton() {
+    GDLispScriptLanguage::singleton();
+  }
+
+  pub fn singleton() -> Gd<GDLispScriptLanguage> {
+    singleton::singleton()
+  }
+
+  pub fn free_singleton() {
+    singleton::free_singleton();
+  }
 
 }
 
@@ -88,13 +120,14 @@ impl ScriptLanguageExtensionVirtual for GDLispScriptLanguage {
   }
 
   fn get_built_in_templates(&self, _object: StringName) -> Array<Dictionary> {
-    println!("builtin templates");
-    Array::new() // TODO
+    gdlisp_templates()
+      .into_iter()
+      .map(ScriptTemplate::into_dictionary)
+      .collect()
   }
 
   fn is_using_templates(&mut self) -> bool {
-    println!("using templ");
-    false // TODO
+    true
   }
 
   fn validate(
@@ -122,17 +155,14 @@ impl ScriptLanguageExtensionVirtual for GDLispScriptLanguage {
   }
 
   fn has_named_classes(&self) -> bool {
-    println!("has name");
     false
   }
 
   fn supports_builtin_mode(&self) -> bool {
-    println!("supports bu");
     true
   }
 
   fn supports_documentation(&self) -> bool {
-    println!("supports doc");
     true
   }
 

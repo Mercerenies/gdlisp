@@ -13,3 +13,4 @@ crate-type = ["cdylib"]
 gdextension-api = { path = "../gdextension-api" }
 godot = { git = "https://github.com/Mercerenies/rust-gdextension", branch = "gdlisp-patches" }
 godot-core = { git = "https://github.com/Mercerenies/rust-gdextension", branch = "gdlisp-patches" }
+lazy_static = "1.4.0"

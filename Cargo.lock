@@ -190,6 +190,7 @@ dependencies = [
  "gdextension-api",
  "godot",
  "godot-core",
+ "lazy_static",
 ]
 
 [[package]]
