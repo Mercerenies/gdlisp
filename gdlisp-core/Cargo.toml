@@ -1,0 +1,15 @@
+[package]
+name = "gdlisp-core"
+version = "0.1.0"
+authors = ["Silvio Mayolo <mercerenies@gmail.com>"]
+edition = "2018"
+
+[lib]
+crate-type = ["cdylib"]
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+gdextension-api = { path = "../gdextension-api" }
+godot = { git = "https://github.com/godot-rust/gdext", branch = "master" }
+godot-core = { git = "https://github.com/godot-rust/gdext", branch = "master" }
