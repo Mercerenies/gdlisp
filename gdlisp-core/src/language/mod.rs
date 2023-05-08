@@ -111,12 +111,13 @@ impl ScriptLanguageExtensionVirtual for GDLispScriptLanguage {
 
   fn make_template(
     &self,
-    _template: GodotString,
+    template: GodotString,
     _class_name: GodotString,
     _base_class_name: GodotString,
   ) -> Option<Gd<Script>> {
-    println!("template");
-    None // TODO
+    let mut script: Gd<Script> = Gd::<GDLispScript>::new_default().upcast();
+    script.set_source_code(template);
+    Some(script)
   }
 
   fn get_built_in_templates(&self, _object: StringName) -> Array<Dictionary> {
@@ -349,7 +350,6 @@ impl ScriptLanguageExtensionVirtual for GDLispScriptLanguage {
     // TODO
   }
   fn frame(&mut self) {
-    println!("frame");
     // TODO
   }
   fn handles_global_class_type(&self, type_: GodotString) -> bool {
