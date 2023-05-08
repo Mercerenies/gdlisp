@@ -11,5 +11,5 @@ crate-type = ["cdylib"]
 
 [dependencies]
 gdextension-api = { path = "../gdextension-api" }
-godot = { git = "https://github.com/godot-rust/gdext", branch = "master" }
-godot-core = { git = "https://github.com/godot-rust/gdext", branch = "master" }
+godot = { git = "https://github.com/Mercerenies/rust-gdextension", branch = "gdlisp-patches" }
+godot-core = { git = "https://github.com/Mercerenies/rust-gdextension", branch = "gdlisp-patches" }
