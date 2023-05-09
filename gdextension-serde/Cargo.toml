@@ -1,20 +1,13 @@
 [package]
-name = "gdlisp-core"
+name = "gdextension-serde"
 version = "0.1.0"
 authors = ["Silvio Mayolo <mercerenies@gmail.com>"]
 edition = "2018"
-
-[lib]
-crate-type = ["cdylib"]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
 serde = { version = "1.0", features = ["derive"] }
-serde_repr = "0.1"
-gdextension-api = { path = "../gdextension-api" }
-gdextension-serde = { path = "../gdextension-serde" }
-gdlisp-util = { path = "../gdlisp-util" }
 godot = { git = "https://github.com/Mercerenies/rust-gdextension", branch = "gdlisp-patches" }
-godot-core = { git = "https://github.com/Mercerenies/rust-gdextension", branch = "gdlisp-patches" }
-lazy_static = "1.4.0"
+
+[build-dependencies]

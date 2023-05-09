@@ -164,6 +164,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "gdextension-serde"
+version = "0.1.0"
+dependencies = [
+ "godot",
+ "serde",
+]
+
+[[package]]
 name = "gdlisp"
 version = "1.0.0"
 dependencies = [
@@ -188,10 +196,13 @@ name = "gdlisp-core"
 version = "0.1.0"
 dependencies = [
  "gdextension-api",
+ "gdextension-serde",
  "gdlisp-util",
  "godot",
  "godot-core",
  "lazy_static",
+ "serde",
+ "serde_repr",
 ]
 
 [[package]]
@@ -822,6 +833,17 @@ dependencies = [
  "itoa",
  "ryu",
  "serde",
+]
+
+[[package]]
+name = "serde_repr"
+version = "0.1.12"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "bcec881020c684085e55a25f7fd888954d56609ef363479dc5a1305eb0d40cab"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 2.0.15",
 ]
 
 [[package]]

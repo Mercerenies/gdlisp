@@ -122,9 +122,10 @@ impl ScriptLanguageExtensionVirtual for GDLispScriptLanguage {
     Some(script)
   }
 
-  fn get_built_in_templates(&self, _object: StringName) -> Array<Dictionary> {
+  fn get_built_in_templates(&self, object: StringName) -> Array<Dictionary> {
     gdlisp_templates()
       .into_iter()
+      .filter(|x| StringName::from(&x.inherit) == object)
       .map(ScriptTemplate::into_dictionary)
       .collect()
   }

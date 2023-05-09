@@ -3,6 +3,7 @@
 members = [
     "gdlisp",
     "gdextension-api",
+    "gdextension-serde",
     "gdlisp-core",
     "gdlisp-util",
 ]
