@@ -188,10 +188,15 @@ name = "gdlisp-core"
 version = "0.1.0"
 dependencies = [
  "gdextension-api",
+ "gdlisp-util",
  "godot",
  "godot-core",
  "lazy_static",
 ]
+
+[[package]]
+name = "gdlisp-util"
+version = "0.1.0"
 
 [[package]]
 name = "getopts"

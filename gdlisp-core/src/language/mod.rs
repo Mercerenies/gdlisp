@@ -1,5 +1,7 @@
 
+pub mod loader;
 mod singleton;
+pub mod saver;
 
 use super::script::GDLispScript;
 use super::template::{ScriptTemplate, TemplateLocation};
@@ -141,6 +143,7 @@ impl ScriptLanguageExtensionVirtual for GDLispScriptLanguage {
     _validate_safe_lines: bool,
   ) -> Dictionary {
     println!("validate");
+    ///// see script_language_extension.h
     Dictionary::new()
   }
 
