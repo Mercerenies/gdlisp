@@ -3,8 +3,9 @@ pub mod loader;
 mod singleton;
 pub mod saver;
 
-use super::script::GDLispScript;
-use super::template::{ScriptTemplate, TemplateLocation};
+use crate::script::GDLispScript;
+use crate::types::template::{ScriptTemplate, TemplateLocation};
+use crate::types::validate::Validation;
 
 use godot::prelude::*;
 use godot::engine::{global, ScriptLanguageExtension, ScriptLanguageExtensionVirtual, Script};
@@ -143,9 +144,15 @@ impl ScriptLanguageExtensionVirtual for GDLispScriptLanguage {
     _validate_warnings: bool,
     _validate_safe_lines: bool,
   ) -> Dictionary {
-    println!("validate");
-    ///// see script_language_extension.h
-    Dictionary::new()
+    // TODO This for real
+    let validation = Validation {
+      functions: vec![],
+      errors: vec![],
+      warnings: vec![],
+      safe_lines: vec![],
+      valid: true,
+    };
+    validation.into_dictionary()
   }
 
   fn validate_path(&self, _path: GodotString) -> GodotString {
