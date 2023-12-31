@@ -1,7 +1,7 @@
 
 use super::GDLispScriptLanguage;
 
-use godot::prelude::{Gd, Share};
+use godot::prelude::*;
 use godot::engine::Engine;
 use lazy_static::lazy_static;
 
@@ -36,11 +36,11 @@ impl GDLispScriptLanguageSingleton {
 pub(super) fn singleton() -> Gd<GDLispScriptLanguage> {
   let mut lock = LANGUAGE_SINGLETON.lock().unwrap();
   if let Some(script_language) = lock.instance.as_ref() {
-    script_language.share()
+    script_language.clone()
   } else {
-    let script_language: Gd<GDLispScriptLanguage> = Gd::new_default();
-    Engine::singleton().register_script_language(script_language.share().upcast());
-    lock.instance = Some(script_language.share());
+    let script_language = GDLispScriptLanguage::alloc_gd();
+    Engine::singleton().register_script_language(script_language.clone().upcast());
+    lock.instance = Some(script_language.clone());
     script_language
   }
 }
@@ -48,7 +48,7 @@ pub(super) fn singleton() -> Gd<GDLispScriptLanguage> {
 pub(super) fn free_singleton() {
   let mut lock = LANGUAGE_SINGLETON.lock().unwrap();
   if let Some(script_language) = lock.instance.take() {
-    Engine::singleton().unregister_script_language(script_language.share().upcast());
+    Engine::singleton().unregister_script_language(script_language.clone().upcast());
     script_language.free();
   }
 }

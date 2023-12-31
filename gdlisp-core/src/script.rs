@@ -10,7 +10,7 @@ use godot::engine::notify::ObjectNotification;
 pub struct GDLispScript {
   #[base]
   base: Base<ScriptExtension>,
-  source_code: Option<GodotString>,
+  source_code: Option<GString>,
 }
 
 #[godot_api]
@@ -28,8 +28,8 @@ impl IScriptExtension for GDLispScript {
     }
   }
 
-  fn to_string(&self) -> GodotString {
-    GodotString::from("GDLispScript")
+  fn to_string(&self) -> GString {
+    GString::from("GDLispScript")
   }
 
   fn on_notification(&mut self, _what: ObjectNotification) {
@@ -76,11 +76,11 @@ impl IScriptExtension for GDLispScript {
     true
   }
 
-  fn get_source_code(&self) -> GodotString {
+  fn get_source_code(&self) -> GString {
     self.source_code.as_ref().cloned().unwrap_or_default()
   }
 
-  fn set_source_code(&mut self, code: GodotString) {
+  fn set_source_code(&mut self, code: GString) {
     self.source_code = Some(code);
   }
 

@@ -1,11 +1,7 @@
 
 use crate::language::GDLispScriptLanguage;
-use crate::language::loader::GDLispResourceFormatLoader;
-use crate::language::saver::GDLispResourceFormatSaver;
 
 use godot::prelude::*;
-use godot::engine::{ResourceLoader, ResourceSaver, Engine};
-use godot_core::auto_register_classes;
 
 struct Main;
 
@@ -13,14 +9,14 @@ struct Main;
 unsafe impl ExtensionLibrary for Main {
 
   fn on_level_init(level: InitLevel) {
-    if (level == InitLevel::Scene) {
+    if level == InitLevel::Scene {
       // Initialize GDLispScriptLanguage global singleton.
       GDLispScriptLanguage::init_singleton();
     }
   }
 
   fn on_level_deinit(level: InitLevel) {
-    if (level == InitLevel::Scene) {
+    if level == InitLevel::Scene {
       // Nothing to do.
     }
   }

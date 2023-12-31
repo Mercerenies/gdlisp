@@ -59,12 +59,12 @@ impl IScriptLanguageExtension for GDLispScriptLanguage {
     GDLispScriptLanguage { base }
   }
 
-  fn to_string(&self) -> GodotString {
-    GodotString::from("GDLisp")
+  fn to_string(&self) -> GString {
+    GString::from("GDLisp")
   }
 
-  fn get_name(&self) -> GodotString {
-    GodotString::from("GDLisp")
+  fn get_name(&self) -> GString {
+    GString::from("GDLisp")
   }
 
   fn on_notification(&mut self, _what: ObjectNotification) {
@@ -77,12 +77,12 @@ impl IScriptLanguageExtension for GDLispScriptLanguage {
     println!("init_ext");
   }
 
-  fn get_type(&self) -> GodotString {
-    GodotString::from("GDLisp")
+  fn get_type(&self) -> GString {
+    GString::from("GDLisp")
   }
 
-  fn get_extension(&self) -> GodotString {
-    GodotString::from("lisp")
+  fn get_extension(&self) -> GString {
+    GString::from("lisp")
   }
 
   fn finish(&mut self) {
@@ -94,33 +94,33 @@ impl IScriptLanguageExtension for GDLispScriptLanguage {
     PackedStringArray::new() // TODO
   }
 
-  fn is_control_flow_keyword(&self, _keyword: GodotString) -> bool {
+  fn is_control_flow_keyword(&self, _keyword: GString) -> bool {
     println!("control_flow");
     false // TODO
   }
 
   fn get_comment_delimiters(&self) -> PackedStringArray {
     PackedStringArray::from(&[
-      GodotString::from(";"), // Line comments
-      GodotString::from("#| |#"), // Block comments
+      GString::from(";"), // Line comments
+      GString::from("#| |#"), // Block comments
     ])
   }
 
   fn get_string_delimiters(&self) -> PackedStringArray {
     PackedStringArray::from(&[
-      GodotString::from("\" \""),
+      GString::from("\" \""),
     ])
   }
 
   fn make_template(
     &self,
-    template: GodotString,
-    _class_name: GodotString,
-    _base_class_name: GodotString,
+    template: GString,
+    _class_name: GString,
+    _base_class_name: GString,
   ) -> Option<Gd<Script>> {
-    let mut script: Gd<Script> = Gd::<GDLispScript>::new_default().upcast();
+    let mut script = GDLispScript::new_gd();
     script.set_source_code(template);
-    Some(script)
+    Some(script.upcast())
   }
 
   fn get_built_in_templates(&self, object: StringName) -> Array<Dictionary> {
@@ -137,8 +137,8 @@ impl IScriptLanguageExtension for GDLispScriptLanguage {
 
   fn validate(
     &self,
-    _script: GodotString,
-    _path: GodotString,
+    _script: GString,
+    _path: GString,
     _validate_functions: bool,
     _validate_errors: bool,
     _validate_warnings: bool,
@@ -155,15 +155,15 @@ impl IScriptLanguageExtension for GDLispScriptLanguage {
     validation.into_dictionary()
   }
 
-  fn validate_path(&self, _path: GodotString) -> GodotString {
+  fn validate_path(&self, _path: GString) -> GString {
     // GDLisp does not place any inherent restrictions on filenames.
     println!("validate path");
-    GodotString::from("")
+    GString::from("")
   }
 
   fn create_script(&self) -> Option<Gd<Object>> {
     println!("create s");
-    Some(Gd::<GDLispScript>::new_default().upcast())
+    Some(GDLispScript::new_gd().upcast())
   }
 
   fn has_named_classes(&self) -> bool {
@@ -185,19 +185,19 @@ impl IScriptLanguageExtension for GDLispScriptLanguage {
 
   // Note: The upstream Godot repo seems to have these arguments named
   // incorrectly. This is how they're actually used in Godot.
-  fn find_function(&self, _function_name: GodotString, _code: GodotString) -> i32 {
+  fn find_function(&self, _function_name: GString, _code: GString) -> i32 {
     println!("find fun");
     -1 // TODO
   }
 
   fn make_function(
     &self,
-    _class_name: GodotString,
-    _function_name: GodotString,
+    _class_name: GString,
+    _function_name: GString,
     _function_args: PackedStringArray,
-  ) -> GodotString {
+  ) -> GString {
     println!("make fun");
-    GodotString::from("") // TODO
+    GString::from("") // TODO
   }
 
   fn open_in_external_editor(
@@ -218,8 +218,8 @@ impl IScriptLanguageExtension for GDLispScriptLanguage {
 
   fn complete_code(
     &self,
-    _code: GodotString,
-    _path: GodotString,
+    _code: GString,
+    _path: GString,
     _owner: Gd<Object>,
   ) -> Dictionary {
     println!("complete co");
@@ -228,16 +228,16 @@ impl IScriptLanguageExtension for GDLispScriptLanguage {
 
   fn lookup_code(
     &self,
-    _code: GodotString,
-    _symbol: GodotString,
-    _path: GodotString,
+    _code: GString,
+    _symbol: GString,
+    _path: GString,
     _owner: Gd<Object>,
   ) -> Dictionary {
     println!("lookup co");
     Dictionary::new() // TODO
   }
 
-  fn auto_indent_code(&self, code: GodotString, _from_line: i32, _to_line: i32) -> GodotString {
+  fn auto_indent_code(&self, code: GString, _from_line: i32, _to_line: i32) -> GString {
     println!("auto indent");
     code // TODO
   }
@@ -267,9 +267,9 @@ impl IScriptLanguageExtension for GDLispScriptLanguage {
     // TODO
   }
 
-  fn debug_get_error(&self) -> GodotString {
+  fn debug_get_error(&self) -> GString {
     println!("debug get err");
-    GodotString::from("") // TODO
+    GString::from("") // TODO
   }
 
   fn debug_get_stack_level_count(&self) -> i32 {
@@ -282,9 +282,9 @@ impl IScriptLanguageExtension for GDLispScriptLanguage {
     0 // TODO
   }
 
-  fn debug_get_stack_level_function(&self, _level: i32) -> GodotString {
+  fn debug_get_stack_level_function(&self, _level: i32) -> GString {
     println!("debug get fun");
-    GodotString::from("") // TODO
+    GString::from("") // TODO
   }
 
   fn debug_get_stack_level_locals(
@@ -315,12 +315,12 @@ impl IScriptLanguageExtension for GDLispScriptLanguage {
   fn debug_parse_stack_level_expression(
     &mut self,
     _level: i32,
-    _expression: GodotString,
+    _expression: GString,
     _max_subitems: i32,
     _max_depth: i32,
-  ) -> GodotString {
+  ) -> GString {
     println!("debug get parse");
-    GodotString::from("") // TODO
+    GString::from("") // TODO
   }
 
   fn debug_get_current_stack_info(&mut self) -> Array<Dictionary> {
@@ -338,7 +338,7 @@ impl IScriptLanguageExtension for GDLispScriptLanguage {
   }
   fn get_recognized_extensions(&self) -> PackedStringArray {
     println!("get rec");
-    PackedStringArray::from(&[GodotString::from("lisp")])
+    PackedStringArray::from(&[GString::from("lisp")])
   }
   fn get_public_functions(&self) -> Array<Dictionary> {
     println!("get publi fun");
@@ -363,11 +363,11 @@ impl IScriptLanguageExtension for GDLispScriptLanguage {
   fn frame(&mut self) {
     // TODO
   }
-  fn handles_global_class_type(&self, type_: GodotString) -> bool {
+  fn handles_global_class_type(&self, type_: GString) -> bool {
     println!("handles");
-    type_ == GodotString::from("Script") || type_ == GodotString::from("GDLisp")
+    type_ == GString::from("Script") || type_ == GString::from("GDLisp")
   }
-  fn get_global_class_name(&self, _path: GodotString) -> Dictionary {
+  fn get_global_class_name(&self, _path: GString) -> Dictionary {
     println!("get global class name");
     Dictionary::new() // TODO
   }

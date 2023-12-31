@@ -28,8 +28,8 @@ impl IResourceFormatSaver for GDLispResourceFormatSaver {
     GDLispResourceFormatSaver { base }
   }
 
-  fn to_string(&self) -> GodotString {
-    GodotString::from("GDLispResourceFormatSaver")
+  fn to_string(&self) -> GString {
+    GString::from("GDLispResourceFormatSaver")
   }
 
   fn on_notification(&mut self, _what: ObjectNotification) {
@@ -42,13 +42,13 @@ impl IResourceFormatSaver for GDLispResourceFormatSaver {
 
   fn get_recognized_extensions(&self, resource: Gd<Resource>) -> PackedStringArray {
     if self.recognize(resource) {
-      PackedStringArray::from(&[GodotString::from("lisp")])
+      PackedStringArray::from(&[GString::from("lisp")])
     } else {
       PackedStringArray::new()
     }
   }
 
-  fn save(&mut self, resource: Gd<Resource>, path: GodotString, _flags: u32) -> global::Error {
+  fn save(&mut self, resource: Gd<Resource>, path: GString, _flags: u32) -> global::Error {
     match resource.try_cast::<GDLispScript>() {
       Err(_) => {
         global::Error::ERR_INVALID_PARAMETER
