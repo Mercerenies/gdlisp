@@ -41,9 +41,12 @@ impl GDLispResourceFormatLoader {
 
   pub fn get_singleton() -> Option<Gd<Self>> {
     let class_name = StringName::from(Self::CLASS_NAME);
-    Engine::singleton()
-      .get_singleton(class_name)
-      .and_then(|x| x.try_cast().ok())
+    if Engine::singleton().has_singleton(class_name.clone()) {
+      let singleton = Engine::singleton().get_singleton(class_name).expect("Singleton in inconsistent state");
+      singleton.try_cast().ok()
+    } else {
+      None
+    }
   }
 
 }
