@@ -20,6 +20,8 @@ pub struct GDLispResourceFormatLoader {
 #[godot_api]
 impl GDLispResourceFormatLoader {
 
+  pub const CLASS_NAME: &'static str = "GDLispResourceFormatLoader";
+
 }
 
 #[godot_api]
