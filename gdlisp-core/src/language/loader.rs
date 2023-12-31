@@ -3,7 +3,7 @@ use crate::script::GDLispScript;
 use gdlisp_util::path::RPathBuf;
 
 use godot::prelude::*;
-use godot::engine::{ResourceFormatLoader, IResourceFormatLoader, FileAccess};
+use godot::engine::{ResourceLoader, ResourceFormatLoader, IResourceFormatLoader, FileAccess, Engine};
 use godot::engine::file_access::ModeFlags;
 use godot::engine::notify::ObjectNotification;
 
@@ -20,6 +20,31 @@ pub struct GDLispResourceFormatLoader {
 impl GDLispResourceFormatLoader {
 
   pub const CLASS_NAME: &'static str = "GDLispResourceFormatLoader";
+
+  pub fn initialize_singleton() -> Gd<Self> {
+    if let Some(existing_singleton) = Self::get_singleton() {
+      return existing_singleton;
+    }
+
+    let loader = Self::new_gd();
+    Engine::singleton().register_singleton(StringName::from(Self::CLASS_NAME), loader.clone().upcast());
+    ResourceLoader::singleton().add_resource_format_loader(loader.clone().upcast());
+    loader
+  }
+
+  pub fn deinitialize_singleton() {
+    if let Some(loader) = Self::get_singleton() {
+      ResourceLoader::singleton().remove_resource_format_loader(loader.upcast());
+      Engine::singleton().unregister_singleton(StringName::from(Self::CLASS_NAME));
+    }
+  }
+
+  pub fn get_singleton() -> Option<Gd<Self>> {
+    let class_name = StringName::from(Self::CLASS_NAME);
+    Engine::singleton()
+      .get_singleton(class_name)
+      .and_then(|x| x.try_cast().ok())
+  }
 
 }
 

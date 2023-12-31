@@ -3,7 +3,8 @@ use crate::script::GDLispScript;
 use crate::language::GDLispScriptLanguage;
 
 use godot::prelude::*;
-use godot::engine::{ResourceFormatSaver, IResourceFormatSaver, FileAccess, IScriptLanguageExtension, global};
+use godot::engine::{ResourceFormatSaver, IResourceFormatSaver, FileAccess,
+                    IScriptLanguageExtension, global, Engine, ResourceSaver};
 use godot::engine::file_access::ModeFlags;
 use godot::engine::notify::ObjectNotification;
 
@@ -18,6 +19,31 @@ pub struct GDLispResourceFormatSaver {
 impl GDLispResourceFormatSaver {
 
   pub const CLASS_NAME: &'static str = "GDLispResourceFormatSaver";
+
+  pub fn initialize_singleton() -> Gd<Self> {
+    if let Some(existing_singleton) = Self::get_singleton() {
+      return existing_singleton;
+    }
+
+    let saver = Self::new_gd();
+    Engine::singleton().register_singleton(StringName::from(Self::CLASS_NAME), saver.clone().upcast());
+    ResourceSaver::singleton().add_resource_format_saver(saver.clone().upcast());
+    saver
+  }
+
+  pub fn deinitialize_singleton() {
+    if let Some(saver) = Self::get_singleton() {
+      ResourceSaver::singleton().remove_resource_format_saver(saver.upcast());
+      Engine::singleton().unregister_singleton(StringName::from(Self::CLASS_NAME));
+    }
+  }
+
+  pub fn get_singleton() -> Option<Gd<Self>> {
+    let class_name = StringName::from(Self::CLASS_NAME);
+    Engine::singleton()
+      .get_singleton(class_name)
+      .and_then(|x| x.try_cast().ok())
+  }
 
 }
 

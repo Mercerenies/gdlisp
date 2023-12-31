@@ -1,5 +1,7 @@
 
 use crate::language::GDLispScriptLanguage;
+use crate::language::loader::GDLispResourceFormatLoader;
+use crate::language::saver::GDLispResourceFormatSaver;
 
 use godot::prelude::*;
 
@@ -12,12 +14,15 @@ unsafe impl ExtensionLibrary for Main {
     if level == InitLevel::Scene {
       // Initialize GDLispScriptLanguage global singleton.
       GDLispScriptLanguage::init_singleton();
+      GDLispResourceFormatLoader::initialize_singleton();
+      GDLispResourceFormatSaver::initialize_singleton();
     }
   }
 
   fn on_level_deinit(level: InitLevel) {
     if level == InitLevel::Scene {
-      // Nothing to do.
+      GDLispResourceFormatSaver::deinitialize_singleton();
+      GDLispResourceFormatLoader::deinitialize_singleton();
     }
   }
 
