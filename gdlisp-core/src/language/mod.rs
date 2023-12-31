@@ -8,7 +8,7 @@ use crate::types::template::{ScriptTemplate, TemplateLocation};
 use crate::types::validate::Validation;
 
 use godot::prelude::*;
-use godot::engine::{global, ScriptLanguageExtension, ScriptLanguageExtensionVirtual, Script};
+use godot::engine::{global, ScriptLanguageExtension, IScriptLanguageExtension, Script};
 use godot::engine::notify::ObjectNotification;
 
 #[derive(Debug, GodotClass)]
@@ -53,7 +53,7 @@ impl GDLispScriptLanguage {
 }
 
 #[godot_api]
-impl ScriptLanguageExtensionVirtual for GDLispScriptLanguage {
+impl IScriptLanguageExtension for GDLispScriptLanguage {
 
   fn init(base: Base<ScriptLanguageExtension>) -> Self {
     GDLispScriptLanguage { base }
@@ -185,7 +185,7 @@ impl ScriptLanguageExtensionVirtual for GDLispScriptLanguage {
 
   // Note: The upstream Godot repo seems to have these arguments named
   // incorrectly. This is how they're actually used in Godot.
-  fn find_function(&self, _function_name: GodotString, _code: GodotString) -> i64 {
+  fn find_function(&self, _function_name: GodotString, _code: GodotString) -> i32 {
     println!("find fun");
     -1 // TODO
   }
@@ -203,8 +203,8 @@ impl ScriptLanguageExtensionVirtual for GDLispScriptLanguage {
   fn open_in_external_editor(
     &mut self,
     _script: Gd<Script>,
-    _line: i64,
-    _column: i64,
+    _line: i32,
+    _column: i32,
   ) -> global::Error {
     println!("open ext");
     // TODO Consider writing an editor plugin
@@ -237,7 +237,7 @@ impl ScriptLanguageExtensionVirtual for GDLispScriptLanguage {
     Dictionary::new() // TODO
   }
 
-  fn auto_indent_code(&self, code: GodotString, _from_line: i64, _to_line: i64) -> GodotString {
+  fn auto_indent_code(&self, code: GodotString, _from_line: i32, _to_line: i32) -> GodotString {
     println!("auto indent");
     code // TODO
   }
@@ -272,26 +272,26 @@ impl ScriptLanguageExtensionVirtual for GDLispScriptLanguage {
     GodotString::from("") // TODO
   }
 
-  fn debug_get_stack_level_count(&self) -> i64 {
+  fn debug_get_stack_level_count(&self) -> i32 {
     println!("debug get stack count");
     0 // TODO
   }
 
-  fn debug_get_stack_level_line(&self, _level: i64) -> i64 {
+  fn debug_get_stack_level_line(&self, _level: i32) -> i32 {
     println!("debug get line");
     0 // TODO
   }
 
-  fn debug_get_stack_level_function(&self, _level: i64) -> GodotString {
+  fn debug_get_stack_level_function(&self, _level: i32) -> GodotString {
     println!("debug get fun");
     GodotString::from("") // TODO
   }
 
   fn debug_get_stack_level_locals(
     &mut self,
-    _level: i64,
-    _max_subitems: i64,
-    _max_depth: i64,
+    _level: i32,
+    _max_subitems: i32,
+    _max_depth: i32,
   ) -> Dictionary {
     println!("debug get loc");
     Dictionary::new() // TODO
@@ -299,25 +299,25 @@ impl ScriptLanguageExtensionVirtual for GDLispScriptLanguage {
 
   fn debug_get_stack_level_members(
     &mut self,
-    _level: i64,
-    _max_subitems: i64,
-    _max_depth: i64,
+    _level: i32,
+    _max_subitems: i32,
+    _max_depth: i32,
   ) -> Dictionary {
     println!("debug get membs");
     Dictionary::new() // TODO
   }
 
-  fn debug_get_globals(&mut self, _max_subitems: i64, _max_depth: i64) -> Dictionary {
+  fn debug_get_globals(&mut self, _max_subitems: i32, _max_depth: i32) -> Dictionary {
     println!("debug get globs");
     Dictionary::new() // TODO
   }
 
   fn debug_parse_stack_level_expression(
     &mut self,
-    _level: i64,
+    _level: i32,
     _expression: GodotString,
-    _max_subitems: i64,
-    _max_depth: i64,
+    _max_subitems: i32,
+    _max_depth: i32,
   ) -> GodotString {
     println!("debug get parse");
     GodotString::from("") // TODO

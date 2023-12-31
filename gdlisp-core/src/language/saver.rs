@@ -3,7 +3,7 @@ use crate::script::GDLispScript;
 use crate::language::GDLispScriptLanguage;
 
 use godot::prelude::*;
-use godot::engine::{ResourceFormatSaver, ResourceFormatSaverVirtual, FileAccess, ScriptLanguageExtensionVirtual, global};
+use godot::engine::{ResourceFormatSaver, IResourceFormatSaver, FileAccess, IScriptLanguageExtension, global};
 use godot::engine::file_access::ModeFlags;
 use godot::engine::notify::ObjectNotification;
 
@@ -20,7 +20,7 @@ impl GDLispResourceFormatSaver {
 }
 
 #[godot_api]
-impl ResourceFormatSaverVirtual for GDLispResourceFormatSaver {
+impl IResourceFormatSaver for GDLispResourceFormatSaver {
 
   fn init(base: Base<ResourceFormatSaver>) -> Self {
     GDLispResourceFormatSaver { base }
@@ -35,7 +35,7 @@ impl ResourceFormatSaverVirtual for GDLispResourceFormatSaver {
   }
 
   fn recognize(&self, resource: Gd<Resource>) -> bool {
-    resource.try_cast::<GDLispScript>().is_some()
+    resource.try_cast::<GDLispScript>().is_ok()
   }
 
   fn get_recognized_extensions(&self, resource: Gd<Resource>) -> PackedStringArray {
@@ -46,13 +46,13 @@ impl ResourceFormatSaverVirtual for GDLispResourceFormatSaver {
     }
   }
 
-  fn save(&mut self, resource: Gd<Resource>, path: GodotString, _flags: i64) -> global::Error {
+  fn save(&mut self, resource: Gd<Resource>, path: GodotString, _flags: u32) -> global::Error {
     match resource.try_cast::<GDLispScript>() {
-      None => {
+      Err(_) => {
         global::Error::ERR_INVALID_PARAMETER
       }
-      Some(resource) => {
-        let source = resource.bind().get_source_code();
+      Ok(resource) => {
+        let source = resource.get_source_code();
         match FileAccess::open(path, ModeFlags::WRITE) {
           None => {
             FileAccess::get_open_error()

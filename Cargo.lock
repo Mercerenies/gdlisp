@@ -187,6 +187,9 @@ dependencies = [
 name = "gdlisp-core"
 version = "0.1.0"
 dependencies = [
+ "gdextension-api",
+ "gdextension-serde",
+ "gdlisp-util",
  "godot",
  "godot-core",
  "lazy_static",

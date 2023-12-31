@@ -3,11 +3,12 @@ use crate::script::GDLispScript;
 use gdlisp_util::path::RPathBuf;
 
 use godot::prelude::*;
-use godot::engine::{ResourceFormatLoader, ResourceFormatLoaderVirtual, FileAccess, ScriptExtensionVirtual};
+use godot::engine::{ResourceFormatLoader, IResourceFormatLoader, FileAccess, IScriptExtension};
 use godot::engine::file_access::ModeFlags;
 use godot::engine::notify::ObjectNotification;
 
 use std::convert::TryFrom;
+use std::ops::DerefMut;
 
 #[derive(Debug, GodotClass)]
 #[class(base=ResourceFormatLoader)]
@@ -22,7 +23,7 @@ impl GDLispResourceFormatLoader {
 }
 
 #[godot_api]
-impl ResourceFormatLoaderVirtual for GDLispResourceFormatLoader {
+impl IResourceFormatLoader for GDLispResourceFormatLoader {
 
   fn init(base: Base<ResourceFormatLoader>) -> Self {
     GDLispResourceFormatLoader { base }
@@ -63,7 +64,7 @@ impl ResourceFormatLoaderVirtual for GDLispResourceFormatLoader {
     path: GodotString,
     original_path: GodotString,
     _use_sub_threads: bool,
-    _cache_mode: i64,
+    _cache_mode: i32,
   ) -> Variant {
     // TODO Caching
     match FileAccess::open(path, ModeFlags::READ) {
@@ -72,11 +73,8 @@ impl ResourceFormatLoaderVirtual for GDLispResourceFormatLoader {
       }
       Some(file) => {
         let mut resource = Gd::<GDLispScript>::new_default();
-        {
-          let mut resource = resource.bind_mut();
-          ScriptExtensionVirtual::set_source_code(&mut *resource, file.get_as_text(false));
-          resource.set_path(original_path);
-        }
+        resource.set_source_code(file.get_as_text());
+        resource.set_path(original_path);
         Variant::from(resource)
       }
     }

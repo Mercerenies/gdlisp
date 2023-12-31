@@ -2,7 +2,7 @@
 use gdextension_serde::to_variant;
 
 use serde::{Serialize, Deserialize};
-use godot::prelude::{Dictionary, FromVariant};
+use godot::prelude::{Dictionary, FromGodot};
 
 use std::fmt::{self, Display};
 

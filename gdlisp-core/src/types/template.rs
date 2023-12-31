@@ -1,7 +1,7 @@
 
 use gdextension_serde::to_variant;
 
-use godot::prelude::{Dictionary, FromVariant};
+use godot::prelude::{Dictionary, FromGodot};
 use serde::{Serialize, Deserialize};
 use serde_repr::{Serialize_repr, Deserialize_repr};
 

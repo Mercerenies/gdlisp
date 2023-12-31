@@ -9,20 +9,18 @@ use godot_core::auto_register_classes;
 
 struct Main;
 
-#[derive(Debug, Default)]
-struct InitExtensionLayer {
-  loader: Option<Gd<GDLispResourceFormatLoader>>,
-  saver: Option<Gd<GDLispResourceFormatSaver>>,
-}
-
 #[gdextension]
 unsafe impl ExtensionLibrary for Main {
+
+/*
   fn load_library(handle: &mut InitHandle) -> bool {
     handle.register_layer(InitLevel::Scene, InitExtensionLayer::default());
     true
   }
+*/
 }
 
+/*
 impl ExtensionLayer for InitExtensionLayer {
 
   fn initialize(&mut self) {
@@ -50,3 +48,4 @@ impl ExtensionLayer for InitExtensionLayer {
   }
 
 }
+*/

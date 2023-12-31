@@ -2,7 +2,7 @@
 use super::language::GDLispScriptLanguage;
 
 use godot::prelude::*;
-use godot::engine::{global, ScriptExtensionVirtual, ScriptExtension, Script, ScriptLanguage};
+use godot::engine::{global, IScriptExtension, ScriptExtension, Script, ScriptLanguage};
 use godot::engine::notify::ObjectNotification;
 
 #[derive(Debug, GodotClass)]
@@ -19,7 +19,7 @@ impl GDLispScript {
 }
 
 #[godot_api]
-impl ScriptExtensionVirtual for GDLispScript {
+impl IScriptExtension for GDLispScript {
 
   fn init(base: Base<ScriptExtension>) -> Self {
     GDLispScript {
@@ -152,7 +152,7 @@ impl ScriptExtensionVirtual for GDLispScript {
     Array::new()
   }
 
-  fn get_member_line(&self, _member: StringName) -> i64 {
+  fn get_member_line(&self, _member: StringName) -> i32 {
     // TODO
     0
   }
