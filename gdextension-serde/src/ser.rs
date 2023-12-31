@@ -2,7 +2,7 @@
 use crate::error::{Result, Error};
 
 use serde::ser;
-use godot::prelude::{Variant, PackedByteArray, Dictionary, Array, ToVariant};
+use godot::prelude::{Variant, PackedByteArray, Dictionary, Array, ToGodot};
 
 use std::marker::PhantomData;
 
@@ -389,8 +389,8 @@ impl ser::SerializeStructVariant for SerializeStructVariant {
 }
 
 fn singleton_dict<K, V>(key: K, value: V) -> Dictionary
-where K: ToVariant,
-      V: ToVariant {
+where K: ToGodot,
+      V: ToGodot {
   let mut dict = Dictionary::new();
   dict.insert(key, value);
   dict
