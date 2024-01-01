@@ -32,31 +32,22 @@ task :build_rs do |t, args|
   sh 'cargo', 'build', *release_flag
 end
 
-task build: :build_rs do |t, args|
-  sh 'cargo', 'run', *release_flag, '--', '--compile-stdlib'
-  cp 'GDLisp.gd', 'MacroServer/GDLisp.gd'
-  cp_r 'MacroServer', 'target/debug'
-  cp 'GDLisp.msgpack', 'target/debug'
-  cp_r 'MacroServer', 'target/debug/deps'
-  cp 'GDLisp.msgpack', 'target/debug/deps'
-  cp_r 'MacroServer', 'target/release'
-  cp 'GDLisp.msgpack', 'target/release'
-  cp_r 'MacroServer', 'target/release/deps'
-  cp 'GDLisp.msgpack', 'target/release/deps'
-  if release_flag.include? '--release'
-    mkdir_p 'bin/'
-    File.delete('bin/gdlisp') if File.exist?('bin/gdlisp')
-    File.symlink('../target/release/gdlisp', 'bin/gdlisp')
+task :rtest do |t, args|
+  sh 'cargo', 'test', *release_flag, *args
+end
+
+task :itest do |t, args|
+  # Run gd-rehearse tests
+  Dir.glob('tests/*').each do |package|
+    puts "Running #{package} gd-rehearse tests ..."
+    # NOTE: We currently don't run benchmarks here. We have no
+    # benchmark tests, and gd-rehearse considers a lack of benchmarks
+    # a failure, causing Rake to think we failed.
+    sh 'godot4', '--headless', '--path', "#{package}/godot/", '--', '--rust-test'
   end
 end
 
-task run: :build do |t, args|
-  sh 'cargo', 'run', *release_flag, *args
-end
-
-task test: :build do |t, args|
-  sh 'cargo', 'test', *release_flag, *args
-end
+task test: %i[rtest itest]
 
 task :clean do |t, args|
   sh 'cargo', 'clean', *args
