@@ -1,4 +1,6 @@
 
+//! Error and result types for [`ser`].
+
 use serde::ser;
 
 use std::error;

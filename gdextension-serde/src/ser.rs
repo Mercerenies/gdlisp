@@ -1,4 +1,9 @@
 
+//! Serializer which takes Rust types to Godot types.
+//!
+//! See the documentation for [`crate::to_variant`] for more
+//! information on the specific translations made.
+
 use crate::error::{Result, Error};
 
 use serde::ser;

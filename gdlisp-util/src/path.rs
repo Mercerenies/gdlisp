@@ -44,7 +44,7 @@ use std::ffi::OsStr;
 
 /// An `RPathBuf` represents a file path using Godot's format.
 ///
-/// See the [module-level documentation](crate::runner::path) for more
+/// See the [module-level documentation](crate::path) for more
 /// details.
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct RPathBuf {
