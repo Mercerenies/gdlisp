@@ -56,13 +56,13 @@ impl IResourceFormatLoader for GDLispResourceFormatLoader {
   }
 
   fn handles_type(&self, type_: StringName) -> bool {
-    return type_ == StringName::from("Script") || type_ == StringName::from("ScriptExtension") || type_ == StringName::from("GDLispScript")
+    return type_ == StringName::from("GDLispScript")
   }
 
   fn get_resource_type(&self, path: GString) -> GString {
     if let Ok(path) = RPathBuf::try_from(path.to_string()) {
       if path.extension().map_or(false, |x| x.to_ascii_lowercase() == "lisp") {
-        return GString::from("GDLisp");
+        return GString::from("GDLispScript");
       }
     }
     GString::new()

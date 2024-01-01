@@ -87,6 +87,7 @@ impl IScriptExtension for GDLispScript {
 
   fn reload(&mut self, _keep_state: bool) -> global::Error {
     // TODO
+    println!("reload");
     global::Error::OK
   }
 

@@ -157,7 +157,6 @@ impl IScriptLanguageExtension for GDLispScriptLanguage {
 
   fn validate_path(&self, _path: GString) -> GString {
     // GDLisp does not place any inherent restrictions on filenames.
-    println!("validate path");
     GString::from("")
   }
 
@@ -365,7 +364,7 @@ impl IScriptLanguageExtension for GDLispScriptLanguage {
   }
   fn handles_global_class_type(&self, type_: GString) -> bool {
     println!("handles");
-    type_ == GString::from("Script") || type_ == GString::from("GDLisp")
+    type_ == GString::from("GDLisp")
   }
   fn get_global_class_name(&self, _path: GString) -> Dictionary {
     println!("get global class name");
