@@ -1,9 +1,10 @@
 
 use crate::script::GDLispScript;
+use crate::singleton::GodotSingleton;
 use gdlisp_util::path::RPathBuf;
 
 use godot::prelude::*;
-use godot::engine::{ResourceLoader, ResourceFormatLoader, IResourceFormatLoader, FileAccess, Engine};
+use godot::engine::{ResourceLoader, ResourceFormatLoader, IResourceFormatLoader, FileAccess};
 use godot::engine::file_access::ModeFlags;
 use godot::engine::notify::ObjectNotification;
 
@@ -17,38 +18,22 @@ pub struct GDLispResourceFormatLoader {
 }
 
 #[godot_api]
-impl GDLispResourceFormatLoader {
+impl GDLispResourceFormatLoader {}
 
-  pub const CLASS_NAME: &'static str = "GDLispResourceFormatLoader";
+impl GodotSingleton for GDLispResourceFormatLoader {
+  const CLASS_NAME: &'static str = "GDLispResourceFormatLoader";
 
-  pub fn initialize_singleton() -> Gd<Self> {
-    if let Some(existing_singleton) = Self::get_singleton() {
-      return existing_singleton;
-    }
-
-    let loader = Self::new_gd();
-    Engine::singleton().register_singleton(StringName::from(Self::CLASS_NAME), loader.clone().upcast());
-    ResourceLoader::singleton().add_resource_format_loader(loader.clone().upcast());
-    loader
+  fn allocate_singleton() -> Gd<Self> {
+    let instance = Self::new_gd();
+    ResourceLoader::singleton().add_resource_format_loader(instance.clone().upcast());
+    instance
   }
 
-  pub fn deinitialize_singleton() {
-    if let Some(loader) = Self::get_singleton() {
-      ResourceLoader::singleton().remove_resource_format_loader(loader.upcast());
-      Engine::singleton().unregister_singleton(StringName::from(Self::CLASS_NAME));
-    }
+  fn deallocate_singleton(instance: Gd<Self>) {
+    ResourceLoader::singleton().remove_resource_format_loader(instance.upcast());
+    // No need to explicitly free, as GDLispResourceFormatLoader is
+    // RefCounted.
   }
-
-  pub fn get_singleton() -> Option<Gd<Self>> {
-    let class_name = StringName::from(Self::CLASS_NAME);
-    if Engine::singleton().has_singleton(class_name.clone()) {
-      let singleton = Engine::singleton().get_singleton(class_name).expect("Singleton in inconsistent state");
-      singleton.try_cast().ok()
-    } else {
-      None
-    }
-  }
-
 }
 
 #[godot_api]

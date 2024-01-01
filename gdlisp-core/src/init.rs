@@ -1,5 +1,6 @@
 
 use crate::language::GDLispScriptLanguage;
+use crate::singleton::GodotSingleton;
 use crate::language::loader::GDLispResourceFormatLoader;
 use crate::language::saver::GDLispResourceFormatSaver;
 

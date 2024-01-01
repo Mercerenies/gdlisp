@@ -38,9 +38,13 @@ pub(super) fn singleton() -> Gd<GDLispScriptLanguage> {
   if let Some(script_language) = lock.instance.as_ref() {
     script_language.clone()
   } else {
+    println!("A");
     let script_language = GDLispScriptLanguage::alloc_gd();
+    println!("B");
     Engine::singleton().register_script_language(script_language.clone().upcast());
+    println!("C");
     lock.instance = Some(script_language.clone());
+    println!("D");
     script_language
   }
 }
