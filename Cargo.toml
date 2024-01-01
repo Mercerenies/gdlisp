@@ -1,9 +1,13 @@
 [workspace]
 
 members = [
+    # Public workspace crates
     "gdlisp",
     "gdextension-api",
     "gdextension-serde",
     "gdlisp-core",
     "gdlisp-util",
+
+    # Godot test crates
+    "tests/gdextension-serde-tests/rust",
 ]

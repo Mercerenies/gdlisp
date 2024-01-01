@@ -148,6 +148,36 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0ce7134b9999ecaf8bcd65542e436736ef32ddca1b3e06094cb6ec5755203b80"
 
 [[package]]
+name = "gd-rehearse"
+version = "0.1.0"
+source = "git+https://github.com/Mercerenies/gd-rehearse/?branch=gdlisp-patches#bc3c45fb3a2910cb6d91d97228e3c91dae9002fc"
+dependencies = [
+ "gd-rehearse-defs",
+ "gd-rehearse-macros",
+ "godot",
+]
+
+[[package]]
+name = "gd-rehearse-defs"
+version = "0.1.0"
+source = "git+https://github.com/Mercerenies/gd-rehearse/?branch=gdlisp-patches#bc3c45fb3a2910cb6d91d97228e3c91dae9002fc"
+dependencies = [
+ "godot",
+ "paste",
+]
+
+[[package]]
+name = "gd-rehearse-macros"
+version = "0.1.0"
+source = "git+https://github.com/Mercerenies/gd-rehearse/?branch=gdlisp-patches#bc3c45fb3a2910cb6d91d97228e3c91dae9002fc"
+dependencies = [
+ "gd-rehearse-defs",
+ "proc-macro2",
+ "quote",
+ "venial",
+]
+
+[[package]]
 name = "gdextension-api"
 version = "0.1.0"
 dependencies = [
@@ -161,6 +191,18 @@ version = "0.1.0"
 dependencies = [
  "godot",
  "serde",
+]
+
+[[package]]
+name = "gdextension-serde-tests"
+version = "0.1.0"
+dependencies = [
+ "gd-rehearse",
+ "gdextension-serde",
+ "godot",
+ "lazy_static",
+ "serde",
+ "serde_repr",
 ]
 
 [[package]]
@@ -191,7 +233,6 @@ dependencies = [
  "gdextension-serde",
  "gdlisp-util",
  "godot",
- "godot-core",
  "lazy_static",
  "serde",
  "serde_repr",

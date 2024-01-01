@@ -1,0 +1,7 @@
+[configuration]
+entry_symbol = "tests_init"
+compatibility_minimum = 4.1
+
+[libraries]
+linux.debug.x86_64 = "res://../../../target/debug/libgdextension_serde_tests.so"
+linux.release.x86_64 = "res://../../../target/release/libgdextension_serde_tests.so"

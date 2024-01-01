@@ -1,0 +1,4 @@
+[gd_scene format=3 uid="uid://dag477ig1al1u"]
+
+[node name="GdTestRunner" type="GdTestRunner"]
+disallow_focus = true
