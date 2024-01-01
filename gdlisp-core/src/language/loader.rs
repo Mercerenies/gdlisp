@@ -44,7 +44,7 @@ impl IResourceFormatLoader for GDLispResourceFormatLoader {
   }
 
   fn to_string(&self) -> GString {
-    GString::from("GDLispResourceFormatSaver")
+    GString::from(Self::CLASS_NAME)
   }
 
   fn on_notification(&mut self, _what: ObjectNotification) {
@@ -56,7 +56,7 @@ impl IResourceFormatLoader for GDLispResourceFormatLoader {
   }
 
   fn handles_type(&self, type_: StringName) -> bool {
-    return type_ == StringName::from("Script") || type_ == StringName::from("GDLisp")
+    return type_ == StringName::from("Script") || type_ == StringName::from("ScriptExtension") || type_ == StringName::from("GDLispScript")
   }
 
   fn get_resource_type(&self, path: GString) -> GString {
