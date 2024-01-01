@@ -7,10 +7,13 @@ use crate::language::saver::GDLispResourceFormatSaver;
 use godot::prelude::*;
 use godot::init::EditorRunBehavior;
 
-struct Main;
+/// Marker struct for the GDLisp Godot extension. This struct will
+/// never be instantiated and is simply used as a tag type as the
+/// GDExtension entry point for this tool.
+struct GDLispExtension;
 
 #[gdextension]
-unsafe impl ExtensionLibrary for Main {
+unsafe impl ExtensionLibrary for GDLispExtension {
 
   fn editor_run_behavior() -> EditorRunBehavior {
     EditorRunBehavior::AllClasses
