@@ -28,7 +28,7 @@ task :doc do |t, args|
   sh 'cargo', 'doc', *args
 end
 
-task :build_rs do |t, args|
+task :build do |t, args|
   sh 'cargo', 'build', *release_flag
 end
 
@@ -36,7 +36,7 @@ task :rtest do |t, args|
   sh 'cargo', 'test', *release_flag, *args
 end
 
-task :itest do |t, args|
+task itest: [:build] do |t, args|
   # Run gd-rehearse tests
   Dir.glob('tests/*').each do |package|
     puts "Running #{package} gd-rehearse tests ..."
