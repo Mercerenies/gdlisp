@@ -79,7 +79,8 @@ impl IResourceFormatSaver for GDLispResourceFormatSaver {
             if err != global::Error::OK && err != global::Error::ERR_FILE_EOF {
               return err;
             }
-            GDLispScriptLanguage::singleton().bind_mut().reload_tool_script(resource.upcast(), false);
+            let mut language = GDLispScriptLanguage::initialize_singleton();
+            language.bind_mut().reload_tool_script(resource.upcast(), false);
             global::Error::OK
           }
         }

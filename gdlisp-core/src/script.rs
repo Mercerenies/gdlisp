@@ -1,5 +1,6 @@
 
 use super::language::GDLispScriptLanguage;
+use crate::singleton::GodotSingleton;
 
 use godot::prelude::*;
 use godot::engine::{global, IScriptExtension, ScriptExtension, Script, ScriptLanguage};
@@ -115,7 +116,8 @@ impl IScriptExtension for GDLispScript {
   }
 
   fn get_language(&self) -> Option<Gd<ScriptLanguage>> {
-    Some(GDLispScriptLanguage::singleton().upcast())
+    let language = GDLispScriptLanguage::initialize_singleton();
+    Some(language.upcast())
   }
 
   fn has_script_signal(&self, _signal: StringName) -> bool {

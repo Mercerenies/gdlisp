@@ -1,14 +1,14 @@
 
 pub mod loader;
-mod singleton;
 pub mod saver;
 
 use crate::script::GDLispScript;
+use crate::singleton::GodotSingleton;
 use crate::types::template::{ScriptTemplate, TemplateLocation};
 use crate::types::validate::Validation;
 
 use godot::prelude::*;
-use godot::engine::{global, ScriptLanguageExtension, IScriptLanguageExtension, Script};
+use godot::engine::{global, ScriptLanguageExtension, IScriptLanguageExtension, Script, Engine};
 use godot::engine::notify::ObjectNotification;
 
 #[derive(Debug, GodotClass)]
@@ -34,20 +34,20 @@ fn gdlisp_templates() -> impl IntoIterator<Item=ScriptTemplate> {
 #[godot_api]
 impl GDLispScriptLanguage {
 
-  /// Initialize the singleton, if it isn't already initialized. Note
-  /// that called [`singleton`] will also initialize the singleton,
-  /// but this method should be preferred if you don't actually need
-  /// the return value right now, to be more explicit.
-  pub fn init_singleton() {
-    GDLispScriptLanguage::singleton();
+}
+
+impl GodotSingleton for GDLispScriptLanguage {
+  const CLASS_NAME: &'static str = "GDLispScriptLanguage";
+
+  fn allocate_singleton() -> Gd<Self> {
+    let script_language = GDLispScriptLanguage::alloc_gd();
+    Engine::singleton().register_script_language(script_language.clone().upcast());
+    script_language
   }
 
-  pub fn singleton() -> Gd<GDLispScriptLanguage> {
-    singleton::singleton()
-  }
-
-  pub fn free_singleton() {
-    singleton::free_singleton();
+  fn deallocate_singleton(instance: Gd<Self>) {
+    Engine::singleton().unregister_script_language(instance.clone().upcast());
+    instance.free();
   }
 
 }
