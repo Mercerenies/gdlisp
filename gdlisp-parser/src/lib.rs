@@ -15,7 +15,15 @@
 // You should have received a copy of the GNU General Public License
 // along with GDLisp. If not, see <https://www.gnu.org/licenses/>.
 
+#[macro_use] extern crate lalrpop_util;
+
 pub mod dotted;
 pub mod literal;
 pub mod sexpr;
 pub mod string;
+pub mod syntax;
+
+lalrpop_mod!(
+  #[allow(clippy::all)]
+  pub parser
+);

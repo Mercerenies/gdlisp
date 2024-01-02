@@ -1,4 +1,4 @@
-// Copyright 2023 Silvio Mayolo
+// Copyright 2024 Silvio Mayolo
 //
 // This file is part of GDLisp.
 //
@@ -15,7 +15,8 @@
 // You should have received a copy of the GNU General Public License
 // along with GDLisp. If not, see <https://www.gnu.org/licenses/>.
 
-//! Data-type and associated functionality for dealing with Lisp
-//! S-expressions.
+extern crate lalrpop;
 
-pub mod reify;
+fn main() {
+  lalrpop::process_root().unwrap();
+}

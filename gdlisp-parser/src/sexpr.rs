@@ -281,6 +281,14 @@ impl SExpr {
     SExpr::dotted_list(iterable, SExpr::nil(nil_pos))
   }
 
+  /// A proper list whose head is the symbol given by the string and
+  /// whose tail elements are given by the iterable.
+  pub fn call_list<I, J>(head: &str, iterable: I, pos: SourceOffset) -> SExpr
+  where I : IntoIterator<IntoIter = J>,
+        J : DoubleEndedIterator<Item = SExpr> {
+    SExpr::cons(SExpr::symbol(head, pos), SExpr::list(iterable, pos), pos)
+  }
+
   /// Uses a [`From`] instance of [`SExprF`] to construct an `SExpr`.
   pub fn from_value<T>(value: T, pos: SourceOffset) -> SExpr
   where SExprF : From<T> {

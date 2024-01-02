@@ -1,0 +1,140 @@
+// -*- Rust -*-
+
+// Copyright 2023, 2024 Silvio Mayolo
+//
+// This file is part of GDLisp.
+//
+// GDLisp is free software: you can redistribute it and/or modify it
+// under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// GDLisp is distributed in the hope that it will be useful, but
+// WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+// General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with GDLisp. If not, see <https://www.gnu.org/licenses/>.
+
+// TODO Audit this file; add back in anything we removed for migration
+// purposes.
+
+use crate::sexpr::SExpr;
+use crate::{string, syntax};
+use gdlisp_util::source::SourceOffset;
+
+use std::str::FromStr;
+
+grammar;
+
+Int: i32 = <s:INT> => i32::from_str(s).unwrap();
+Float: f32 = <s:FLOAT> => f32::from_str(s).unwrap();
+String: String = <s:STRING> => {
+  let t = &s[1..s.bytes().count()-1];
+  string::parse_escapes(t).unwrap()
+};
+Symbol: String = <s:SYMBOL> => String::from(s);
+// NodePath: String = {
+//   <s:PATH> => {
+//     String::from(&s[1..])
+//   },
+//   <s:QUOTED_PATH> => {
+//     let t = &s[2..s.bytes().count()-1];
+//     string::parse_escapes(t).unwrap()
+//   },
+// };
+
+match {
+  r"\s*" => {},
+  r";[^\n\r]*[\n\r]?" => {}, // Line comments (starting with semicolon)
+  r"#\|([^|]|\|[^#])*\|#" => {}, // Block comments (nesting is not currently allowed)
+  "#t", "#f",
+  r"[+-]?[0-9]+" => INT,
+  r"[+-]?[0-9]+((\.[0-9]+)([eE][+-]?[0-9]+)?|(\.[0-9]+)?([eE][+-]?[0-9]+))" => FLOAT,
+  r#""([^\\"]|\\.)*""# => STRING,
+  //r"\$[A-Za-z0-9_~+=\-\\!$%^&*<>/?]+" => PATH,
+  //r#"\$"([^\\"]|\\.)*""# => QUOTED_PATH,
+  "(", ")", ".", "[", "]", "'", "#'", "`", ",", ":", "V{", "{", "}", ",.", "@",
+} else {
+  // A symbol consists of the following, in order:
+  //
+  // 1. A starting character
+  //
+  // 2. An initial segment of zero or more subsequent characters.
+  //
+  // 3. A sequence of zero or more qualifiers, where a qualifier is a
+  // dot followed by one or more subsequent characters.
+  //
+  // The starting character can be an ASCII letter, underscore, tilde,
+  // plus, equal sign, minus, backslash, forward slash, exclamation
+  // mark, percent, caret, ampersand, star, less than, greater than,
+  // question mark, or any Unicode character in the categories L, Mn,
+  // Nl, No, S, Pc, Pd, Po.
+  //
+  // The subsequent characters can be any starting character, an ASCII
+  // number, or any Unicode character in the category N.
+  r"[A-Za-z_~+=\-\\!%^&*<>/?[\p{L}\p{Mn}\p{No}\p{Nl}\p{S}\p{Pc}\p{Pd}\p{Po}--\p{Ascii}]][A-Za-z0-9_~+=\-\\!$%^&*<>/?[\p{L}\p{Mn}\p{N}\p{S}\p{Pc}\p{Pd}\p{Po}--\p{Ascii}]]*(\.[A-Za-z0-9_~+=\-\\!$%^&*<>/?[\p{L}\p{Mn}\p{N}\p{S}\p{Pc}\p{Pd}\p{Po}--\p{Ascii}]]+)*" => SYMBOL,
+}
+
+pub SExpr: SExpr = {
+  <ast: LiteralOrNestedSExpr> => ast,
+  <pos:@L> "'" <body: SExpr> => syntax::quote(body, SourceOffset(pos)),
+  //<pos:@L> "#'" <body: SExpr> => syntax::function(body, SourceOffset(pos)),
+  //<pos:@L> "`" <body: SExpr> => syntax::quasiquote(body, SourceOffset(pos)),
+  //<pos:@L> "," <body: SExpr> => syntax::unquote(body, SourceOffset(pos)),
+  //<pos:@L> ",." <body: SExpr> => syntax::unquote_spliced(body, SourceOffset(pos)),
+}
+
+pub SomeSExpr: SExpr = {
+  <pos:@L> <one: SExpr> => SExpr::cons(one, SExpr::nil(SourceOffset(pos)), SourceOffset(pos)),
+  <pos:@L> <first: SExpr> <rest: SomeSExpr> => SExpr::cons(first, rest, SourceOffset(pos)),
+}
+
+// This is here to fix an ambiguity with the grammar. Specifically, I
+// want ' a : b to parse as (quote (access-slot a b)), not
+// (access-slot (quote a) b). There is never a use case where the
+// latter would be helpful, as (quote a) has no GDScript-only slots on
+// it. The same applies to function and quasiquote. unquote is a bit
+// more nebulous, as there are use cases for either possible parse of
+// ,a:b, but I'm treating it the same as the other three for now.
+pub LiteralOrNestedSExpr: SExpr = {
+  <pos:@L> "#t" => SExpr::from_value(true, SourceOffset(pos)),
+  <pos:@L> "#f" => SExpr::from_value(false, SourceOffset(pos)),
+  <pos:@L> <i: Int> => SExpr::from_value(i, SourceOffset(pos)),
+  <pos:@L> <f: Float> => SExpr::from_value(f, SourceOffset(pos)),
+  <pos:@L> <s: String> => SExpr::string(s, SourceOffset(pos)),
+  <pos:@L> <s: Symbol> => SExpr::symbol(s, SourceOffset(pos)),
+  <pos:@L> "(" ")" => SExpr::nil(SourceOffset(pos)),
+  <pos:@L> "(" <car: SExpr> <cdr: Cdr> ")" => SExpr::cons(car, cdr, SourceOffset(pos)),
+  //<pos:@L> "[" <contents: ArrayContents> "]" => syntax::array(contents, SourceOffset(pos)),
+  //<pos:@L> "{" <contents: DictContents> "}" => syntax::dict(contents, SourceOffset(pos)),
+  //<pos:@L> "V{" <x: SExpr> <y: SExpr> "}" => syntax::vector2(x, y, SourceOffset(pos)),
+  //<pos:@L> "V{" <x: SExpr> <y: SExpr> <z: SExpr> "}" => syntax::vector3(x, y, z, SourceOffset(pos)),
+  //<pos:@L> <body: LiteralOrNestedSExpr> ":" <rpos:@L> <name: Symbol> => syntax::access_slot(body, SExpr::symbol(name, SourceOffset(rpos)), SourceOffset(pos)),
+  //<pos:@L> <body: LiteralOrNestedSExpr> ":" <rpos:@L> <path: NodePath> => syntax::get_node_on(body, SExpr::string(path, SourceOffset(pos)), SourceOffset(pos)),
+  //<pos:@L> <path: NodePath> => syntax::get_node_on(SExpr::symbol("self", SourceOffset(pos)), SExpr::string(path, SourceOffset(pos)), SourceOffset(pos)),
+  //<pos:@L> "@" <rpos:@L> <name: Symbol> => syntax::access_slot(SExpr::symbol("self", SourceOffset(pos)), SExpr::symbol(name, SourceOffset(rpos)), SourceOffset(pos)),
+}
+
+Cdr: SExpr = {
+  <pos:@L> => SExpr::nil(SourceOffset(pos)),
+  "." <cdr: SExpr> => cdr,
+  <pos:@L> <cadr: SExpr> <cddr: Cdr> => {
+    SExpr::cons(cadr, cddr, SourceOffset(pos))
+  }
+}
+
+ArrayContents: SExpr = {
+  <pos:@L> => SExpr::nil(SourceOffset(pos)),
+  <pos:@L> <first: SExpr> <rest: ArrayContents> => {
+    SExpr::cons(first, rest, SourceOffset(pos))
+  }
+}
+
+DictContents: SExpr = {
+  <pos:@L> => SExpr::nil(SourceOffset(pos)),
+  <pos:@L> <first_key: SExpr> <mpos:@L> <first_value: SExpr> <rest: DictContents> => {
+    SExpr::cons(first_key, SExpr::cons(first_value, rest, SourceOffset(mpos)), SourceOffset(pos))
+  }
+}
