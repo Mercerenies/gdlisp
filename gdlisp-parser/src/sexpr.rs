@@ -289,7 +289,7 @@ impl SExpr {
 
 }
 
-/// Pretty-print an AST, using a format compatible with
+/// Pretty-print an S-expression, using a format compatible with
 /// [`parser`](crate::parser). Cons cells whose cdr is a cons cell
 /// will be pretty-printed as list prefixes.
 impl fmt::Display for SExpr {
@@ -389,7 +389,7 @@ mod tests {
   }
 
   #[test]
-  fn runtime_repr_numerical() {
+  fn test_runtime_repr_numerical() {
     assert_eq!(int(150).to_string(), 150.to_string());
     assert_eq!(int(-99).to_string(), (-99).to_string());
     assert_eq!(SExpr::new(SExprF::from(0.83), SourceOffset::default()).to_string(), (0.83).to_string());
@@ -397,38 +397,39 @@ mod tests {
   }
 
   #[test]
-  fn runtime_repr_nil() {
+  fn test_runtime_repr_nil() {
     assert_eq!(SExpr::new(SExprF::Atom(Literal::Nil), SourceOffset::default()).to_string(), "()");
   }
 
   #[test]
-  fn runtime_repr_string() {
+  fn test_runtime_repr_string() {
     assert_eq!(SExpr::string("abc", SourceOffset::default()).to_string(), r#""abc""#);
     assert_eq!(SExpr::string("abc\"d", SourceOffset::default()).to_string(), r#""abc\"d""#);
     assert_eq!(SExpr::string("\\foo\"bar\\", SourceOffset::default()).to_string(), r#""\\foo\"bar\\""#);
   }
 
   #[test]
-  fn runtime_repr_symbol() {
+  fn test_runtime_repr_symbol() {
     assert_eq!(SExpr::symbol("foo", SourceOffset::default()).to_string(), "foo");
     assert_eq!(SExpr::symbol("bar", SourceOffset::default()).to_string(), "bar");
   }
 
   #[test]
-  fn runtime_repr_cons() {
+  fn test_runtime_repr_cons() {
     assert_eq!(cons(int(1), int(2)).to_string(), "(1 . 2)");
     assert_eq!(cons(int(1), cons(int(2), int(3))).to_string(), "(1 2 . 3)");
     assert_eq!(cons(int(1), cons(int(2), cons(int(3), nil()))).to_string(), "(1 2 3)");
   }
 
   #[test]
-  fn runtime_repr_list() {
+  fn test_runtime_repr_list() {
     assert_eq!(SExpr::dotted_list(vec!(int(1), int(2), int(3)), nil()).to_string(), "(1 2 3)");
     assert_eq!(SExpr::dotted_list(vec!(int(1), int(2), int(3)), int(4)).to_string(), "(1 2 3 . 4)");
+    assert_eq!(SExpr::list(vec!(int(1), int(2), int(3), int(4)), SourceOffset::default()).to_string(), "(1 2 3 4)");
   }
 
   #[test]
-  fn get_all_symbols() {
+  fn test_get_all_symbols() {
     assert_eq!(nil().all_symbols(), Vec::<&str>::new());
     assert_eq!(int(3).all_symbols(), Vec::<&str>::new());
     assert_eq!(SExpr::symbol("abc", SourceOffset::default()).all_symbols(), vec!("abc"));
@@ -440,7 +441,7 @@ mod tests {
   }
 
   #[test]
-  fn each_source() {
+  fn test_each_source() {
     let example1 = SExpr::symbol("foo", SourceOffset(3));
     let example2 = SExpr::symbol("foo", SourceOffset(13));
     assert_eq!(example1.map_source(add10), example2);
@@ -466,6 +467,56 @@ mod tests {
     assert_eq!(cons(cons(int(1), int(2)), cons(int(3), int(4))).depth(), 3);
     assert_eq!(cons(cons(int(1), int(2)), int(3)).depth(), 3);
     assert_eq!(cons(cons(int(1), int(2)), cons(int(3), nil())).depth(), 3);
+  }
+
+  #[test]
+  fn test_walk_preorder() {
+    let mut values = Vec::<String>::new();
+    let sexpr = cons(cons(int(1), int(2)), int(3));
+    sexpr.walk_preorder(|sexpr| {
+      values.push(sexpr.to_string());
+      Ok::<(), Infallible>(())
+    }).unwrap();
+    assert_eq!(values, vec!["((1 . 2) . 3)", "(1 . 2)", "1", "2", "3"]);
+  }
+
+  #[test]
+  fn test_walk_preorder_mut() {
+    let mut values = Vec::<String>::new();
+    let mut sexpr = cons(cons(int(1), int(2)), int(3));
+    sexpr.walk_preorder_mut(|sexpr| {
+      values.push(sexpr.to_string());
+      Ok::<(), Infallible>(())
+    }).unwrap();
+    assert_eq!(values, vec!["((1 . 2) . 3)", "(1 . 2)", "1", "2", "3"]);
+  }
+
+  #[test]
+  fn test_walk_postorder() {
+    let mut values = Vec::<String>::new();
+    let sexpr = cons(cons(int(1), int(2)), int(3));
+    sexpr.walk_postorder(|sexpr| {
+      values.push(sexpr.to_string());
+      Ok::<(), Infallible>(())
+    }).unwrap();
+    assert_eq!(values, vec!["1", "2", "(1 . 2)", "3", "((1 . 2) . 3)"]);
+  }
+
+  #[test]
+  fn test_walk_postorder_mut() {
+    let mut values = Vec::<String>::new();
+    let mut sexpr = cons(cons(int(1), int(2)), int(3));
+    sexpr.walk_postorder_mut(|sexpr| {
+      values.push(sexpr.to_string());
+      Ok::<(), Infallible>(())
+    }).unwrap();
+    assert_eq!(values, vec!["1", "2", "(1 . 2)", "3", "((1 . 2) . 3)"]);
+  }
+
+  #[test]
+  fn test_as_symbol_ref() {
+    assert!(SExpr::string("foo", SourceOffset(0)).as_symbol_ref().is_none());
+    assert_eq!(SExpr::symbol("xxx", SourceOffset(0)).as_symbol_ref(), Some("xxx"));
   }
 
 }
