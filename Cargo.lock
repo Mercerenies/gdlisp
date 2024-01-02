@@ -83,10 +83,13 @@ dependencies = [
  "gdextension-serde",
  "gdlisp-util",
  "godot",
- "lazy_static",
  "serde",
  "serde_repr",
 ]
+
+[[package]]
+name = "gdlisp-parser"
+version = "0.1.0"
 
 [[package]]
 name = "gdlisp-util"

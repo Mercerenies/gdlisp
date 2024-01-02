@@ -16,4 +16,3 @@ gdextension-api = { path = "../gdextension-api" }
 gdextension-serde = { path = "../gdextension-serde" }
 gdlisp-util = { path = "../gdlisp-util" }
 godot = { git = "https://github.com/Mercerenies/rust-gdextension", branch = "gdlisp-patches" }
-lazy_static = "1.4.0"
