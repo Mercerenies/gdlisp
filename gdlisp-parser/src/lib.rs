@@ -16,6 +16,7 @@
 // along with GDLisp. If not, see <https://www.gnu.org/licenses/>.
 
 #[macro_use] extern crate lalrpop_util;
+#[macro_use] extern crate lazy_static;
 
 pub mod dotted;
 pub mod literal;
@@ -27,3 +28,12 @@ lalrpop_mod!(
   #[allow(clippy::all)]
   pub parser
 );
+
+lazy_static! {
+
+  pub static ref SEXPR_PARSER: parser::SExprParser =
+    parser::SExprParser::new();
+
+  pub static ref SOME_SEXPR_PARSER: parser::SomeSExprParser =
+    parser::SomeSExprParser::new();
+}

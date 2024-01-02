@@ -81,9 +81,9 @@ pub SExpr: SExpr = {
   <ast: LiteralOrNestedSExpr> => ast,
   <pos:@L> "'" <body: SExpr> => syntax::quote(body, SourceOffset(pos)),
   //<pos:@L> "#'" <body: SExpr> => syntax::function(body, SourceOffset(pos)),
-  //<pos:@L> "`" <body: SExpr> => syntax::quasiquote(body, SourceOffset(pos)),
-  //<pos:@L> "," <body: SExpr> => syntax::unquote(body, SourceOffset(pos)),
-  //<pos:@L> ",." <body: SExpr> => syntax::unquote_spliced(body, SourceOffset(pos)),
+  <pos:@L> "`" <body: SExpr> => syntax::quasiquote(body, SourceOffset(pos)),
+  <pos:@L> "," <body: SExpr> => syntax::unquote(body, SourceOffset(pos)),
+  <pos:@L> ",." <body: SExpr> => syntax::unquote_spliced(body, SourceOffset(pos)),
 }
 
 pub SomeSExpr: SExpr = {
@@ -107,10 +107,10 @@ pub LiteralOrNestedSExpr: SExpr = {
   <pos:@L> <s: Symbol> => SExpr::symbol(s, SourceOffset(pos)),
   <pos:@L> "(" ")" => SExpr::nil(SourceOffset(pos)),
   <pos:@L> "(" <car: SExpr> <cdr: Cdr> ")" => SExpr::cons(car, cdr, SourceOffset(pos)),
-  //<pos:@L> "[" <contents: ArrayContents> "]" => syntax::array(contents, SourceOffset(pos)),
-  //<pos:@L> "{" <contents: DictContents> "}" => syntax::dict(contents, SourceOffset(pos)),
-  //<pos:@L> "V{" <x: SExpr> <y: SExpr> "}" => syntax::vector2(x, y, SourceOffset(pos)),
-  //<pos:@L> "V{" <x: SExpr> <y: SExpr> <z: SExpr> "}" => syntax::vector3(x, y, z, SourceOffset(pos)),
+  <pos:@L> "[" <contents: ArrayContents> "]" => syntax::array(contents, SourceOffset(pos)),
+  <pos:@L> "{" <contents: DictContents> "}" => syntax::dict(contents, SourceOffset(pos)),
+  <pos:@L> "V{" <x: SExpr> <y: SExpr> "}" => syntax::vector2(x, y, SourceOffset(pos)),
+  <pos:@L> "V{" <x: SExpr> <y: SExpr> <z: SExpr> "}" => syntax::vector3(x, y, z, SourceOffset(pos)),
   //<pos:@L> <body: LiteralOrNestedSExpr> ":" <rpos:@L> <name: Symbol> => syntax::access_slot(body, SExpr::symbol(name, SourceOffset(rpos)), SourceOffset(pos)),
   //<pos:@L> <body: LiteralOrNestedSExpr> ":" <rpos:@L> <path: NodePath> => syntax::get_node_on(body, SExpr::string(path, SourceOffset(pos)), SourceOffset(pos)),
   //<pos:@L> <path: NodePath> => syntax::get_node_on(SExpr::symbol("self", SourceOffset(pos)), SExpr::string(path, SourceOffset(pos)), SourceOffset(pos)),

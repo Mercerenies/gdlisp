@@ -206,6 +206,7 @@ dependencies = [
  "gdlisp-util",
  "lalrpop",
  "lalrpop-util",
+ "lazy_static",
  "ordered-float",
  "phf",
 ]
