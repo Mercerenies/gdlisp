@@ -1,4 +1,4 @@
-// Copyright 2023 Silvio Mayolo
+// Copyright 2023, 2024 Silvio Mayolo
 //
 // This file is part of GDLisp.
 //
@@ -18,10 +18,10 @@
 //! Wrapper struct and helpers for keeping track of positions in the
 //! source code.
 //!
-//! All source positions always refer to the original GDLisp source
+//! All source positions are relative to the original GDLisp source
 //! file, never to the position in an intermediate representation.
 
-use crate::util;
+use crate::read_to_end;
 
 use std::fmt;
 use std::io::{self, BufReader};
@@ -92,7 +92,7 @@ impl<'a, T: Sourced> SourcedValue<'a, T> {
   pub fn from_file<P>(value: &'a T, source_file: &P) -> io::Result<SourcedValue<'a, T>>
   where P: AsRef<Path> + ?Sized {
     let mut input_file = BufReader::new(File::open(source_file)?);
-    let file_contents = util::read_to_end(&mut input_file)?;
+    let file_contents = read_to_end(&mut input_file)?;
     Ok(SourcedValue::new(value, &file_contents))
   }
 
@@ -238,13 +238,15 @@ mod tests {
   }
 
   #[test]
-  fn test_offset() {
-
+  fn test_offset_one_line() {
     assert_eq!(SourcePos::from_offset(SourceOffset(0), "abc"), SourcePos::new(1, 1));
     assert_eq!(SourcePos::from_offset(SourceOffset(1), "abc"), SourcePos::new(1, 2));
     assert_eq!(SourcePos::from_offset(SourceOffset(2), "abc"), SourcePos::new(1, 3));
     assert_eq!(SourcePos::from_offset(SourceOffset(3), "abc"), SourcePos::new(1, 4));
+  }
 
+  #[test]
+  fn test_offset_newline() {
     assert_eq!(SourcePos::from_offset(SourceOffset(0), "abc\ndef"), SourcePos::new(1, 1));
     assert_eq!(SourcePos::from_offset(SourceOffset(1), "abc\ndef"), SourcePos::new(1, 2));
     assert_eq!(SourcePos::from_offset(SourceOffset(2), "abc\ndef"), SourcePos::new(1, 3));
@@ -253,7 +255,22 @@ mod tests {
     assert_eq!(SourcePos::from_offset(SourceOffset(5), "abc\ndef"), SourcePos::new(2, 2));
     assert_eq!(SourcePos::from_offset(SourceOffset(6), "abc\ndef"), SourcePos::new(2, 3));
     assert_eq!(SourcePos::from_offset(SourceOffset(7), "abc\ndef"), SourcePos::new(2, 4));
+  }
 
+  #[test]
+  fn test_offset_carriage_return() {
+    assert_eq!(SourcePos::from_offset(SourceOffset(0), "abc\rdef"), SourcePos::new(1, 1));
+    assert_eq!(SourcePos::from_offset(SourceOffset(1), "abc\rdef"), SourcePos::new(1, 2));
+    assert_eq!(SourcePos::from_offset(SourceOffset(2), "abc\rdef"), SourcePos::new(1, 3));
+    assert_eq!(SourcePos::from_offset(SourceOffset(3), "abc\rdef"), SourcePos::new(1, 4));
+    assert_eq!(SourcePos::from_offset(SourceOffset(4), "abc\rdef"), SourcePos::new(2, 1));
+    assert_eq!(SourcePos::from_offset(SourceOffset(5), "abc\rdef"), SourcePos::new(2, 2));
+    assert_eq!(SourcePos::from_offset(SourceOffset(6), "abc\rdef"), SourcePos::new(2, 3));
+    assert_eq!(SourcePos::from_offset(SourceOffset(7), "abc\rdef"), SourcePos::new(2, 4));
+  }
+
+  #[test]
+  fn test_offset_crlf() {
     assert_eq!(SourcePos::from_offset(SourceOffset(0), "abc\r\ndef"), SourcePos::new(1, 1));
     assert_eq!(SourcePos::from_offset(SourceOffset(1), "abc\r\ndef"), SourcePos::new(1, 2));
     assert_eq!(SourcePos::from_offset(SourceOffset(2), "abc\r\ndef"), SourcePos::new(1, 3));
@@ -263,7 +280,19 @@ mod tests {
     assert_eq!(SourcePos::from_offset(SourceOffset(6), "abc\r\ndef"), SourcePos::new(2, 2));
     assert_eq!(SourcePos::from_offset(SourceOffset(7), "abc\r\ndef"), SourcePos::new(2, 3));
     assert_eq!(SourcePos::from_offset(SourceOffset(8), "abc\r\ndef"), SourcePos::new(2, 4));
+  }
 
+  #[test]
+  fn test_offset_newline_then_carriage_return() {
+    assert_eq!(SourcePos::from_offset(SourceOffset(0), "abc\n\rdef"), SourcePos::new(1, 1));
+    assert_eq!(SourcePos::from_offset(SourceOffset(1), "abc\n\rdef"), SourcePos::new(1, 2));
+    assert_eq!(SourcePos::from_offset(SourceOffset(2), "abc\n\rdef"), SourcePos::new(1, 3));
+    assert_eq!(SourcePos::from_offset(SourceOffset(3), "abc\n\rdef"), SourcePos::new(1, 4));
+    assert_eq!(SourcePos::from_offset(SourceOffset(4), "abc\n\rdef"), SourcePos::new(2, 1));
+    assert_eq!(SourcePos::from_offset(SourceOffset(5), "abc\n\rdef"), SourcePos::new(3, 1));
+    assert_eq!(SourcePos::from_offset(SourceOffset(6), "abc\n\rdef"), SourcePos::new(3, 2));
+    assert_eq!(SourcePos::from_offset(SourceOffset(7), "abc\n\rdef"), SourcePos::new(3, 3));
+    assert_eq!(SourcePos::from_offset(SourceOffset(8), "abc\n\rdef"), SourcePos::new(3, 4));
   }
 
 }

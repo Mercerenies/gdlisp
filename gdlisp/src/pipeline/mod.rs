@@ -22,7 +22,6 @@ pub mod config;
 pub mod loader;
 pub mod resolver;
 pub mod can_load;
-pub mod source;
 
 use translation_unit::TranslationUnit;
 use config::ProjectConfig;

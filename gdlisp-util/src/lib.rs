@@ -24,6 +24,7 @@ pub mod lazy;
 pub mod path;
 pub mod prefix_matcher;
 pub mod recursive;
+pub mod source;
 
 use std::collections::HashMap;
 use std::hash::Hash;
