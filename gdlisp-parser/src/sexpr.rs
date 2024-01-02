@@ -263,8 +263,10 @@ impl SExpr {
   ///
   /// For the inverse operation of converted an [`SExprF`] *back* into a
   /// sequence and terminator, see [`crate::dotted::DottedExpr`].
-  pub fn dotted_list(vec: Vec<SExpr>, terminal: SExpr) -> SExpr {
-    vec.into_iter().rev().fold(terminal, SExpr::dotted_list_fold) // NOTE: Arguments reversed
+  pub fn dotted_list<I, J>(iterable: I, terminal: SExpr) -> SExpr
+  where I : IntoIterator<IntoIter = J>,
+        J : DoubleEndedIterator<Item = SExpr> {
+    iterable.into_iter().rev().fold(terminal, SExpr::dotted_list_fold) // NOTE: Arguments reversed
   }
 
   fn dotted_list_fold(cdr: SExpr, car: SExpr) -> SExpr { // NOTE: Arguments reversed from the usual order
@@ -273,8 +275,10 @@ impl SExpr {
   }
 
   /// A dotted list terminated by nil at the given source position.
-  pub fn list(vec: Vec<SExpr>, nil_pos: SourceOffset) -> SExpr {
-    SExpr::dotted_list(vec, SExpr::nil(nil_pos))
+  pub fn list<I, J>(iterable: I, nil_pos: SourceOffset) -> SExpr
+  where I : IntoIterator<IntoIter = J>,
+        J : DoubleEndedIterator<Item = SExpr> {
+    SExpr::dotted_list(iterable, SExpr::nil(nil_pos))
   }
 
   /// Uses a [`From`] instance of [`SExprF`] to construct an `SExpr`.
