@@ -6,6 +6,7 @@ members = [
     "gdextension-api",
     "gdextension-serde",
     "gdlisp-core",
+    "gdlisp-parser",
     "gdlisp-util",
 
     # Godot test crates
