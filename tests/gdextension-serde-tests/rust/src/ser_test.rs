@@ -22,9 +22,9 @@ struct RegularStruct {
 
 #[derive(Serialize)]
 enum MyEnum {
-  UnitEnum,
-  NewtypeEnum(i64),
-  StructEnum { x: i64 },
+  Unit,
+  Newtype(i64),
+  Struct { x: i64 },
 }
 
 #[gditest]
@@ -37,11 +37,11 @@ fn serialize_unit_test() {
 fn serialize_bool_test() {
   let variant = to_variant(&false).unwrap();
   assert_eq!(variant.get_type(), VariantType::Bool);
-  assert_eq!(variant.to::<bool>(), false);
+  assert!(!variant.to::<bool>());
 
   let variant = to_variant(&true).unwrap();
   assert_eq!(variant.get_type(), VariantType::Bool);
-  assert_eq!(variant.to::<bool>(), true);
+  assert!(variant.to::<bool>());
 }
 
 #[gditest]
@@ -212,19 +212,19 @@ fn serialize_struct_test() {
 
 #[gditest]
 fn serialize_unit_enum_test() {
-  let variant = to_variant(&MyEnum::UnitEnum).unwrap();
+  let variant = to_variant(&MyEnum::Unit).unwrap();
   assert_eq!(variant.get_type(), VariantType::String);
-  assert_eq!(variant.to::<String>(), String::from("UnitEnum"));
+  assert_eq!(variant.to::<String>(), String::from("Unit"));
 }
 
 #[gditest]
 fn serialize_newtype_enum_test() {
-  let variant = to_variant(&MyEnum::NewtypeEnum(10)).unwrap();
+  let variant = to_variant(&MyEnum::Newtype(10)).unwrap();
   assert_eq!(variant.get_type(), VariantType::Dictionary);
   let dict = variant.to::<Dictionary>();
   let expected_dict = {
     let mut expected_dict = Dictionary::new();
-    expected_dict.insert("NewtypeEnum", 10i64);
+    expected_dict.insert("Newtype", 10i64);
     expected_dict
   };
   assert_eq!(dict, expected_dict);
@@ -232,12 +232,12 @@ fn serialize_newtype_enum_test() {
 
 #[gditest]
 fn serialize_struct_enum_test() {
-  let my_value = MyEnum::StructEnum { x: 9 };
+  let my_value = MyEnum::Struct { x: 9 };
   let variant = to_variant(&my_value).unwrap();
   assert_eq!(variant.get_type(), VariantType::Dictionary);
   let dictionary = variant.to::<Dictionary>();
   assert_eq!(dictionary.len(), 1);
-  let inner_dictionary = dictionary.get("StructEnum").unwrap().to::<Dictionary>();
+  let inner_dictionary = dictionary.get("Struct").unwrap().to::<Dictionary>();
   assert_eq!(inner_dictionary.len(), 1);
   assert_eq!(inner_dictionary.get("x").unwrap().to::<i64>(), 9);
 }

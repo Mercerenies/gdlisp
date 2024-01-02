@@ -146,6 +146,7 @@ fn parse_unicode_sequence(iter: &mut impl Iterator<Item=char>,
 
 /// Returns true if the character is a hexadecimal digit
 /// (case-insensitive).
+#[allow(clippy::manual_is_ascii_check)] // Readability (consistency with 'a'..'f' checks)
 fn is_hex_digit(digit: char) -> bool {
   ('0'..='9').contains(&digit) ||
     ('a'..='f').contains(&digit) ||

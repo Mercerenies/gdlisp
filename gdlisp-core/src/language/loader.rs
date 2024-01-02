@@ -56,7 +56,7 @@ impl IResourceFormatLoader for GDLispResourceFormatLoader {
   }
 
   fn handles_type(&self, type_: StringName) -> bool {
-    return type_ == StringName::from("GDLispScript")
+    type_ == StringName::from("GDLispScript")
   }
 
   fn get_resource_type(&self, path: GString) -> GString {

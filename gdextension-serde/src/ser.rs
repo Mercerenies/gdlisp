@@ -11,6 +11,7 @@ use godot::prelude::{Variant, PackedByteArray, Dictionary, Array, ToGodot};
 
 use std::marker::PhantomData;
 
+#[derive(Default)]
 pub struct Serializer {
   private: PhantomData<()>,
 }
