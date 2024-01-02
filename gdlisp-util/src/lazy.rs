@@ -1,4 +1,4 @@
-// Copyright 2023 Silvio Mayolo
+// Copyright 2023, 2024 Silvio Mayolo
 //
 // This file is part of GDLisp.
 //
