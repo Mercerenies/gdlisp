@@ -192,6 +192,7 @@ pub fn find_or_else_mut<T>(vec: &mut Vec<T>, default: impl FnOnce() -> T, mut pr
 #[cfg(test)]
 mod tests {
   use super::*;
+  use std::io::Cursor;
 
   #[derive(Eq, PartialEq, Copy, Clone, Debug)]
   struct FakeError;
@@ -236,7 +237,7 @@ mod tests {
   }
 
   #[test]
-  fn find_or_else_mut_1() {
+  fn find_or_else_mut_test_1() {
     // If it already exists
     let mut v = vec!(1, 2, 3, 4);
     {
@@ -247,7 +248,7 @@ mod tests {
   }
 
   #[test]
-  fn find_or_else_mut_2() {
+  fn find_or_else_mut_test_2() {
     // If it doesn't exist
     let mut v = vec!(1, 2, 3, 4);
     {
@@ -255,6 +256,36 @@ mod tests {
       assert_eq!(m, &mut 10);
     }
     assert_eq!(v, vec!(1, 2, 3, 4, 10));
+  }
+
+  #[test]
+  fn merge_hashmap_inplace_test() {
+    let mut map1 = HashMap::from([(String::from("X"), 1), (String::from("Y"), 10)]);
+    let map2 = HashMap::from([(String::from("Y"), 25), (String::from("Z"), 30)]);
+    merge_hashmap_inplace(&mut map1, map2, |a, b| a + b);
+    assert_eq!(map1, HashMap::from([(String::from("X"), 1), (String::from("Y"), 35), (String::from("Z"), 30)]));
+  }
+
+  #[test]
+  fn read_to_end_success_test() {
+    let mut bytes = Cursor::new([65, 66, 67]);
+    let s = read_to_end(&mut bytes).unwrap();
+    assert_eq!(s, String::from("ABC"));
+  }
+
+  #[test]
+  fn read_to_end_failure_test() {
+    // Note: 192 is the first half of a two-byte character that we
+    // never terminate. Invalid UTF-8.
+    let mut bytes = Cursor::new([65, 66, 192]);
+    let err = read_to_end(&mut bytes).unwrap_err();
+    assert_eq!(err.kind(), io::ErrorKind::InvalidData);
+  }
+
+  #[test]
+  fn option_to_vec_test() {
+    assert_eq!(option_to_vec(None::<i64>), vec!());
+    assert_eq!(option_to_vec(Some(1)), vec!(1));
   }
 
 }
