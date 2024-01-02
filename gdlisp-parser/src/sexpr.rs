@@ -64,6 +64,13 @@ fn fmt_list(a: &SExpr, b: &SExpr, f: &mut fmt::Formatter<'_>) -> fmt::Result {
   }
 }
 
+impl SExprF {
+
+  /// The nil S-expression.
+  pub const NIL: SExprF = SExprF::Atom(Literal::Nil);
+
+}
+
 impl SExpr {
 
   /// A new `SExpr` containing the given value and position.
