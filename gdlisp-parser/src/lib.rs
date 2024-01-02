@@ -16,4 +16,5 @@
 // along with GDLisp. If not, see <https://www.gnu.org/licenses/>.
 
 pub mod literal;
+pub mod sexpr;
 pub mod string;

@@ -47,8 +47,14 @@ pub enum Literal {
 
 impl Literal {
 
-  pub fn symbol<S: AsRef<str> + ?Sized>(s: &S) -> Literal {
-    Literal::Symbol(s.as_ref().to_string())
+  pub fn symbol<S>(s: S) -> Literal
+  where String : From<S> {
+    Literal::Symbol(s.into())
+  }
+
+  pub fn string<S>(s: S) -> Literal
+  where String : From<S> {
+    Literal::String(s.into())
   }
 
 }

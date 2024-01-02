@@ -97,6 +97,7 @@ dependencies = [
 name = "gdlisp-parser"
 version = "0.1.0"
 dependencies = [
+ "gdlisp-util",
  "ordered-float",
  "phf",
 ]
