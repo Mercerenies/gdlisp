@@ -193,6 +193,7 @@ version = "0.1.0"
 dependencies = [
  "gdextension-api",
  "gdextension-serde",
+ "gdlisp-parser",
  "gdlisp-util",
  "godot",
  "serde",

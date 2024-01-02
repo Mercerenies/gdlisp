@@ -15,4 +15,5 @@ serde_repr = "0.1"
 gdextension-api = { path = "../gdextension-api" }
 gdextension-serde = { path = "../gdextension-serde" }
 gdlisp-util = { path = "../gdlisp-util" }
+gdlisp-parser = { path = "../gdlisp-parser" }
 godot = { git = "https://github.com/Mercerenies/rust-gdextension", branch = "gdlisp-patches" }
