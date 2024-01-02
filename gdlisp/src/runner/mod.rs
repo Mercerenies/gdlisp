@@ -26,7 +26,6 @@ pub mod godot;
 pub mod into_gd_file;
 pub mod macro_server;
 pub mod named_file;
-pub mod path;
 pub mod version;
 
 use godot::GodotCommand;
