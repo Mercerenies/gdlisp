@@ -85,12 +85,12 @@ impl IScriptLanguageExtension for GDLispScriptLanguage {
 
   fn on_notification(&mut self, _what: ObjectNotification) {
     // TODO
-    println!("notification");
+    println!("GDLispScriptLanguage.on_notification");
   }
 
   fn init_ext(&mut self) {
     // TODO
-    println!("init_ext");
+    println!("GDLispScriptLanguage.init_ext");
   }
 
   fn get_type(&self) -> GString {
@@ -103,15 +103,16 @@ impl IScriptLanguageExtension for GDLispScriptLanguage {
 
   fn finish(&mut self) {
     // TODO
+    println!("GDLispScriptLanguage.finish");
   }
 
   fn get_reserved_words(&self) -> PackedStringArray {
-    println!("reserved");
+    println!("GDLispScriptLanguage.get_reserved_words");
     PackedStringArray::new() // TODO
   }
 
   fn is_control_flow_keyword(&self, _keyword: GString) -> bool {
-    println!("control_flow");
+    println!("GDLispScriptLanguage.is_control_flow_keyword");
     false // TODO
   }
 
@@ -134,6 +135,7 @@ impl IScriptLanguageExtension for GDLispScriptLanguage {
     _class_name: GString,
     _base_class_name: GString,
   ) -> Option<Gd<Script>> {
+    println!("GDLispScriptLanguage.make_template");
     let mut script = GDLispScript::new_gd();
     script.set_source_code(template);
     Some(script.upcast())
@@ -161,6 +163,7 @@ impl IScriptLanguageExtension for GDLispScriptLanguage {
     _validate_safe_lines: bool,
   ) -> Dictionary {
     // TODO This for real
+    println!("GDLispScriptLanguage.validate");
     let validation = Validation {
       functions: vec![],
       errors: vec![],
@@ -177,7 +180,7 @@ impl IScriptLanguageExtension for GDLispScriptLanguage {
   }
 
   fn create_script(&self) -> Option<Gd<Object>> {
-    println!("create s");
+    println!("GDLispScriptLanguage.create_script");
     Some(GDLispScript::new_gd().upcast())
   }
 
@@ -194,14 +197,14 @@ impl IScriptLanguageExtension for GDLispScriptLanguage {
   }
 
   fn can_inherit_from_file(&self) -> bool {
-    println!("can inher");
+    println!("GDLispScriptLanguage.can_inherit_from_file");
     true // TODO What is this?
   }
 
   // Note: The upstream Godot repo seems to have these arguments named
   // incorrectly. This is how they're actually used in Godot.
   fn find_function(&self, _function_name: GString, _code: GString) -> i32 {
-    println!("find fun");
+    println!("GDLispScriptLanguage.find_function");
     -1 // TODO
   }
 
@@ -211,7 +214,7 @@ impl IScriptLanguageExtension for GDLispScriptLanguage {
     _function_name: GString,
     _function_args: PackedStringArray,
   ) -> GString {
-    println!("make fun");
+    println!("GDLispScriptLanguage.make_function");
     GString::from("") // TODO
   }
 
@@ -227,7 +230,7 @@ impl IScriptLanguageExtension for GDLispScriptLanguage {
   }
 
   fn overrides_external_editor(&mut self) -> bool {
-    println!("override ext");
+    println!("GDLispScriptLanguage.overrides_external_editor");
     false // TODO
   }
 
@@ -237,7 +240,7 @@ impl IScriptLanguageExtension for GDLispScriptLanguage {
     _path: GString,
     _owner: Gd<Object>,
   ) -> Dictionary {
-    println!("complete co");
+    println!("GDLispScriptLanguage.complete_code");
     Dictionary::new() // TODO
   }
 
@@ -248,17 +251,17 @@ impl IScriptLanguageExtension for GDLispScriptLanguage {
     _path: GString,
     _owner: Gd<Object>,
   ) -> Dictionary {
-    println!("lookup co");
+    println!("GDLispScriptLanguage.lookup_code");
     Dictionary::new() // TODO
   }
 
   fn auto_indent_code(&self, code: GString, _from_line: i32, _to_line: i32) -> GString {
-    println!("auto indent");
+    println!("GDLispScriptLanguage.auto_indent_code");
     code // TODO
   }
 
   fn add_global_constant(&mut self, _name: StringName, _value: Variant) {
-    println!("add glob");
+    println!("GDLispScriptLanguage.add_global_constant");
     // TODO
   }
 
@@ -273,12 +276,12 @@ impl IScriptLanguageExtension for GDLispScriptLanguage {
   }
 
   fn thread_enter(&mut self) {
-    println!("thread enter");
+    println!("GDLispScriptLanguage.thread_enter");
     // TODO
   }
 
   fn thread_exit(&mut self) {
-    println!("thread exit");
+    println!("GDLispScriptLanguage.thread_exit");
     // TODO
   }
 
@@ -344,27 +347,27 @@ impl IScriptLanguageExtension for GDLispScriptLanguage {
   }
 
   fn reload_all_scripts(&mut self) {
-    println!("reload all");
+    println!("GDLispScriptLanguage.reload_all_scripts");
     // TODO
   }
   fn reload_tool_script(&mut self, _script: Gd<Script>, _soft_reload: bool) {
-    println!("reload tool");
+    println!("GDLispScriptLanguage.reload_tool_script");
     // TODO
   }
   fn get_recognized_extensions(&self) -> PackedStringArray {
-    println!("get rec");
+    println!("GDLispScriptLanguage.get_recognized_extensions");
     PackedStringArray::from(&[GString::from("lisp")])
   }
   fn get_public_functions(&self) -> Array<Dictionary> {
-    println!("get publi fun");
+    println!("GDLispScriptLanguage.get_public_functions");
     Array::new() // TODO
   }
   fn get_public_constants(&self) -> Dictionary {
-    println!("get publi con");
+    println!("GDLispScriptLanguage.get_public_constants");
     Dictionary::new() // TODO
   }
   fn get_public_annotations(&self) -> Array<Dictionary> {
-    println!("get publi ann");
+    println!("GDLispScriptLanguage.get_public_annotations");
     Array::new() // TODO
   }
   fn profiling_start(&mut self) {

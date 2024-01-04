@@ -16,6 +16,7 @@
 // along with GDLisp. If not, see <https://www.gnu.org/licenses/>.
 
 pub mod init;
+pub mod instance;
 pub mod language;
 pub mod script;
 pub mod singleton;

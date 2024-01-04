@@ -72,7 +72,8 @@ impl IResourceFormatLoader for GDLispResourceFormatLoader {
   }
 
   fn handles_type(&self, type_: StringName) -> bool {
-    type_ == StringName::from("GDLispScript")
+    println!("GDLispResourceFormatLoader.handles_type {}", &type_);
+    type_ == StringName::from("Script") || type_ == StringName::from("GDLispScript")
   }
 
   fn get_resource_type(&self, path: GString) -> GString {
@@ -86,6 +87,7 @@ impl IResourceFormatLoader for GDLispResourceFormatLoader {
 
   fn get_resource_script_class(&self, _path: GString) -> GString {
     // TODO (Named classes)
+    println!("ResourceFormatLoader.get_resource_script_class");
     GString::new()
   }
 
@@ -97,6 +99,7 @@ impl IResourceFormatLoader for GDLispResourceFormatLoader {
     _cache_mode: i32,
   ) -> Variant {
     // TODO Caching
+    println!("ResourceFormatLoader.load");
     match FileAccess::open(path, ModeFlags::READ) {
       None => {
         Variant::from(FileAccess::get_open_error())

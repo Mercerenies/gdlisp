@@ -79,6 +79,7 @@ impl IResourceFormatSaver for GDLispResourceFormatSaver {
   }
 
   fn save(&mut self, resource: Gd<Resource>, path: GString, _flags: u32) -> global::Error {
+    println!("GDLispResourceFormatSaver.save");
     match resource.try_cast::<GDLispScript>() {
       Err(_) => {
         global::Error::ERR_INVALID_PARAMETER
