@@ -90,7 +90,7 @@ impl IScriptLanguageExtension for GDLispScriptLanguage {
 
   fn init_ext(&mut self) {
     // TODO
-    println!("GDLispScriptLanguage.init_ext");
+    println!("GDLispScriptLanguage.init_ext {:p}", self);
   }
 
   fn get_type(&self) -> GString {

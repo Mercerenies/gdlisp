@@ -87,7 +87,7 @@ impl IResourceFormatLoader for GDLispResourceFormatLoader {
 
   fn get_resource_script_class(&self, _path: GString) -> GString {
     // TODO (Named classes)
-    println!("ResourceFormatLoader.get_resource_script_class");
+    println!("GDLispResourceFormatLoader.get_resource_script_class");
     GString::new()
   }
 
@@ -99,13 +99,13 @@ impl IResourceFormatLoader for GDLispResourceFormatLoader {
     _cache_mode: i32,
   ) -> Variant {
     // TODO Caching
-    println!("ResourceFormatLoader.load");
+    println!("GDLispResourceFormatLoader.load {}", &path);
     match FileAccess::open(path, ModeFlags::READ) {
       None => {
         Variant::from(FileAccess::get_open_error())
       }
       Some(file) => {
-        let mut resource = GDLispScript::new_gd();
+        let mut resource: Gd<GDLispScript> = GDLispScript::new_gd();
         resource.set_source_code(file.get_as_text());
         resource.set_path(original_path);
         Variant::from(resource)

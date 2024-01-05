@@ -128,6 +128,7 @@ impl IScriptExtension for GDLispScript {
   }
 
   fn set_source_code(&mut self, code: GString) {
+    println!("GDLispScript.set_source_code");
     self.source_code = Some(code);
   }
 
